@@ -4,7 +4,7 @@
 program-name := hello_test
 
 # compiled Verilator simulator
-simulator-binary := build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system
+simulator-binary := build/zeroasic_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system
 
 # compiled ELF
 program-elf := sw/$(program-name)/$(program-name).elf
@@ -17,9 +17,15 @@ run:
 # build Verilator simulator
 .PHONY: simulator
 simulator:
-	fusesoc --cores-root=. run --target=sim --setup --build lowrisc:ibex:ibex_simple_system
+	fusesoc --cores-root=. run --target=sim --setup --build zeroasic:ibex:ibex_simple_system
 
 # compile ELF
 .PHONY: elf
 elf:
 	make -C sw/$(program-name)
+
+# clean build outputs
+.PHONY: clean
+clean:
+	rm -rf build *.csv *.log
+	make -C sw/$(program-name) clean distclean

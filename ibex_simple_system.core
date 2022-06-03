@@ -2,12 +2,12 @@ CAPI=2:
 # Copyright lowRISC contributors.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
-name: "lowrisc:ibex:ibex_simple_system"
+name: "zeroasic:ibex:ibex_simple_system"
 description: "Generic simple system for running binaries on ibex using verilator"
 filesets:
   files_simple_system:
     depend:
-      - lowrisc:ibex:ibex_simple_system_core
+      - zeroasic:ibex:ibex_simple_system_core
     files:
       - tool_verilator ? (ibex_simple_system_main.cc)
     file_type: cppSource
@@ -144,18 +144,6 @@ targets:
       - MHPMCounterNum
       - MHPMCounterWidth
       - SRAMInitFile
-
-  lint:
-    <<: *default_target
-    default_tool: verilator
-    tools:
-      verilator:
-        mode: lint-only
-        verilator_options:
-          - "-Wall"
-          # RAM primitives wider than 64bit (required for ECC) fail to build in
-          # Verilator without increasing the unroll count (see Verilator#1266)
-          - "--unroll-count 72"
 
   sim:
     <<: *default_target
