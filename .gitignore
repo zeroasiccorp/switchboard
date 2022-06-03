@@ -13,5 +13,8 @@ tags
 *.elf
 *.hex
 
+# other outputs
+*.log
+
 # Python cache files
 __pycache__

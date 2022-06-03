@@ -1,7 +1,7 @@
 TOOLCHAIN_PREFIX := riscv64-unknown-elf-
 
 firmware.hex: firmware.bin
-	python makehex.py firmware.bin 32768 > firmware.hex
+	python3 makehex.py firmware.bin 32768 > firmware.hex
 
 firmware.bin: firmware.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary firmware.elf firmware.bin

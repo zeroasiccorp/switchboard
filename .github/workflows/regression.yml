@@ -1,0 +1,25 @@
+name: Regression test
+on: push
+
+jobs:
+  benchmark:
+    name: Regression test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install prerequisites
+        run: |
+          pip3 install fusesoc && \
+          sudo apt-get install gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+      - name: Build firmware and simulator
+        run: |
+          make hex && \
+          make simulator
+      - name: Run simulator
+        run: |
+          set -o pipefail && \
+          make run | tee out.log
+      - name: Check results
+        run: |
+          grep -Fxq "Hello World\!" out.log && \
+          grep -Fxq "ALL TESTS PASSED." out.log
