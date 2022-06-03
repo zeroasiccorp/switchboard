@@ -1,0 +1,21 @@
+CAPI=2:
+
+name: ::testbench:0-r1
+
+filesets:
+    all:
+        depend:
+            - ::picorv32
+        files:
+            - sim/testbench.cc: {file_type: cppSource}
+            - sim/testbench.v: {file_type: systemVerilogSource}
+
+targets:
+    default:
+        filesets: [all]
+        toplevel: picorv32_wrapper
+        default_tool: verilator
+        tools:
+            verilator:
+                mode: cc
+                verilator_options: [-Wno-lint, -trace]

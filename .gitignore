@@ -1,10 +1,6 @@
 # Build output
 build
 
-# fusesoc storage
-fusesoc.conf
-fusesoc_libraries
-
 # Common editor/IDE config and temporary files
 .project
 .vscode/
@@ -12,12 +8,10 @@ fusesoc_libraries
 tags
 *~
 
-# ibex_tracer log file
-trace_core_*.log
-
-# Simple system output files
-ibex_simple_system.log
-ibex_simple_system_pcount.csv
+# binary outputs
+*.bin
+*.elf
+*.hex
 
 # Python cache files
 __pycache__

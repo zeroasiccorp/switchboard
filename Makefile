@@ -4,28 +4,25 @@
 program-name := hello_test
 
 # compiled Verilator simulator
-simulator-binary := build/zeroasic_ibex_ibex_simple_system_0/default-verilator/Vibex_simple_system
-
-# compiled ELF
-program-elf := sw/$(program-name)/$(program-name).elf
+simulator-binary := build/zeroasic_interposer_verif_picorv32_simple_system_0/default-verilator/Vpicorv32_simple_system
 
 # run Verilator simulator
 .PHONY: run
 run:
-	$(simulator-binary) --meminit=ram,$(program-elf)
+	$(simulator-binary)
 
 # build Verilator simulator
 .PHONY: simulator
 simulator:
-	fusesoc --cores-root=. run --setup --build zeroasic:ibex:ibex_simple_system
+	fusesoc --cores-root=. run --setup --build ::testbench
 
-# compile ELF
-.PHONY: elf
-elf:
-	make -C sw/$(program-name)
+# compile HEX
+.PHONY: hex
+hex:
+	make -C firmware
 
 # clean build outputs
 .PHONY: clean
 clean:
-	rm -rf build *.csv *.log
-	make -C sw/$(program-name) clean distclean
+	rm -rf build
+	make -C firmware clean

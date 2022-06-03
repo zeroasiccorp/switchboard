@@ -1,0 +1,35 @@
+CAPI=2:
+
+name : ::picorv32:0-r1
+
+filesets:
+  rtl:
+    files: [picorv32.v]
+    file_type : verilogSource
+
+targets:
+  default:
+    filesets: [rtl]
+
+parameters:
+  COMPRESSED_ISA:
+    datatype : str
+    paramtype : vlogdefine
+  axi_test:
+    datatype : bool
+    paramtype : plusarg
+  firmware:
+    datatype : file
+    paramtype : plusarg
+  noerror:
+    datatype : bool
+    paramtype : plusarg
+  trace:
+    datatype : bool
+    paramtype : plusarg
+  vcd:
+    datatype : bool
+    paramtype : plusarg
+  verbose:
+    datatype : bool
+    paramtype : plusarg
