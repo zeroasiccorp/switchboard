@@ -21,5 +21,5 @@ jobs:
           make run | tee out.log
       - name: Check results
         run: |
-          grep -Fxq "Hello World\!" out.log && \
+          grep -Fxq "Hello World!" out.log && \
           grep -Fxq "ALL TESTS PASSED." out.log
