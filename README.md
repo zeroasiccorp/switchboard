@@ -4,6 +4,42 @@
 
 Repository containing infrastructure and tests for the interposer design; eventually tests may be moved to a separate repository.  Currently contains code to run a "Hello World" program on a PicoRV32 processor with Verilator, with simple output checks performed in GitHub Actions.
 
+## Installation
+
+Clone the repository:
+
+```shell
+git clone https://github.com/zeroasiccorp/interposer-verif.git
+```
+
+Then:
+
+### Linux
+
+```shell
+pip3 install fusesoc
+```
+
+```shell
+sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+```
+
+### macOS
+
+```shell
+brew tap riscv/riscv
+```
+
+```shell
+brew install riscv-tools verilator
+```
+
+## Running the code
+
+* ``make simulator``: Build a simulator binary with Verilator
+* ``make hex``: Build a binary to use in the simulator.
+* ``make run``: Run the simulator using the binary that was built.
+
 ## Related
 
 The starting point for this work was PicoRV32 and its simulation flow (https://github.com/YosysHQ/picorv32).  That code was reorganized towards our goal of having a separate verification repository, although the PicoRV32 implementation still resides here since interposer RTL is not yet available.  While PicoRV32 could have been pulled in via FuseSoC, it turns out that it needed to be slightly edited to support the default Verilator versions installed on Ubuntu (via `apt`) and macOS (via `brew`).  So for now, the PicoRV32 source code is in this repository, and it will be removed once interposer RTL is available.
