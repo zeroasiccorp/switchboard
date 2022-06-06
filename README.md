@@ -12,7 +12,7 @@ Clone the repository:
 git clone https://github.com/zeroasiccorp/interposer-verif.git
 ```
 
-Then:
+Then install the prerequisites as described below for Linux and macOS.  You may want to consider `pip`-installing in a `conda` environment, if you think that you will need to have multiple versions of `fusesoc` for different projects, or if you just want to avoid cluttering the base environment.
 
 ### Linux
 
@@ -25,6 +25,10 @@ sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-
 ```
 
 ### macOS
+
+```shell
+pip3 install fusesoc
+```
 
 ```shell
 brew tap riscv/riscv
