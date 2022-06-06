@@ -19,4 +19,4 @@ targets:
         tools:
             verilator:
                 mode: cc
-                verilator_options: [-trace]
+                verilator_options: ["-CFLAGS -Wno-unknown-warning-option", -trace]
