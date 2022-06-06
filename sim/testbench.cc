@@ -34,7 +34,7 @@ int main(int argc, char **argv, char **env)
 		top->clk = !top->clk;
 		top->eval();
 		if (tfp) tfp->dump (t);
-		if (trace_fd && top->clk && top->trace_valid) fprintf(trace_fd, "%9.9lx\n", top->trace_data);
+		if (trace_fd && top->clk && top->trace_valid) fprintf(trace_fd, "%9.9llx\n", top->trace_data);
 		t += 5;
 	}
 	if (tfp) tfp->close();

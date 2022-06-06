@@ -8,7 +8,8 @@ filesets:
             - ::picorv32
         files:
             - sim/testbench.cc: {file_type: cppSource}
-            - sim/testbench.v: {file_type: systemVerilogSource}
+            - sim/axi4_memory.v: {file_type: verilogSource}
+            - sim/picorv32_wrapper.v: {file_type: verilogSource}
 
 targets:
     default:
@@ -18,4 +19,4 @@ targets:
         tools:
             verilator:
                 mode: cc
-                verilator_options: [-Wno-lint, -trace]
+                verilator_options: [-trace]
