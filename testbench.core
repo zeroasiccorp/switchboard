@@ -19,4 +19,14 @@ targets:
         tools:
             verilator:
                 mode: cc
-                verilator_options: ["-CFLAGS -Wno-unknown-warning-option", -trace]
+                verilator_options:
+                    # the "unknown-warning-option" warning needs to be disabled since
+                    # the compiler is sometimes passed options not implemented in clang
+                    # on macOS, and this clutters the compiler output with warnings that
+                    # mask more serious issues.
+                    - "-CFLAGS -Wno-unknown-warning-option"
+
+                    # this option is needed, even if tracing is disabled, so that
+                    # Verilator generates C code refering to trace capabilities,
+                    # which is referenced in testbench.cc
+                    - "-trace"
