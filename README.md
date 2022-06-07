@@ -43,6 +43,8 @@ brew install riscv-tools verilator
 * ``make simulator``: Build a simulator binary with Verilator
 * ``make hex``: Build a binary to use in the simulator.
 * ``make run``: Run the simulator using the binary that was built.
+* ``make qemu``: Run QEMU emulator on the binary.
+* ``make spike``: Run Spike emulator on the binary.
 
 ## Related
 
