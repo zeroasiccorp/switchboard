@@ -21,7 +21,7 @@ pip3 install fusesoc
 ```
 
 ```shell
-sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf qemu-system-misc
 ```
 
 ### macOS

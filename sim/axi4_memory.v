@@ -117,7 +117,10 @@ module axi4_memory #(
 
 	task handle_axi_rvalid; begin
 		if (verbose)
+			// TODO: clean up
+			/* verilator lint_off WIDTH */
 			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
+			/* verilator lint_on WIDTH */
 		if (latched_raddr < 128*1024) begin
 			mem_axi_rdata <= memory[latched_raddr >> 2];
 			mem_axi_rvalid <= 1;

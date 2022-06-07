@@ -1,6 +1,6 @@
 all: hex simulator
 
-.PHONY: run simulator hex clean
+.PHONY: run simulator hex qemu spike clean
 
 # run Verilator simulator
 run:
@@ -14,6 +14,14 @@ simulator:
 # compile HEX
 hex:
 	make -C firmware
+
+# run QEMU simulation (compiling binary file if needed)
+qemu:
+	make -C firmware qemu
+
+# run Spike simulation (compiling binary file if needed)
+spike:
+	make -C firmware spike
 
 # clean build outputs
 clean:
