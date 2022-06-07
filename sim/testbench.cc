@@ -1,5 +1,6 @@
 #include "Vpicorv32_wrapper.h"
 #include "verilated_vcd_c.h"
+#include <inttypes.h>
 
 int main(int argc, char **argv, char **env)
 {
@@ -34,7 +35,7 @@ int main(int argc, char **argv, char **env)
 		top->clk = !top->clk;
 		top->eval();
 		if (tfp) tfp->dump (t);
-		if (trace_fd && top->clk && top->trace_valid) fprintf(trace_fd, "%9.9llx\n", top->trace_data);
+		if (trace_fd && top->clk && top->trace_valid) fprintf(trace_fd, "%9.9" PRIx64 "\n", top->trace_data);
 		t += 5;
 	}
 	if (tfp) tfp->close();
