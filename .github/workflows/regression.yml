@@ -10,7 +10,7 @@ jobs:
       - name: Install prerequisites
         run: |
           pip3 install fusesoc && \
-          sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+          sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf qemu-system-misc
       - name: Build firmware and simulator
         run: make
       - name: Run QEMU simulation
