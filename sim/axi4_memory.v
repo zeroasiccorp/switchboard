@@ -139,7 +139,9 @@ module axi4_memory #(
 			if (latched_wstrb[2]) memory[latched_waddr >> 2][23:16] <= latched_wdata[23:16];
 			if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
 		end else if (latched_waddr == 32'h0010_0000) begin
-			if (latched_wdata == 'h5555) tests_passed = 1;
+			if (latched_wdata == 32'h0000_3333) begin
+				tests_passed = 1; 
+			end 
 		end else if (latched_waddr == 32'h1000_0000) begin
 			if (verbose) begin
 				if (32 <= latched_wdata && latched_wdata < 128)
