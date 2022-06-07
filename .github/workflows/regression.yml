@@ -12,14 +12,15 @@ jobs:
           pip3 install fusesoc && \
           sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
       - name: Build firmware and simulator
+        run: make
+      - name: Run QEMU simulation
+        run: set -o pipefail && make -C firmware qemu | tee out-qemu-sim.log
+      - name: Check QEMU simulation results
         run: |
-          make hex && \
-          make simulator
-      - name: Run simulator
+          grep -Fxq "Hello World!" out-qemu-sim.log
+      - name: Run RTL simulation
+        run: set -o pipefail && make run | tee out-rtl-sim.log
+      - name: Check RTL simulation results
         run: |
-          set -o pipefail && \
-          make run | tee out.log
-      - name: Check results
-        run: |
-          grep -Fxq "Hello World!" out.log && \
-          grep -Fxq "ALL TESTS PASSED." out.log
+          grep -Fxq "Hello World!" out-rtl-sim.log && \
+          grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
