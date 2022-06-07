@@ -17,7 +17,8 @@ module picorv32_wrapper #(
 	output trace_valid,
 	output [35:0] trace_data
 );
-	wire tests_passed;
+	wire should_exit;
+	wire [15:0] exit_code;
 	reg [31:0] irq = 0;
 
 	reg [15:0] count_cycle = 0;
@@ -78,7 +79,8 @@ module picorv32_wrapper #(
 		.mem_axi_rready  (mem_axi_rready  ),
 		.mem_axi_rdata   (mem_axi_rdata   ),
 
-		.tests_passed    (tests_passed    )
+		.should_exit     (should_exit    ),
+		.exit_code       (exit_code      )
 	);
 
 	picorv32_axi #(
@@ -129,20 +131,31 @@ module picorv32_wrapper #(
 		$readmemh(firmware_file, mem.memory);
 	end
 
+	task exit_with_code(input [15:0] code);
+		if (code == 0) begin
+			$display("ALL TESTS PASSED.");
+			$finish;
+		end else begin
+			$display("ERROR!");
+			if ($test$plusargs("noerror") != 0) begin
+				$finish;
+			end else begin
+				// TODO: is there a way to have Verilator exit
+				// with the user-provided code?
+				$stop;
+			end
+		end
+	endtask
+
 	integer cycle_counter;
 	always @(posedge clk) begin
 		cycle_counter <= resetn ? cycle_counter + 1 : 0;
 		if (resetn && trap) begin
-			$display("TRAP after %1d clock cycles", cycle_counter);
-			if (tests_passed) begin
-				$display("ALL TESTS PASSED.");
-				$finish;
-			end else begin
-				$display("ERROR!");
-				if ($test$plusargs("noerror") != 0)
-					$finish;
-				$stop;
-			end
+			$display("TRAP after %0d clock cycles", cycle_counter);
+			exit_with_code(1);
+		end else if (resetn && should_exit) begin
+			$display("EXIT after %0d clock cycles", cycle_counter);
+			exit_with_code(exit_code);
 		end
 	end
 endmodule

@@ -16,10 +16,8 @@ uwait:  lw a3, (a1)             # wait for UART to be ready
         j puts
 
 done:   li a0, 0x100000         # shut down the machine
-        li a1, 0x3333           # computed as (EXIT_CODE << 16) | 0x3333
+        li a1, 0x3333           # compute as (EXIT_CODE << 16) | 0x3333
         sw a1, (a0)
-
-        ebreak
 
 .section .rodata
 msg:

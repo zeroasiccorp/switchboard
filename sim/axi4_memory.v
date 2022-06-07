@@ -36,7 +36,8 @@ module axi4_memory #(
 	input             mem_axi_rready,
 	output reg [31:0] mem_axi_rdata,
 
-	output reg        tests_passed
+	output reg        should_exit,
+	output [15:0]     exit_code
 );
 	reg [31:0]   memory [0:128*1024/4-1] /* verilator public */;
 	reg verbose;
@@ -51,7 +52,8 @@ module axi4_memory #(
 		mem_axi_bvalid = 0;
 		mem_axi_arready = 0;
 		mem_axi_rvalid = 0;
-		tests_passed = 0;
+		should_exit = 0;
+		exit_code = 0;
 	end
 
 	reg [63:0] xorshift64_state = 64'd88172645463325252;
@@ -121,7 +123,7 @@ module axi4_memory #(
 			mem_axi_rvalid <= 1;
 			latched_raddr_en = 0;
 		end else if (latched_raddr == 32'h1000_0000) begin
-			mem_axi_rdata <= '0;
+			mem_axi_rdata <= '0;  // non-negative value means "not busy"
 			mem_axi_rvalid <= 1;
 			latched_raddr_en = 0;
 		end else begin
@@ -139,8 +141,9 @@ module axi4_memory #(
 			if (latched_wstrb[2]) memory[latched_waddr >> 2][23:16] <= latched_wdata[23:16];
 			if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
 		end else if (latched_waddr == 32'h0010_0000) begin
-			if (latched_wdata == 32'h0000_3333) begin
-				tests_passed = 1; 
+			if (latched_wdata[15:0] == 16'h3333) begin
+				should_exit = 1;
+				exit_code = latched_wdata[31:16];
 			end 
 		end else if (latched_waddr == 32'h1000_0000) begin
 			if (verbose) begin
