@@ -18,6 +18,11 @@ jobs:
       - name: Check QEMU simulation results
         run: |
           grep -Fxq "Hello World!" out-qemu-sim.log
+      - name: Run Spike simulation
+        run: set -o pipefail && make -C firmware spike | tee out-spike-sim.log
+      - name: Check Spike simulation results
+        run: |
+          grep -Fxq "Hello World!" out-spike-sim.log
       - name: Run RTL simulation
         run: set -o pipefail && make run | tee out-rtl-sim.log
       - name: Check RTL simulation results

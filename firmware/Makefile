@@ -1,6 +1,15 @@
-TOOLCHAIN_PREFIX := riscv64-unknown-elf-
+TOOLCHAIN_PREFIX ?= riscv64-unknown-elf-
+SPIKE_INCLUDE_DIR ?= /usr/local/include
 
-.PHONY: qemu clean
+.PHONY: qemu spike clean
+
+# OS-specific behavior
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SHARED_FLAGS := -bundle -undefined dynamic_lookup
+else
+	SHARED_FLAGS := -shared
+endif
 
 firmware.hex: firmware.bin
 	python3 makehex.py firmware.bin 32768 > firmware.hex
@@ -13,8 +22,17 @@ firmware.elf: firmware.ld firmware.s
 	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32im -static -mcmodel=medany \
 	-fvisibility=hidden -nostdlib -nostartfiles -Tfirmware.ld firmware.s -o $@
 
-qemu:
+qemu: firmware.bin
 	qemu-system-riscv32 -nographic -machine virt -bios none -kernel firmware.bin
 
+spike: uart_plugin.so test_plugin.so firmware.elf
+	spike -m1 --isa=RV32IM \
+	--extlib=uart_plugin.so --device=uart_plugin,0x10000000,argument \
+	--extlib=test_plugin.so --device=test_plugin,0x100000,argument \
+	firmware.elf
+
+%.so: %.c
+	gcc -I $(SPIKE_INCLUDE_DIR) -Os $(SHARED_FLAGS) -o $@ -Wall -Werror -fPIC $<
+
 clean:
-	rm -f *.bin *.elf *.hex
+	rm -f *.bin *.elf *.hex *.so

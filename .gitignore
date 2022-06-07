@@ -12,6 +12,7 @@ tags
 *.bin
 *.elf
 *.hex
+*.so
 
 # other outputs
 *.log
