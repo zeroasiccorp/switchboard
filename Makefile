@@ -5,7 +5,7 @@ all: hex simulator
 # run Verilator simulator
 run:
 	fusesoc --cores-root=. run --run ::testbench \
-	--run_options +firmware=`realpath firmware/firmware.hex`
+	--run_options "+firmware=`realpath firmware/firmware.hex`"
 
 # build Verilator simulator
 simulator:
