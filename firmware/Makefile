@@ -18,13 +18,9 @@ firmware.bin: firmware.elf
 	$(TOOLCHAIN_PREFIX)objcopy -O binary firmware.elf firmware.bin
 	chmod -x $@
 
-firmware.elf: firmware.ld firmware.s
+firmware.elf: firmware.ld firmware.c
 	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32im -static -mcmodel=medany \
-	-fvisibility=hidden -nostdlib -nostartfiles -Tfirmware.ld firmware.s -o $@
-
-firmware.o: firmware.ld firmware.c
-	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32im -static -mcmodel=medany \
-	-fvisibility=hidden -nostdlib -nostartfiles -fno-builtin -Tfirmware.ld -c firmware.c -o $@
+	-fvisibility=hidden -nostdlib -nostartfiles -fno-builtin -Tfirmware.ld firmware.c -o $@
 
 qemu: firmware.bin
 	qemu-system-riscv32 -nographic -machine virt -bios none -kernel firmware.bin
