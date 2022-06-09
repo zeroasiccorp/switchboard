@@ -19,14 +19,14 @@ firmware.bin: firmware.elf
 	chmod -x $@
 
 firmware.elf: firmware.ld firmware.c
-	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32im -static -mcmodel=medany \
+	$(TOOLCHAIN_PREFIX)gcc -Os -mabi=ilp32 -march=rv32imc -static -mcmodel=medany \
 	-fvisibility=hidden -nostdlib -nostartfiles -fno-builtin -Tfirmware.ld firmware.c -o $@
 
 qemu: firmware.bin
 	qemu-system-riscv32 -nographic -machine virt -bios none -kernel firmware.bin
 
 spike: uart_plugin.so exit_plugin.so firmware.elf
-	spike -m1 --isa=RV32IM \
+	spike -m1 --isa=RV32IMC \
 	--extlib=uart_plugin.so --device=uart_plugin,0x10000000,argument \
 	--extlib=exit_plugin.so --device=exit_plugin,0x10000008,argument \
 	firmware.elf
