@@ -1,50 +1,48 @@
-// This is free and unencumbered software released into the public domain.
-//
-// Anyone is free to copy, modify, publish, use, compile, sell, or
-// distribute this software, either in source code form or as a compiled
-// binary, for any purpose, commercial or non-commercial, and by any
-// means.
+// ref: https://github.com/YosysHQ/picorv32/blob/master/testbench.v
+// ref: https://github.com/alexforencich/verilog-axi/blob/master/rtl/axil_ram.v
 
 `timescale 1 ns / 1 ps
 
 module axi4_memory #(
-	parameter AXI_TEST = 0,
-	parameter VERBOSE = 0
+	parameter VERBOSE = 0,
+	parameter integer MEM_DATA_WIDTH=32,
+	parameter integer MEM_ADDR_WIDTH=32,
+	parameter integer MEM_CAPACITY=128*1024*8
 ) (
 	/* verilator lint_off MULTIDRIVEN */
 
 	input             clk,
 	input             mem_axi_awvalid,
 	output reg        mem_axi_awready,
-	input      [31:0] mem_axi_awaddr,
+	input [(MEM_ADDR_WIDTH-1):0] mem_axi_awaddr,
 	input      [ 2:0] mem_axi_awprot,
 
 	input             mem_axi_wvalid,
 	output reg        mem_axi_wready,
-	input      [31:0] mem_axi_wdata,
-	input      [ 3:0] mem_axi_wstrb,
+	input [(MEM_DATA_WIDTH-1):0] mem_axi_wdata,
+	input [((MEM_DATA_WIDTH/8)-1):0] mem_axi_wstrb,
 
 	output reg        mem_axi_bvalid,
 	input             mem_axi_bready,
 
 	input             mem_axi_arvalid,
 	output reg        mem_axi_arready,
-	input      [31:0] mem_axi_araddr,
+	input [(MEM_ADDR_WIDTH-1):0] mem_axi_araddr,
 	input      [ 2:0] mem_axi_arprot,
 
 	output reg        mem_axi_rvalid,
 	input             mem_axi_rready,
-	output reg [31:0] mem_axi_rdata,
+	output reg [(MEM_DATA_WIDTH-1):0] mem_axi_rdata,
 
 	output reg        should_exit,
 	output [15:0]     exit_code
 );
-	reg [31:0]   memory [0:128*1024/4-1] /* verilator public */;
+	localparam integer MEM_ADDR_SHIFT = $clog2(MEM_ADDR_WIDTH/8);
+
+	reg [(MEM_DATA_WIDTH-1):0] memory [0:((MEM_CAPACITY/MEM_DATA_WIDTH)-1)] /* verilator public */;
+
 	reg verbose;
 	initial verbose = ($test$plusargs("verbose") != 0) || VERBOSE;
-
-	reg axi_test;
-	initial axi_test = ($test$plusargs("axi_test") != 0) || AXI_TEST;
 
 	initial begin
 		mem_axi_awready = 0;
@@ -56,163 +54,89 @@ module axi4_memory #(
 		exit_code = 0;
 	end
 
-	reg [63:0] xorshift64_state = 64'd88172645463325252;
+	// writes
 
-	task xorshift64_next;
-		begin
-			// see page 4 of Marsaglia, George (July 2003). "Xorshift RNGs". Journal of Statistical Software 8 (14).
-			xorshift64_state = xorshift64_state ^ (xorshift64_state << 13);
-			xorshift64_state = xorshift64_state ^ (xorshift64_state >>  7);
-			xorshift64_state = xorshift64_state ^ (xorshift64_state << 17);
-		end
-	endtask
-
-	reg [2:0] fast_axi_transaction = ~0;
-	reg [4:0] async_axi_transaction = ~0;
-	reg [4:0] delay_axi_transaction = 0;
+	integer i;
 
 	always @(posedge clk) begin
-		if (axi_test) begin
-				xorshift64_next;
-				{fast_axi_transaction, async_axi_transaction, delay_axi_transaction} <= xorshift64_state[12:0];
-		end
-	end
-
-	reg latched_raddr_en = 0;
-	reg latched_waddr_en = 0;
-	reg latched_wdata_en = 0;
-
-	reg fast_raddr = 0;
-	reg fast_waddr = 0;
-	reg fast_wdata = 0;
-
-	reg [31:0] latched_raddr;
-	reg [31:0] latched_waddr;
-	reg [31:0] latched_wdata;
-	reg [ 3:0] latched_wstrb;
-	reg        latched_rinsn;
-
-	task handle_axi_arvalid; begin
-		mem_axi_arready <= 1;
-		latched_raddr = mem_axi_araddr;
-		latched_rinsn = mem_axi_arprot[2];
-		latched_raddr_en = 1;
-		fast_raddr <= 1;
-	end endtask
-
-	task handle_axi_awvalid; begin
-		mem_axi_awready <= 1;
-		latched_waddr = mem_axi_awaddr;
-		latched_waddr_en = 1;
-		fast_waddr <= 1;
-	end endtask
-
-	task handle_axi_wvalid; begin
-		mem_axi_wready <= 1;
-		latched_wdata = mem_axi_wdata;
-		latched_wstrb = mem_axi_wstrb;
-		latched_wdata_en = 1;
-		fast_wdata <= 1;
-	end endtask
-
-	task handle_axi_rvalid; begin
-		if (verbose)
-			// TODO: clean up
-			/* verilator lint_off WIDTH */
-			$display("RD: ADDR=%08x DATA=%08x%s", latched_raddr, memory[latched_raddr >> 2], latched_rinsn ? " INSN" : "");
-			/* verilator lint_on WIDTH */
-		if (latched_raddr < 128*1024) begin
-			mem_axi_rdata <= memory[latched_raddr >> 2];
-			mem_axi_rvalid <= 1;
-			latched_raddr_en = 0;
-		end else if (latched_raddr == 32'h1000_0000) begin
-			mem_axi_rdata <= '0;  // non-negative value means "not busy"
-			mem_axi_rvalid <= 1;
-			latched_raddr_en = 0;
-		end else begin
-			$display("OUT-OF-BOUNDS MEMORY READ FROM %08x", latched_raddr);
-			$finish;
-		end
-	end endtask
-
-	task handle_axi_bvalid; begin
-		if (verbose)
-			$display("WR: ADDR=%08x DATA=%08x STRB=%04b", latched_waddr, latched_wdata, latched_wstrb);
-		if (latched_waddr < 128*1024) begin
-			if (latched_wstrb[0]) memory[latched_waddr >> 2][ 7: 0] <= latched_wdata[ 7: 0];
-			if (latched_wstrb[1]) memory[latched_waddr >> 2][15: 8] <= latched_wdata[15: 8];
-			if (latched_wstrb[2]) memory[latched_waddr >> 2][23:16] <= latched_wdata[23:16];
-			if (latched_wstrb[3]) memory[latched_waddr >> 2][31:24] <= latched_wdata[31:24];
-		end else if (latched_waddr == 32'h0010_0000) begin
-			if (latched_wdata[15:0] == 16'h3333) begin
-				should_exit = 1;
-				exit_code = latched_wdata[31:16];
-			end 
-		end else if (latched_waddr == 32'h1000_0000) begin
-			if (verbose) begin
-				if (32 <= latched_wdata && latched_wdata < 128)
-					$display("OUT: '%c'", latched_wdata[7:0]);
-				else
-					$display("OUT: %3d", latched_wdata);
+		if (mem_axi_awvalid && mem_axi_wvalid &&          // write if address and data are valid
+		    ((!mem_axi_awready) && (!mem_axi_wready)) &&  // but don't if the write already happened
+			                                              // and we're just handshaking
+			((!mem_axi_bvalid) || mem_axi_bready)         // also, stall if past write response
+														  // hasn't been acknowledged yet
+		) begin
+			// perform write
+			if (mem_axi_awaddr < MEM_CAPACITY) begin
+				for (i=0; i < (MEM_DATA_WIDTH/8); i = i+1) begin
+					if (mem_axi_wstrb[i]) begin
+						memory[mem_axi_awaddr >> MEM_ADDR_SHIFT][(i*8) +: 8] <= mem_axi_wdata[(i*8) +: 8];
+					end
+				end
+			end else if (mem_axi_awaddr == 'h0010_0000) begin
+				if (mem_axi_wdata[15:0] == 16'h3333) begin
+					should_exit <= 1;
+					exit_code <= mem_axi_wdata[(MEM_DATA_WIDTH-1):16];
+				end else if (mem_axi_wdata[15:0] == 16'h5555) begin
+					should_exit <= 1;
+					exit_code <= 0;
+				end
+			end else if (mem_axi_awaddr == 'h1000_0000) begin
+				$write("%c", mem_axi_wdata[7:0]);
 			end else begin
-				$write("%c", latched_wdata[7:0]);
+				$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", mem_axi_awaddr);
+				$finish;
+			end
+
+			// handshaking
+			mem_axi_awready <= 1;
+			mem_axi_wready <= 1;
+			mem_axi_bvalid <= 1;
+
+			// verbose output
+			if (verbose) begin
+				$display("WR: ADDR=%0x DATA=%0x STRB=%0b", mem_axi_awaddr, mem_axi_wdata, mem_axi_wstrb);
 			end
 		end else begin
-			$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", latched_waddr);
-			$finish;
+			mem_axi_awready <= 0;
+			mem_axi_wready <= 0;
+			mem_axi_bvalid <= mem_axi_bvalid & (~mem_axi_bready);  // keep asserted until acknowledged
 		end
-		mem_axi_bvalid <= 1;
-		latched_waddr_en = 0;
-		latched_wdata_en = 0;
-	end endtask
-
-	always @(negedge clk) begin
-		if (mem_axi_arvalid && !(latched_raddr_en || fast_raddr) && async_axi_transaction[0]) handle_axi_arvalid;
-		if (mem_axi_awvalid && !(latched_waddr_en || fast_waddr) && async_axi_transaction[1]) handle_axi_awvalid;
-		if (mem_axi_wvalid  && !(latched_wdata_en || fast_wdata) && async_axi_transaction[2]) handle_axi_wvalid;
-		if (!mem_axi_rvalid && latched_raddr_en && async_axi_transaction[3]) handle_axi_rvalid;
-		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && async_axi_transaction[4]) handle_axi_bvalid;
 	end
 
+	// reads
+
 	always @(posedge clk) begin
-		mem_axi_arready <= 0;
-		mem_axi_awready <= 0;
-		mem_axi_wready <= 0;
+		if (mem_axi_arvalid &&                     // perform read if address is valid
+		    (!mem_axi_arready) &&                  // but don't if the ready already happened
+			                                       // and we're just handshaking
+			((!mem_axi_rvalid) || mem_axi_rready)  // also skip if past read data hasn't been
+												   // acknowledged yet
+		) begin
+			if (mem_axi_awaddr < MEM_CAPACITY/8) begin
+				mem_axi_rdata <= memory[mem_axi_awaddr >> MEM_ADDR_SHIFT];
+			end else if (mem_axi_awaddr == 'h1000_0000) begin
+				mem_axi_rdata <= '0;  // non-negative value means "not busy"
+			end else begin
+				$display("OUT-OF-BOUNDS MEMORY READ FROM %0x", mem_axi_awaddr);
+				$finish;
+			end
 
-		fast_raddr <= 0;
-		fast_waddr <= 0;
-		fast_wdata <= 0;
+			// handshaking
+			mem_axi_arready <= 1;
+			mem_axi_rvalid <= 1;
 
-		if (mem_axi_rvalid && mem_axi_rready) begin
-			mem_axi_rvalid <= 0;
+			// verbose output
+			if (verbose) begin
+				$write("RD: ADDR=%0x DATA=%0x", mem_axi_awaddr, memory[mem_axi_awaddr >> MEM_ADDR_SHIFT]);
+				if (mem_axi_arprot[2]) begin
+					$display(" INSN");
+				end else begin
+					$display("");
+				end
+			end
+		end else begin
+			mem_axi_arready <= 0;
+			mem_axi_rvalid <= mem_axi_rvalid & (~mem_axi_rready);  // assert until acknowledged
 		end
-
-		if (mem_axi_bvalid && mem_axi_bready) begin
-			mem_axi_bvalid <= 0;
-		end
-
-		if (mem_axi_arvalid && mem_axi_arready && !fast_raddr) begin
-			latched_raddr = mem_axi_araddr;
-			latched_rinsn = mem_axi_arprot[2];
-			latched_raddr_en = 1;
-		end
-
-		if (mem_axi_awvalid && mem_axi_awready && !fast_waddr) begin
-			latched_waddr = mem_axi_awaddr;
-			latched_waddr_en = 1;
-		end
-
-		if (mem_axi_wvalid && mem_axi_wready && !fast_wdata) begin
-			latched_wdata = mem_axi_wdata;
-			latched_wstrb = mem_axi_wstrb;
-			latched_wdata_en = 1;
-		end
-
-		if (mem_axi_arvalid && !(latched_raddr_en || fast_raddr) && !delay_axi_transaction[0]) handle_axi_arvalid;
-		if (mem_axi_awvalid && !(latched_waddr_en || fast_waddr) && !delay_axi_transaction[1]) handle_axi_awvalid;
-		if (mem_axi_wvalid  && !(latched_wdata_en || fast_wdata) && !delay_axi_transaction[2]) handle_axi_wvalid;
-
-		if (!mem_axi_rvalid && latched_raddr_en && !delay_axi_transaction[3]) handle_axi_rvalid;
-		if (!mem_axi_bvalid && latched_waddr_en && latched_wdata_en && !delay_axi_transaction[4]) handle_axi_bvalid;
 	end
 endmodule

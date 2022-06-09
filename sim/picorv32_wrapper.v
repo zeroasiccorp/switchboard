@@ -8,7 +8,6 @@
 `timescale 1 ns / 1 ps
 
 module picorv32_wrapper #(
-	parameter AXI_TEST = 0,
 	parameter VERBOSE = 0
 ) (
 	input clk,
@@ -53,7 +52,6 @@ module picorv32_wrapper #(
 	wire [31:0] mem_axi_rdata;
 
 	axi4_memory #(
-		.AXI_TEST (AXI_TEST),
 		.VERBOSE  (VERBOSE)
 	) mem (
 		.clk             (clk             ),
