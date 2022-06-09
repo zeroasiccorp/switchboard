@@ -6,14 +6,30 @@ static inline void done(int code)
 	*exit = code;
 }
 
-static inline void puts(char* str, volatile int* uart)
+static inline void puts(char* str, volatile char* uart)
 {
 	char* s = str;
-	int c;
+	char c;
 	while (c = *s++) {
-		while (*uart < 0); // wait for uart to be ready
+		while (*uart < 0);
 		*uart = c;
 	}
+	while (*uart < 0);
+	*uart = '\n';
 }
 
-int tohost, fromhost; // These are only defined to quiet Spike
+static inline int coreid()
+{
+	int id = -1;
+#if 0
+	asm volatile(
+		"csrr %0, mhartid"
+		: "=r"(id) : :
+	);
+#else
+	id = 0;
+#endif
+	return id;
+}
+
+long long int tohost, fromhost; // These are only defined to quiet Spike

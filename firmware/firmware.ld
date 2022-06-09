@@ -6,6 +6,14 @@ ENTRY( _start )
 SECTIONS
 {
   . = 0x80000000;
-  .text : { *(.text) }
-  .rodata : { *(.rodata) }
+  .text : {
+		*(.text)
+	}
+	.data ALIGN(8): {
+		*(.sbss)
+		*(COMMON)
+		*(.bss)
+		*(.rodata)
+		*(.data*)
+	}
 }

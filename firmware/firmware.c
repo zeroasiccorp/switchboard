@@ -2,7 +2,10 @@
 
 void _start(void)
 {
-	int* port = UART_ADDR;
-	puts("Hello World!\n", port);
+	char* msg = "Hello World from core  !";
+	int id = coreid();
+	msg[22] = id + '0';
+	char* port = UART_ADDR;
+	puts(msg, port);
 	done(EXIT_PASS);
 }
