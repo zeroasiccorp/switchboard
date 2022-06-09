@@ -1,9 +1,9 @@
-all: hex simulator
+all: firmware simulator
 
-.PHONY: run simulator hex qemu spike clean
+.PHONY: run firmware simulator qemu spike clean
 
 # run Verilator simulator
-run:
+run: firmware simulator
 	fusesoc --cores-root=. run --run ::testbench \
 	--run_options +firmware=`realpath firmware/firmware.hex`
 
@@ -12,12 +12,12 @@ simulator:
 	fusesoc --cores-root=. run --setup --build ::testbench
 
 # compile HEX
-hex:
+firmware:
 	make -C firmware
 
 # run QEMU simulation (compiling binary file if needed)
-qemu:
-	make -C firmware qemu
+qemu: firmware
+	make -C qemu
 
 # run Spike simulation (compiling binary file if needed)
 spike:
