@@ -1,8 +1,14 @@
 #include "common.h"
 
+static inline void delay(unsigned int nops)
+{
+	for (unsigned int n = nops; n; n--) __asm__ ("nop");
+}
+
 static inline void done(int code)
 {
 	int* exit = EXIT_ADDR;
+	delay(5000);
 	*exit = code;
 }
 
