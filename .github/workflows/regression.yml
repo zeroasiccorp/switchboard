@@ -5,7 +5,6 @@ jobs:
   benchmark:
     name: Regression test
     runs-on: ubuntu-latest
-    container: avidane/riscv-spike
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
