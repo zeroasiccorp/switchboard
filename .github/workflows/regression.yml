@@ -10,24 +10,27 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install prerequisites
-        # TODO: consider building a docker image that has this already?
-        run: |
-          apt-get update -y
-          apt-get install -y verilator python3
-          pip3 install fusesoc
+      - name: Build binary + run Spike simulation (in Docker)
+        uses: addnab/docker-run-action@v3
+        with:
+          image: avidane/riscv-spike
+          options: -v ${{ github.workspace }}:/work -w /work
+          run: |
+            make -C firmware firmware.bin
+            set -o pipefail && make spike | tee out-spike-sim.log
 
-      - name: Run Spike simulation
+      - name: Check Spike simulation
         run: |
-          set -o pipefail && make spike | tee out-spike-sim.log
           grep -Fxq "Hello World from core 0!" out-spike-sim.log
 
-      - name: Build RTL simulator
-        run: make
+      - name: Install RTL simulation prerequisites
+        run: |
+          pip3 install fusesoc
+          sudo apt-get install verilator
 
       - name: Run RTL simulation
         run: |
           make
           set -o pipefail && make run | tee out-rtl-sim.log
-          grep -Fxq "Hello World from core 0!" out-rtl-sim.log && \
+          grep -Fxq "Hello World from core 0!" out-rtl-sim.log
           grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
