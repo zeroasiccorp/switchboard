@@ -85,7 +85,8 @@ module picorv32_wrapper #(
 		.ENABLE_MUL(1),
 		.ENABLE_DIV(1),
 		.ENABLE_IRQ(1),
-		.ENABLE_TRACE(1)
+		.ENABLE_TRACE(1),
+		.COMPRESSED_ISA(1)
 	) uut (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
