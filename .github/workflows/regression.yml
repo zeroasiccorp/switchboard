@@ -29,7 +29,7 @@ jobs:
         # need to run *.elf -> *.bin conversion in the docker container,
         # since that requires one of the RISC-V tools
         run: |
-          docker run -v $(pwd):/work avidane/riscv-spike "make -C firmware firmware.bin" && \
+          docker run -v $(pwd):/work avidane/riscv-spike "cd /work && make -C firmware firmware.bin" && \
           make
 
       - name: Run RTL simulation
