@@ -8,26 +8,30 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
+
       - name: Install prerequisites
         run: |
           pip3 install fusesoc && \
-          sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf qemu-system-misc
-      - name: Build firmware and simulator
-        run: make
-#      - name: Run QEMU simulation
-#        run: set -o pipefail && make -C firmware qemu | tee out-qemu-sim.log
-#      - name: Check QEMU simulation results
-#        run: |
-#          grep -Fxq "Hello World!" out-qemu-sim.log
+          sudo apt-get install verilator
+
       - name: Setup Docker
         run: |
           docker pull avidane/riscv-spike
+
       - name: Run Spike simulation
         run: |
           docker run -v $(pwd):/work avidane/riscv-spike "set -o pipefail && cd /work && make spike | tee out-spike-sim.log"
       - name: Check Spike simulation results
         run: |
           grep -Fxq "Hello World from core 0!" out-spike-sim.log
+
+      - name: Build RTL simulator
+        # need to run *.elf -> *.bin conversion in the docker container,
+        # since that requires one of the RISC-V tools
+        run: |
+          docker run -v $(pwd):/work avidane/riscv-spike "make -C firmware firmware.bin" && \
+          make
+
       - name: Run RTL simulation
         run: set -o pipefail && make run | tee out-rtl-sim.log
       - name: Check RTL simulation results
