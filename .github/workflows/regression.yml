@@ -24,8 +24,7 @@ jobs:
           docker pull avidane/riscv-spike
       - name: Run Spike simulation
         run: |
-          set -o pipefail && \
-          docker run -v $(pwd):/work -ti avidane/riscv-spike "cd /work && make spike" | tee out-spike-sim.log
+          docker run -v $(pwd):/work -ti avidane/riscv-spike "set -o pipefail && cd /work && make spike | tee out-spike-sim.log"
       - name: Check Spike simulation results
         run: |
           grep -Fxq "Hello World from core 0!" out-spike-sim.log
