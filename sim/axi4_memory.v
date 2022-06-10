@@ -72,7 +72,7 @@ module axi4_memory #(
 						memory[mem_axi_awaddr >> MEM_ADDR_SHIFT][(i*8) +: 8] <= mem_axi_wdata[(i*8) +: 8];
 					end
 				end
-			end else if (mem_axi_awaddr == 'h0010_0000) begin
+			end else if (mem_axi_awaddr == 'h1000_0008) begin
 				if (mem_axi_wdata[15:0] == 16'h3333) begin
 					should_exit <= 1;
 					exit_code <= mem_axi_wdata[(MEM_DATA_WIDTH-1):16];
