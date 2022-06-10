@@ -19,9 +19,15 @@ jobs:
 #      - name: Check QEMU simulation results
 #        run: |
 #          grep -Fxq "Hello World!" out-qemu-sim.log
+      - name: Download Spike
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: "zeroasiccorp/interposer-verif"
+          version: "tags/tools"
+          file: "spike-1.1.0-ubuntu-22.04.tar.gz"
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Spike
         run: |
-          wget https://github.com/zeroasiccorp/interposer-verif/releases/download/tools/spike-1.1.0-ubuntu-22.04.tar.gz && \
           tar xzvf spike-1.1.0-ubuntu-22.04.tar.gz && \
           sudo mv spike /usr/local/bin/spike
       - name: Run Spike simulation
