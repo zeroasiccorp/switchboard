@@ -29,7 +29,10 @@ jobs:
       - name: Install Spike
         run: |
           tar xzvf spike-1.1.0-ubuntu-22.04.tar.gz && \
-          sudo mv spike /usr/local/bin/spike
+          sudo mv spike /usr/local/bin/spike && \
+          wget https://github.com/riscv-software-src/riscv-isa-sim/raw/v1.1.0/riscv/mmio_plugin.h && \
+          sudo mkdir -p /usr/local/include/riscv && \
+          sudo mv mmio_plugin.h /usr/local/include/riscv/.
       - name: Run Spike simulation
         run: set -o pipefail && make -C firmware spike | tee out-spike-sim.log
       - name: Check Spike simulation results
