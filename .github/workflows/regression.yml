@@ -16,7 +16,8 @@ jobs:
           options: -v ${{ github.workspace }}:/work -w /work
           run: |
             make -C firmware firmware.bin
-            set -o pipefail && make spike | tee out-spike-sim.log
+            make spike > out-spike-sim.log
+            cat out-spike-sim.log
 
       - name: Check Spike simulation
         run: |
@@ -30,6 +31,7 @@ jobs:
       - name: Run RTL simulation
         run: |
           make
-          set -o pipefail && make run | tee out-rtl-sim.log
+          make run > tee out-rtl-sim.log
+          cat out-rtl-sim.log
           grep -Fxq "Hello World from core 0!" out-rtl-sim.log
           grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
