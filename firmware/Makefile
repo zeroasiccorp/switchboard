@@ -27,8 +27,8 @@ qemu: firmware.bin
 
 spike: uart_plugin.so exit_plugin.so firmware.elf
 	spike -m1 --isa=RV32IMC \
-	--extlib=uart_plugin.so --device=uart_plugin,0x10000000,argument \
-	--extlib=exit_plugin.so --device=exit_plugin,0x10000008,argument \
+	--extlib `realpath uart_plugin.so` --device=uart_plugin,0x10000000,argument \
+	--extlib `realpath exit_plugin.so` --device=exit_plugin,0x10000008,argument \
 	firmware.elf
 
 %.so: %.c
