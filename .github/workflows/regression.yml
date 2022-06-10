@@ -5,36 +5,29 @@ jobs:
   benchmark:
     name: Regression test
     runs-on: ubuntu-latest
+    container: avidane/riscv-spike
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
 
       - name: Install prerequisites
+        # TODO: consider building a docker image that has this already?
         run: |
-          pip3 install fusesoc && \
-          sudo apt-get install verilator
-
-      - name: Setup Docker
-        run: |
-          docker pull avidane/riscv-spike
+          apt-get update -y
+          apt-get install -y verilator python3
+          pip3 install fusesoc
 
       - name: Run Spike simulation
         run: |
-          docker run -v $(pwd):/work avidane/riscv-spike "set -o pipefail && cd /work && make spike | tee out-spike-sim.log"
-      - name: Check Spike simulation results
-        run: |
+          set -o pipefail && make spike | tee out-spike-sim.log
           grep -Fxq "Hello World from core 0!" out-spike-sim.log
 
       - name: Build RTL simulator
-        # need to run *.elf -> *.bin conversion in the docker container,
-        # since that requires one of the RISC-V tools
-        run: |
-          docker run -v $(pwd):/work avidane/riscv-spike "cd /work && make -C firmware firmware.bin" && \
-          make
+        run: make
 
       - name: Run RTL simulation
-        run: set -o pipefail && make run | tee out-rtl-sim.log
-      - name: Check RTL simulation results
         run: |
+          make
+          set -o pipefail && make run | tee out-rtl-sim.log
           grep -Fxq "Hello World from core 0!" out-rtl-sim.log && \
           grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
