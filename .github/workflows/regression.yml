@@ -24,11 +24,11 @@ jobs:
           wget https://github.com/zeroasiccorp/interposer-verif/releases/download/tools/spike-1.1.0-ubuntu-22.04.tar.gz && \
           tar xzvf spike-1.1.0-ubuntu-22.04.tar.gz && \
           sudo mv spike /usr/local/bin/spike
-     - name: Run Spike simulation
-       run: set -o pipefail && make -C firmware spike | tee out-spike-sim.log
-     - name: Check Spike simulation results
-       run: |
-         grep -Fxq "Hello World from core 0!" out-spike-sim.log
+      - name: Run Spike simulation
+        run: set -o pipefail && make -C firmware spike | tee out-spike-sim.log
+      - name: Check Spike simulation results
+        run: |
+          grep -Fxq "Hello World from core 0!" out-spike-sim.log
       - name: Run RTL simulation
         run: set -o pipefail && make run | tee out-rtl-sim.log
       - name: Check RTL simulation results
