@@ -31,7 +31,7 @@ jobs:
       - name: Run RTL simulation
         run: |
           make
-          make run > tee out-rtl-sim.log
+          make run > out-rtl-sim.log
           cat out-rtl-sim.log
           grep -Fxq "Hello World from core 0!" out-rtl-sim.log
           grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
