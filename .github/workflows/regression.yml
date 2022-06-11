@@ -1,32 +1,41 @@
-name: Regression
+# can run locally with: "act --rm pull_request"
+# see https://github.com/nektos/act
+
+name: regression
 on: [push, pull_request]
 
+# TODO: consider creating a Docker image that has all tools,
+# instead of using an existing image for Spike, and installing
+# other tools via apt-get
+
 jobs:
-  benchmark:
-    name: Regression
+  spike:
+    name: spike
+    runs-on: ubuntu-latest
+    container: avidane/riscv-spike
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Spike simulation
+        run: |
+          make spike > out-spike-sim.log
+          cat out-spike-sim.log
+
+          grep -Fxq "Hello World from core 0!" out-spike-sim.log
+
+  verilator:
+    name: verilator
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
-
-      - name: Build binary + run Spike simulation (in Docker)
-        run: |
-          docker run --rm -v $(pwd):/work -w /work avidane/riscv-spike "make -C firmware firmware.bin && make spike > out-spike-sim.log"
-          cat out-spike-sim.log
-
-      - name: Check Spike simulation
-        run: |
-          grep -Fxq "Hello World from core 0!" out-spike-sim.log
-
-      - name: Install RTL simulation prerequisites
+      - name: Verilator simulation
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y python3-pip verilator
+          sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
           python3 -m pip install fusesoc
 
-      - name: Run RTL simulation
-        run: |
-          make run > out-rtl-sim.log
-          cat out-rtl-sim.log
+          set -o pipefail && make run | tee out-rtl-sim.log
+
           grep -Fxq "Hello World from core 0!" out-rtl-sim.log
           grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
