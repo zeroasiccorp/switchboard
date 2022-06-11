@@ -1,8 +1,8 @@
 # can run locally with: "act --rm pull_request"
 # see https://github.com/nektos/act
 
-name: regression
-on: [push, pull_request]
+name: Regression
+on: [pull_request]
 
 # TODO: consider creating a Docker image that has all tools,
 # instead of using an existing image for Spike, and installing
@@ -10,7 +10,7 @@ on: [push, pull_request]
 
 jobs:
   spike:
-    name: spike
+    name: Spike
     runs-on: ubuntu-latest
     container: avidane/riscv-spike
     timeout-minutes: 5
@@ -24,7 +24,7 @@ jobs:
           grep -Fxq "Hello World from core 0!" out-spike-sim.log
 
   verilator:
-    name: verilator
+    name: Verilator
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
