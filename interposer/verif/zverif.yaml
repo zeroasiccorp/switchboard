@@ -1,0 +1,22 @@
+riscv:
+  isa: rv32imc
+  abi: ilp32
+sw:
+  - file: sw/hello/hello.c
+    extra_sources:
+      - sw/hello/init.s
+    linker_script: sw/hello/hello.ld
+    include_paths:
+      - common
+      - sw/hello
+  - file: sw/riscv-tests/riscv-tests/isa/rv32ui/*.S
+    linker_script: sw/riscv-tests/riscv-test-env/p/link.ld
+    include_paths:
+      - sw/riscv-tests/riscv-test-env
+      - sw/riscv-tests/riscv-test-env/p
+      - sw/riscv-tests/riscv-tests/isa/macros/scalar
+spike_plugins:
+  - file: spike/uart_plugin.c
+    address: 0x10000000
+  - file: spike/exit_plugin.c
+    address: 0x10000008

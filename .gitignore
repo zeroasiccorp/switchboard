@@ -16,6 +16,8 @@ tags
 
 # other outputs
 *.log
+*.egg-info
+__pycache__
 
 # Python cache files
 __pycache__

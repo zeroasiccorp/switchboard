@@ -1,4 +1,4 @@
-#include "Vpicorv32_wrapper.h"
+#include "Vzverif_top.h"
 #include "verilated_vcd_c.h"
 #include <inttypes.h>
 
@@ -8,7 +8,7 @@ int main(int argc, char **argv, char **env)
 	printf("Recommended: Verilator 4.0 or later.\n");
 
 	Verilated::commandArgs(argc, argv);
-	Vpicorv32_wrapper* top = new Vpicorv32_wrapper;
+	Vzverif_top* top = new Vzverif_top;
 
 	// Tracing (vcd)
 	VerilatedVcdC* tfp = NULL;
