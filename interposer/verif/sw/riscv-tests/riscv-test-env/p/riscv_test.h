@@ -3,6 +3,7 @@
 #ifndef _ENV_PHYSICAL_SINGLE_CORE_H
 #define _ENV_PHYSICAL_SINGLE_CORE_H
 
+#include "common.h"
 #include "../encoding.h"
 
 //-----------------------------------------------------------------------
@@ -234,12 +235,17 @@ reset_vector:                                                           \
 // Pass/Fail Macro
 //-----------------------------------------------------------------------
 
+// for some reason using the label "1" / "1b" to loop forever
+// didn't work in RVTEST_PASS, so for now, just use a value that
+// is likely unique.
+
 #define RVTEST_PASS                                                     \
         fence;                                                          \
         li TESTNUM, 1;                                                  \
-        li a7, 93;                                                      \
-        li a0, 0;                                                       \
-        ecall
+        li t0, EXIT_ADDR;                                               \
+        li t1, EXIT_PASS;                                               \
+        sw t1, (t0);                                                    \
+1234:   j 1234b
 
 #define TESTNUM gp
 #define RVTEST_FAIL                                                     \
@@ -247,9 +253,10 @@ reset_vector:                                                           \
 1:      beqz TESTNUM, 1b;                                               \
         sll TESTNUM, TESTNUM, 1;                                        \
         or TESTNUM, TESTNUM, 1;                                         \
-        li a7, 93;                                                      \
-        addi a0, TESTNUM, 0;                                            \
-        ecall
+        li t0, EXIT_ADDR;                                               \
+        li t1, (1 << 16) | EXIT_FAIL;                                   \
+        sw t1, (t0);                                                    \
+5678:   j 5678b
 
 //-----------------------------------------------------------------------
 // Data Section Macro

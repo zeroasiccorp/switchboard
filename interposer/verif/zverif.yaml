@@ -12,6 +12,7 @@ sw:
   - file: sw/riscv-tests/riscv-tests/isa/rv32ui/*.S
     linker_script: sw/riscv-tests/riscv-test-env/p/link.ld
     include_paths:
+      - common
       - sw/riscv-tests/riscv-test-env
       - sw/riscv-tests/riscv-test-env/p
       - sw/riscv-tests/riscv-tests/isa/macros/scalar
