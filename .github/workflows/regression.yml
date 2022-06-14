@@ -1,31 +1,41 @@
-name: Regression test
-on: pull_request
+# can run locally with: "act --rm pull_request"
+# see https://github.com/nektos/act
+
+name: Regression
+on: [pull_request]
+
+# TODO: consider creating a Docker image that has all tools,
+# instead of using an existing image for Spike, and installing
+# other tools via apt-get
 
 jobs:
-  benchmark:
-    name: Regression test
+  spike:
+    name: Spike
     runs-on: ubuntu-latest
+    container: avidane/riscv-spike
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
-      - name: Install prerequisites
+      - name: Spike simulation
         run: |
-          pip3 install fusesoc && \
-          sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf qemu-system-misc
-      - name: Build firmware and simulator
-        run: make
-#      - name: Run QEMU simulation
-#        run: set -o pipefail && make -C firmware qemu | tee out-qemu-sim.log
-#      - name: Check QEMU simulation results
-#        run: |
-#          grep -Fxq "Hello World!" out-qemu-sim.log
-#      - name: Run Spike simulation
-#        run: set -o pipefail && make -C firmware spike | tee out-spike-sim.log
-#      - name: Check Spike simulation results
-#        run: |
-#          grep -Fxq "Hello World!" out-spike-sim.log
-      - name: Run RTL simulation
-        run: set -o pipefail && make run | tee out-rtl-sim.log
-      - name: Check RTL simulation results
+          make spike > out-spike-sim.log
+          cat out-spike-sim.log
+
+          grep -Fxq "Hello World from core 0!" out-spike-sim.log
+
+  verilator:
+    name: Verilator
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Verilator simulation
         run: |
-          grep -Fxq "Hello World!" out-rtl-sim.log && \
+          sudo apt-get update -y
+          sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+          python3 -m pip install fusesoc
+
+          set -o pipefail && make run | tee out-rtl-sim.log
+
+          grep -Fxq "Hello World from core 0!" out-rtl-sim.log
           grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
