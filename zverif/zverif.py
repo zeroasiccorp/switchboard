@@ -1,5 +1,6 @@
 from zverif.zvconfig import ZvConfig
 from zverif.riscv import ZvRiscv
+from zverif.spike import ZvSpike
 
 from argparse import ArgumentParser
 
@@ -36,7 +37,19 @@ def add_clean(parser : ArgumentParser):
     parser.set_defaults(func=handle_clean_args)
 
 def handle_spike_args(args):
-    pass
+    cfg = ZvConfig()
+    spike = ZvSpike(cfg)
+
+    if args.mode == 'list':
+        print(spike.list())
+    elif args.mode == 'build':
+        spike.build(args.tests)
+    elif args.mode == 'run':
+        spike.run(args.tests)
+    elif args.mode == 'clean':
+        spike.clean(args.tests)
+    else:
+        raise Exception(f'Unknown mode: {args.mode}')
 
 def handle_verilator_args(args):
     pass

@@ -51,7 +51,7 @@ class ZvSpikePlugin:
 class ZvSpikeOpts:
     def __init__(self, path : Path, d : dict):
         spike_plugins = d.get('spike_plugins', [])
-        self.objs = {}
+        self.objs : Dict[str, ZvSpikePlugin] = {}
         for file in spike_plugins:
             # convert to absolute path
             file_path = Path(file['file'])
@@ -63,12 +63,17 @@ class ZvSpikeOpts:
             if name in self.objs:
                 raise Exception(f'Test name collision: {name}')
             
+            # determine numeric value for address
+            address = file['address']
+            if not isinstance(address, int):
+                address = int(address, 0)  # can handle hex with a "0x" prefix
+
             # add to list of software files
             self.objs[name] = ZvSpikePlugin(
                 path=file_path,
                 extra_sources=file.get('extra_sources', []),
                 include_paths=file.get('include_paths', []),
-                address=file['address']
+                address=address
             )        
 
 class ZvVerilatorOpts:

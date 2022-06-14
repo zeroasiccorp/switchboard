@@ -18,5 +18,9 @@ sw:
 spike_plugins:
   - file: spike/uart_plugin.c
     address: 0x10000000
+    include_paths:
+      - common
   - file: spike/exit_plugin.c
     address: 0x10000008
+    include_paths:
+      - common
