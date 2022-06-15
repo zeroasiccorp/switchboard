@@ -1,6 +1,7 @@
 from zverif.zvconfig import ZvConfig
 from zverif.riscv import ZvRiscv
 from zverif.spike import ZvSpike
+from zverif.verilator import ZvVerilator
 
 from argparse import ArgumentParser
 
@@ -25,6 +26,7 @@ def add_verilator(parser : ArgumentParser):
     parser.add_argument('mode', type=str,
         choices=['build', 'run', 'list', 'clean'])
     parser.add_argument('tests', type=str, nargs='*')
+    parser.add_argument('--skip', type=str, nargs='+')
     parser.set_defaults(func=handle_verilator_args)
 
 def add_sw(parser : ArgumentParser):
@@ -52,7 +54,17 @@ def handle_spike_args(args):
         raise Exception(f'Unknown mode: {args.mode}')
 
 def handle_verilator_args(args):
-    pass
+    cfg = ZvConfig()
+    verilator = ZvVerilator(cfg)
+
+    if args.mode == 'build':
+        verilator.build()
+    elif args.mode == 'run':
+        verilator.run(args.tests, args.skip)
+    elif args.mode == 'clean':
+        verilator.clean()
+    else:
+        raise Exception(f'Unknown mode: {args.mode}')
 
 def handle_sw_args(args):
     cfg = ZvConfig()

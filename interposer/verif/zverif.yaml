@@ -1,5 +1,5 @@
 riscv:
-  isa: rv32imc
+  isa: rv32im
   abi: ilp32
 sw:
   - file: sw/hello/hello.c

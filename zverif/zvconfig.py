@@ -3,6 +3,9 @@ import glob
 from typing import Dict
 import yaml
 
+def sorted_glob(pattern):
+    return sorted(glob.glob(pattern), key=lambda x: Path(x).stem)
+
 class ZvRiscvOpts:
     def __init__(self, path : Path, d : dict):
         riscv = d.get('riscv', {})
@@ -27,7 +30,7 @@ class ZvSwOpts:
                 file_path = path / file_path
             
             # add entry for each file to be processed
-            for elem in glob.glob(str(file_path)):
+            for elem in sorted_glob(str(file_path)):
                 # generate name and check it
                 name=Path(elem).stem
                 if name in self.objs:
@@ -81,13 +84,15 @@ class ZvVerilatorOpts:
         # find Verilog sources
         self.verilog_sources = []
         for pattern in ['*.v', '*.sv']:
-            self.verilog_sources += glob.glob(str(path / 'verilator' / pattern))
+            self.verilog_sources += sorted_glob(str(path / 'verilator' / pattern))
+            # TODO: make this more generic
+            self.verilog_sources += sorted_glob(str(path.parent / 'rtl' / pattern))
         self.verilog_sources = [Path(elem) for elem in self.verilog_sources]
 
         # find C sources
         self.c_sources = []
         for pattern in ['*.c', '*.cc', '*.cpp']:
-            self.c_sources += glob.glob(str(path / 'verilator' / pattern))
+            self.c_sources += sorted_glob(str(path / 'verilator' / pattern))
         self.c_sources = [Path(elem) for elem in self.c_sources]
 
 class ZvConfig:

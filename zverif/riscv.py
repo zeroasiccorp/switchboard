@@ -1,6 +1,8 @@
 import shutil
 import subprocess
 from pathlib import Path
+
+from zverif.makehex import makehex
 from zverif.zvconfig import ZvConfig
 
 class ZvRiscv:
@@ -31,9 +33,18 @@ class ZvRiscv:
         self.clean([test])
 
         # create build directory
-        build_dir : Path = self.build_dir / test
-        build_dir.mkdir(exist_ok=True, parents=True)
+        (self.build_dir / test).mkdir(exist_ok=True, parents=True)
 
+        # build ELF
+        self.build_elf(test)
+
+        # build BIN
+        self.build_bin(test)
+
+        # build HEX
+        self.build_hex(test)
+
+    def build_elf(self, test):
         # look up information about this test
         obj = self.cfg.sw.objs[test]
 
@@ -52,12 +63,28 @@ class ZvRiscv:
         cmd += obj.extra_sources
         cmd += [obj.path]
         cmd += [f'-I{elem}' for elem in obj.include_paths]
-        cmd += ['-o', build_dir / f'{test}.elf']
+        cmd += ['-o', self.build_dir / test / f'{test}.elf']
 
         cmd = [str(elem) for elem in cmd]
 
         print(cmd)
         subprocess.run(cmd, check=True)
+
+    def build_bin(self, test):
+        # build up the command
+        cmd = []
+        cmd += ['riscv64-unknown-elf-objcopy']  # TODO make generic
+        cmd += ['-O', 'binary']
+        cmd += [self.build_dir / test / f'{test}.elf']
+        cmd += [self.build_dir / test / f'{test}.bin']
+
+        cmd = [str(elem) for elem in cmd]
+
+        print(cmd)
+        subprocess.run(cmd, check=True)
+
+    def build_hex(self, test):
+        makehex(self.build_dir / test / f'{test}.bin')
 
     @property
     def build_dir(self):

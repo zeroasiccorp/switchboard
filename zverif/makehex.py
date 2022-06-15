@@ -7,19 +7,24 @@
 # binary, for any purpose, commercial or non-commercial, and by any
 # means.
 
-from sys import argv
+from pathlib import Path
 
-binfile = argv[1]
-nwords = int(argv[2])
+def makehex(binfile, outfile=None, nwords=32768):
+    # determine output file if needed
+    if outfile is None:
+        outfile = Path(binfile).with_suffix('.hex')
 
-with open(binfile, "rb") as f:
-    bindata = f.read()
+    # read input file
+    with open(binfile, "rb") as f:
+        bindata = f.read()
 
-# pad to a fixed length
-assert len(bindata) <= 4*nwords
-bindata += bytes([0]*((4*nwords)-len(bindata)))
+    # pad to a fixed length
+    assert len(bindata) <= 4*nwords
+    bindata += bytes([0]*((4*nwords)-len(bindata)))
 
-# print words
-for i in range(nwords):
-    w = bindata[4*i : 4*i+4]
-    print("%02x%02x%02x%02x" % (w[3], w[2], w[1], w[0]))
+    # print words
+    # TODO: handle 32 and 64 bit
+    with open(outfile, 'w') as f:
+        for i in range(nwords):
+            w = bindata[4*i : 4*i+4]
+            f.write('%02x%02x%02x%02x\n' % (w[3], w[2], w[1], w[0]))
