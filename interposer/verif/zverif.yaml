@@ -10,6 +10,8 @@ sw:
       - common
       - sw/hello
   - file: sw/riscv-tests/riscv-tests/isa/rv32ui/*.S
+    skip:
+      - fence_i.S
     linker_script: sw/riscv-tests/riscv-test-env/p/link.ld
     include_paths:
       - common

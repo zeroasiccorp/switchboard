@@ -1,7 +1,6 @@
 from pathlib import Path
 import glob
 from typing import Dict
-import yaml
 
 def sorted_glob(pattern):
     return sorted(glob.glob(pattern), key=lambda x: Path(x).stem)
@@ -29,8 +28,17 @@ class ZvSwOpts:
             if not file_path.is_absolute():
                 file_path = path / file_path
             
+            # get the set of filenames to be skipped
+            skip = file.get('skip', [])
+            skip = set(skip)
+
             # add entry for each file to be processed
             for elem in sorted_glob(str(file_path)):
+                # skip file if desired
+                # TODO: make this a more generic search feature
+                if Path(elem).name in skip:
+                    continue
+
                 # generate name and check it
                 name=Path(elem).stem
                 if name in self.objs:
@@ -96,14 +104,9 @@ class ZvVerilatorOpts:
         self.c_sources = [Path(elem) for elem in self.c_sources]
 
 class ZvConfig:
-    def __init__(self, file_path=None):
-        # determine default path if needed
-        if file_path is None:
-            file_path = Path('zverif.yaml')
-
-        # read YAML file
-        with open(file_path, "r") as stream:
-            self.data = yaml.safe_load(stream)
+    def __init__(self, file_path, data):
+        # save YAML data
+        self.data = data
 
         # determine directory where YAML file is stored
         self.path = Path(file_path).resolve().parent
@@ -117,4 +120,3 @@ class ZvConfig:
     @property
     def build_dir(self):
         return self.path / 'build'
-

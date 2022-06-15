@@ -1,21 +1,29 @@
-from distutils.command.build import build
-import shutil
 import subprocess
-import sys
+import shutil
 from pathlib import Path
-from zverif.zvconfig import ZvConfig, ZvVerilatorOpts
+from zverif.zvconfig import ZvConfig
 
 class ZvVerilator:
     def __init__(self, cfg: ZvConfig):
         self.cfg = cfg
 
-    def build(self):
-        # remove old build
-        self.clean()
+    @property
+    def build_dir(self):
+        return self.cfg.build_dir / 'verilator'
 
-        # create build directory
-        build_dir : Path = self.build_dir
-        build_dir.mkdir(exist_ok=True, parents=True)
+    def task_verilator_build(self):
+        opts = self.cfg.verilator
+        return {
+            'file_dep': opts.verilog_sources + opts.c_sources,
+            'targets': [self.build_dir / 'obj_dir' / 'Vzverif_top'],
+            'actions': [self.build]
+        }
+
+    def build(self):
+        # create a fresh build directory, removing
+        # the old one if it exists
+        shutil.rmtree(self.build_dir, ignore_errors=True)
+        self.build_dir.mkdir(exist_ok=True, parents=True)
 
         # convert Verilog to C
         self.verilate()
@@ -56,24 +64,22 @@ class ZvVerilator:
         print(cmd)
         subprocess.run(cmd, check=True, cwd=self.build_dir)
 
-    def run(self, tests, skip=None):
-        # set defaults
-        if skip is None:
-            skip = []
+    def task_verilator(self):
+        for test in self.cfg.sw.objs:
+            yield self.run_task(test)
 
-        # figure out what tests we need to run
-        if tests is None or (len(tests) == 0):
-            tests = list(self.cfg.sw.objs.keys())
+    def run_task(self, test):
+        file_dep = []
+        file_dep += [self.build_dir / 'obj_dir' / 'Vzverif_top']
+        file_dep += [self.cfg.build_dir / 'sw' / test / f'{test}.hex']
+        return {
+            'name': test,
+            'file_dep': file_dep,
+            'actions': [lambda: self.run(test)],
+            'uptodate': [False]  # i.e., always run
+        }
 
-        # run each of those tests
-        for test in tests:
-            if test not in skip:
-                self.run_test(test, quiet=True)
-    
-    def clean(self):
-        shutil.rmtree(str(self.build_dir), ignore_errors=True)
-
-    def run_test(self, test, quiet=False):
+    def run(self, test):
         # build up the command
         cmd = []
         cmd += [self.build_dir / 'obj_dir' / 'Vzverif_top']  # TODO make generic
@@ -82,7 +88,3 @@ class ZvVerilator:
         cmd = [str(elem) for elem in cmd]
 
         subprocess.run(cmd, check=True)
-
-    @property
-    def build_dir(self):
-        return self.cfg.build_dir / 'verilator'

@@ -1,6 +1,4 @@
-import shutil
 import subprocess
-from pathlib import Path
 
 from zverif.makehex import makehex
 from zverif.zvconfig import ZvConfig
@@ -9,42 +7,29 @@ class ZvRiscv:
     def __init__(self, cfg: ZvConfig):
         self.cfg = cfg
 
-    def build(self, tests):
-        # figure out what tests we need to build
-        if tests is None or (len(tests) == 0):
-            tests = self.list()
+    @property
+    def build_dir(self):
+        return self.cfg.build_dir / 'sw'
 
-        # build each of those tests
-        for test in tests:
-            self.build_test(test)
+    def task_elf(self):
+        for name in self.cfg.sw.objs:
+            yield self.build_elf_task(name)
 
-    def list(self):
-        return list(self.cfg.sw.objs.keys())
-    
-    def clean(self, tests):
-        if tests is None:
-            shutil.rmtree(str(self.build_dir), ignore_errors=True)
-        else:
-            for test in tests:
-                shutil.rmtree(str(self.build_dir / test), ignore_errors=True)
-
-    def build_test(self, test):
-        # remove old build
-        self.clean([test])
-
-        # create build directory
-        (self.build_dir / test).mkdir(exist_ok=True, parents=True)
-
-        # build ELF
-        self.build_elf(test)
-
-        # build BIN
-        self.build_bin(test)
-
-        # build HEX
-        self.build_hex(test)
+    def build_elf_task(self, name):
+        obj = self.cfg.sw.objs[name]
+        file_dep = [obj.path] + obj.extra_sources + [obj.linker_script]
+        return {
+            'name': name,
+            'file_dep': file_dep,
+            'targets': [self.build_dir / name / f'{name}.elf'],
+            'actions': [lambda: self.build_elf(name)],
+            'clean': True
+        }
 
     def build_elf(self, test):
+        # create the build directory if needed
+        (self.build_dir / test).mkdir(exist_ok=True, parents=True)
+
         # look up information about this test
         obj = self.cfg.sw.objs[test]
 
@@ -70,6 +55,19 @@ class ZvRiscv:
         print(cmd)
         subprocess.run(cmd, check=True)
 
+    def task_bin(self):
+        for name in self.cfg.sw.objs:
+            yield self.build_bin_task(name)
+
+    def build_bin_task(self, name):
+        return {
+            'name': name,
+            'file_dep': [self.build_dir / name / f'{name}.elf'],
+            'targets': [self.build_dir / name / f'{name}.bin'],
+            'actions': [lambda: self.build_bin(name)],
+            'clean': True
+        }
+
     def build_bin(self, test):
         # build up the command
         cmd = []
@@ -83,9 +81,18 @@ class ZvRiscv:
         print(cmd)
         subprocess.run(cmd, check=True)
 
+    def task_hex(self):
+        for name in self.cfg.sw.objs:
+            yield self.build_hex_task(name)
+
+    def build_hex_task(self, name):
+        return {
+            'name': name,
+            'file_dep': [self.build_dir / name / f'{name}.bin'],
+            'targets': [self.build_dir / name / f'{name}.hex'],
+            'actions': [lambda: self.build_hex(name)],
+            'clean': True
+        }
+
     def build_hex(self, test):
         makehex(self.build_dir / test / f'{test}.bin')
-
-    @property
-    def build_dir(self):
-        return self.cfg.build_dir / 'sw'
