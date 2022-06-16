@@ -1,4 +1,4 @@
-import subprocess
+import ubelt
 import shutil
 from pathlib import Path
 from zverif.zvconfig import ZvConfig
@@ -48,8 +48,7 @@ class ZvVerilator:
 
         cmd = [str(elem) for elem in cmd]
 
-        print(cmd)
-        subprocess.run(cmd, check=True, cwd=self.build_dir)
+        info = ubelt.cmd(cmd, check=True, cwd=self.build_dir)
 
     def compile(self):
         cmd = []
@@ -61,8 +60,7 @@ class ZvVerilator:
 
         cmd = [str(elem) for elem in cmd]
 
-        print(cmd)
-        subprocess.run(cmd, check=True, cwd=self.build_dir)
+        info = ubelt.cmd(cmd, check=True, cwd=self.build_dir)
 
     def task_verilator(self):
         for test in self.cfg.sw.objs:
@@ -87,4 +85,6 @@ class ZvVerilator:
 
         cmd = [str(elem) for elem in cmd]
 
-        subprocess.run(cmd, check=True)
+        info = ubelt.cmd(cmd, tee=True, check=True)
+        for e in self.cfg.sw.objs[test].expect:
+            assert e in info['out'], f'Did not find "{e}" in output'

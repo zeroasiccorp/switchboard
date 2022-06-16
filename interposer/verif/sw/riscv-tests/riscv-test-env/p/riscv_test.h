@@ -188,6 +188,13 @@ reset_vector:                                                           \
 // is likely unique.
 
 #define RVTEST_PASS                                                     \
+        li a0, UART_ADDR;                                               \
+        li a1, 'O';                                                     \
+        li a2, 'K';                                                     \
+        li a3, '\n';                                                    \
+        sb a1, (a0);                                                    \
+        sb a2, (a0);                                                    \
+        sb a3, (a0);                                                    \
         li t0, EXIT_ADDR;                                               \
         li t1, EXIT_PASS;                                               \
         sw t1, (t0);                                                    \
@@ -195,6 +202,17 @@ reset_vector:                                                           \
 
 #define TESTNUM gp
 #define RVTEST_FAIL                                                     \
+        li a0, UART_ADDR;                                               \
+        li a1, 'E';                                                     \
+        li a2, 'R';                                                     \
+        li a3, 'O';                                                     \
+        li a4, '\n';                                                    \
+        sb a1, (a0);                                                    \
+        sb a2, (a0);                                                    \
+        sb a2, (a0);                                                    \
+        sb a3, (a0);                                                    \
+        sb a2, (a0);                                                    \
+        sb a4, (a0);                                                    \
         li t0, EXIT_ADDR;                                               \
         li t1, (1 << 16) | EXIT_FAIL;                                   \
         sw t1, (t0);                                                    \

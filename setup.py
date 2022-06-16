@@ -24,6 +24,7 @@ setup(
         'console_scripts': ['zverif=zverif.zverif:main']
     },
     install_requires=[
+        'ubelt',
         'pyyaml'
     ],
     url=f'https://github.com/zeroasiccorp/interposer-verif.git',

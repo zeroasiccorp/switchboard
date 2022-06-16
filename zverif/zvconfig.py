@@ -12,11 +12,12 @@ class ZvRiscvOpts:
         self.abi = riscv.get('abi', 'ilp32')
 
 class ZvSwFile:
-    def __init__(self, path, extra_sources, linker_script, include_paths):
+    def __init__(self, path, extra_sources, linker_script, include_paths, expect):
         self.path = path
         self.extra_sources = extra_sources
         self.linker_script = linker_script
         self.include_paths = include_paths
+        self.expect = expect
 
 class ZvSwOpts:
     def __init__(self, path : Path, d : dict):
@@ -49,7 +50,8 @@ class ZvSwOpts:
                     path=elem,
                     extra_sources=file.get('extra_sources', []),
                     linker_script=file.get('linker_script', None),
-                    include_paths=file.get('include_paths', [])
+                    include_paths=file.get('include_paths', []),
+                    expect=file.get('expect', [])
                 )
 
 class ZvSpikePlugin:

@@ -9,6 +9,8 @@ sw:
     include_paths:
       - common
       - sw/hello
+    expect:
+      - "Hello World from core 0!"
   - file: sw/riscv-tests/riscv-tests/isa/rv32ui/*.S
     skip:
       - fence_i.S
@@ -18,6 +20,8 @@ sw:
       - sw/riscv-tests/riscv-test-env
       - sw/riscv-tests/riscv-test-env/p
       - sw/riscv-tests/riscv-tests/isa/macros/scalar
+    expect:
+      - "OK"
 spike_plugins:
   - file: spike/uart_plugin.c
     address: 0x10000000

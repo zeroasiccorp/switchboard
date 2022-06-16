@@ -1,5 +1,4 @@
-import subprocess
-
+import ubelt
 from zverif.makehex import makehex
 from zverif.zvconfig import ZvConfig
 
@@ -52,8 +51,7 @@ class ZvRiscv:
 
         cmd = [str(elem) for elem in cmd]
 
-        print(cmd)
-        subprocess.run(cmd, check=True)
+        info = ubelt.cmd(cmd, check=True)
 
     def task_bin(self):
         for name in self.cfg.sw.objs:
@@ -78,8 +76,7 @@ class ZvRiscv:
 
         cmd = [str(elem) for elem in cmd]
 
-        print(cmd)
-        subprocess.run(cmd, check=True)
+        info = ubelt.cmd(cmd, check=True)
 
     def task_hex(self):
         for name in self.cfg.sw.objs:

@@ -1,6 +1,4 @@
-from distutils.command.build import build
-import shutil
-import subprocess
+import ubelt
 import sys
 from pathlib import Path
 from zverif.zvconfig import ZvConfig
@@ -54,8 +52,7 @@ class ZvSpike:
 
         cmd = [str(elem) for elem in cmd]
 
-        print(cmd)
-        subprocess.run(cmd, check=True)
+        info = ubelt.cmd(cmd, check=True)
 
     def task_spike(self):
         for test in self.cfg.sw.objs:
@@ -90,5 +87,6 @@ class ZvSpike:
 
         cmd = [str(elem) for elem in cmd]
 
-        print(cmd)
-        subprocess.run(cmd, check=True)   
+        info = ubelt.cmd(cmd, tee=True, check=True)
+        for e in self.cfg.sw.objs[test].expect:
+            assert e in info['out'], f'Did not find "{e}" in output'
