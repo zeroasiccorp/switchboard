@@ -1,6 +1,8 @@
 import ubelt
+from pathlib import Path
 from zverif.makehex import makehex
 from zverif.zvconfig import ZvConfig
+from zverif.utils import get_gcc_deps
 
 class ZvRiscv:
     def __init__(self, cfg: ZvConfig):
@@ -14,9 +16,30 @@ class ZvRiscv:
         for name in self.cfg.sw.objs:
             yield self.build_elf_task(name)
 
-    def build_elf_task(self, name):
+    def build_elf_task(self, name, auto_file_dep=False):
         obj = self.cfg.sw.objs[name]
-        file_dep = [obj.path] + obj.extra_sources + [obj.linker_script]
+
+        # determine file dependencies.  for now, "auto_file_dep" is
+        # too slow to be the default, since dependencies are determined
+        # for all software tests.
+
+        file_dep = []
+
+        if auto_file_dep:
+            try:
+                file_dep += get_gcc_deps(
+                    sources=[obj.path]+obj.extra_sources,
+                    include_dirs=obj.include_paths,
+                    gcc='riscv64-unknown-elf-gcc'  # TODO make generic
+                )
+            except:
+                print(f'Could not determine all dependencies for test: {name}')
+                file_dep += [obj.path] + obj.extra_sources
+        else:
+            file_dep += [obj.path] + obj.extra_sources
+
+        file_dep += [obj.linker_script]
+
         return {
             'name': name,
             'file_dep': file_dep,

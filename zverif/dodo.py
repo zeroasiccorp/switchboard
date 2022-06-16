@@ -11,8 +11,7 @@ DOIT_CONFIG = {
 }
 
 # read YAML configuration
-TOP_DIR = Path(__file__).resolve().parent
-file_path = TOP_DIR / 'zverif.yaml'
+file_path = 'zverif.yaml'
 with open(file_path, 'r') as stream:
     data = yaml.safe_load(stream)
 cfg = ZvConfig(file_path=file_path, data=data)

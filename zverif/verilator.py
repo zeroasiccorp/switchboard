@@ -1,6 +1,7 @@
 import ubelt
 import shutil
 from pathlib import Path
+from doit.task import clean_targets
 from zverif.zvconfig import ZvConfig
 
 class ZvVerilator:
@@ -16,13 +17,13 @@ class ZvVerilator:
         return {
             'file_dep': opts.verilog_sources + opts.c_sources,
             'targets': [self.build_dir / 'obj_dir' / 'Vzverif_top'],
-            'actions': [self.build]
+            'actions': [self.build],
+            'clean': [clean_targets, self.clean]
         }
 
     def build(self):
-        # create a fresh build directory, removing
-        # the old one if it exists
-        shutil.rmtree(self.build_dir, ignore_errors=True)
+        # create a fresh build directory
+        self.clean()
         self.build_dir.mkdir(exist_ok=True, parents=True)
 
         # convert Verilog to C
@@ -30,6 +31,9 @@ class ZvVerilator:
 
         # build simulation binary
         self.compile()
+
+    def clean(self):
+        shutil.rmtree(self.build_dir, ignore_errors=True)
 
     def verilate(self):
         # look up information about this test
