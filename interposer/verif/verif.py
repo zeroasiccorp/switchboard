@@ -105,6 +105,7 @@ class MyLoader(TaskLoader2):
         add_group_task(tasks, 'bin', 'Build software BIN files.')
         add_group_task(tasks, 'hex', 'Build software HEX files.')
         add_group_task(tasks, 'spike_plugin', 'Build Spike plugins.')
+        add_group_task(tasks, 'spike', 'Run Spike emulation.')
         add_group_task(tasks, 'verilator', 'Run Verilator simulation.')
         return tasks
 
