@@ -1,25 +1,28 @@
 #!/usr/bin/env python
 
-import sys
 from pathlib import Path
-
-from doit.task import dict_to_task, Task
-from doit.cmd_base import TaskLoader2
-from doit.doit_cmd import DoitMain
 
 from zverif.riscv import riscv_elf_task, riscv_bin_task, hex_task
 from zverif.spike import spike_plugin_task, spike_task
 from zverif.verilator import verilator_build_task, verilator_task
 from zverif.utils import file_list
+from zverif.config import ZvConfig
+from zverif.doit import doit_main_loop
 
 # folder structure 
 TOP_DIR = Path(__file__).resolve().parent.parent
 VERIF_DIR = TOP_DIR / 'verif'
 RTL_DIR = TOP_DIR / 'rtl'
-SW_DIR = VERIF_DIR / 'sw'
+SW_DIR = TOP_DIR / 'verif' / 'sw'
+
+# project configuration
+CFG = ZvConfig()
 
 def gen_tasks():
-    # build spike plugins
+    # build Spike plugins: each is a shared object (*.so)
+    # that is mapped to a particular address.  when Spike
+    # is invoked, these compiled plugins and their addresses
+    # will be specified as command-line arguments
 
     mmap = {
         'uart_plugin': 0x10000000,
@@ -32,82 +35,92 @@ def gen_tasks():
             sources=VERIF_DIR / 'spike' / f'{name}.c',
             include_paths=VERIF_DIR / 'common'
         )
+        # the 'targets' key is mapped to a list of outputs
+        # created by the task.  in this case there's just one,
+        # which is the shared object (*.so) plugin
         plugins[str(task['targets'][0])] = addr
         yield task
 
-    # build verilator
+    # build verilator: this only needed to be done if there are
+    # RTL changes, since the same Verilator binary is reused
+    # for running arbitrary RISC-V programs
 
     yield verilator_build_task(
-        sources = (file_list(RTL_DIR / '*.v') +
-            file_list(VERIF_DIR / 'verilator' / '*.cc') + 
-            file_list(VERIF_DIR / 'verilator' / '*.v')),
+        sources = [
+            RTL_DIR / '*.v',
+            VERIF_DIR / 'verilator' / '*.cc',
+            VERIF_DIR / 'verilator' / '*.v'
+        ]
     )
 
-    # build test applications
+    # build an ELF for each RISC-V application
 
-    tests = []
+    apps = []
 
-    hello = SW_DIR / 'hello'
-    yield riscv_elf_task(
-        name='hello',
-        sources=[hello / '*.c', hello / '*.s'],
-        include_paths=[hello, VERIF_DIR / 'common'],
-        linker_script=hello / '*.ld'
-    )
-    tests.append('hello')
+    # pattern 1: folders containing a mix of C and assembly,
+    # along with a linker script.  right now there's just
+    # one such example, called "hello"
+
+    for name in ['hello']:
+        folder = SW_DIR / name
+        yield riscv_elf_task(
+            name=name,
+            sources=[folder / '*.c', folder / '*.s'],
+            include_paths=[folder, VERIF_DIR / 'common'],
+            linker_script=folder / '*.ld'
+        )
+        apps.append(name)
     
+    # pattern 2: RISC-V tests from an external source (https://github.com/riscv-software-src/riscv-tests)
+    # the tests are included as an unmodified git submodule
+    # the test environment (which implements a test pass/fail, among other things)
+    # has been modified slightly to account for the custom UART and exit memory map
+
+    skip_set = {'fence_i'}  # certain tests don't work with PicoRV32
+
     isa_dir = SW_DIR / 'riscv-tests' / 'riscv-tests' / 'isa'
     env_dir = SW_DIR / 'riscv-tests' / 'riscv-test-env'
-    for test in file_list(isa_dir / 'rv32ui' / '*.S'):
+    for app in file_list(isa_dir / 'rv32ui' / '*.S'):
+        if app.stem in skip_set:
+            continue
+
         yield riscv_elf_task(
-            name=test.stem,
-            sources=test,
+            name=app.stem,
+            sources=app,
             include_paths=[
-                test.parent,
+                app.parent,
                 isa_dir / 'macros' / 'scalar',
                 env_dir / 'p',
                 VERIF_DIR / 'common'
             ],
             linker_script=env_dir / 'p' / '*.ld'
         )
-        tests.append(test.stem)
+
+        apps.append(app.stem)
     
     # add per-application tasks
-    for test in tests:
-        yield riscv_bin_task(test)
-        yield hex_task(test)
-        yield spike_task(test, plugins=plugins)
-        yield verilator_task(test, files={'firmware': f'build/sw/{test}.hex'})
+    for app in apps:
+        # task to generate a "bin" file for a particular app
+        yield riscv_bin_task(app) 
 
-def add_group_task(tasks, basename, doc=None):
-    # ref: https://github.com/pydoit/doit/blob/419da250f66cebb15ea7db61e745625b3318c29a/doit/loader.py#L327-L344
+        # task to generate a "hex" file for a particular app
+        yield hex_task(app)
 
-    group_task = Task(basename, None, doc=doc, has_subtask=True)
-    for task in tasks:
-        if task.name.startswith(f'{basename}:'):
-            group_task.task_dep.append(task.name)
-            task.subtask_of = basename
-    tasks.append(group_task)
+        # task to run Spike emulation for a particular app
+        yield spike_task(app, plugins=plugins)
 
-class MyLoader(TaskLoader2):
-    def setup(self, opt_values):
-        pass
+        # task to run a Verilator simulation for a particular app
+        yield verilator_task(app, files={'firmware': CFG.sw_dir / f'{app}.hex'})
 
-    def load_doit_config(self):
-        return {
-            'default_tasks': ['verilator:hello'],
-            'verbosity': 2
-        }
-
-    def load_tasks(self, cmd, pos_args):
-        tasks = [dict_to_task(elem) for elem in gen_tasks()]
-        add_group_task(tasks, 'elf', 'Build software ELF files.')
-        add_group_task(tasks, 'bin', 'Build software BIN files.')
-        add_group_task(tasks, 'hex', 'Build software HEX files.')
-        add_group_task(tasks, 'spike_plugin', 'Build Spike plugins.')
-        add_group_task(tasks, 'spike', 'Run Spike emulation.')
-        add_group_task(tasks, 'verilator', 'Run Verilator simulation.')
-        return tasks
+def main():
+    doit_main_loop(tasks=gen_tasks(), group_tasks={
+        'elf': 'Build software ELF files.',
+        'bin': 'Build software BIN files.',
+        'hex': 'Build software HEX files.',
+        'spike_plugin': 'Build Spike plugins.',
+        'spike': 'Run Spike emulation.',
+        'verilator': 'Run Verilator simulation.'
+    })
 
 if __name__ == "__main__":
-    sys.exit(DoitMain(MyLoader()).run(sys.argv[1:]))
+    main()

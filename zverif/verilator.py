@@ -22,11 +22,11 @@ def verilator_build_task(sources, top=CFG.rtl_top, build_dir=None,
         'name': name,
         'file_dep': sources,
         'targets': [build_dir / 'obj_dir' / f'V{top}'],
-        'actions': [(verilator_build, [], {
+        'actions': [(verilator_build, [], dict({
                 'build_dir': build_dir,
                 'top': top,
                 'sources': sources
-            } | kwargs)],
+            }, **kwargs))],
         'clean': [clean_targets,
             lambda: shutil.rmtree(build_dir, ignore_errors=True)],
         'doc': 'Build Verilator simulation binary.'
@@ -47,7 +47,7 @@ def verilate(top, sources, build_dir, verilator=CFG.verilator):
     # build up the command
     cmd = []
     cmd += [verilator]
-    cmd += ['--top', top]
+    cmd += ['--top-module', top]  # "--top" isn't supported on older versions...
     cmd += ['-trace']  # TODO make generic
     cmd += ['-CFLAGS', '-Wno-unknown-warning-option']
     cmd += ['--cc']
@@ -75,7 +75,7 @@ def verilator_task(name, build_dir=CFG.verilator_dir, top=CFG.rtl_top,
 
     if files is None:
         files = {}
-    files = {k: Path(v).resolve() for k, v in files.items()}
+    files = {k: str(Path(v).resolve()) for k, v in files.items()}
 
     build_dir = Path(build_dir).resolve()
 
@@ -86,11 +86,11 @@ def verilator_task(name, build_dir=CFG.verilator_dir, top=CFG.rtl_top,
     return {
         'name': f'{basename}:{name}',
         'file_dep': file_dep,
-        'actions': [(verilator, [], {
+        'actions': [(verilator, [], dict({
             'build_dir': build_dir,
             'top': top,
             'files': files
-        } | kwargs)],
+        }, **kwargs))],
         'uptodate': [False]  # i.e., always run
     }
 

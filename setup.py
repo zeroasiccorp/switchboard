@@ -22,7 +22,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'ubelt',
-        'pyyaml'
+        'pyyaml',
+        'doit'
     ],
     url=f'https://github.com/zeroasiccorp/interposer-verif.git',
     author='Steven Herbst',

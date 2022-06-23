@@ -36,12 +36,12 @@ def riscv_elf_task(name, sources=None, linker_script=None,
         'name': f'{basename}:{name}',
         'file_dep': file_dep,
         'targets': [output],
-        'actions': [(build_elf, [], {
+        'actions': [(build_elf, [], dict({
             'sources': sources,
             'include_paths': include_paths,
             'linker_script': linker_script,
             'output': output
-        } | kwargs)],
+        }, **kwargs))],
         'clean': True
     }
 
@@ -86,10 +86,10 @@ def riscv_bin_task(name, input=None, output=None, basename='bin', **kwargs):
         'name': f'{basename}:{name}',
         'file_dep': [input],
         'targets': [output],
-        'actions': [(build_bin, [], {
+        'actions': [(build_bin, [], dict({
                 'input': input,
                 'output': output
-            } | kwargs)],
+            }, **kwargs))],
         'clean': True
     }
 
@@ -120,9 +120,9 @@ def hex_task(name, input=None, output=None, basename='hex', **kwargs):
         'name': f'{basename}:{name}',
         'file_dep': [input],
         'targets': [output],
-        'actions': [(makehex, [], {
+        'actions': [(makehex, [], dict({
                 'input': input,
                 'output': output
-            } | kwargs)],
+            }, **kwargs))],
         'clean': True
     }

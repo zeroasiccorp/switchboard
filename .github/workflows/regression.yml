@@ -18,10 +18,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Spike simulation
         run: |
-          make spike > out-spike-sim.log
-          cat out-spike-sim.log
+          sed -i 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
 
-          grep -Fxq "Hello World from core 0!" out-spike-sim.log
+          apt-get update -y
+          apt-get install -y python3 python3-pip
+
+          python3 -m pip install -e .
+
+          cd interposer/verif && python3 verif.py spike
 
   verilator:
     name: Verilator
@@ -33,9 +37,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
-          python3 -m pip install fusesoc
 
-          set -o pipefail && make run | tee out-rtl-sim.log
+          python3 -m pip install -e .
 
-          grep -Fxq "Hello World from core 0!" out-rtl-sim.log
-          grep -Fxq "ALL TESTS PASSED." out-rtl-sim.log
+          cd interposer/verif && python3 verif.py verilator

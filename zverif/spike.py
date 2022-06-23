@@ -27,11 +27,11 @@ def spike_plugin_task(name, sources=None, include_paths=None, output=None,
         'name': f'{basename}:{name}',
         'file_dep': file_dep,
         'targets': [output],
-        'actions': [(build_spike_plugin, [], {
+        'actions': [(build_spike_plugin, [], dict({
             'sources': sources,
             'include_paths': include_paths,
             'output': output
-        } | kwargs)],
+        }, **kwargs))],
         'clean': True
     }
 
@@ -71,10 +71,10 @@ def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
     return {
         'name': f'{basename}:{name}',
         'file_dep': file_dep,
-        'actions': [(run_spike, [], {
+        'actions': [(run_spike, [], dict({
                 'elf': elf,
                 'plugins': plugins
-            } | kwargs)],
+            }, **kwargs))],
         'uptodate': [False],  # i.e., always run
     }
 

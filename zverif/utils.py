@@ -1,6 +1,8 @@
 import glob
-from pathlib import Path
 import ubelt
+
+from doit.task import Task
+from pathlib import Path
 
 def file_list(file_or_files, convert_to_path=True, resolve=True):
     if file_or_files is None:
@@ -56,3 +58,13 @@ def get_gcc_deps(sources=None, include_dirs=None, gcc='gcc'):
     out = [elem for elem in out if elem != '']
 
     return out
+
+def add_group_task(tasks, basename, doc=None):
+# ref: https://github.com/pydoit/doit/blob/419da250f66cebb15ea7db61e745625b3318c29a/doit/loader.py#L327-L344
+
+    group_task = Task(basename, None, doc=doc, has_subtask=True)
+    for task in tasks:
+        if task.name.startswith(f'{basename}:'):
+            group_task.task_dep.append(task.name)
+            task.subtask_of = basename
+    tasks.append(group_task)

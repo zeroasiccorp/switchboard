@@ -14,7 +14,7 @@ class ZvConfig:
         # defaults are set.  adding 
         self.riscv_prefix = d.get('riscv_prefix', 'riscv64-unknown-elf-')
         self.riscv_abi = d.get('riscv_abi', 'ilp32')
-        self.riscv_isa = d.get('riscv_isa', 'rv64im')
+        self.riscv_isa = d.get('riscv_isa', 'rv32im')
         self.build_dir = d.get('build_dir', Path('.') / 'build')
         self.gcc = d.get('gcc', 'gcc')
         self.spike = d.get('spike', 'spike')
