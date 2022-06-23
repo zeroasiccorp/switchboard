@@ -20,9 +20,6 @@ setup(
     keywords = ['verification', 'verilog', 'system-verilog',
                 'system verilog', 'verilator', 'spike'],
     packages=find_packages(),
-    entry_points = {
-        'console_scripts': ['zverif=zverif.zverif:main']
-    },
     install_requires=[
         'ubelt',
         'pyyaml'

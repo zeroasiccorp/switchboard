@@ -3,11 +3,9 @@ import sys
 from pathlib import Path
 
 from zverif.utils import file_list
+from zverif.config import ZvConfig
 
-DEFAULT_GCC = 'gcc'
-DEFAULT_RISCV_ISA = 'rv32im'
-DEFAULT_SPIKE = f'spike'
-DEFAULT_BUILD_DIR = Path('.') / 'build' / 'spike'
+CFG = ZvConfig()
 
 def spike_plugin_task(name, sources=None, include_paths=None, output=None,
     basename='spike_plugin', **kwargs):
@@ -17,7 +15,7 @@ def spike_plugin_task(name, sources=None, include_paths=None, output=None,
     sources = file_list(sources)
     include_paths = file_list(include_paths)
     if output is None:
-        output = (DEFAULT_BUILD_DIR / f'{name}.so').resolve()
+        output = (Path(CFG.spike_dir) / f'{name}.so').resolve()
     output = Path(output)
 
     # determine file dependencies
@@ -37,7 +35,7 @@ def spike_plugin_task(name, sources=None, include_paths=None, output=None,
         'clean': True
     }
 
-def build_spike_plugin(sources, include_paths, output, gcc=DEFAULT_GCC):
+def build_spike_plugin(sources, include_paths, output, gcc=CFG.gcc):
     # create the build directory if needed
     Path(output).parent.mkdir(exist_ok=True, parents=True)
 
@@ -63,7 +61,7 @@ def build_spike_plugin(sources, include_paths, output, gcc=DEFAULT_GCC):
 def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
     # set defaults
     if elf is None:
-        elf = (Path('.') / 'build' / 'sw' / f'{name}.elf').resolve()
+        elf = (Path(CFG.sw_dir) / f'{name}.elf').resolve()
     if plugins is None:
         plugins = {}
     plugins = {str(Path(k).resolve()): v for k, v in plugins.items()}
@@ -80,8 +78,7 @@ def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
         'uptodate': [False],  # i.e., always run
     }
 
-def run_spike(elf, plugins, expect=None,
-    isa=DEFAULT_RISCV_ISA, spike=DEFAULT_SPIKE):
+def run_spike(elf, plugins, expect=None, isa=CFG.riscv_isa, spike=CFG.spike):
     # set defaults
     if expect is None:
         expect = []

@@ -4,17 +4,16 @@ from pathlib import Path
 from doit.task import clean_targets
 
 from zverif.utils import file_list
+from zverif.config import ZvConfig
 
-DEFAULT_TOP = 'zverif_top'
-DEFAULT_VERILATOR = 'verilator'
-DEFAULT_BUILD_DIR = Path('.') / 'build' / 'verilator'
+CFG = ZvConfig()
 
-def verilator_build_task(sources, top=DEFAULT_TOP, build_dir=None,
+def verilator_build_task(sources, top=CFG.rtl_top, build_dir=None,
     name='verilator_build', **kwargs):
 
     # set defaults
     if build_dir is None:
-        build_dir = DEFAULT_BUILD_DIR.resolve()
+        build_dir = Path(CFG.verilator_dir).resolve()
 
     # resolve patterns in source files
     sources = file_list(sources)
@@ -44,11 +43,11 @@ def verilator_build(build_dir, top, sources):
     # build simulation binary
     verilator_compile(build_dir=build_dir, top=top)
 
-def verilate(top, sources, build_dir, verilator=DEFAULT_VERILATOR):
+def verilate(top, sources, build_dir, verilator=CFG.verilator):
     # build up the command
     cmd = []
-    cmd += [verilator]  # TODO make generic
-    cmd += ['--top', top]  # TODO make generic
+    cmd += [verilator]
+    cmd += ['--top', top]
     cmd += ['-trace']  # TODO make generic
     cmd += ['-CFLAGS', '-Wno-unknown-warning-option']
     cmd += ['--cc']
@@ -71,15 +70,13 @@ def verilator_compile(build_dir, top):
 
     info = ubelt.cmd(cmd, tee=True, check=True, cwd=build_dir)
 
-def verilator_task(name, build_dir=DEFAULT_BUILD_DIR, top=DEFAULT_TOP,
+def verilator_task(name, build_dir=CFG.verilator_dir, top=CFG.rtl_top,
     basename='verilator', files=None, **kwargs):
 
     if files is None:
         files = {}
     files = {k: Path(v).resolve() for k, v in files.items()}
 
-    if build_dir is None:
-        build_dir = DEFAULT_BUILD_DIR
     build_dir = Path(build_dir).resolve()
 
     file_dep = []

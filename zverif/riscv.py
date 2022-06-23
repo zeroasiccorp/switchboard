@@ -3,14 +3,9 @@ import ubelt
 from pathlib import Path
 from zverif.makehex import makehex
 from zverif.utils import file_list
-#from zverif.utils import get_gcc_deps
+from zverif.config import ZvConfig
 
-DEFAULT_RISCV_PREFIX = 'riscv64-unknown-elf-'
-DEFAULT_RISCV_ABI = 'ilp32'
-DEFAULT_RISCV_ISA = 'rv32im'
-DEFAULT_RISCV_GCC = f'{DEFAULT_RISCV_PREFIX}gcc'
-DEFAULT_RISCV_OBJCOPY = f'{DEFAULT_RISCV_PREFIX}objcopy'
-DEFAULT_BUILD_DIR = Path('.') / 'build' / 'sw'
+CFG = ZvConfig()
 
 def riscv_elf_task(name, sources=None, linker_script=None,
     include_paths=None, output=None, basename='elf', **kwargs):
@@ -26,7 +21,7 @@ def riscv_elf_task(name, sources=None, linker_script=None,
         linker_script = linker_script[0]
 
     if output is None:
-        output = (DEFAULT_BUILD_DIR / f'{name}.elf').resolve()
+        output = (Path(CFG.sw_dir) / f'{name}.elf').resolve()
     output = Path(output)
 
     # determine file dependencies
@@ -51,7 +46,7 @@ def riscv_elf_task(name, sources=None, linker_script=None,
     }
 
 def build_elf(sources, linker_script, include_paths, output,
-    isa=DEFAULT_RISCV_ISA, abi=DEFAULT_RISCV_ABI, gcc=DEFAULT_RISCV_GCC):
+    isa=CFG.riscv_isa, abi=CFG.riscv_abi, gcc=CFG.riscv_gcc):
 
     # create the build directory if needed
     Path(output).parent.mkdir(exist_ok=True, parents=True)
@@ -80,7 +75,7 @@ def riscv_bin_task(name, input=None, output=None, basename='bin', **kwargs):
     # preprocess inputs
 
     if input is None:
-        input = (DEFAULT_BUILD_DIR / f'{name}.elf')
+        input = (Path(CFG.sw_dir) / f'{name}.elf')
     input = Path(input).resolve()
 
     if output is None:
@@ -98,7 +93,7 @@ def riscv_bin_task(name, input=None, output=None, basename='bin', **kwargs):
         'clean': True
     }
 
-def build_bin(input, output, objcopy=DEFAULT_RISCV_OBJCOPY):
+def build_bin(input, output, objcopy=CFG.riscv_objcopy):
     # build up the command
     cmd = []
     cmd += [objcopy]
@@ -114,7 +109,7 @@ def hex_task(name, input=None, output=None, basename='hex', **kwargs):
     # preprocess inputs
 
     if input is None:
-        input = (DEFAULT_BUILD_DIR / f'{name}.bin')
+        input = (Path(CFG.sw_dir) / f'{name}.bin')
     input = Path(input).resolve()
 
     if output is None:
