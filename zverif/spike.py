@@ -1,92 +1,103 @@
 import ubelt
 import sys
 from pathlib import Path
-from zverif.zvconfig import ZvConfig
 
-class ZvSpike:
-    def __init__(self, cfg: ZvConfig):
-        self.cfg = cfg
+from zverif.utils import file_list
 
-    @property
-    def build_dir(self):
-        return self.cfg.build_dir / 'spike'
+DEFAULT_GCC = 'gcc'
+DEFAULT_RISCV_ISA = 'rv32im'
+DEFAULT_SPIKE = f'spike'
+DEFAULT_BUILD_DIR = Path('.') / 'build' / 'spike'
 
-    def task_spike_plugins(self):
-        for plugin in self.cfg.spike.objs:
-            yield self.build_plugin_task(plugin)
+def spike_plugin_task(name, sources=None, include_paths=None, output=None,
+    basename='spike_plugin', **kwargs):
+    
+    # pre-process arguments
+    
+    sources = file_list(sources)
+    include_paths = file_list(include_paths)
+    if output is None:
+        output = (DEFAULT_BUILD_DIR / f'{name}.so').resolve()
+    output = Path(output)
 
-    def build_plugin_task(self, plugin):
-        obj = self.cfg.spike.objs[plugin]
-        file_dep = [obj.path] + obj.extra_sources
-        return {
-            'name': plugin,
-            'file_dep': file_dep,
-            'targets': [self.build_dir / plugin / f'{plugin}.so'],
-            'actions': [lambda: self.build_plugin(plugin)],
-            'clean': True
-        }
+    # determine file dependencies
 
-    def build_plugin(self, plugin):
-        # create build directory
-        build_dir : Path = self.build_dir / plugin
-        build_dir.mkdir(exist_ok=True, parents=True)
+    file_dep = []
+    file_dep += sources
 
-        # look up information about this test
-        obj = self.cfg.spike.objs[plugin]
+    return {
+        'name': f'{basename}:{name}',
+        'file_dep': file_dep,
+        'targets': [output],
+        'actions': [(build_spike_plugin, [], {
+            'sources': sources,
+            'include_paths': include_paths,
+            'output': output
+        } | kwargs)],
+        'clean': True
+    }
 
-        # build up the command
-        cmd = []
-        cmd += ['gcc']  # TODO make generic
-        if sys.platform == 'darwin':
-            cmd += ['-bundle']
-            cmd += ['-undefined', 'dynamic_lookup']
-        else:
-            cmd += ['-shared']
-        cmd += ['-Wall']
-        cmd += ['-Werror']
-        cmd += ['-fPIC']
-        cmd += obj.extra_sources
-        cmd += [obj.path]
-        cmd += [f'-I{elem}' for elem in obj.include_paths]
-        cmd += ['-o', build_dir / f'{plugin}.so']
+def build_spike_plugin(sources, include_paths, output, gcc=DEFAULT_GCC):
+    # create the build directory if needed
+    Path(output).parent.mkdir(exist_ok=True, parents=True)
 
-        cmd = [str(elem) for elem in cmd]
+    # build up the command
+    cmd = []
+    cmd += [gcc]
+    if sys.platform == 'darwin':
+        cmd += ['-bundle']
+        cmd += ['-undefined', 'dynamic_lookup']
+    else:
+        cmd += ['-shared']
+    cmd += ['-Wall']
+    cmd += ['-Werror']
+    cmd += ['-fPIC']
+    cmd += sources
+    cmd += [f'-I{elem}' for elem in include_paths]
+    cmd += ['-o', output]
 
-        info = ubelt.cmd(cmd, check=True)
+    cmd = [str(elem) for elem in cmd]
 
-    def task_spike(self):
-        for test in self.cfg.sw.objs:
-            yield self.run_spike_task(test)
+    info = ubelt.cmd(cmd, tee=True, check=True)
 
-    def run_spike_task(self, test):
-        # collect all plugins
-        plugins = [self.build_dir / plugin / f'{plugin}.so'
-            for plugin in self.cfg.spike.objs]
-        
-        # determine ELF for this test
-        elf = self.cfg.build_dir / 'sw' / test / f'{test}.elf'
+def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
+    # set defaults
+    if elf is None:
+        elf = (Path('.') / 'build' / 'sw' / f'{name}.elf').resolve()
+    if plugins is None:
+        plugins = {}
+    plugins = {str(Path(k).resolve()): v for k, v in plugins.items()}
 
-        file_dep = plugins + [elf]
-        return {
-            'name': test,
-            'file_dep': file_dep,
-            'actions': [lambda: self.run_spike(test)],
-            'uptodate': [False],  # i.e., always run
-        }
+    file_dep = list(plugins.keys()) + [elf]
 
-    def run_spike(self, test):
-        # build up the command
-        cmd = []
-        cmd += ['spike']  # TODO make generic
-        cmd += ['-m1']  # TODO make generic
-        cmd += ['--isa', self.cfg.riscv.isa]
-        for key, val in self.cfg.spike.objs.items():
-            cmd += ['--extlib', self.build_dir / key / f'{key}.so']
-            cmd += [f'--device={key},{hex(val.address)}']
-        cmd += [self.cfg.build_dir / 'sw' / test / f'{test}.elf']
+    return {
+        'name': f'{basename}:{name}',
+        'file_dep': file_dep,
+        'actions': [(run_spike, [], {
+                'elf': elf,
+                'plugins': plugins
+            } | kwargs)],
+        'uptodate': [False],  # i.e., always run
+    }
 
-        cmd = [str(elem) for elem in cmd]
+def run_spike(elf, plugins, expect=None,
+    isa=DEFAULT_RISCV_ISA, spike=DEFAULT_SPIKE):
+    # set defaults
+    if expect is None:
+        expect = []
 
-        info = ubelt.cmd(cmd, tee=True, check=True)
-        for e in self.cfg.sw.objs[test].expect:
-            assert e in info['out'], f'Did not find "{e}" in output'
+    # build up the command
+    cmd = []
+    cmd += [spike]
+    cmd += ['-m1']  # TODO make generic
+    cmd += ['--isa', isa]
+    for key, val in plugins.items():
+        cmd += ['--extlib', key]
+        cmd += [f'--device={Path(key).stem},{hex(val)}']
+    cmd += [elf]
+
+    cmd = [str(elem) for elem in cmd]
+
+    info = ubelt.cmd(cmd, tee=True, check=True)
+    for e in expect:
+        assert e in info['out'], f'Did not find "{e}" in output'

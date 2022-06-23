@@ -9,13 +9,13 @@
 
 from pathlib import Path
 
-def makehex(binfile, outfile=None, nwords=32768):
+def makehex(input, output=None, nwords=32768):
     # determine output file if needed
-    if outfile is None:
-        outfile = Path(binfile).with_suffix('.hex')
+    if output is None:
+        output = Path(input).with_suffix('.hex')
 
     # read input file
-    with open(binfile, "rb") as f:
+    with open(input, "rb") as f:
         bindata = f.read()
 
     # pad to a fixed length
@@ -24,7 +24,7 @@ def makehex(binfile, outfile=None, nwords=32768):
 
     # print words
     # TODO: handle 32 and 64 bit
-    with open(outfile, 'w') as f:
+    with open(output, 'w') as f:
         for i in range(nwords):
             w = bindata[4*i : 4*i+4]
             f.write('%02x%02x%02x%02x\n' % (w[3], w[2], w[1], w[0]))

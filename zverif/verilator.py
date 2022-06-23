@@ -2,93 +2,114 @@ import ubelt
 import shutil
 from pathlib import Path
 from doit.task import clean_targets
-from zverif.zvconfig import ZvConfig
 
-class ZvVerilator:
-    def __init__(self, cfg: ZvConfig):
-        self.cfg = cfg
+from zverif.utils import file_list
 
-    @property
-    def build_dir(self):
-        return self.cfg.build_dir / 'verilator'
+DEFAULT_TOP = 'zverif_top'
+DEFAULT_VERILATOR = 'verilator'
+DEFAULT_BUILD_DIR = Path('.') / 'build' / 'verilator'
 
-    def task_verilator_build(self):
-        opts = self.cfg.verilator
-        return {
-            'file_dep': opts.verilog_sources + opts.c_sources,
-            'targets': [self.build_dir / 'obj_dir' / 'Vzverif_top'],
-            'actions': [self.build],
-            'clean': [clean_targets, self.clean]
-        }
+def verilator_build_task(sources, top=DEFAULT_TOP, build_dir=None,
+    name='verilator_build', **kwargs):
 
-    def build(self):
-        # create a fresh build directory
-        self.clean()
-        self.build_dir.mkdir(exist_ok=True, parents=True)
+    # set defaults
+    if build_dir is None:
+        build_dir = DEFAULT_BUILD_DIR.resolve()
 
-        # convert Verilog to C
-        self.verilate()
+    # resolve patterns in source files
+    sources = file_list(sources)
 
-        # build simulation binary
-        self.compile()
+    return {
+        'name': name,
+        'file_dep': sources,
+        'targets': [build_dir / 'obj_dir' / f'V{top}'],
+        'actions': [(verilator_build, [], {
+                'build_dir': build_dir,
+                'top': top,
+                'sources': sources
+            } | kwargs)],
+        'clean': [clean_targets,
+            lambda: shutil.rmtree(build_dir, ignore_errors=True)],
+        'doc': 'Build Verilator simulation binary.'
+    }
 
-    def clean(self):
-        shutil.rmtree(self.build_dir, ignore_errors=True)
+def verilator_build(build_dir, top, sources):
+    # create a fresh build directory
+    shutil.rmtree(build_dir, ignore_errors=True)
+    Path(build_dir).mkdir(exist_ok=True, parents=True)
 
-    def verilate(self):
-        # look up information about this test
-        opts = self.cfg.verilator
+    # convert Verilog to C
+    verilate(build_dir=build_dir, top=top, sources=sources)
 
-        # build up the command
-        cmd = []
-        cmd += ['verilator']  # TODO make generic
-        cmd += ['--top', 'zverif_top']  # TODO make generic
-        cmd += ['-trace']  # TODO make generic
-        cmd += ['-CFLAGS', '-Wno-unknown-warning-option']
-        cmd += ['--cc']
-        cmd += ['--exe']
-        cmd += opts.verilog_sources
-        cmd += opts.c_sources
+    # build simulation binary
+    verilator_compile(build_dir=build_dir, top=top)
 
-        cmd = [str(elem) for elem in cmd]
+def verilate(top, sources, build_dir, verilator=DEFAULT_VERILATOR):
+    # build up the command
+    cmd = []
+    cmd += [verilator]  # TODO make generic
+    cmd += ['--top', top]  # TODO make generic
+    cmd += ['-trace']  # TODO make generic
+    cmd += ['-CFLAGS', '-Wno-unknown-warning-option']
+    cmd += ['--cc']
+    cmd += ['--exe']
+    cmd += sources
 
-        info = ubelt.cmd(cmd, check=True, cwd=self.build_dir)
+    cmd = [str(elem) for elem in cmd]
 
-    def compile(self):
-        cmd = []
-        cmd += ['make']
-        cmd += ['-C', 'obj_dir']
-        cmd += ['-j']
-        cmd += ['-f', 'Vzverif_top.mk']
-        cmd += ['Vzverif_top']
+    info = ubelt.cmd(cmd, tee=True, check=True, cwd=build_dir)
 
-        cmd = [str(elem) for elem in cmd]
+def verilator_compile(build_dir, top):
+    cmd = []
+    cmd += ['make']
+    cmd += ['-C', 'obj_dir']
+    cmd += ['-j']
+    cmd += ['-f', f'V{top}.mk']
+    cmd += [f'V{top}']
 
-        info = ubelt.cmd(cmd, check=True, cwd=self.build_dir)
+    cmd = [str(elem) for elem in cmd]
 
-    def task_verilator(self):
-        for test in self.cfg.sw.objs:
-            yield self.run_task(test)
+    info = ubelt.cmd(cmd, tee=True, check=True, cwd=build_dir)
 
-    def run_task(self, test):
-        file_dep = []
-        file_dep += [self.build_dir / 'obj_dir' / 'Vzverif_top']
-        file_dep += [self.cfg.build_dir / 'sw' / test / f'{test}.hex']
-        return {
-            'name': test,
-            'file_dep': file_dep,
-            'actions': [lambda: self.run(test)],
-            'uptodate': [False]  # i.e., always run
-        }
+def verilator_task(name, build_dir=DEFAULT_BUILD_DIR, top=DEFAULT_TOP,
+    basename='verilator', files=None, **kwargs):
 
-    def run(self, test):
-        # build up the command
-        cmd = []
-        cmd += [self.build_dir / 'obj_dir' / 'Vzverif_top']  # TODO make generic
-        cmd += [f'+firmware={self.cfg.build_dir / "sw" / test / test}.hex']
+    if files is None:
+        files = {}
+    files = {k: Path(v).resolve() for k, v in files.items()}
 
-        cmd = [str(elem) for elem in cmd]
+    if build_dir is None:
+        build_dir = DEFAULT_BUILD_DIR
+    build_dir = Path(build_dir).resolve()
 
-        info = ubelt.cmd(cmd, tee=True, check=True)
-        for e in self.cfg.sw.objs[test].expect:
-            assert e in info['out'], f'Did not find "{e}" in output'
+    file_dep = []
+    file_dep += [build_dir / 'obj_dir' / f'V{top}']
+    file_dep += list(files.values())
+
+    return {
+        'name': f'{basename}:{name}',
+        'file_dep': file_dep,
+        'actions': [(verilator, [], {
+            'build_dir': build_dir,
+            'top': top,
+            'files': files
+        } | kwargs)],
+        'uptodate': [False]  # i.e., always run
+    }
+
+def verilator(build_dir, top, files, expect=None):
+    # set defaults
+    if expect is None:
+        expect = []
+
+    # build up the command
+    cmd = []
+    cmd += [build_dir / 'obj_dir' / f'V{top}']
+    for k, v in files.items():
+        cmd += [f'+{k}={v}']
+
+    cmd = [str(elem) for elem in cmd]
+
+    info = ubelt.cmd(cmd, tee=True, check=True)
+    for e in expect:
+        assert e in info['out'], f'Did not find "{e}" in output'
