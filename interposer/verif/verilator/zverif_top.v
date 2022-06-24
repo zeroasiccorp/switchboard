@@ -7,7 +7,7 @@
 
 `timescale 1 ns / 1 ps
 
-module picorv32_wrapper #(
+module zverif_top #(
 	parameter VERBOSE = 0
 ) (
 	input clk,
