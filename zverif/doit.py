@@ -22,7 +22,7 @@ class MyLoader(TaskLoader2):
         }
 
     def load_tasks(self, cmd, pos_args):
-        return self._my_tasks
+        return list(self._my_tasks)
 
 def doit_main_loop(tasks, args=None, exit=True):
     if args is None:

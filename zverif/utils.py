@@ -84,5 +84,5 @@ def add_task(task: dict, tasks: Dict[str, Task], basename: str=None, doc: str=No
     if basename is not None:
         if basename not in tasks:
             tasks[basename] = Task(basename, None, doc=doc, has_subtask=True)
-        tasks[basename].task_dep.append(task)
+        tasks[basename].task_dep.append(task.name)
         task.subtask_of = basename
