@@ -8,6 +8,8 @@ on: [pull_request]
 # instead of using an existing image for Spike, and installing
 # other tools via apt-get
 
+# reference for editing apt sources: https://askubuntu.com/a/91821
+
 jobs:
   spike:
     name: Spike
@@ -18,7 +20,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Spike simulation
         run: |
-          sed -i 's/archive.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+          sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
 
           apt-get update -y
           apt-get install -y python3 python3-pip
