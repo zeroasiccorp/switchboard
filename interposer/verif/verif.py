@@ -65,16 +65,16 @@ def gen_tasks():
     # along with a linker script.  right now there's just
     # one such example, called "hello"
 
-    for name in ['hello']:
-        folder = SW_DIR / name
-        add_riscv_elf_task(
-            tasks=tasks,
-            name=name,
-            sources=[folder / '*.c', folder / '*.s'],
-            include_paths=[folder, VERIF_DIR / 'common'],
-            linker_script=folder / '*.ld'
-        )
-        apps.append(name)
+    name = 'hello'
+    folder = SW_DIR / name
+    add_riscv_elf_task(
+        tasks=tasks,
+        name=name,
+        sources=[folder / '*.c', folder / '*.s'],
+        include_paths=[folder, VERIF_DIR / 'common'],
+        linker_script=folder / '*.ld'
+    )
+    apps.append((name, ['Hello World from core 0!']))
     
     # pattern 2: RISC-V tests from an external source (https://github.com/riscv-software-src/riscv-tests)
     # the tests are included as an unmodified git submodule
@@ -102,10 +102,10 @@ def gen_tasks():
             linker_script=env_dir / 'p' / '*.ld'
         )
 
-        apps.append(app.stem)
+        apps.append((app.stem, ['OK']))
     
     # add per-application tasks
-    for app in apps:
+    for app, expect in apps:
         # task to generate a "bin" file for a particular app
         add_riscv_bin_task(tasks, app)
 
@@ -113,10 +113,11 @@ def gen_tasks():
         add_hex_task(tasks, app)
 
         # task to run Spike emulation for a particular app
-        add_spike_task(tasks, app, plugins=plugins)
+        add_spike_task(tasks, app, plugins=plugins, expect=expect)
 
         # task to run a Verilator simulation for a particular app
-        add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.hex'})
+        add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.hex'},
+            expect=expect+['ALL TESTS PASSED.'])
 
     # output is an iterable of Task objects
     return tasks.values()
