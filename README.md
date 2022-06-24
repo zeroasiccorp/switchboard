@@ -6,7 +6,7 @@ Repository containing infrastructure and tests as a mockup for the verification 
 
 ## Installation
 
-Clone the repository and change to its directory:
+Clone the repository, change to its directory, and initialize its submodules:
 
 ```shell
 git clone https://github.com/zeroasiccorp/interposer-verif.git
@@ -16,11 +16,17 @@ git clone https://github.com/zeroasiccorp/interposer-verif.git
 cd interposer-verif
 ```
 
+```shell
+git submodule update --init --recursive
+```
+
 Then install the included `zverif` package as described below.  You may want to consider `pip`-installing in a `conda` environment, or other virtual environment.
 
 ```shell
 pip3 install -e .
 ```
+
+Next, build and install Spike following the directions [here](https://github.com/riscv-software-src/riscv-isa-sim#build-steps).
 
 Finally, install tools for RISC-V and RTL simulation using the commands below.
 
@@ -66,7 +72,7 @@ To see available tasks, type `./verif.py list` for a short summary, or `./verif.
 
 All of these tasks allow the application name to be specified with a colon, as shown earlier (e.g., `verilator:hello`).  Running one of these tasks without a colon means that all applications should be tested.  For example, typing `./verif.py verilator` means "run a Verilator simulation for each application".
 
-`doit` tasks are represented by a graph, and it can be interesting to visualize that graph.  To do that, there is a plugin called `doit-graph` (`pip install doit-graph`).  For example, if you install the plugin and then run:
+`doit` tasks are represented by a graph, and it can be interesting to visualize that graph.  To do that, there is a plugin called `doit-graph` (`pip install doit-graph`).  Note that this plugin requires graphviz and the graphviz development package installed (on Ubuntu, `sudo apt-get install graphviz graphviz-dev`).  For example, if you install the plugin and then run:
 
 ```shell
 ./verif.py graph --show-subtasks --reverse -o tasks.dot verilator:hello && dot -Tpng tasks.dot -o tasks.png
