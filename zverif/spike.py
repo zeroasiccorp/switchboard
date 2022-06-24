@@ -2,13 +2,13 @@ import ubelt
 import sys
 from pathlib import Path
 
-from zverif.utils import file_list, add_task
+from zverif.utils import file_list, add_task, calc_task_name, add_calc_dep_task
 from zverif.config import ZvConfig
 
 CFG = ZvConfig()
 
-def add_spike_plugin_task(tasks, name, sources=None, include_paths=None, output=None,
-    basename='spike_plugin', **kwargs):
+def add_spike_plugin_task(tasks, name, sources=None, include_paths=None,
+    output=None, basename='spike_plugin', gcc=CFG.gcc, **kwargs):
     
     # pre-process arguments
     
@@ -18,26 +18,26 @@ def add_spike_plugin_task(tasks, name, sources=None, include_paths=None, output=
         output = (Path(CFG.spike_dir) / f'{name}.so').resolve()
     output = Path(output)
 
-    # determine file dependencies
-
-    file_dep = []
-    file_dep += sources
+    # create task
 
     task = {
         'name': name,
-        'file_dep': file_dep,
+        'calc_dep': [calc_task_name('_calc_dep', calc_task_name(basename, name))],
         'targets': [output],
         'actions': [(build_spike_plugin, [], dict({
             'sources': sources,
             'include_paths': include_paths,
-            'output': output
+            'output': output,
+            'gcc': gcc
         }, **kwargs))],
         'clean': True
     }
+    add_calc_dep_task(name=task['calc_dep'][0], tasks=tasks, sources=sources,
+        include_paths=include_paths, gcc=gcc)
     add_task(task=task, tasks=tasks, basename=basename,
         doc='Build Spike plugins.')
 
-def build_spike_plugin(sources, include_paths, output, gcc=CFG.gcc):
+def build_spike_plugin(sources, include_paths, output, gcc):
     # create the build directory if needed
     Path(output).parent.mkdir(exist_ok=True, parents=True)
 

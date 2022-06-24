@@ -118,6 +118,7 @@ def gen_tasks():
         # task to run a Verilator simulation for a particular app
         add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.hex'})
 
+    # output is an iterable of Task objects
     return tasks.values()
 
 if __name__ == "__main__":

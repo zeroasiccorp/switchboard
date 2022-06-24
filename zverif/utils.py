@@ -21,19 +21,19 @@ def file_list(file_or_files, convert_to_path=True, resolve=True):
 
     return retval
 
-def run_gcc_for_deps(sources=None, include_dirs=None, gcc='gcc'):
+def run_gcc_for_deps(sources=None, include_paths=None, gcc='gcc'):
     # set defaults
     if sources is None:
         sources = []
-    if include_dirs is None:
-        include_dirs = []
+    if include_paths is None:
+        include_paths = []
 
     # build up the command
     cmd = []
     cmd += [gcc]
     cmd += ['-M']
     cmd += sources
-    cmd += [f'-I{elem}' for elem in include_dirs]
+    cmd += [f'-I{elem}' for elem in include_paths]
     cmd = [str(elem) for elem in cmd]
 
     # run the command
@@ -42,9 +42,9 @@ def run_gcc_for_deps(sources=None, include_dirs=None, gcc='gcc'):
     # return output of the command
     return info['out']
 
-def get_gcc_deps(sources=None, include_dirs=None, gcc='gcc'):
+def get_gcc_deps(sources=None, include_paths=None, gcc='gcc'):
     # get gcc output
-    out = run_gcc_for_deps(sources=sources, include_dirs=include_dirs, gcc=gcc)
+    out = run_gcc_for_deps(sources=sources, include_paths=include_paths, gcc=gcc)
 
     # undo line continuation
     out = out.replace('\\\n', '')
@@ -59,6 +59,32 @@ def get_gcc_deps(sources=None, include_dirs=None, gcc='gcc'):
     out = [elem for elem in out if elem != '']
 
     return out
+
+def add_calc_dep_task(name, tasks, sources=None, include_paths=None,
+    linker_script=None, gcc='gcc'):
+
+    def action(sources=sources, include_paths=include_paths,
+        linker_script=linker_script, gcc=gcc):
+        
+        try:
+            deps = get_gcc_deps(sources=sources, include_paths=include_paths, gcc=gcc)
+        except:
+            raise Exception('Could not determine header file dependencies.')
+        
+        # include the linker script as a dependency if there is one
+        if linker_script is not None:
+            deps += [linker_script]
+        
+        # determine the absolute path of all dependencies
+        # it seems that pydoit cannot deal with Path objects here,
+        # hence the conversion to a string
+        deps = [f'{Path(elem).resolve()}' for elem in deps]
+
+        # return dependencies in the format required by pydoit
+        return {'file_dep': deps}
+    
+    # add a task representing the calculation of dependencies
+    tasks[name] = dict_to_task({'name': name, 'actions': [action]})
 
 def calc_task_name(basename=None, name=None):
     if basename is None:

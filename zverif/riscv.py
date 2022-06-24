@@ -2,13 +2,14 @@ from os import link
 import ubelt
 from pathlib import Path
 from zverif.makehex import makehex
-from zverif.utils import file_list, add_task
+from zverif.utils import file_list, add_task, calc_task_name, add_calc_dep_task
 from zverif.config import ZvConfig
 
 CFG = ZvConfig()
 
 def add_riscv_elf_task(tasks, name, sources=None, linker_script=None,
-    include_paths=None, output=None, basename='elf', **kwargs):
+    include_paths=None, output=None, basename='elf', gcc=CFG.riscv_gcc,
+    **kwargs):
     
     # pre-process arguments
     
@@ -24,31 +25,28 @@ def add_riscv_elf_task(tasks, name, sources=None, linker_script=None,
         output = (Path(CFG.sw_dir) / f'{name}.elf').resolve()
     output = Path(output)
 
-    # determine file dependencies
-
-    file_dep = []
-
-    file_dep += sources
-    if linker_script is not None:
-        file_dep += [linker_script]
+    # create the task
 
     task = {
         'name': name,
-        'file_dep': file_dep,
+        'calc_dep': [calc_task_name('_calc_dep', calc_task_name(basename, name))],
         'targets': [output],
         'actions': [(build_elf, [], dict({
             'sources': sources,
             'include_paths': include_paths,
             'linker_script': linker_script,
-            'output': output
+            'output': output,
+            'gcc': gcc
         }, **kwargs))],
         'clean': True
     }
+    add_calc_dep_task(name=task['calc_dep'][0], tasks=tasks, sources=sources,
+        include_paths=include_paths, linker_script=linker_script, gcc=gcc)
     add_task(task=task, tasks=tasks, basename=basename,
         doc='Build software ELF files.')
 
 def build_elf(sources, linker_script, include_paths, output,
-    isa=CFG.riscv_isa, abi=CFG.riscv_abi, gcc=CFG.riscv_gcc):
+    gcc, isa=CFG.riscv_isa, abi=CFG.riscv_abi):
 
     # create the build directory if needed
     Path(output).parent.mkdir(exist_ok=True, parents=True)
