@@ -3,13 +3,13 @@ import shutil
 from pathlib import Path
 from doit.task import clean_targets
 
-from zverif.utils import file_list
+from zverif.utils import file_list, add_task
 from zverif.config import ZvConfig
 
 CFG = ZvConfig()
 
-def verilator_build_task(sources, top=CFG.rtl_top, build_dir=None,
-    name='verilator_build', **kwargs):
+def add_verilator_build_task(tasks, sources, top=CFG.rtl_top,
+    build_dir=None, name='verilator_build', **kwargs):
 
     # set defaults
     if build_dir is None:
@@ -18,7 +18,7 @@ def verilator_build_task(sources, top=CFG.rtl_top, build_dir=None,
     # resolve patterns in source files
     sources = file_list(sources)
 
-    return {
+    task = {
         'name': name,
         'file_dep': sources,
         'targets': [build_dir / 'obj_dir' / f'V{top}'],
@@ -31,6 +31,7 @@ def verilator_build_task(sources, top=CFG.rtl_top, build_dir=None,
             lambda: shutil.rmtree(build_dir, ignore_errors=True)],
         'doc': 'Build Verilator simulation binary.'
     }
+    add_task(task=task, tasks=tasks)
 
 def verilator_build(build_dir, top, sources):
     # create a fresh build directory
@@ -70,8 +71,8 @@ def verilator_compile(build_dir, top):
 
     info = ubelt.cmd(cmd, tee=True, check=True, cwd=build_dir)
 
-def verilator_task(name, build_dir=CFG.verilator_dir, top=CFG.rtl_top,
-    basename='verilator', files=None, **kwargs):
+def add_verilator_task(tasks, name, build_dir=CFG.verilator_dir,
+    top=CFG.rtl_top, basename='verilator', files=None, **kwargs):
 
     if files is None:
         files = {}
@@ -83,8 +84,8 @@ def verilator_task(name, build_dir=CFG.verilator_dir, top=CFG.rtl_top,
     file_dep += [build_dir / 'obj_dir' / f'V{top}']
     file_dep += list(files.values())
 
-    return {
-        'name': f'{basename}:{name}',
+    task = {
+        'name': name,
         'file_dep': file_dep,
         'actions': [(verilator, [], dict({
             'build_dir': build_dir,
@@ -93,6 +94,8 @@ def verilator_task(name, build_dir=CFG.verilator_dir, top=CFG.rtl_top,
         }, **kwargs))],
         'uptodate': [False]  # i.e., always run
     }
+    add_task(task=task, tasks=tasks, basename=basename,
+        doc='Run Verilator simulation.')
 
 def verilator(build_dir, top, files, expect=None):
     # set defaults

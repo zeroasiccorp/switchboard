@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from zverif.riscv import riscv_elf_task, riscv_bin_task, hex_task
-from zverif.spike import spike_plugin_task, spike_task
-from zverif.verilator import verilator_build_task, verilator_task
-from zverif.utils import file_list
+from zverif.riscv import add_riscv_elf_task, add_riscv_bin_task, add_hex_task
+from zverif.spike import add_spike_plugin_task, add_spike_task
+from zverif.verilator import add_verilator_build_task, add_verilator_task
+from zverif.utils import file_list, calc_task_name
 from zverif.config import ZvConfig
 from zverif.doit import doit_main_loop
 
@@ -19,6 +19,8 @@ SW_DIR = TOP_DIR / 'verif' / 'sw'
 CFG = ZvConfig()
 
 def gen_tasks():
+    tasks = {}
+
     # build Spike plugins: each is a shared object (*.so)
     # that is mapped to a particular address.  when Spike
     # is invoked, these compiled plugins and their addresses
@@ -30,7 +32,8 @@ def gen_tasks():
     }
     plugins = {}
     for name, addr in mmap.items():
-        task = spike_plugin_task(
+        add_spike_plugin_task(
+            tasks=tasks,
             name=name,
             sources=VERIF_DIR / 'spike' / f'{name}.c',
             include_paths=VERIF_DIR / 'common'
@@ -38,14 +41,15 @@ def gen_tasks():
         # the 'targets' key is mapped to a list of outputs
         # created by the task.  in this case there's just one,
         # which is the shared object (*.so) plugin
-        plugins[str(task['targets'][0])] = addr
-        yield task
+        shared_object = tasks[calc_task_name('spike_plugin', name)].targets[0]
+        plugins[str(shared_object)] = addr
 
     # build verilator: this only needed to be done if there are
     # RTL changes, since the same Verilator binary is reused
     # for running arbitrary RISC-V programs
 
-    yield verilator_build_task(
+    add_verilator_build_task(
+        tasks=tasks,
         sources = [
             RTL_DIR / '*.v',
             VERIF_DIR / 'verilator' / '*.cc',
@@ -63,7 +67,8 @@ def gen_tasks():
 
     for name in ['hello']:
         folder = SW_DIR / name
-        yield riscv_elf_task(
+        add_riscv_elf_task(
+            tasks=tasks,
             name=name,
             sources=[folder / '*.c', folder / '*.s'],
             include_paths=[folder, VERIF_DIR / 'common'],
@@ -84,7 +89,8 @@ def gen_tasks():
         if app.stem in skip_set:
             continue
 
-        yield riscv_elf_task(
+        add_riscv_elf_task(
+            tasks=tasks,
             name=app.stem,
             sources=app,
             include_paths=[
@@ -101,26 +107,18 @@ def gen_tasks():
     # add per-application tasks
     for app in apps:
         # task to generate a "bin" file for a particular app
-        yield riscv_bin_task(app) 
+        add_riscv_bin_task(tasks, app)
 
         # task to generate a "hex" file for a particular app
-        yield hex_task(app)
+        add_hex_task(tasks, app)
 
         # task to run Spike emulation for a particular app
-        yield spike_task(app, plugins=plugins)
+        add_spike_task(tasks, app, plugins=plugins)
 
         # task to run a Verilator simulation for a particular app
-        yield verilator_task(app, files={'firmware': CFG.sw_dir / f'{app}.hex'})
+        add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.hex'})
 
-def main():
-    doit_main_loop(tasks=gen_tasks(), group_tasks={
-        'elf': 'Build software ELF files.',
-        'bin': 'Build software BIN files.',
-        'hex': 'Build software HEX files.',
-        'spike_plugin': 'Build Spike plugins.',
-        'spike': 'Run Spike emulation.',
-        'verilator': 'Run Verilator simulation.'
-    })
+    return tasks.values()
 
 if __name__ == "__main__":
-    main()
+    doit_main_loop(tasks=gen_tasks())

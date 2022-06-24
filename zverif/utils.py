@@ -1,7 +1,8 @@
 import glob
 import ubelt
 
-from doit.task import Task
+from typing import Dict
+from doit.task import Task, dict_to_task
 from pathlib import Path
 
 def file_list(file_or_files, convert_to_path=True, resolve=True):
@@ -59,12 +60,29 @@ def get_gcc_deps(sources=None, include_dirs=None, gcc='gcc'):
 
     return out
 
-def add_group_task(tasks, basename, doc=None):
-# ref: https://github.com/pydoit/doit/blob/419da250f66cebb15ea7db61e745625b3318c29a/doit/loader.py#L327-L344
+def calc_task_name(basename=None, name=None):
+    if basename is None:
+        if name is None:
+            raise Exception('Need to provide a basename or name (or both)')
+        else:
+            return f'{name}'
+    else:
+        if name is None:
+            return f'{basename}'
+        else:
+            return f'{basename}:{name}'
 
-    group_task = Task(basename, None, doc=doc, has_subtask=True)
-    for task in tasks:
-        if task.name.startswith(f'{basename}:'):
-            group_task.task_dep.append(task.name)
-            task.subtask_of = basename
-    tasks.append(group_task)
+def add_task(task: dict, tasks: Dict[str, Task], basename: str=None, doc: str=None):
+    # convert task to a Task object
+    task['name'] = calc_task_name(basename=basename, name=task['name'])
+    task = dict_to_task(task)
+
+    # add task to dictionary of tasks
+    tasks[task.name] = task
+
+    # associate with a group task if needed
+    if basename is not None:
+        if basename not in tasks:
+            tasks[basename] = Task(basename, None, doc=doc, has_subtask=True)
+        tasks[basename].task_dep.append(task)
+        task.subtask_of = basename

@@ -2,12 +2,12 @@ from os import link
 import ubelt
 from pathlib import Path
 from zverif.makehex import makehex
-from zverif.utils import file_list
+from zverif.utils import file_list, add_task
 from zverif.config import ZvConfig
 
 CFG = ZvConfig()
 
-def riscv_elf_task(name, sources=None, linker_script=None,
+def add_riscv_elf_task(tasks, name, sources=None, linker_script=None,
     include_paths=None, output=None, basename='elf', **kwargs):
     
     # pre-process arguments
@@ -32,8 +32,8 @@ def riscv_elf_task(name, sources=None, linker_script=None,
     if linker_script is not None:
         file_dep += [linker_script]
 
-    return {
-        'name': f'{basename}:{name}',
+    task = {
+        'name': name,
         'file_dep': file_dep,
         'targets': [output],
         'actions': [(build_elf, [], dict({
@@ -44,6 +44,8 @@ def riscv_elf_task(name, sources=None, linker_script=None,
         }, **kwargs))],
         'clean': True
     }
+    add_task(task=task, tasks=tasks, basename=basename,
+        doc='Build software ELF files.')
 
 def build_elf(sources, linker_script, include_paths, output,
     isa=CFG.riscv_isa, abi=CFG.riscv_abi, gcc=CFG.riscv_gcc):
@@ -71,7 +73,7 @@ def build_elf(sources, linker_script, include_paths, output,
 
     info = ubelt.cmd(cmd, tee=True, check=True)
 
-def riscv_bin_task(name, input=None, output=None, basename='bin', **kwargs):
+def add_riscv_bin_task(tasks, name, input=None, output=None, basename='bin', **kwargs):
     # preprocess inputs
 
     if input is None:
@@ -82,8 +84,8 @@ def riscv_bin_task(name, input=None, output=None, basename='bin', **kwargs):
         output = input.with_suffix('.bin')
     output = Path(output).resolve()
 
-    return {
-        'name': f'{basename}:{name}',
+    task = {
+        'name': name,
         'file_dep': [input],
         'targets': [output],
         'actions': [(build_bin, [], dict({
@@ -92,6 +94,8 @@ def riscv_bin_task(name, input=None, output=None, basename='bin', **kwargs):
             }, **kwargs))],
         'clean': True
     }
+    add_task(task=task, tasks=tasks, basename=basename,
+        doc='Build software BIN files.')
 
 def build_bin(input, output, objcopy=CFG.riscv_objcopy):
     # build up the command
@@ -105,7 +109,7 @@ def build_bin(input, output, objcopy=CFG.riscv_objcopy):
 
     info = ubelt.cmd(cmd, tee=True, check=True)
 
-def hex_task(name, input=None, output=None, basename='hex', **kwargs):
+def add_hex_task(tasks, name, input=None, output=None, basename='hex', **kwargs):
     # preprocess inputs
 
     if input is None:
@@ -116,8 +120,8 @@ def hex_task(name, input=None, output=None, basename='hex', **kwargs):
         output = input.with_suffix('.hex')
     output = Path(output).resolve()
 
-    return {
-        'name': f'{basename}:{name}',
+    task = {
+        'name': name,
         'file_dep': [input],
         'targets': [output],
         'actions': [(makehex, [], dict({
@@ -126,3 +130,5 @@ def hex_task(name, input=None, output=None, basename='hex', **kwargs):
             }, **kwargs))],
         'clean': True
     }
+    add_task(task=task, tasks=tasks, basename=basename,
+        doc='Build software HEX files.')

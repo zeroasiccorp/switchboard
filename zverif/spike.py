@@ -2,12 +2,12 @@ import ubelt
 import sys
 from pathlib import Path
 
-from zverif.utils import file_list
+from zverif.utils import file_list, add_task
 from zverif.config import ZvConfig
 
 CFG = ZvConfig()
 
-def spike_plugin_task(name, sources=None, include_paths=None, output=None,
+def add_spike_plugin_task(tasks, name, sources=None, include_paths=None, output=None,
     basename='spike_plugin', **kwargs):
     
     # pre-process arguments
@@ -23,8 +23,8 @@ def spike_plugin_task(name, sources=None, include_paths=None, output=None,
     file_dep = []
     file_dep += sources
 
-    return {
-        'name': f'{basename}:{name}',
+    task = {
+        'name': name,
         'file_dep': file_dep,
         'targets': [output],
         'actions': [(build_spike_plugin, [], dict({
@@ -34,6 +34,8 @@ def spike_plugin_task(name, sources=None, include_paths=None, output=None,
         }, **kwargs))],
         'clean': True
     }
+    add_task(task=task, tasks=tasks, basename=basename,
+        doc='Build Spike plugins.')
 
 def build_spike_plugin(sources, include_paths, output, gcc=CFG.gcc):
     # create the build directory if needed
@@ -58,7 +60,7 @@ def build_spike_plugin(sources, include_paths, output, gcc=CFG.gcc):
 
     info = ubelt.cmd(cmd, tee=True, check=True)
 
-def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
+def add_spike_task(tasks, name, elf=None, plugins=None, basename='spike', **kwargs):
     # set defaults
     if elf is None:
         elf = (Path(CFG.sw_dir) / f'{name}.elf').resolve()
@@ -68,8 +70,8 @@ def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
 
     file_dep = list(plugins.keys()) + [elf]
 
-    return {
-        'name': f'{basename}:{name}',
+    task = {
+        'name': name,
         'file_dep': file_dep,
         'actions': [(run_spike, [], dict({
                 'elf': elf,
@@ -77,6 +79,8 @@ def spike_task(name, elf=None, plugins=None, basename='spike', **kwargs):
             }, **kwargs))],
         'uptodate': [False],  # i.e., always run
     }
+    add_task(task=task, tasks=tasks, basename=basename,
+        doc='Run Spike emulation.')
 
 def run_spike(elf, plugins, expect=None, isa=CFG.riscv_isa, spike=CFG.spike):
     # set defaults
