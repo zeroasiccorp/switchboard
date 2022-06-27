@@ -1,5 +1,7 @@
 import glob # TODO: consider managing files using Pathlib?
+from pathlib import Path
 import os
+import sys
 
 import siliconcompiler
 
@@ -19,6 +21,74 @@ def make_chip():
     chip.load_flow('verilator_compilation')
 
     return chip
+
+def _collect_apps():
+    apps = {}
+
+    # pattern 1: folders containing a mix of C and assembly,
+    # along with a linker script.  right now there's just
+    # one such example, called "hello"
+
+    name = 'hello'
+    folder = f'verif/sw/{name}'
+    apps[name] = {
+        'sources': glob.glob(f'{folder}/*.c') + glob.glob(f'{folder}/*.s'),
+        'include_paths': [folder, 'verif/common'],
+        'linker_script': glob.glob(f'{folder}/*.ld'),
+        'expect': ['Hello World from core 0!']
+    }
+
+    # pattern 2: RISC-V tests from an external source (https://github.com/riscv-software-src/riscv-tests)
+    # the tests are included as an unmodified git submodule
+    # the test environment (which implements a test pass/fail, among other things)
+    # has been modified slightly to account for the custom UART and exit memory map
+
+    skip_set = {'fence_i'}  # certain tests don't work with PicoRV32
+
+    isa_dir =  'verif/sw/riscv-tests/riscv-tests/isa'
+    env_dir = 'verif/sw/riscv-tests/riscv-test-env'
+    for app in glob.glob(f'{isa_dir}/rv32ui/*.S'):
+        if Path(app).stem in skip_set:
+            continue
+
+        apps[Path(app).stem] = {
+            'sources': app,
+            'include_paths': [
+                str(Path(app).parent),
+                f'{isa_dir}/macros/scalar',
+                f'{env_dir}/p',
+                'verif/common'
+            ],
+            'linker_script': glob.glob(f'{env_dir}/p/*.ld'),
+            'expect': ['OK']
+        }
+
+    return apps
+
+def build_elf(app_name):
+    apps = _collect_apps()
+    if app_name not in apps:
+        sys.exit(1)
+
+    app = apps[app_name]
+    chip = siliconcompiler.Chip(app_name)
+    chip.set('option', 'scpath', scpath)
+
+    chip.set('input', 'c', app['sources'])
+    chip.set('option', 'idir', app['include_paths'])
+    chip.set('input', 'ld', app['linker_script'])
+
+    chip.set('tool', 'riscv_gcc', 'var', 'compile', '0', 'abi', 'ilp32')
+    chip.set('tool', 'riscv_gcc', 'var', 'compile', '0', 'isa', 'rv32im')
+
+    chip.load_flow('riscv_compile')
+
+    chip.run()
+
+    return {
+        'elf': chip.find_result('elf', step='compile'),
+        'hex': chip.find_result('hex', step='export')
+    }
 
 def spike():
     chip = make_chip()
@@ -71,7 +141,8 @@ def build():
 # sc picorv32:verify hello
 # sc picorv32:build
 if __name__ == '__main__':
-    spike()
+    # spike()
+    print(build_elf('add'))
     # verify()
     #build()
     pass
