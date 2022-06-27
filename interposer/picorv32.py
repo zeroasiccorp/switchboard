@@ -86,11 +86,11 @@ def build_elf(app_name):
     chip.run()
 
     return {
-        'elf': chip.find_result('elf', step='compile'),
-        'hex': chip.find_result('hex', step='export')
+        'elf': (chip.find_result('elf', step='compile'), app['expect']),
+        'hex': (chip.find_result('hex', step='export'), app['expect'])
     }
 
-def spike():
+def spike(elf_path, expect):
     chip = make_chip()
     chip.set('option', 'jobname', 'spike_sim')
     chip.set('option', 'flow', 'spike_simulation')
@@ -103,12 +103,12 @@ def spike():
         chip.add('input', 'plugin', f'verif/spike/{plugin}.c')
         chip.set('tool', 'spike', 'var', 'run_spike', '0', f'{plugin}-address', addr)
 
-    chip.set('input', 'elf', 'zverif-out/sw/hello.elf')
+    chip.set('input', 'elf', elf_path)
 
     chip.add('option', 'idir', 'verif/common')
 
     chip.set('tool', 'spike', 'var', 'run_spike', '0', 'isa', 'rv32im')
-    chip.set('tool', 'spike', 'var', 'run_spike', '0', 'expect', ['Hello World from core 0!'])
+    chip.set('tool', 'spike', 'var', 'run_spike', '0', 'expect', expect)
 
     # TODO: problem with sizing a flow based on inputs: have to load this after
     chip.load_flow('spike_simulation')
@@ -141,8 +141,8 @@ def build():
 # sc picorv32:verify hello
 # sc picorv32:build
 if __name__ == '__main__':
-    # spike()
-    print(build_elf('add'))
+    elf_path, expect = build_elf('hello')['elf']
+    spike(elf_path, expect)
     # verify()
     #build()
     pass
