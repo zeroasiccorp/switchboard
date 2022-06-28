@@ -107,6 +107,7 @@ def verilator(build_dir, top, files, expect=None):
     cmd += [build_dir / 'obj_dir' / f'V{top}']
     for k, v in files.items():
         cmd += [f'+{k}={v}']
+    cmd += ['+vcd']
 
     cmd = [str(elem) for elem in cmd]
 

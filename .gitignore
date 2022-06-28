@@ -18,6 +18,7 @@ tags
 *.log
 *.egg-info
 *.doit*
+*.vcd
 __pycache__
 
 # Python cache files
