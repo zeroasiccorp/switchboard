@@ -116,7 +116,7 @@ def gen_tasks():
         add_spike_task(tasks, app, plugins=plugins, expect=expect)
 
         # task to run a Verilator simulation for a particular app
-        add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.hex'},
+        add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.bin'},
             expect=expect+['ALL TESTS PASSED.'])
 
     # output is an iterable of Task objects

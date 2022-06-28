@@ -2,6 +2,8 @@
 #include "verilated_vcd_c.h"
 #include <inttypes.h>
 
+enum state {AXI_RST, PGM_CPU, RUN_CPU};
+
 int main(int argc, char **argv, char **env)
 {
 	printf("Built with %s %s.\n", Verilated::productName(), Verilated::productVersion());
@@ -27,17 +29,72 @@ int main(int argc, char **argv, char **env)
 		trace_fd = fopen("testbench.trace", "w");
 	}
 
+	// Firmware file
+	FILE *firmware_fd = NULL;
+	const char* flag_firmware = Verilated::commandArgsPlusMatch("firmware");
+	if (flag_firmware) {
+		flag_firmware += 10;
+		firmware_fd = fopen(flag_firmware, "rb");
+	}
+
 	top->clk = 0;
+	top->axi_rst = 1;
 	int t = 0;
+
+	uint32_t addr = 0;
+	bool write_in_progress = false;
+	enum state cur_state = AXI_RST;
+
 	while (!Verilated::gotFinish()) {
-		if (t > 200)
-			top->resetn = 1;
+		if (cur_state == AXI_RST) {
+			// release AXI from reset
+
+			if (t > 200) {
+				top->axi_rst = 0;
+				cur_state = PGM_CPU;
+			}
+		} else if (cur_state == PGM_CPU) {
+			// program the CPU
+
+			uint8_t buf[4];
+
+			if (write_in_progress) {
+				if (top->ext_awready) {
+					top->ext_awvalid = 0;
+				}
+				if (top->ext_wready) {
+					top->ext_wvalid = 0;
+				}
+				if (top->ext_bvalid) {
+					top->ext_bready = 1;
+					write_in_progress = false;
+				}		
+			} else if (fread(buf, 1, 4, firmware_fd) != 0) {
+				top->ext_awaddr = addr;
+				top->ext_awvalid = 1;
+				top->ext_wdata = (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
+				top->ext_wvalid = 1;
+				top->ext_bready = 0;
+				write_in_progress = true;
+				addr += 4;
+			} else {
+				// prepare to run the CPU program by de-asserting its reset
+				// and de-asserting the BREADY handshake from the last memory transaction
+				top->resetn = 1;
+				top->ext_bready = 0;
+				cur_state = RUN_CPU;
+			}
+		}
+
+		// run every cycle
 		top->clk = !top->clk;
 		top->eval();
 		if (tfp) tfp->dump (t);
 		if (trace_fd && top->clk && top->trace_valid) fprintf(trace_fd, "%9.9" PRIx64 "\n", top->trace_data);
+
 		t += 5;
 	}
+
 	if (tfp) tfp->close();
 	delete top;
 	exit(0);

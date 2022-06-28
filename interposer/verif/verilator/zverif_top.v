@@ -12,7 +12,18 @@ module zverif_top (
 	input resetn,
 	output trap,
 	output trace_valid,
-	output [35:0] trace_data
+	output [35:0] trace_data,
+
+	// AXI signals
+	input axi_rst,
+	input [16:0] ext_awaddr,
+	input ext_awvalid,
+	output ext_awready,
+	input [31:0] ext_wdata,
+	input ext_wvalid,
+	output ext_wready,
+	input ext_bready,
+	output ext_bvalid
 );
 	wire        mem_axi_awvalid;
 	wire        mem_axi_awready;
@@ -36,24 +47,6 @@ module zverif_top (
 	wire        mem_axi_rready;
 	wire [31:0] mem_axi_rdata;
 
-	wire [16:0] ext_awaddr;
-	assign ext_awaddr = 0;
-
-	wire ext_awvalid;
-	assign ext_awvalid = 0;
-
-	wire ext_awready;
-	assign ext_awready = 0;
-
-	wire [31:0] ext_wdata;
-	assign ext_wdata = 0;
-
-	wire ext_wvalid;
-	assign ext_wvalid = 0;
-
-	wire ext_wready;
-	assign ext_wready = 0;
-
 	wire mem_axi_awaddr_int;
 	assign mem_axi_awaddr_int = (mem_axi_awaddr <= 17'h1FFFF);
 
@@ -74,10 +67,10 @@ module zverif_top (
     	.ADDR_WIDTH(17),
 	) ram (
 		.a_clk(clk),
-		.a_rst(~resetn),
+		.a_rst(axi_rst),
 
 		.b_clk(clk),
-		.b_rst(~resetn),
+		.b_rst(axi_rst),
 
 		.s_axil_a_awaddr(mem_axi_awaddr[16:0]),
 		.s_axil_a_awprot(mem_axi_awprot),
@@ -109,8 +102,8 @@ module zverif_top (
 		.s_axil_b_wvalid(ext_wvalid),
 		.s_axil_b_wready(ext_wready),
 		.s_axil_b_bresp(),
-		.s_axil_b_bvalid(),
-		.s_axil_b_bready(1'b1),
+		.s_axil_b_bvalid(ext_bvalid),
+		.s_axil_b_bready(ext_bready),
 		.s_axil_b_araddr('0),
 		.s_axil_b_arprot('0),
 		.s_axil_b_arvalid('0),
@@ -162,13 +155,6 @@ module zverif_top (
 		.pcpi_valid(),
 		.eoi()
 	);
-
-	reg [1023:0] firmware_file;
-	initial begin
-		if (!$value$plusargs("firmware=%s", firmware_file))
-			firmware_file = "firmware/firmware.hex";
-		$readmemh(firmware_file, ram.mem);
-	end
 
 	task exit_with_code(input [15:0] code);
 		if (code == 0) begin
