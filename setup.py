@@ -23,7 +23,8 @@ setup(
     install_requires=[
         'ubelt',
         'pyyaml',
-        'doit'
+        'doit',
+        'jinja2'
     ],
     url=f'https://github.com/zeroasiccorp/interposer-verif.git',
     author='Steven Herbst',

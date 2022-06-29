@@ -14,6 +14,7 @@ TOP_DIR = Path(__file__).resolve().parent.parent
 VERIF_DIR = TOP_DIR / 'verif'
 RTL_DIR = TOP_DIR / 'rtl'
 SW_DIR = TOP_DIR / 'verif' / 'sw'
+VERILOG_AXI = VERIF_DIR / 'verilator' / 'verilog-axi' / 'rtl'
 
 # project configuration
 CFG = ZvConfig()
@@ -51,9 +52,14 @@ def gen_tasks():
     add_verilator_build_task(
         tasks=tasks,
         sources = [
+            VERIF_DIR / 'verilator' / '*.vlt',
             RTL_DIR / '*.v',
-            VERIF_DIR / 'verilator' / '*.cc',
-            VERIF_DIR / 'verilator' / '*.v'
+            VERILOG_AXI / 'arbiter.v',
+            VERILOG_AXI / 'priority_encoder.v',
+            VERILOG_AXI / 'axil_interconnect.v',
+            VERILOG_AXI / 'axil_dp_ram.v',
+            VERIF_DIR / 'verilator' / '*.v',
+            VERIF_DIR / 'verilator' / '*.cc'
         ]
     )
 
