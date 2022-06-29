@@ -1,4 +1,8 @@
 def setup(chip):
+    '''Simple demo flow for compiling software using RISC-V gcc.
+
+    TODO: this might want to be blackboxed in another flow by a Make step.
+    '''
     flow = 'riscv_compile'
     flowpipe = [
         ('import', 'nop'),

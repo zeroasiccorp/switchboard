@@ -1,4 +1,5 @@
 def setup(chip):
+    '''Simple demo flow for compiling and running a Verilator simulation.'''
     flow = 'verilator_compilation'
     chip.node(flow, 'import', 'verilator')
     chip.node(flow, 'compile', 'verilator')

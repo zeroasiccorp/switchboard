@@ -10,11 +10,16 @@ def setup(chip):
     linker_script = chip.find_files('input', 'ld')[0]
     sources = chip.find_files('input', 'c')
     include_paths = chip.find_files('option', 'idir')
-    print('include', include_paths)
 
-    # TODO: what to use as output name?
+    # TODO: we should use something other than 'design' to generate output name,
+    # if we want SW compilation steps part of the same job/flowgraph as hardware
+    # sim compilation.
     design = chip.get('design')
     output = f'outputs/{design}.elf'
+
+    # TODO: These options are hardcoded based on the flags used for RISC-V
+    # software in the original mockup. We need a general methodology for
+    # supplying flow-specific tool options.
 
     options = []
     options += [f'-mabi={abi}']
@@ -31,4 +36,3 @@ def setup(chip):
     options += ['-o', output]
 
     chip.set('tool', tool, 'option', step, index, options)
-

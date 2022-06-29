@@ -1,12 +1,19 @@
 import os
 
 def setup(chip):
+    '''Tool setup file for running Verilator simulations.
+
+    Not sure how best to implement this -- right now the full path to an input
+    is passed in as the tool exe, which feels very hacky. We definitely need
+    this as a separate step to benefit from incremental compilation. Maybe a
+    pure Python tool that shells out to the exe w/ subprocess is best.
+    '''
     tool = 'verilator_run'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     design = chip.get('design')
 
-    # TODO: big hack
+    # TODO: this feels very hacky
     workdir = chip._getworkdir(step=step, index=index)
     exe_path = os.path.join(workdir, 'inputs', f'{design}.vexe')
     chip.set('tool', tool, 'exe', exe_path)
@@ -19,6 +26,8 @@ def setup(chip):
     chip.set('tool', tool, 'option', step, index, options)
 
 def post_process(chip):
+    # TODO; Basically common with spike tool driver. Should this be factored out
+    # and made reusable among tool drivers, or made a part of SC first class?
     tool = 'verilator_run'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')

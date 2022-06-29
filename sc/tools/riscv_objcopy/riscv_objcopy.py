@@ -20,5 +20,6 @@ def setup(chip):
     chip.set('tool', tool, 'option', step, index, options)
 
 def post_process(chip):
+    # TODO: this could be a separate step once we support Python-based steps
     design = chip.get('design')
     makehex(f'outputs/{design}.bin')

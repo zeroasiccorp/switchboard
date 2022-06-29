@@ -3,10 +3,6 @@ import sys
 
 
 def setup(chip):
-    # TODO:
-    # - Using ['tool', <tool>, 'input'/'output' to drive input and output names is a huge hack]
-    # - These options are all hardcoded for spike plugins. we need to drive these another way.
-
     tool = 'gcc'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
@@ -16,6 +12,10 @@ def setup(chip):
     inp = chip.find_files('input', 'plugin')[int(index)]
     plugin_name =  Path(inp).stem
     output = f'outputs/{plugin_name}.so'
+
+    # TODO: These options are hardcoded based on the flags used for Spike
+    # plugins in the original mockup. We need a general methodology for
+    # supplying flow-specific tool options.
 
     options = []
     if sys.platform == 'darwin':
