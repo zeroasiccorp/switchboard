@@ -188,6 +188,20 @@ def main():
     '''This is a rough sketch of what I think a nice SC build script CLI could
     look like.
 
+    Usage:
+    $ python picorv32.py <target> <target options...> [--flowgraph] -- <sc options...>
+
+    Examples:
+    $ python picorv32.py verify --tool spike --app add
+    Runs "add" riscv test using Spike
+
+    $ python picorv32.py build --flowgraph
+    Generates a file "rtl2gds.png" that shows flowgraph for build target
+
+    $ python picorv32.py verify --tool verilator -- -quiet
+    Runs Verilator build on default app ("hello"), with the quiet option enabled
+    in SC
+
     Features:
     - Ability to specify "target" that corresponds to a function in the file.
     - Ability to pass target-specific options along (e.g. which app to run in
@@ -206,12 +220,11 @@ def main():
     script.
 
     E.g.:
-
     sc picorv32:verify --tool spike --app hello -- -quiet
 
     vs.
 
-    ./picorv32.py verify --tool spike --app hello -- -quiet
+    a one-liner packaged w/ SC that generates an interface like the current one.
     '''
     # TODO: How to specify targets in real CLI? Options:
     # - Explicit list, like here
