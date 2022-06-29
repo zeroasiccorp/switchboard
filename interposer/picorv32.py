@@ -1,6 +1,6 @@
 import glob # TODO: consider managing files using Pathlib?
-from pathlib import Path
 import os
+from pathlib import Path
 import sys
 
 import siliconcompiler
@@ -9,9 +9,9 @@ mydir = os.path.dirname(__file__)
 root = os.path.join(mydir, '..')
 scpath = os.path.join(root, 'sc')
 
-def make_chip():
+def make_chip(design='picorv32'):
     '''Common configuration.'''
-    chip = siliconcompiler.Chip('picorv32')
+    chip = siliconcompiler.Chip(design)
     chip.set('option', 'scpath', scpath)
 
     # Common design sources
@@ -85,12 +85,13 @@ def build_elf(app_name):
 
     chip.run()
 
-    return {
-        'elf': (chip.find_result('elf', step='compile'), app['expect']),
-        'hex': (chip.find_result('hex', step='export'), app['expect'])
-    }
+    return (
+        chip.find_result('elf', step='compile'),
+        chip.find_result('hex', step='export'),
+        app['expect']
+    )
 
-def spike(elf_path, expect):
+def run_spike(elf_path, expect):
     chip = make_chip()
     chip.set('option', 'jobname', 'spike_sim')
     chip.set('option', 'flow', 'spike_simulation')
@@ -115,17 +116,21 @@ def spike(elf_path, expect):
 
     chip.run()
 
-def verify(test=None):
-    if test is None:
-        test = 'hello'
-
-    chip = make_chip()
+def run_verilator(hex_path, expect):
+    # TODO: need to implement ['option', 'entrypoint'] - design name should be
+    # consistent for keeping a full lifecycle manifest + future packaging plans.
+    chip = make_chip(design='zverif_top')
     chip.set('option', 'jobname', 'verify')
     chip.set('option', 'flow', 'verilator_compilation')
 
     # Additional verification sources
     chip.add('input', 'verilog', glob.glob('verif/verilator/*.v'))
     chip.add('input', 'c', glob.glob('verif/verilator/*.cc'))
+
+    # Tool configuration
+    chip.set('tool', 'verilator', 'var', 'compile', '0', 'extraopts', ['--trace'])
+    chip.set('tool', 'verilator_run', 'var', 'run', '0', '+firmware', hex_path)
+    chip.set('tool', 'verilator_run', 'var', 'run', '0', 'expect', expect)
 
     chip.run()
 
@@ -141,8 +146,9 @@ def build():
 # sc picorv32:verify hello
 # sc picorv32:build
 if __name__ == '__main__':
-    elf_path, expect = build_elf('hello')['elf']
-    spike(elf_path, expect)
+    elf_path, hex_path, expect = build_elf('hello')
+    #run_spike(elf_path, expect)
+    run_verilator(hex_path, expect)
     # verify()
     #build()
     pass
