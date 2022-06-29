@@ -17,7 +17,6 @@ module zverif_top (
 	output [35:0] trace_data,
 
 	// outward-facing AXI RAM signals
-	input axi_rst,
 	input [16:0] ext_awaddr,
 	input ext_awvalid,
 	output ext_awready,
@@ -37,6 +36,19 @@ module zverif_top (
 	output [31:0] ctrl_awaddr,
 	output [31:0] ctrl_wdata
 );
+	// AXI reset
+	reg axi_rst = 1;
+	reg [3:0] axi_rst_count = 0;
+	always @(posedge clk) begin
+		if (axi_rst_count == '1) begin
+			axi_rst <= 0;
+			axi_rst_count <= axi_rst_count;
+		end else begin
+			axi_rst <= axi_rst;
+			axi_rst_count <= axi_rst_count + 1;
+		end
+	end
+
 	// CPU AXI interface
 
 	wire        mem_axi_awvalid;

@@ -13,14 +13,10 @@ int main(int argc, char **argv, char **env)
 	Vzverif_top* top = new Vzverif_top;
 
 	// Tracing (vcd)
-	VerilatedVcdC* tfp = NULL;
-	const char* flag_vcd = Verilated::commandArgsPlusMatch("vcd");
-	if (flag_vcd && 0==strcmp(flag_vcd, "+vcd")) {
-		Verilated::traceEverOn(true);
-		tfp = new VerilatedVcdC;
-		top->trace (tfp, 99);
-		tfp->open("testbench.vcd");
-	}
+	Verilated::traceEverOn(true);
+	VerilatedVcdC* tfp = new VerilatedVcdC;
+	top->trace (tfp, 99);
+	tfp->open("testbench.vcd");
 
 	// Firmware file
 	FILE *firmware_fd = NULL;
@@ -31,7 +27,6 @@ int main(int argc, char **argv, char **env)
 	}
 
 	top->clk = 1;
-	top->axi_rst = 1;
 	int t = 0;
 
 	uint32_t addr = 0;
@@ -43,10 +38,9 @@ int main(int argc, char **argv, char **env)
 		// update inputs before a falling edge
 		if (top->clk) {
 			if (cur_state == AXI_RST) {
-				// release AXI from reset
+				// wait for AXI reset to release
 
 				if (t > 200) {
-					top->axi_rst = 0;
 					cur_state = PGM_CPU;
 				}
 			} else if (cur_state == PGM_CPU) {
