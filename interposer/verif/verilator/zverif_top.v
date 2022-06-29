@@ -14,7 +14,7 @@ module zverif_top (
 	output trace_valid,
 	output [35:0] trace_data,
 
-	// AXI signals
+	// outward-facing AXI RAM signals
 	input axi_rst,
 	input [16:0] ext_awaddr,
 	input ext_awvalid,
@@ -23,7 +23,17 @@ module zverif_top (
 	input ext_wvalid,
 	output ext_wready,
 	input ext_bready,
-	output ext_bvalid
+	output ext_bvalid,
+
+	// outward-facing AXI I/O signals
+	output ctrl_awvalid,
+	input ctrl_awready,
+	output ctrl_wvalid,
+	input ctrl_wready,
+	input ctrl_bvalid,
+	output ctrl_bready,
+	output [31:0] ctrl_awaddr,
+	output [31:0] ctrl_wdata
 );
 	wire        mem_axi_awvalid;
 	wire        mem_axi_awready;
@@ -51,15 +61,12 @@ module zverif_top (
 	assign mem_axi_awaddr_int = (mem_axi_awaddr <= 17'h1FFFF);
 
 	wire s_axil_a_awready;
-	reg ctrl_awready = 1'b0;
 	assign mem_axi_awready = mem_axi_awaddr_int ? s_axil_a_awready : ctrl_awready;
 	
 	wire s_axil_a_wready;
-	reg ctrl_wready = 1'b0;
 	assign mem_axi_wready = mem_axi_awaddr_int ? s_axil_a_wready : ctrl_wready;
 
 	wire s_axil_a_bvalid;
-	reg ctrl_bvalid = 1'b0;
 	assign mem_axi_bvalid = mem_axi_awaddr_int ? s_axil_a_bvalid : ctrl_bvalid;	
 
 	axil_dp_ram #(
@@ -156,54 +163,18 @@ module zverif_top (
 		.eoi()
 	);
 
-	task exit_with_code(input [15:0] code);
-		if (code == 0) begin
-			$display("ALL TESTS PASSED.");
-			$finish;
-		end else begin
-			$display("ERROR!");
-			if ($test$plusargs("noerror") != 0) begin
-				$finish;
-			end else begin
-				// TODO: is there a way to have Verilator exit
-				// with the user-provided code?
-				$stop;
-			end
-		end
-	endtask
+	// drive control outputs
+	assign ctrl_awvalid = (!mem_axi_awaddr_int) & mem_axi_awvalid;
+	assign ctrl_wvalid = (!mem_axi_awaddr_int) & mem_axi_wvalid;
+	assign ctrl_bready = mem_axi_bready;
+	assign ctrl_awaddr = mem_axi_awaddr;
+	assign ctrl_wdata = mem_axi_wdata;
 
+	// stop if there is a trap condition
 	always @(posedge clk) begin
 		if (resetn && trap) begin
 			$display("TRAP");
-			exit_with_code(1);
-		end else if (
-			(!mem_axi_awaddr_int) &&
-			mem_axi_awvalid && mem_axi_wvalid &&
-		    ((!ctrl_awready) && (!ctrl_wready)) &&
-			((!ctrl_bvalid) || mem_axi_bready)) begin
-
-			// implement the write
-			if (mem_axi_awaddr == 'h1000_0008) begin
-				if (mem_axi_wdata[15:0] == 16'h3333) begin
-					exit_with_code(mem_axi_wdata[31:16]);
-				end else if (mem_axi_wdata[15:0] == 16'h5555) begin
-					exit_with_code(0);
-				end
-			end else if (mem_axi_awaddr == 'h1000_0000) begin
-				$write("%c", mem_axi_wdata[7:0]);
-			end else begin
-				$display("OUT-OF-BOUNDS MEMORY WRITE TO %08x", mem_axi_awaddr);
-				$finish;
-			end
-
-			// handshaking
-			ctrl_awready <= 1;
-			ctrl_wready <= 1;
-			ctrl_bvalid <= 1;
-		end else begin
-			ctrl_awready <= 0;
-			ctrl_wready <= 0;
-			ctrl_bvalid <= ctrl_bvalid & (~mem_axi_bready);
+			$stop;
 		end
 	end
 
