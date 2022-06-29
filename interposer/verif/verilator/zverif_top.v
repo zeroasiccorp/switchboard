@@ -11,13 +11,12 @@
 
 module zverif_top (
 	input clk,
-	input resetn,
 	output trap,
 	output trace_valid,
 	output [35:0] trace_data,
 
 	// outward-facing AXI RAM signals
-	input [16:0] ext_awaddr,
+	input [31:0] ext_awaddr,
 	input ext_awvalid,
 	output ext_awready,
 	input [31:0] ext_wdata,
@@ -95,6 +94,34 @@ module zverif_top (
 	wire s_axil_a_rvalid;
 	wire s_axil_a_rready;
 
+	wire [31:0] s_axil_b_awaddr;
+	wire [2:0] s_axil_b_awprot;
+	wire s_axil_b_awvalid;
+	wire s_axil_b_awready;
+	wire [31:0] s_axil_b_wdata;
+	wire [3:0] s_axil_b_wstrb;
+	wire s_axil_b_wvalid;
+	wire s_axil_b_wready;
+	wire [1:0] s_axil_b_bresp;
+	wire s_axil_b_bvalid;
+	wire s_axil_b_bready;
+	wire [31:0] s_axil_b_araddr;
+	wire [2:0] s_axil_b_arprot;
+	wire s_axil_b_arvalid;
+	wire s_axil_b_arready;
+	wire [31:0] s_axil_b_rdata;
+	wire [1:0] s_axil_b_rresp;
+	wire s_axil_b_rvalid;
+	wire s_axil_b_rready;
+
+	wire gpio_awvalid;
+	reg gpio_awready;
+	wire [31:0] gpio_wdata;
+	wire gpio_wvalid;
+	reg gpio_wready;
+	reg gpio_bvalid;
+	wire gpio_bready;
+
 	axil_interconnect_wrap_1x2 # (
 		.DATA_WIDTH(32),
 		.ADDR_WIDTH(32),
@@ -103,7 +130,7 @@ module zverif_top (
 		.M01_BASE_ADDR(32'h10000000), // External
 		.M01_ADDR_WIDTH(32'd4),
 		.M01_CONNECT_READ(1'b0)
-	) iconnect (
+	) iconnect_cpu (
 		.clk(clk),
     	.rst(axi_rst),
     	.s00_axil_awaddr(mem_axi_awaddr),
@@ -169,6 +196,82 @@ module zverif_top (
 		.m01_axil_rready()
 	);
 
+	axil_interconnect_wrap_1x2 # (
+		.DATA_WIDTH(32),
+		.ADDR_WIDTH(32),
+		.M00_BASE_ADDR(0), // RAM
+		.M00_ADDR_WIDTH(32'd17),
+		.M01_BASE_ADDR(32'h20000000), // GPIO
+		.M01_ADDR_WIDTH(32'd1),
+		.M01_CONNECT_READ(1'b0)
+	) iconnect_ext (
+		.clk(clk),
+    	.rst(axi_rst),
+
+		// RAM
+    	.s00_axil_awaddr(ext_awaddr),
+    	.s00_axil_awprot(3'b000),
+    	.s00_axil_awvalid(ext_awvalid),
+    	.s00_axil_awready(ext_awready),
+    	.s00_axil_wdata(ext_wdata),
+    	.s00_axil_wstrb('1),
+    	.s00_axil_wvalid(ext_wvalid),
+    	.s00_axil_wready(ext_wready),
+    	.s00_axil_bresp(), // unused
+    	.s00_axil_bvalid(ext_bvalid),
+    	.s00_axil_bready(ext_bready),
+    	.s00_axil_araddr('0),
+    	.s00_axil_arprot(3'b000),
+    	.s00_axil_arvalid(1'b0),
+    	.s00_axil_arready(),
+    	.s00_axil_rdata(), // unused
+    	.s00_axil_rresp(), // unused
+    	.s00_axil_rvalid(), // unused
+    	.s00_axil_rready(1'b0),
+
+		// RAM
+		.m00_axil_awaddr(s_axil_b_awaddr),
+    	.m00_axil_awprot(s_axil_b_awprot),
+		.m00_axil_awvalid(s_axil_b_awvalid),
+    	.m00_axil_awready(s_axil_b_awready),
+    	.m00_axil_wdata(s_axil_b_wdata),
+    	.m00_axil_wstrb(s_axil_b_wstrb),
+    	.m00_axil_wvalid(s_axil_b_wvalid),
+    	.m00_axil_wready(s_axil_b_wready),
+    	.m00_axil_bresp(s_axil_b_bresp),
+    	.m00_axil_bvalid(s_axil_b_bvalid),
+    	.m00_axil_bready(s_axil_b_bready),
+    	.m00_axil_araddr(s_axil_b_araddr),
+    	.m00_axil_arprot(s_axil_b_arprot),
+    	.m00_axil_arvalid(s_axil_b_arvalid),
+    	.m00_axil_arready(s_axil_b_arready),
+    	.m00_axil_rdata(s_axil_b_rdata),
+    	.m00_axil_rresp(s_axil_b_rresp),
+    	.m00_axil_rvalid(s_axil_b_rvalid),
+    	.m00_axil_rready(s_axil_b_rready),
+
+		// GPIO
+		.m01_axil_awaddr(), // unused
+		.m01_axil_awprot(),  // unused
+		.m01_axil_awvalid(gpio_awvalid),
+		.m01_axil_awready(gpio_awready),
+		.m01_axil_wdata(gpio_wdata),
+		.m01_axil_wstrb(),  // unused
+		.m01_axil_wvalid(gpio_wvalid),
+		.m01_axil_wready(gpio_wready),
+		.m01_axil_bresp(2'b00),  // "OK"
+		.m01_axil_bvalid(gpio_bvalid),
+		.m01_axil_bready(gpio_bready),
+		.m01_axil_araddr(),
+		.m01_axil_arprot(),
+		.m01_axil_arvalid(),
+		.m01_axil_arready(1'b0),
+		.m01_axil_rdata('0),
+		.m01_axil_rresp(2'b00),
+		.m01_axil_rvalid(1'b0),
+		.m01_axil_rready()
+	);
+
 	axil_dp_ram #(
 		.DATA_WIDTH(32),
     	.ADDR_WIDTH(17),
@@ -199,26 +302,30 @@ module zverif_top (
 		// external-facing
 		.b_clk(clk),
 		.b_rst(axi_rst),
-		.s_axil_b_awaddr(ext_awaddr),
-		.s_axil_b_awprot('0),
-		.s_axil_b_awvalid(ext_awvalid),
-		.s_axil_b_awready(ext_awready),
-		.s_axil_b_wdata(ext_wdata),
-		.s_axil_b_wstrb('1),
-		.s_axil_b_wvalid(ext_wvalid),
-		.s_axil_b_wready(ext_wready),
-		.s_axil_b_bresp(),
-		.s_axil_b_bvalid(ext_bvalid),
-		.s_axil_b_bready(ext_bready),
-		.s_axil_b_araddr('0),
-		.s_axil_b_arprot('0),
-		.s_axil_b_arvalid('0),
-		.s_axil_b_arready(),
-		.s_axil_b_rdata(),
-		.s_axil_b_rresp(),
-		.s_axil_b_rvalid(),
-		.s_axil_b_rready(1'b0)
+		.s_axil_b_awaddr(s_axil_b_awaddr[16:0]),
+		.s_axil_b_awprot(s_axil_b_awprot),
+		.s_axil_b_awvalid(s_axil_b_awvalid),
+		.s_axil_b_awready(s_axil_b_awready),
+		.s_axil_b_wdata(s_axil_b_wdata),
+		.s_axil_b_wstrb(s_axil_b_wstrb),
+		.s_axil_b_wvalid(s_axil_b_wvalid),
+		.s_axil_b_wready(s_axil_b_wready),
+		.s_axil_b_bresp(s_axil_b_bresp),
+		.s_axil_b_bvalid(s_axil_b_bvalid),
+		.s_axil_b_bready(s_axil_b_bready),
+		.s_axil_b_araddr(s_axil_b_araddr[16:0]),
+		.s_axil_b_arprot(s_axil_b_arprot),
+		.s_axil_b_arvalid(s_axil_b_arvalid),
+		.s_axil_b_arready(s_axil_b_arready),
+		.s_axil_b_rdata(s_axil_b_rdata),
+		.s_axil_b_rresp(s_axil_b_rresp),
+		.s_axil_b_rvalid(s_axil_b_rvalid),
+		.s_axil_b_rready(s_axil_b_rready)
 	);
+
+	reg [31:0] gpio = 0;
+	wire resetn;
+	assign resetn = gpio[0];
 
 	picorv32_axi #(
 		.ENABLE_MUL(1),
@@ -261,6 +368,24 @@ module zverif_top (
 		.pcpi_valid(),
 		.eoi()
 	);
+
+	// simple GPIO device
+
+	always @(posedge clk) begin
+		if (gpio_awvalid && gpio_wvalid &&
+			((!gpio_awready) && (!gpio_wready)) &&
+			((!gpio_bvalid) || gpio_bready)) begin
+			gpio <= gpio_wdata;
+			gpio_awready <= 1'b1;
+			gpio_wready <= 1'b1;
+			gpio_bvalid <= 1'b1;
+		end else begin
+			gpio_awready <= 1'b0;
+			gpio_wready <= 1'b0;
+			gpio_bvalid <= gpio_bvalid & (~gpio_bready);
+			gpio <= gpio;
+		end
+	end
 
 	// stop if there is a trap condition
 	always @(posedge clk) begin

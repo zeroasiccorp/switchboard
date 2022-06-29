@@ -32,11 +32,11 @@ int main(int argc, char **argv, char **env)
 	uint32_t addr = 0;
 	uint16_t exit_code = 0;
 	bool write_in_progress = false;
+	bool sent_gpio = false;
 	enum state cur_state = AXI_RST;
 
 	while (!Verilated::gotFinish()) {
-		// update inputs before a falling edge
-		if (top->clk) {
+		if (!top->clk) {
 			if (cur_state == AXI_RST) {
 				// wait for AXI reset to release
 
@@ -47,6 +47,7 @@ int main(int argc, char **argv, char **env)
 				// program the CPU
 
 				uint8_t buf[4];
+				int read_count;
 
 				if (write_in_progress) {
 					if (top->ext_awready) {
@@ -59,18 +60,21 @@ int main(int argc, char **argv, char **env)
 						top->ext_bready = 1;
 						write_in_progress = false;
 					}		
-				} else if (fread(buf, 1, 4, firmware_fd) != 0) {
-					top->ext_awaddr = addr;
+				} else if (((read_count = fread(buf, 1, 4, firmware_fd)) != 0) || (!sent_gpio)) {
+					if (read_count != 0) {
+						top->ext_awaddr = addr;
+						top->ext_wdata = (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
+					} else {
+						top->ext_awaddr = 0x20000000;
+						top->ext_wdata = 1;  // de-assert reset
+						sent_gpio = true;
+					}
 					top->ext_awvalid = 1;
-					top->ext_wdata = (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
 					top->ext_wvalid = 1;
 					top->ext_bready = 0;
 					write_in_progress = true;
 					addr += 4;
 				} else {
-					// prepare to run the CPU program by de-asserting its reset
-					// and de-asserting the BREADY handshake from the last memory transaction
-					top->resetn = 1;
 					top->ext_bready = 0;
 					cur_state = RUN_CPU;
 				}
