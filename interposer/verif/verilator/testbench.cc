@@ -26,7 +26,6 @@ int main(int argc, char **argv, char **env)
 		firmware_fd = fopen(flag_firmware, "rb");
 	}
 
-	top->clk = 1;
 	int t = 0;
 
 	uint32_t addr = 0;
@@ -35,11 +34,18 @@ int main(int argc, char **argv, char **env)
 	bool sent_gpio = false;
 	enum state cur_state = AXI_RST;
 
+	uint8_t ext_awvalid=0, ext_wvalid=0, ext_bready=0;
+	uint32_t ext_awaddr=0, ext_wdata=0;
+
+	uint8_t ctrl_awready=0, ctrl_wready=0, ctrl_bvalid=0;
+
 	while (!Verilated::gotFinish()) {
+		// determine next value of outputs when clock is about
+		// to go high (i.e., when it currently reads low).  these
+		// outputs are driven right after the clock edge
 		if (!top->clk) {
 			if (cur_state == AXI_RST) {
 				// wait for AXI reset to release
-
 				if (t > 200) {
 					cur_state = PGM_CPU;
 				}
@@ -51,31 +57,31 @@ int main(int argc, char **argv, char **env)
 
 				if (write_in_progress) {
 					if (top->ext_awready) {
-						top->ext_awvalid = 0;
+						ext_awvalid = 0;
 					}
 					if (top->ext_wready) {
-						top->ext_wvalid = 0;
+						ext_wvalid = 0;
 					}
 					if (top->ext_bvalid) {
-						top->ext_bready = 1;
+						ext_bready = 1;
 						write_in_progress = false;
 					}		
 				} else if (((read_count = fread(buf, 1, 4, firmware_fd)) != 0) || (!sent_gpio)) {
 					if (read_count != 0) {
-						top->ext_awaddr = addr;
-						top->ext_wdata = (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
+						ext_awaddr = addr;
+						ext_wdata = (buf[3] << 24) | (buf[2] << 16) | (buf[1] << 8) | buf[0];
 					} else {
-						top->ext_awaddr = 0x20000000;
-						top->ext_wdata = 1;  // de-assert reset
+						ext_awaddr = 0x20000000;
+						ext_wdata = 1;  // de-assert reset
 						sent_gpio = true;
 					}
-					top->ext_awvalid = 1;
-					top->ext_wvalid = 1;
-					top->ext_bready = 0;
+					ext_awvalid = 1;
+					ext_wvalid = 1;
+					ext_bready = 0;
 					write_in_progress = true;
 					addr += 4;
 				} else {
-					top->ext_bready = 0;
+					ext_bready = 0;
 					cur_state = RUN_CPU;
 				}
 			} else {
@@ -100,24 +106,36 @@ int main(int argc, char **argv, char **env)
 					}
 
 					// handshaking
-					top->ctrl_awready = 1;
-					top->ctrl_wready = 1;
-					top->ctrl_bvalid = 1;
+					ctrl_awready = 1;
+					ctrl_wready = 1;
+					ctrl_bvalid = 1;
 				} else {
-					top->ctrl_awready = 0;
-					top->ctrl_wready = 0;
-					top->ctrl_bvalid = top->ctrl_bvalid && (!top->ctrl_bready);
+					ctrl_awready = 0;
+					ctrl_wready = 0;
+					ctrl_bvalid = top->ctrl_bvalid && (!top->ctrl_bready);
 				}
 			}
 		}
 
-		// update the clock
+		// generate clock edge
 		top->clk = !top->clk;
-
 		top->eval();
 
+		// drive new outputs
+		if (top->clk) {
+			top->ext_awvalid = ext_awvalid;
+			top->ext_wvalid = ext_wvalid;
+			top->ext_bready = ext_bready;
+			top->ext_awaddr = ext_awaddr;
+			top->ext_wdata = ext_wdata;
+			top->ctrl_awready = ctrl_awready;
+			top->ctrl_wready = ctrl_wready;
+			top->ctrl_bvalid = ctrl_bvalid;
+			top->eval();
+		}
+
 		// dump waveforms
-		if (tfp) tfp->dump (t);
+		if (tfp) tfp->dump(t);
 		t += 5;
 	}
 
