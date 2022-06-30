@@ -58,10 +58,11 @@ jobs:
           apt-get update -y
           apt-get install -y python3 python3-pip
 
+          python3 -m pip install --upgrade pip
           python3 -m pip install siliconcompiler==0.9.1
           python3 -m pip install -e .
 
-          cd interposer/verif && python3 picorv32.py verify --tool spike
+          cd interposer && python3 picorv32.py verify --tool spike
 
   sc_verilator:
     name: Verilator (thru SC)
@@ -74,7 +75,8 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
 
+          python3 -m pip install --upgrade pip
           python3 -m pip install siliconcompiler==0.9.1
           python3 -m pip install -e .
 
-          cd interposer/verif && python3 picorv32.py verify --tool verilator
+          cd interposer && python3 picorv32.py verify --tool verilator
