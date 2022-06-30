@@ -24,6 +24,7 @@ module zverif_top (
 	output ext_wready,
 	input ext_bready,
 	output ext_bvalid,
+	output [1:0] ext_bresp,
 
 	// outward-facing AXI I/O signals
 	output ctrl_awvalid,
@@ -217,7 +218,7 @@ module zverif_top (
     	.s00_axil_wstrb('1),
     	.s00_axil_wvalid(ext_wvalid),
     	.s00_axil_wready(ext_wready),
-    	.s00_axil_bresp(), // unused
+    	.s00_axil_bresp(ext_bresp),
     	.s00_axil_bvalid(ext_bvalid),
     	.s00_axil_bready(ext_bready),
     	.s00_axil_araddr('0),

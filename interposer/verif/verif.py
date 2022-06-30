@@ -60,7 +60,8 @@ def gen_tasks():
             VERILOG_AXI / 'axil_dp_ram.v',
             VERIF_DIR / 'verilator' / '*.v',
             VERIF_DIR / 'verilator' / '*.cc'
-        ]
+        ],
+        libs = ['zmq']
     )
 
     # build an ELF for each RISC-V application

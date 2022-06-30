@@ -33,24 +33,36 @@ def add_verilator_build_task(tasks, sources, top=CFG.rtl_top,
     }
     add_task(task=task, tasks=tasks)
 
-def verilator_build(build_dir, top, sources):
+def verilator_build(build_dir, top, sources, libs=None):
+    # set defaults
+    if libs is None:
+        libs = []
+
     # create a fresh build directory
     shutil.rmtree(build_dir, ignore_errors=True)
     Path(build_dir).mkdir(exist_ok=True, parents=True)
 
     # convert Verilog to C
-    verilate(build_dir=build_dir, top=top, sources=sources)
+    verilate(build_dir=build_dir, top=top, sources=sources, libs=libs)
 
     # build simulation binary
     verilator_compile(build_dir=build_dir, top=top)
 
-def verilate(top, sources, build_dir, verilator=CFG.verilator):
+def verilate(top, sources, build_dir, libs, verilator=CFG.verilator):
     # build up the command
     cmd = []
     cmd += [verilator]
     cmd += ['--top-module', top]  # "--top" isn't supported on older versions...
     cmd += ['-trace']  # TODO make generic
-    cmd += ['-CFLAGS', '-Wno-unknown-warning-option']
+    CFLAGS = []
+    CFLAGS += ['-Wno-unknown-warning-option']
+    if len(CFLAGS) > 0:
+        cmd += ['-CFLAGS', ' '.join(CFLAGS)]
+    LDFLAGS = []
+    for lib in libs:
+        LDFLAGS += [f'-l{lib}']
+    if len(LDFLAGS) > 0:
+        cmd += ['-LDFLAGS', ' '.join(LDFLAGS)]
     cmd += ['--cc']
     cmd += ['--exe']
     cmd += sources
