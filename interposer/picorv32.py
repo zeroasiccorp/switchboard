@@ -117,9 +117,8 @@ def build_app(app_name):
         app['expect']
     )
 
-def configure_spike(app='hello'):
+def configure_spike(elf_path, expect):
     chip = make_chip()
-    elf_path, _, expect = build_app(app)
 
     chip.set('option', 'jobname', 'spike_sim')
     chip.set('option', 'flow', 'spike_simulation')
@@ -169,9 +168,9 @@ def verify(tool='verilator', app='hello'):
     elf_path, hex_path, expect = build_app(app)
 
     if tool == 'verilator':
-        chip = configure_verilator(elf_path, expect)
+        chip = configure_verilator(hex_path, expect)
     elif tool == 'spike':
-        chip = configure_spike(hex_path, expect)
+        chip = configure_spike(elf_path, expect)
     else:
         raise ValueError(f'Unsupported tool {tool} for target verify')
 
