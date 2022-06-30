@@ -10,6 +10,8 @@
 #include "verilated_vcd_c.h"
 #include <inttypes.h>
 
+#define CYCLES_PER_RECV 1000
+
 enum state {AXI_RST, PGM_CPU, RUN_CPU};
 
 int main(int argc, char **argv, char **env)
@@ -60,12 +62,13 @@ int main(int argc, char **argv, char **env)
 					write_in_progress = false;
 				}		
 			} else {
-				if (cyc_count == 1000){
+				if (cyc_count == CYCLES_PER_RECV){
 					// only try to receive data occasionally, since this becomes the
-					// bottleneck for simulation
+					// bottleneck for simulation.  attempting to receive on every
+					// clock cycle reduced performance from ~3 MHz to 50 kHz.
 					int nrecv;
 					uint8_t rbuf[8];
-					if ((nrecv = zmq_recv (socket, rbuf, 8, ZMQ_NOBLOCK)) == 8) {
+					if ((nrecv = zmq_recv(socket, rbuf, 8, ZMQ_NOBLOCK)) == 8) {
 						zmq_send(socket, NULL, 0, 0);  // ACK
 						ext_awaddr = (rbuf[7] << 24) | (rbuf[6] << 16) | (rbuf[5] << 8) | rbuf[4];
 						ext_wdata = (rbuf[3] << 24) | (rbuf[2] << 16) | (rbuf[1] << 8) | rbuf[0];
@@ -140,4 +143,3 @@ int main(int argc, char **argv, char **env)
 
 	return 0;
 }
-

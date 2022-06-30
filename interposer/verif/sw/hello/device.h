@@ -8,7 +8,9 @@ static inline void delay(unsigned int nops)
 static inline void done(int code)
 {
 	int* exit = (void*)EXIT_ADDR;
+#if 0
 	delay(5000);
+#endif
 	*exit = code;
 }
 
