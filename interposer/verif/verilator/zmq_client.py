@@ -1,3 +1,4 @@
+import sys
 import zmq
 
 CONTEXT = zmq.Context()
@@ -5,7 +6,7 @@ CONTEXT = zmq.Context()
 def main():
     dut = DUT("tcp://localhost:5555")
     exit_code = run(dut, '../build/sw/hello.bin')
-    print(f'EXIT_CODE: {exit_code}')
+    sys.exit(exit_code)
 
 def run(dut, program):
     # assert reset
