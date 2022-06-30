@@ -60,21 +60,24 @@ int main(int argc, char **argv, char **env)
 				if (top->ext_bvalid) {
 					ext_bready = 1;
 					write_in_progress = false;
-				}		
+				}
 			} else {
+				ext_bready = 0;
+
+				// only try to receive data occasionally, since this becomes the
+				// bottleneck for simulation.  attempting to receive on every
+				// clock cycle reduced performance from ~3 MHz to 50 kHz.
 				if (cyc_count == CYCLES_PER_RECV){
-					// only try to receive data occasionally, since this becomes the
-					// bottleneck for simulation.  attempting to receive on every
-					// clock cycle reduced performance from ~3 MHz to 50 kHz.
+
 					int nrecv;
 					uint8_t rbuf[8];
 					if ((nrecv = zmq_recv(socket, rbuf, 8, ZMQ_NOBLOCK)) == 8) {
 						zmq_send(socket, NULL, 0, 0);  // ACK
 						ext_awaddr = (rbuf[7] << 24) | (rbuf[6] << 16) | (rbuf[5] << 8) | rbuf[4];
 						ext_wdata = (rbuf[3] << 24) | (rbuf[2] << 16) | (rbuf[1] << 8) | rbuf[0];
+						//printf("RECV %u @ %u\n", ext_wdata, ext_awaddr);
 						ext_awvalid = 1;
 						ext_wvalid = 1;
-						ext_bready = 0;
 						write_in_progress = true;
 					}
 					cyc_count = 0;
@@ -87,6 +90,7 @@ int main(int argc, char **argv, char **env)
 			if (top->ctrl_awvalid && top->ctrl_wvalid &&
 				((!top->ctrl_awready) && (!top->ctrl_wready)) &&
 				((!top->ctrl_bvalid) || top->ctrl_bready)) {
+				//printf("SEND %u @ %u\n", top->ctrl_wdata, top->ctrl_awaddr);
 				uint8_t sbuf[8];
 				sbuf[7] = (top->ctrl_awaddr >> 24) & 0xff;
 				sbuf[6] = (top->ctrl_awaddr >> 16) & 0xff;
