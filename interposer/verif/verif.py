@@ -11,10 +11,12 @@ from zverif.doit import doit_main_loop
 
 # folder structure 
 TOP_DIR = Path(__file__).resolve().parent.parent
-VERIF_DIR = TOP_DIR / 'verif'
 RTL_DIR = TOP_DIR / 'rtl'
-SW_DIR = TOP_DIR / 'verif' / 'sw'
-VERILOG_AXI = VERIF_DIR / 'verilator' / 'verilog-axi' / 'rtl'
+VERIF_DIR = TOP_DIR / 'verif'
+SW_DIR = VERIF_DIR / 'sw'
+VERILATOR_DIR = VERIF_DIR / 'verilator' 
+VERILOG_DIR = VERIF_DIR / 'verilog'
+VERILOG_AXI = VERILOG_DIR / 'verilog-axi' / 'rtl'
 
 # project configuration
 CFG = ZvConfig()
@@ -52,14 +54,15 @@ def gen_tasks():
     add_verilator_build_task(
         tasks=tasks,
         sources = [
-            VERIF_DIR / 'verilator' / '*.vlt',
+            VERILATOR_DIR / '*.vlt',
             RTL_DIR / '*.v',
             VERILOG_AXI / 'arbiter.v',
             VERILOG_AXI / 'priority_encoder.v',
             VERILOG_AXI / 'axil_interconnect.v',
             VERILOG_AXI / 'axil_dp_ram.v',
-            VERIF_DIR / 'verilator' / '*.v',
-            VERIF_DIR / 'verilator' / '*.cc'
+            VERILOG_DIR / 'axil_interconnect_wrap_*.v',
+            VERILOG_DIR / 'zverif_top.v',
+            VERIF_DIR / 'verilator' / 'testbench.cc'
         ],
         libs = ['zmq']
     )

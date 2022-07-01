@@ -5,7 +5,7 @@ CONTEXT = zmq.Context()
 
 def main():
     dut = DUT("tcp://localhost:5555")
-    exit_code = run(dut, '../build/sw/hello.bin')
+    exit_code = run(dut, 'build/sw/hello.bin')
     sys.exit(exit_code)
 
 def run(dut, program):
