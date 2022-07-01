@@ -698,7 +698,7 @@ module picorv32 #(
 	`FORMAL_KEEP reg dbg_rs2val_valid;
 
 	always @* begin
-		new_ascii_instr = '0;
+		new_ascii_instr = 64'h0000000000000000;
 
 		if (instr_lui)      new_ascii_instr = "lui";
 		if (instr_auipc)    new_ascii_instr = "auipc";

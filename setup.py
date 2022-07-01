@@ -24,7 +24,9 @@ setup(
         'ubelt',
         'pyyaml',
         'doit',
-        'jinja2'
+        'jinja2',
+        'cocotb',
+        'cocotb-test'
     ],
     url=f'https://github.com/zeroasiccorp/interposer-verif.git',
     author='Steven Herbst',

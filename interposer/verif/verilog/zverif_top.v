@@ -40,7 +40,7 @@ module zverif_top (
 	reg axi_rst = 1;
 	reg [3:0] axi_rst_count = 0;
 	always @(posedge clk) begin
-		if (axi_rst_count == '1) begin
+		if (axi_rst_count == 4'b1111) begin
 			axi_rst <= 0;
 			axi_rst_count <= axi_rst_count;
 		end else begin
@@ -191,7 +191,7 @@ module zverif_top (
 		.m01_axil_arprot(),
 		.m01_axil_arvalid(),
 		.m01_axil_arready(1'b0),
-		.m01_axil_rdata('0),
+		.m01_axil_rdata(0),
 		.m01_axil_rresp(2'b00),
 		.m01_axil_rvalid(1'b0),
 		.m01_axil_rready()
@@ -215,13 +215,13 @@ module zverif_top (
     	.s00_axil_awvalid(ext_awvalid),
     	.s00_axil_awready(ext_awready),
     	.s00_axil_wdata(ext_wdata),
-    	.s00_axil_wstrb('1),
+        .s00_axil_wstrb(4'b1111),
     	.s00_axil_wvalid(ext_wvalid),
     	.s00_axil_wready(ext_wready),
     	.s00_axil_bresp(ext_bresp),
     	.s00_axil_bvalid(ext_bvalid),
     	.s00_axil_bready(ext_bready),
-    	.s00_axil_araddr('0),
+        .s00_axil_araddr(0),
     	.s00_axil_arprot(3'b000),
     	.s00_axil_arvalid(1'b0),
     	.s00_axil_arready(),
@@ -267,7 +267,7 @@ module zverif_top (
 		.m01_axil_arprot(),
 		.m01_axil_arvalid(),
 		.m01_axil_arready(1'b0),
-		.m01_axil_rdata('0),
+		.m01_axil_rdata(0),
 		.m01_axil_rresp(2'b00),
 		.m01_axil_rvalid(1'b0),
 		.m01_axil_rready()
@@ -275,7 +275,7 @@ module zverif_top (
 
 	axil_dp_ram #(
 		.DATA_WIDTH(32),
-    	.ADDR_WIDTH(17),
+        .ADDR_WIDTH(17)
 	) ram (
 		// interconnect-facing
 		.a_clk(clk),
@@ -324,7 +324,7 @@ module zverif_top (
 		.s_axil_b_rready(s_axil_b_rready)
 	);
 
-	reg [31:0] gpio = 0;
+	reg [31:0] gpio;
 	wire resetn;
 	assign resetn = gpio[0];
 
@@ -333,7 +333,7 @@ module zverif_top (
 		.ENABLE_DIV(1),
 		.ENABLE_IRQ(1),
 		.ENABLE_TRACE(1),
-		.COMPRESSED_ISA(1)
+		.COMPRESSED_ISA(0)
 	) uut (
 		.clk            (clk            ),
 		.resetn         (resetn         ),
@@ -355,7 +355,7 @@ module zverif_top (
 		.mem_axi_rvalid (mem_axi_rvalid ),
 		.mem_axi_rready (mem_axi_rready ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
-		.irq            ('0             ),
+		.irq            (0              ),
 		.trace_valid    (trace_valid    ),
 		.trace_data     (trace_data     ),
 		// unused pins
@@ -373,18 +373,25 @@ module zverif_top (
 	// simple GPIO device
 
 	always @(posedge clk) begin
-		if (gpio_awvalid && gpio_wvalid &&
-			((!gpio_awready) && (!gpio_wready)) &&
-			((!gpio_bvalid) || gpio_bready)) begin
-			gpio <= gpio_wdata;
-			gpio_awready <= 1'b1;
-			gpio_wready <= 1'b1;
-			gpio_bvalid <= 1'b1;
-		end else begin
+		if (axi_rst) begin
+			gpio <= 0;
 			gpio_awready <= 1'b0;
 			gpio_wready <= 1'b0;
-			gpio_bvalid <= gpio_bvalid & (~gpio_bready);
-			gpio <= gpio;
+			gpio_bvalid <= 1'b0;
+		end else begin
+			if (gpio_awvalid && gpio_wvalid &&
+				((!gpio_awready) && (!gpio_wready)) &&
+				((!gpio_bvalid) || gpio_bready)) begin
+				gpio <= gpio_wdata;
+				gpio_awready <= 1'b1;
+				gpio_wready <= 1'b1;
+				gpio_bvalid <= 1'b1;
+			end else begin
+				gpio_awready <= 1'b0;
+				gpio_wready <= 1'b0;
+				gpio_bvalid <= gpio_bvalid & (~gpio_bready);
+				gpio <= gpio;
+			end
 		end
 	end
 
