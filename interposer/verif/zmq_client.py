@@ -39,9 +39,6 @@ def run(dut, program):
     else:
         print('ERROR!')
 
-    # assert reset
-    dut.send(UmiPacket(data=0, dstaddr=0x20000000))
-
     return exit_code
 
 class DUT:

@@ -328,6 +328,15 @@ module zverif_top (
 	wire resetn;
 	assign resetn = gpio[0];
 
+	// during reset, acknowledge receipt of read data and write responses,
+	// so that a transaction isn't "stuck" the next time the processor wakes up
+
+	wire cpu_rready;
+	assign mem_axi_rready = resetn ? cpu_rready : mem_axi_rvalid;
+
+	wire cpu_bready;
+	assign mem_axi_bready = resetn ? cpu_bready : mem_axi_bvalid;
+
 	picorv32_axi #(
 		.ENABLE_MUL(1),
 		.ENABLE_DIV(1),
@@ -347,13 +356,13 @@ module zverif_top (
 		.mem_axi_wdata  (mem_axi_wdata  ),
 		.mem_axi_wstrb  (mem_axi_wstrb  ),
 		.mem_axi_bvalid (mem_axi_bvalid ),
-		.mem_axi_bready (mem_axi_bready ),
+		.mem_axi_bready (cpu_bready     ),
 		.mem_axi_arvalid(mem_axi_arvalid),
 		.mem_axi_arready(mem_axi_arready),
 		.mem_axi_araddr (mem_axi_araddr ),
 		.mem_axi_arprot (mem_axi_arprot ),
 		.mem_axi_rvalid (mem_axi_rvalid ),
-		.mem_axi_rready (mem_axi_rready ),
+		.mem_axi_rready (cpu_rready     ),
 		.mem_axi_rdata  (mem_axi_rdata  ),
 		.irq            (0              ),
 		.trace_valid    (trace_valid    ),
