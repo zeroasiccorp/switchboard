@@ -1,16 +1,14 @@
-# test_my_design.py (extended)
-
+import zmq
 import cocotb
 from cocotb.triggers import Timer
-from cocotb.triggers import FallingEdge
 
-import zmq
-CONTEXT = zmq.Context()
+from zverif.umi import UmiPacket
 
 @cocotb.test()
 async def run(dut):
     """Run server for ZMQ"""
 
+    CONTEXT = zmq.Context()
     socket = CONTEXT.socket(zmq.PAIR)
     socket.bind("tcp://*:5555")
 
@@ -58,10 +56,11 @@ async def run(dut):
                     rbuf = socket.recv(flags=zmq.NOBLOCK)
                 except:
                     rbuf = bytes([])
-                if (len(rbuf) == 8):
+                if (len(rbuf) == 32):
                     socket.send(bytes([]))
-                    ext_awaddr = (rbuf[7] << 24) | (rbuf[6] << 16) | (rbuf[5] << 8) | rbuf[4]
-                    ext_wdata = (rbuf[3] << 24) | (rbuf[2] << 16) | (rbuf[1] << 8) | rbuf[0]
+                    packet = UmiPacket.unpack(rbuf)
+                    ext_awaddr = packet.dstaddr & 0xffffffff
+                    ext_wdata = packet.data & 0xffffffff
                     #print(f"RECV {ext_wdata} @ {ext_awaddr}")
                     ext_awvalid = 1
                     ext_wvalid = 1
@@ -72,16 +71,11 @@ async def run(dut):
                 ((not dut.ctrl_awready.value) and (not dut.ctrl_wready.value)) and
                 ((not dut.ctrl_bvalid.value) or dut.ctrl_bready.value)):
                 #print(f"SEND {dut.ctrl_wdata.value} @ {dut.ctrl_awaddr.value}")
-                sbuf = [0]*8
-                sbuf[7] = (dut.ctrl_awaddr.value >> 24) & 0xff
-                sbuf[6] = (dut.ctrl_awaddr.value >> 16) & 0xff
-                sbuf[5] = (dut.ctrl_awaddr.value >> 8) & 0xff
-                sbuf[4] = (dut.ctrl_awaddr.value >> 0) & 0xff
-                sbuf[3] = (dut.ctrl_wdata.value >> 24) & 0xff
-                sbuf[2] = (dut.ctrl_wdata.value >> 16) & 0xff
-                sbuf[1] = (dut.ctrl_wdata.value >> 8) & 0xff
-                sbuf[0] = (dut.ctrl_wdata.value >> 0) & 0xff
-                socket.send(bytes(sbuf))
+                packet = UmiPacket(
+                    dstaddr=int(dut.ctrl_awaddr.value),
+                    data=int(dut.ctrl_wdata.value)
+                )
+                socket.send(packet.pack())
                 socket.recv()
 
                 # handshaking

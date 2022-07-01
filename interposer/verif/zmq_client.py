@@ -1,32 +1,34 @@
 import sys
 import zmq
 
+from zverif.umi import UmiPacket
+
 def run(dut, program):
-    # assert reset
-    dut.send(0, 0x20000000)
+    # assert resetn
+    dut.send(UmiPacket(data=0, dstaddr=0x20000000))
 
     # write program
     with open(program, 'rb') as f:
         data = f.read()
     for addr in range(0, len(data), 4):
-        elem = data[addr:addr+4]  # get 4-byte chunk
-        elem = elem + bytes([0]*(4-len(elem)))  # pad if needed
-        dut.send(elem, addr)
+        # read a four-byte chunk
+        chunk = int.from_bytes(data[addr:addr+4], 'little')
+        dut.send(UmiPacket(data=chunk, dstaddr=addr))
 
-    # release reset
-    dut.send(1, 0x20000000)
+    # release resetn
+    dut.send(UmiPacket(data=1, dstaddr=0x20000000))
 
     # handle output
     while True:
-        data, addr = dut.recv()
+        packet = dut.recv()
 
         # process address
-        if addr == 0x10000000:
-            print(chr(data & 0xff), end='', flush=True)
-        elif addr == 0x10000008:
-            kind = data & 0xffff
+        if packet.dstaddr == 0x10000000:
+            print(chr(packet.data & 0xff), end='', flush=True)
+        elif packet.dstaddr == 0x10000008:
+            kind = packet.data & 0xffff
             if kind == 0x3333:
-                exit_code = (data >> 16) & 0xffff
+                exit_code = (packet.data >> 16) & 0xffff
                 break
             if kind == 0x5555:
                 exit_code = 0
@@ -38,7 +40,7 @@ def run(dut, program):
         print('ERROR!')
 
     # assert reset
-    dut.send(0, 0x20000000)
+    dut.send(UmiPacket(data=0, dstaddr=0x20000000))
 
     return exit_code
 
@@ -49,39 +51,19 @@ class DUT:
         self.socket = self.CONTEXT.socket(zmq.PAIR)
         self.socket.connect(uri)
         print("done.")
-    
-    def send(self, data, addr):
-        # convert data and address to bytes as needed
-        if isinstance(data, int):
-            data = data.to_bytes(4, 'little')
-        if isinstance(addr, int):
-            addr = addr.to_bytes(4, 'little')
 
-        # make sure data and addr are the right size
-        assert len(data) == 4, 'data must be 4 bytes'
-        assert len(addr) == 4, 'addr must be 4 bytes'
-
-        # concatenate data and addr
-        transaction = data + addr
-
+    def send(self, packet: UmiPacket):        
         # send message
-        self.socket.send(transaction)
+        self.socket.send(packet.pack())
         self.socket.recv()
     
-    def recv(self, as_ints=True):
+    def recv(self) -> UmiPacket:
         # receive data
-        transaction = self.socket.recv(8)
+        packet = self.socket.recv(32)
         self.socket.send(bytes([]))
 
-        # split into data and address
-        data, addr = transaction[:4], transaction[4:]
-
-        # convert to integers if desired
-        if as_ints:
-            data = int.from_bytes(data, 'little')
-            addr = int.from_bytes(addr, 'little')
-        
-        return data, addr
+        # unpack data
+        return UmiPacket.unpack(packet)
 
 def main():
     dut = DUT("tcp://localhost:5555")
