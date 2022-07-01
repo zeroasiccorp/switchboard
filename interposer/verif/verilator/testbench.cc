@@ -34,13 +34,28 @@ int main(int argc, char **argv, char **env)
 	// top->trace (tfp, 99);
 	// tfp->open("testbench.vcd");
 
-	// AXI signals for writing to RAM or GPIO
 	bool write_in_progress = false;
-	uint8_t ext_awvalid=0, ext_wvalid=0, ext_bready=0;
-	uint32_t ext_awaddr=0, ext_wdata=0;
+	uint8_t clk = 0;
+	uint8_t ext_awvalid = 0;
+	uint8_t ext_wvalid = 0;
+	uint8_t ext_bready = 0;
+	uint32_t ext_awaddr = 0;
+	uint32_t ext_wdata = 0;
+	uint8_t ctrl_awready = 0;
+	uint8_t ctrl_wready = 0;
+	uint8_t ctrl_bvalid = 0;
 
-	// AXI signals for receiving transactions from the processor
-	uint8_t ctrl_awready=0, ctrl_wready=0, ctrl_bvalid=0;
+	top->clk = clk;
+	top->ext_awvalid = ext_awvalid;
+	top->ext_wvalid = ext_wvalid;
+	top->ext_bready = ext_bready;
+	top->ext_awaddr = ext_awaddr;
+	top->ext_wdata = ext_wdata;
+	top->ctrl_awready = ctrl_awready;
+	top->ctrl_wready = ctrl_wready;
+	top->ctrl_bvalid = ctrl_bvalid;
+
+	top->eval();
 
 	int cyc_count = 0;
 
@@ -48,7 +63,7 @@ int main(int argc, char **argv, char **env)
 		// determine next value of outputs when clock is about
 		// to go high (i.e., when it currently reads low).  these
 		// outputs are driven right after the clock edge
-		if (!top->clk) {
+		if (!clk) {
 			// write data to the device
 			if (write_in_progress) {
 				if (top->ext_awready) {
@@ -68,13 +83,12 @@ int main(int argc, char **argv, char **env)
 				// bottleneck for simulation.  attempting to receive on every
 				// clock cycle reduced performance from ~3 MHz to 50 kHz.
 				if (cyc_count == CYCLES_PER_RECV){
-
 					int nrecv;
-					uint8_t rbuf[8];
-					if ((nrecv = zmq_recv(socket, rbuf, 8, ZMQ_NOBLOCK)) == 8) {
+					uint8_t rbuf[32];
+					if ((nrecv = zmq_recv(socket, rbuf, 32, ZMQ_NOBLOCK)) == 32) {
 						zmq_send(socket, NULL, 0, 0);  // ACK
 						ext_awaddr = (rbuf[7] << 24) | (rbuf[6] << 16) | (rbuf[5] << 8) | rbuf[4];
-						ext_wdata = (rbuf[3] << 24) | (rbuf[2] << 16) | (rbuf[1] << 8) | rbuf[0];
+						ext_wdata = (rbuf[15] << 24) | (rbuf[14] << 16) | (rbuf[13] << 8) | rbuf[12];
 						//printf("RECV %u @ %u\n", ext_wdata, ext_awaddr);
 						ext_awvalid = 1;
 						ext_wvalid = 1;
@@ -91,16 +105,16 @@ int main(int argc, char **argv, char **env)
 				((!top->ctrl_awready) && (!top->ctrl_wready)) &&
 				((!top->ctrl_bvalid) || top->ctrl_bready)) {
 				//printf("SEND %u @ %u\n", top->ctrl_wdata, top->ctrl_awaddr);
-				uint8_t sbuf[8];
-				sbuf[7] = (top->ctrl_awaddr >> 24) & 0xff;
-				sbuf[6] = (top->ctrl_awaddr >> 16) & 0xff;
-				sbuf[5] = (top->ctrl_awaddr >> 8) & 0xff;
-				sbuf[4] = (top->ctrl_awaddr >> 0) & 0xff;
-				sbuf[3] = (top->ctrl_wdata >> 24) & 0xff;
-				sbuf[2] = (top->ctrl_wdata >> 16) & 0xff;
-				sbuf[1] = (top->ctrl_wdata >> 8) & 0xff;
-				sbuf[0] = (top->ctrl_wdata >> 0) & 0xff;
-				zmq_send(socket, sbuf, 8, 0);
+				uint8_t sbuf[32] = {0};
+				sbuf[7]  = (top->ctrl_awaddr >> 24) & 0xff;
+				sbuf[6]  = (top->ctrl_awaddr >> 16) & 0xff;
+				sbuf[5]  = (top->ctrl_awaddr >>  8) & 0xff;
+				sbuf[4]  = (top->ctrl_awaddr >>  0) & 0xff;
+				sbuf[15] = (top->ctrl_wdata  >> 24) & 0xff;
+				sbuf[14] = (top->ctrl_wdata  >> 16) & 0xff;
+				sbuf[13] = (top->ctrl_wdata  >>  8) & 0xff;
+				sbuf[12] = (top->ctrl_wdata  >>  0) & 0xff;
+				zmq_send(socket, sbuf, 32, 0);
 				zmq_recv(socket, NULL, 0, 0);
 
 				// handshaking
@@ -115,11 +129,12 @@ int main(int argc, char **argv, char **env)
 		}
 
 		// generate clock edge
-		top->clk = !top->clk;
+		clk = !clk;
+		top->clk = clk;
 		top->eval();
 
 		// drive new outputs
-		if (top->clk) {
+		if (clk) {
 			top->ext_awvalid = ext_awvalid;
 			top->ext_wvalid = ext_wvalid;
 			top->ext_bready = ext_bready;

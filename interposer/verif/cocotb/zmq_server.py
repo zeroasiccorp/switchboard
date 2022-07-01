@@ -12,17 +12,6 @@ async def run(dut):
     socket = CONTEXT.socket(zmq.PAIR)
     socket.bind("tcp://*:5555")
 
-    dut.clk.value = 0
-    dut.ext_awaddr.value = 0
-    dut.ext_awvalid.value = 0
-    dut.ext_wdata.value = 0
-    dut.ext_wvalid.value = 0
-    dut.ext_bready.value = 0
-
-    dut.ctrl_awready.value = 0
-    dut.ctrl_wready.value = 0 
-    dut.ctrl_bvalid.value = 0
-
     write_in_progress = False
     clk = 0
     ext_awvalid = 0
@@ -33,6 +22,16 @@ async def run(dut):
     ctrl_awready = 0
     ctrl_wready = 0
     ctrl_bvalid = 0
+
+    dut.clk.value = clk
+    dut.ext_awaddr.value = ext_awaddr
+    dut.ext_awvalid.value = ext_awvalid
+    dut.ext_wdata.value = ext_wdata
+    dut.ext_wvalid.value = ext_wvalid
+    dut.ext_bready.value = ext_bready
+    dut.ctrl_awready.value = ctrl_awready
+    dut.ctrl_wready.value = ctrl_wready
+    dut.ctrl_bvalid.value = ctrl_bvalid
 
     await Timer(5, units="ns")
 
