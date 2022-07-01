@@ -28,7 +28,7 @@ int main(int argc, char **argv, char **env)
 
 	// Set up optional tracing
 	int t = 0;
-	// VerilatedVcdC* tfp = NULL;
+	VerilatedVcdC* tfp = NULL;
 	// Verilated::traceEverOn(true);
 	// tfp = new VerilatedVcdC;
 	// top->trace (tfp, 99);
@@ -58,10 +58,10 @@ int main(int argc, char **argv, char **env)
 		// outputs are driven right after the clock edge
 		if (!clk) {
 			// write data to the device
-			if (tx_in_progress) {
+			if (rx_in_progress) {
 				if (top->umi_ready_rx) {
 					umi_valid_rx = 0;
-					tx_in_progress = false;
+					rx_in_progress = false;
 				}
 			} else {
 				// only try to receive data occasionally, since this becomes the
@@ -79,7 +79,7 @@ int main(int argc, char **argv, char **env)
 							}
 						}
 						umi_valid_rx = 1;
-						tx_in_progress = true;
+						rx_in_progress = true;
 					}
 					cyc_count = 0;
 				} else {
@@ -88,9 +88,9 @@ int main(int argc, char **argv, char **env)
 			}
 
 			// look for writes
-			if (rx_in_progress) {
+			if (tx_in_progress) {
 				umi_ready_tx = 0;
-				rx_in_progress = false;
+				tx_in_progress = false;
 			} else {
 				if (top->umi_valid_tx) {
 					// construct outgoing packet
@@ -114,7 +114,7 @@ int main(int argc, char **argv, char **env)
 
 					// handshaking
 					umi_ready_tx = 1;
-					rx_in_progress = true;
+					tx_in_progress = true;
 				}
 			}
 		}

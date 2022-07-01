@@ -509,6 +509,14 @@ module zverif_top (
 		end
 	end
 
+	// `ifdef COCOTB_SIM
+	// 	initial begin
+	// 		$dumpfile ("testbench.vcd");
+	// 		$dumpvars (0, zverif_top);
+	// 		#1;
+	// 	end
+	// `endif
+
 endmodule
 
 `resetall

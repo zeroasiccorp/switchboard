@@ -9,11 +9,15 @@ RTL_DIR = TOP_DIR / 'rtl'
 VERIF_DIR = TOP_DIR / 'verif'
 VERILOG_DIR = VERIF_DIR / 'verilog'
 VERILOG_AXI = VERILOG_DIR / 'verilog-axi' / 'rtl'
+UMI_DIR = VERILOG_DIR / 'umi' / 'umi' / 'rtl'
 
 def test_zmq():
     # determine Verilog sources
     verilog_sources = [
         RTL_DIR / '*.v',
+        UMI_DIR / 'umi_decode.v',
+        UMI_DIR / 'umi_pack.v',
+        UMI_DIR / 'umi_unpack.v',
         VERILOG_AXI / 'arbiter.v',
         VERILOG_AXI / 'priority_encoder.v',
         VERILOG_AXI / 'axil_interconnect.v',
