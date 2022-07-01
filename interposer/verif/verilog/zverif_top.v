@@ -15,26 +15,15 @@ module zverif_top (
 	output trace_valid,
 	output [35:0] trace_data,
 
-	// outward-facing AXI RAM signals
-	input [31:0] ext_awaddr,
-	input ext_awvalid,
-	output ext_awready,
-	input [31:0] ext_wdata,
-	input ext_wvalid,
-	output ext_wready,
-	input ext_bready,
-	output ext_bvalid,
-	output [1:0] ext_bresp,
+	// UMI RX port
+	input [255:0] umi_packet_rx,
+	input umi_valid_rx,
+	output umi_ready_rx,
 
-	// outward-facing AXI I/O signals
-	output ctrl_awvalid,
-	input ctrl_awready,
-	output ctrl_wvalid,
-	input ctrl_wready,
-	input ctrl_bvalid,
-	output ctrl_bready,
-	output [31:0] ctrl_awaddr,
-	output [31:0] ctrl_wdata
+	// UMI TX port
+	output [255:0] umi_packet_tx,
+	output umi_valid_tx,
+	input umi_ready_tx
 );
 	// AXI reset
 	reg axi_rst = 1;
@@ -122,6 +111,114 @@ module zverif_top (
 	reg gpio_wready;
 	reg gpio_bvalid;
 	wire gpio_bready;
+
+	// UMI RX
+	
+	wire [63:0] umi_addr_rx;
+	wire [255:0] umi_data_rx;
+
+	wire [31:0] ext_awaddr;
+	reg ext_awvalid;
+	wire ext_awready;
+	wire [31:0] ext_wdata;
+	reg ext_wvalid;
+	wire ext_wready;
+	reg ext_bready;
+	wire ext_bvalid;
+
+	reg rx_in_progress;
+	always @(posedge clk) begin
+		if (axi_rst) begin
+			rx_in_progress <= 1'b0;
+		end else if (rx_in_progress) begin
+			ext_awvalid <= ext_awvalid & (~ext_awready);
+			ext_wvalid <= ext_wvalid & (~ext_wready);
+			ext_bready <= ext_bvalid & (~ext_bready);
+			if (!umi_valid_rx) begin
+				rx_in_progress <= 1'b0;
+			end
+		end else if (umi_valid_rx) begin
+			ext_awvalid <= 1'b1;
+			ext_wvalid <= 1'b1;
+			ext_bready <= 1'b0;
+			rx_in_progress <= 1'b1;
+		end
+	end
+	
+	// indicate write success using the bvalid signal
+	assign umi_ready_rx = ext_bready;
+
+	umi_unpack umi_unpack_i (
+    	.packet_in(umi_packet_rx),
+		.cmd_write(),
+		.cmd_read(),
+		.cmd_atomic(),
+		.cmd_write_normal(),
+		.cmd_write_signal(),
+		.cmd_write_ack(),
+		.cmd_write_stream(),
+		.cmd_write_response(),
+		.cmd_atomic_swap(),
+		.cmd_atomic_add(),
+		.cmd_atomic_and(),
+		.cmd_atomic_or(),
+		.cmd_atomic_xor(),
+		.cmd_atomic_min(),
+		.cmd_invalid(),
+		.cmd_atomic_max(),
+		.cmd_opcode(),
+    	.cmd_size(),
+    	.cmd_user(),
+		.dstaddr(umi_addr_rx),
+		.srcaddr(),
+		.data(umi_data_rx)
+    );
+
+	assign ext_awaddr = umi_addr_rx[31:0];
+	assign ext_wdata = umi_data_rx[31:0];
+
+	// UMI TX
+
+	wire ctrl_awvalid;
+	wire ctrl_awready;
+	wire ctrl_wvalid;
+	wire ctrl_wready;
+	reg ctrl_bvalid;
+	wire ctrl_bready;
+	wire [31:0] ctrl_awaddr;
+	wire [31:0] ctrl_wdata;
+
+	// indicate that UMI TX packet is valid once the
+	// address and data parts are individually valid
+	assign umi_valid_tx = ctrl_awvalid & ctrl_awvalid;
+
+	// both address and data use the same "ready" signal,
+ 	// since they are sent as a packet
+	assign ctrl_awready = umi_ready_tx;
+	assign ctrl_wready = umi_ready_tx;
+
+	// special handling for bvalid: need to keep this
+	// asserted until acknolwedged with bready.  this might
+	// not happen instantaneously, so a bit of state is
+	// needed to keep track of whether bvalid should be asserted
+	always @(posedge clk) begin
+		if (axi_rst) begin
+			ctrl_bvalid <= 1'b0;
+		end else begin
+			ctrl_bvalid <= umi_ready_tx | (ctrl_bvalid & (~ctrl_bready));
+		end
+	end
+
+	umi_pack umi_pack_i (
+		.opcode(0),
+		.size(0),
+		.user(0),
+		.burst(0),
+		.dstaddr({32'h0, ctrl_awaddr}),
+		.srcaddr(0),
+		.data({224'h0, ctrl_wdata}),
+		.packet_out(umi_packet_tx)
+	);	
 
 	axil_interconnect_wrap_1x2 # (
 		.DATA_WIDTH(32),
@@ -218,7 +315,7 @@ module zverif_top (
         .s00_axil_wstrb(4'b1111),
     	.s00_axil_wvalid(ext_wvalid),
     	.s00_axil_wready(ext_wready),
-    	.s00_axil_bresp(ext_bresp),
+    	.s00_axil_bresp(), // unused
     	.s00_axil_bvalid(ext_bvalid),
     	.s00_axil_bready(ext_bready),
         .s00_axil_araddr(0),

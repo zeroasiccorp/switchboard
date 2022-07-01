@@ -48,7 +48,7 @@ def verilator_build(build_dir, top, sources, libs=None):
     # build simulation binary
     verilator_compile(build_dir=build_dir, top=top)
 
-def verilate(top, sources, build_dir, libs, verilator=CFG.verilator):
+def verilate(top, sources, build_dir, libs, verilator=CFG.verilator, timescale='1ns/1ps'):
     # build up the command
     cmd = []
     cmd += [verilator]
@@ -65,6 +65,8 @@ def verilate(top, sources, build_dir, libs, verilator=CFG.verilator):
         cmd += ['-LDFLAGS', ' '.join(LDFLAGS)]
     cmd += ['--cc']
     cmd += ['--exe']
+    if timescale is not None:
+        cmd += ['--timescale', timescale]
     cmd += sources
 
     cmd = [str(elem) for elem in cmd]

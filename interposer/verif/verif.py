@@ -17,6 +17,7 @@ SW_DIR = VERIF_DIR / 'sw'
 VERILATOR_DIR = VERIF_DIR / 'verilator' 
 VERILOG_DIR = VERIF_DIR / 'verilog'
 VERILOG_AXI = VERILOG_DIR / 'verilog-axi' / 'rtl'
+UMI_DIR = VERILOG_DIR / 'umi' / 'umi' / 'rtl'
 
 # project configuration
 CFG = ZvConfig()
@@ -55,6 +56,9 @@ def gen_tasks():
         tasks=tasks,
         sources = [
             VERILATOR_DIR / '*.vlt',
+            UMI_DIR / 'umi_decode.v',
+            UMI_DIR / 'umi_pack.v',
+            UMI_DIR / 'umi_unpack.v',
             RTL_DIR / '*.v',
             VERILOG_AXI / 'arbiter.v',
             VERILOG_AXI / 'priority_encoder.v',

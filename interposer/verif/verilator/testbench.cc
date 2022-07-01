@@ -28,32 +28,25 @@ int main(int argc, char **argv, char **env)
 
 	// Set up optional tracing
 	int t = 0;
-	VerilatedVcdC* tfp = NULL;
+	// VerilatedVcdC* tfp = NULL;
 	// Verilated::traceEverOn(true);
 	// tfp = new VerilatedVcdC;
 	// top->trace (tfp, 99);
 	// tfp->open("testbench.vcd");
 
-	bool write_in_progress = false;
+	bool tx_in_progress = false;
+	bool rx_in_progress = false;
 	uint8_t clk = 0;
-	uint8_t ext_awvalid = 0;
-	uint8_t ext_wvalid = 0;
-	uint8_t ext_bready = 0;
-	uint32_t ext_awaddr = 0;
-	uint32_t ext_wdata = 0;
-	uint8_t ctrl_awready = 0;
-	uint8_t ctrl_wready = 0;
-	uint8_t ctrl_bvalid = 0;
+	uint32_t umi_packet_rx [8] = {0};
+	uint8_t umi_valid_rx = 0;
+	uint8_t umi_ready_tx = 0;
 
 	top->clk = clk;
-	top->ext_awvalid = ext_awvalid;
-	top->ext_wvalid = ext_wvalid;
-	top->ext_bready = ext_bready;
-	top->ext_awaddr = ext_awaddr;
-	top->ext_wdata = ext_wdata;
-	top->ctrl_awready = ctrl_awready;
-	top->ctrl_wready = ctrl_wready;
-	top->ctrl_bvalid = ctrl_bvalid;
+	for (int i=0; i<8; i++){
+		top->umi_packet_rx[i] = umi_packet_rx[i];
+	}
+	top->umi_valid_rx = umi_valid_rx;
+	top->umi_ready_tx = umi_ready_tx;
 
 	top->eval();
 
@@ -65,20 +58,12 @@ int main(int argc, char **argv, char **env)
 		// outputs are driven right after the clock edge
 		if (!clk) {
 			// write data to the device
-			if (write_in_progress) {
-				if (top->ext_awready) {
-					ext_awvalid = 0;
-				}
-				if (top->ext_wready) {
-					ext_wvalid = 0;
-				}
-				if (top->ext_bvalid) {
-					ext_bready = 1;
-					write_in_progress = false;
+			if (tx_in_progress) {
+				if (top->umi_ready_rx) {
+					umi_valid_rx = 0;
+					tx_in_progress = false;
 				}
 			} else {
-				ext_bready = 0;
-
 				// only try to receive data occasionally, since this becomes the
 				// bottleneck for simulation.  attempting to receive on every
 				// clock cycle reduced performance from ~3 MHz to 50 kHz.
@@ -87,12 +72,14 @@ int main(int argc, char **argv, char **env)
 					uint8_t rbuf[32];
 					if ((nrecv = zmq_recv(socket, rbuf, 32, ZMQ_NOBLOCK)) == 32) {
 						zmq_send(socket, NULL, 0, 0);  // ACK
-						ext_awaddr = (rbuf[7] << 24) | (rbuf[6] << 16) | (rbuf[5] << 8) | rbuf[4];
-						ext_wdata = (rbuf[15] << 24) | (rbuf[14] << 16) | (rbuf[13] << 8) | rbuf[12];
-						//printf("RECV %u @ %u\n", ext_wdata, ext_awaddr);
-						ext_awvalid = 1;
-						ext_wvalid = 1;
-						write_in_progress = true;
+						for (int i=0; i<8; i++) {
+							umi_packet_rx[i] = 0;
+							for (int j=0; j<4; j++) {
+								umi_packet_rx[i] |= ((uint32_t)rbuf[(i*4)+j]) << (8*j);
+							}
+						}
+						umi_valid_rx = 1;
+						tx_in_progress = true;
 					}
 					cyc_count = 0;
 				} else {
@@ -101,30 +88,34 @@ int main(int argc, char **argv, char **env)
 			}
 
 			// look for writes
-			if (top->ctrl_awvalid && top->ctrl_wvalid &&
-				((!top->ctrl_awready) && (!top->ctrl_wready)) &&
-				((!top->ctrl_bvalid) || top->ctrl_bready)) {
-				//printf("SEND %u @ %u\n", top->ctrl_wdata, top->ctrl_awaddr);
-				uint8_t sbuf[32] = {0};
-				sbuf[7]  = (top->ctrl_awaddr >> 24) & 0xff;
-				sbuf[6]  = (top->ctrl_awaddr >> 16) & 0xff;
-				sbuf[5]  = (top->ctrl_awaddr >>  8) & 0xff;
-				sbuf[4]  = (top->ctrl_awaddr >>  0) & 0xff;
-				sbuf[15] = (top->ctrl_wdata  >> 24) & 0xff;
-				sbuf[14] = (top->ctrl_wdata  >> 16) & 0xff;
-				sbuf[13] = (top->ctrl_wdata  >>  8) & 0xff;
-				sbuf[12] = (top->ctrl_wdata  >>  0) & 0xff;
-				zmq_send(socket, sbuf, 32, 0);
-				zmq_recv(socket, NULL, 0, 0);
-
-				// handshaking
-				ctrl_awready = 1;
-				ctrl_wready = 1;
-				ctrl_bvalid = 1;
+			if (rx_in_progress) {
+				umi_ready_tx = 0;
+				rx_in_progress = false;
 			} else {
-				ctrl_awready = 0;
-				ctrl_wready = 0;
-				ctrl_bvalid = top->ctrl_bvalid && (!top->ctrl_bready);
+				if (top->umi_valid_tx) {
+					// construct outgoing packet
+					uint8_t sbuf[32] = {0};
+
+					// address part
+					sbuf[7]  = (top->umi_packet_tx[1] >> 24) & 0xff;
+					sbuf[6]  = (top->umi_packet_tx[1] >> 16) & 0xff;
+					sbuf[5]  = (top->umi_packet_tx[1] >>  8) & 0xff;
+					sbuf[4]  = (top->umi_packet_tx[1] >>  0) & 0xff;
+
+					// data part
+					sbuf[15] = (top->umi_packet_tx[3] >> 24) & 0xff;
+					sbuf[14] = (top->umi_packet_tx[3] >> 16) & 0xff;
+					sbuf[13] = (top->umi_packet_tx[3] >>  8) & 0xff;
+					sbuf[12] = (top->umi_packet_tx[3] >>  0) & 0xff;
+
+					// zmq transaction
+					zmq_send(socket, sbuf, 32, 0);
+					zmq_recv(socket, NULL, 0, 0);
+
+					// handshaking
+					umi_ready_tx = 1;
+					rx_in_progress = true;
+				}
 			}
 		}
 
@@ -135,14 +126,11 @@ int main(int argc, char **argv, char **env)
 
 		// drive new outputs
 		if (clk) {
-			top->ext_awvalid = ext_awvalid;
-			top->ext_wvalid = ext_wvalid;
-			top->ext_bready = ext_bready;
-			top->ext_awaddr = ext_awaddr;
-			top->ext_wdata = ext_wdata;
-			top->ctrl_awready = ctrl_awready;
-			top->ctrl_wready = ctrl_wready;
-			top->ctrl_bvalid = ctrl_bvalid;
+			for (int i=0; i<8; i++){
+				top->umi_packet_rx[i] = umi_packet_rx[i];
+			}
+			top->umi_valid_rx = umi_valid_rx;
+			top->umi_ready_tx = umi_ready_tx;
 			top->eval();
 		}
 

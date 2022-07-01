@@ -4,3 +4,6 @@
 [submodule "interposer/verif/verilog/verilog-axi"]
 	path = interposer/verif/verilog/verilog-axi
 	url = https://github.com/alexforencich/verilog-axi.git
+[submodule "interposer/verif/verilog/umi"]
+	path = interposer/verif/verilog/umi
+	url = https://github.com/zeroasiccorp/umi.git
