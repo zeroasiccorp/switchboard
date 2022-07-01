@@ -1,13 +1,6 @@
 import sys
 import zmq
 
-CONTEXT = zmq.Context()
-
-def main():
-    dut = DUT("tcp://localhost:5555")
-    exit_code = run(dut, 'build/sw/hello.bin')
-    sys.exit(exit_code)
-
 def run(dut, program):
     # assert reset
     dut.send(0, 0x20000000)
@@ -29,7 +22,7 @@ def run(dut, program):
 
         # process address
         if addr == 0x10000000:
-            print(chr(data & 0xff), end='')
+            print(chr(data & 0xff), end='', flush=True)
         elif addr == 0x10000008:
             kind = data & 0xffff
             if kind == 0x3333:
@@ -50,9 +43,10 @@ def run(dut, program):
     return exit_code
 
 class DUT:
+    CONTEXT = zmq.Context()  # context is shared across DUT instances
     def __init__(self, uri):
         print("Connecting to server... ", end='')
-        self.socket = CONTEXT.socket(zmq.PAIR)
+        self.socket = self.CONTEXT.socket(zmq.PAIR)
         self.socket.connect(uri)
         print("done.")
     
@@ -88,6 +82,11 @@ class DUT:
             addr = int.from_bytes(addr, 'little')
         
         return data, addr
+
+def main():
+    dut = DUT("tcp://localhost:5555")
+    exit_code = run(dut, 'build/sw/hello.bin')
+    sys.exit(exit_code)
 
 if __name__ == '__main__':
     main()

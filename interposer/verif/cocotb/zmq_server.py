@@ -38,7 +38,7 @@ async def run(dut):
 
     await Timer(5, units="ns")
 
-    for k in range(100000):
+    while True:
         # determine next value of outputs when clock is about
         # to go high (i.e., when it currently reads low).  these
         # outputs are driven right after the clock edge
@@ -62,7 +62,7 @@ async def run(dut):
                     socket.send(bytes([]))
                     ext_awaddr = (rbuf[7] << 24) | (rbuf[6] << 16) | (rbuf[5] << 8) | rbuf[4]
                     ext_wdata = (rbuf[3] << 24) | (rbuf[2] << 16) | (rbuf[1] << 8) | rbuf[0]
-                    print(f"RECV {ext_wdata} @ {ext_awaddr}")
+                    #print(f"RECV {ext_wdata} @ {ext_awaddr}")
                     ext_awvalid = 1
                     ext_wvalid = 1
                     write_in_progress = True
@@ -71,7 +71,7 @@ async def run(dut):
             if (dut.ctrl_awvalid.value and dut.ctrl_wvalid.value and
                 ((not dut.ctrl_awready.value) and (not dut.ctrl_wready.value)) and
                 ((not dut.ctrl_bvalid.value) or dut.ctrl_bready.value)):
-                print(f"SEND {dut.ctrl_wdata.value} @ {dut.ctrl_awaddr.value}")
+                #print(f"SEND {dut.ctrl_wdata.value} @ {dut.ctrl_awaddr.value}")
                 sbuf = [0]*8
                 sbuf[7] = (dut.ctrl_awaddr.value >> 24) & 0xff
                 sbuf[6] = (dut.ctrl_awaddr.value >> 16) & 0xff
@@ -111,6 +111,3 @@ async def run(dut):
             await Timer(4, units="ns")
         else:
             await Timer(5, units="ns")
-
-    for k in range(100):
-        print(dut.ram.mem[k].value)
