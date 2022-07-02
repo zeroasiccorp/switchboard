@@ -1,5 +1,10 @@
+#!/usr/bin/env python
+
 import sys
 import zmq
+
+from pathlib import Path
+from argparse import ArgumentParser
 
 from zverif.umi import UmiPacket
 
@@ -19,12 +24,15 @@ def run(dut, program):
     dut.send(UmiPacket(data=1, dstaddr=0x20000000))
 
     # handle output
+    stdout = ''
     while True:
         packet = dut.recv()
 
         # process address
         if packet.dstaddr == 0x10000000:
-            print(chr(packet.data & 0xff), end='', flush=True)
+            to_display = chr(packet.data & 0xff)
+            stdout += to_display
+            print(to_display, end='', flush=True)
         elif packet.dstaddr == 0x10000008:
             kind = packet.data & 0xffff
             if kind == 0x3333:
@@ -34,20 +42,16 @@ def run(dut, program):
                 exit_code = 0
                 break
         
-    if exit_code == 0:
-        print('ALL TESTS PASSED.')
-    else:
+    if exit_code != 0:
         print('ERROR!')
 
-    return exit_code
+    return exit_code, stdout
 
 class DUT:
     CONTEXT = zmq.Context()  # context is shared across DUT instances
     def __init__(self, uri):
-        print("Connecting to server... ", end='')
         self.socket = self.CONTEXT.socket(zmq.PAIR)
         self.socket.connect(uri)
-        print("done.")
 
     def send(self, packet: UmiPacket):        
         # send message
@@ -63,9 +67,23 @@ class DUT:
         return UmiPacket.unpack(packet)
 
 def main():
+    parser = ArgumentParser()
+    parser.add_argument('--bin', type=str, default='build/sw/hello.bin')
+    parser.add_argument('--expect', type=str, nargs='*')
+
+    args = parser.parse_args()
+
     dut = DUT("tcp://localhost:5555")
-    exit_code = run(dut, 'build/sw/hello.bin')
-    sys.exit(exit_code)
+
+    exit_code, stdout = run(dut, args.bin)
+    
+    # first check the exit code
+    if exit_code != 0:
+        sys.exit(exit_code)
+    
+    # then check the output
+    for elem in args.expect:
+        assert elem in stdout, f'Did not find "{elem}" in output.'
 
 if __name__ == '__main__':
     main()

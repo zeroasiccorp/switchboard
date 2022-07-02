@@ -5,7 +5,7 @@ from pathlib import Path
 from zverif.riscv import add_riscv_elf_task, add_riscv_bin_task, add_hex_task
 from zverif.spike import add_spike_plugin_task, add_spike_task
 from zverif.verilator import add_verilator_build_task, add_verilator_task
-from zverif.utils import file_list, calc_task_name
+from zverif.utils import file_list, calc_task_name, add_task
 from zverif.config import ZvConfig
 from zverif.doit import doit_main_loop
 
@@ -72,6 +72,7 @@ def gen_tasks():
         ],
         libs = ['zmq']
     )
+    add_verilator_task(tasks=tasks)
 
     # build an ELF for each RISC-V application
 
@@ -132,8 +133,24 @@ def gen_tasks():
         add_spike_task(tasks, app, plugins=plugins, expect=expect)
 
         # task to run a Verilator simulation for a particular app
-        add_verilator_task(tasks, app, files={'firmware': CFG.sw_dir / f'{app}.bin'},
-            expect=expect+['ALL TESTS PASSED.'])
+        bin_file = Path(CFG.sw_dir / f'{app}.bin').resolve()
+        zmq_action = []
+        zmq_action += [Path('zmq_client.py').resolve()]
+        zmq_action += ['--bin', bin_file]
+        if len(expect) > 0:
+            zmq_action += ['--expect'] + expect
+        zmq_action = [str(elem) for elem in zmq_action]
+        add_task(
+            task=dict(
+                name=app,
+                file_dep=[bin_file],
+                actions=[zmq_action],
+                uptodate=[False]  # i.e., always run
+            ),
+            tasks=tasks,
+            basename='zmq',
+            doc='Run a program on a simulator instance.'
+        )
 
     # output is an iterable of Task objects
     return tasks.values()

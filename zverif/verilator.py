@@ -85,46 +85,31 @@ def verilator_compile(build_dir, top):
 
     info = ubelt.cmd(cmd, tee=True, check=True, cwd=build_dir)
 
-def add_verilator_task(tasks, name, build_dir=CFG.verilator_dir,
-    top=CFG.rtl_top, basename='verilator', files=None, **kwargs):
-
-    if files is None:
-        files = {}
-    files = {k: str(Path(v).resolve()) for k, v in files.items()}
+def add_verilator_task(tasks, build_dir=CFG.verilator_dir,
+    top=CFG.rtl_top, name='verilator', **kwargs):
 
     build_dir = Path(build_dir).resolve()
 
     file_dep = []
     file_dep += [build_dir / 'obj_dir' / f'V{top}']
-    file_dep += list(files.values())
 
     task = {
         'name': name,
         'file_dep': file_dep,
         'actions': [(verilator, [], dict({
             'build_dir': build_dir,
-            'top': top,
-            'files': files
+            'top': top
         }, **kwargs))],
         'uptodate': [False]  # i.e., always run
     }
-    add_task(task=task, tasks=tasks, basename=basename,
-        doc='Run Verilator simulation.')
+    add_task(task=task, tasks=tasks, doc='Run Verilator simulation.')
 
-def verilator(build_dir, top, files, expect=None):
-    # set defaults
-    if expect is None:
-        expect = []
-
+def verilator(build_dir, top):
     # build up the command
     cmd = []
     cmd += [build_dir / 'obj_dir' / f'V{top}']
-    for k, v in files.items():
-        cmd += [f'+{k}={v}']
     #cmd += ['+vcd']
 
     cmd = [str(elem) for elem in cmd]
 
     info = ubelt.cmd(cmd, tee=True, check=True)
-    for e in expect:
-        assert e in info['out'], f'Did not find "{e}" in output'
