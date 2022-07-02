@@ -1,5 +1,6 @@
 import zmq
 import cocotb
+from time import time
 from cocotb.triggers import Timer
 
 @cocotb.test()
@@ -21,6 +22,9 @@ async def run(dut):
     dut.umi_packet_rx.value = umi_packet_rx
     dut.umi_valid_rx.value = umi_valid_rx
     dut.umi_ready_tx.value = umi_ready_tx
+
+    start_time = time()
+    total_clock_cycles = 0
 
     await Timer(5, units="ns")
 
@@ -70,3 +74,14 @@ async def run(dut):
             await Timer(4, units="ns")
         else:
             await Timer(5, units="ns")
+
+        # measure performance
+        if clk:
+            total_clock_cycles += 1
+            if total_clock_cycles >= 20000:
+                stop_time = time()
+                time_taken = stop_time - start_time
+                sim_rate = (1.0*total_clock_cycles)/time_taken
+                print(f"Simulation rate: {sim_rate*1e-3:0.3f} kHz")
+                start_time = time()
+                total_clock_cycles = 0

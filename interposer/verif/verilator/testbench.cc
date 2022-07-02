@@ -1,3 +1,5 @@
+#include <sys/time.h>
+
 // ZMQ stuff
 #include <zmq.h>
 #include <string.h>
@@ -50,7 +52,14 @@ int main(int argc, char **argv, char **env)
 
 	top->eval();
 
-	int cyc_count = 0;
+	int zmq_counter = 0;
+
+	// performance measurement
+	int total_clock_cycles;
+	struct timeval stop_time, start_time;
+	gettimeofday(&start_time, NULL);
+
+	total_clock_cycles = 0;
 
 	while (!Verilated::gotFinish()) {
 		// determine next value of outputs when clock is about
@@ -67,7 +76,7 @@ int main(int argc, char **argv, char **env)
 				// only try to receive data occasionally, since this becomes the
 				// bottleneck for simulation.  attempting to receive on every
 				// clock cycle reduced performance from ~3 MHz to 50 kHz.
-				if (cyc_count == CYCLES_PER_RECV){
+				if (zmq_counter == CYCLES_PER_RECV){
 					int nrecv;
 					uint8_t rbuf[32];
 					if ((nrecv = zmq_recv(socket, rbuf, 32, ZMQ_NOBLOCK)) == 32) {
@@ -81,9 +90,9 @@ int main(int argc, char **argv, char **env)
 						umi_valid_rx = 1;
 						rx_in_progress = true;
 					}
-					cyc_count = 0;
+					zmq_counter = 0;
 				} else {
-					cyc_count += 1;
+					zmq_counter += 1;
 				}
 			}
 
@@ -132,6 +141,23 @@ int main(int argc, char **argv, char **env)
 			top->umi_valid_rx = umi_valid_rx;
 			top->umi_ready_tx = umi_ready_tx;
 			top->eval();
+		}
+
+		// keep track of performance
+		if (clk) {
+			total_clock_cycles++;
+			if (total_clock_cycles >= 10000000) {
+				gettimeofday(&stop_time, NULL);
+
+				unsigned long time_taken_us = 0;
+				time_taken_us += ((stop_time.tv_sec - start_time.tv_sec) * 1000000);
+				time_taken_us += (stop_time.tv_usec - start_time.tv_usec);
+				double sim_rate = total_clock_cycles/(1.0e-6*time_taken_us);
+				printf("Simulation rate: %0.3f MHz\n", 1e-6*sim_rate);
+
+				gettimeofday(&start_time, NULL);
+				total_clock_cycles = 0;
+			}
 		}
 
 		// dump waveforms
