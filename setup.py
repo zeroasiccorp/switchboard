@@ -26,7 +26,9 @@ setup(
         'doit',
         'jinja2',
         'cocotb',
-        'cocotb-test'
+        'cocotb-test',
+        'pytest',
+        'zmq'
     ],
     url=f'https://github.com/zeroasiccorp/interposer-verif.git',
     author='Steven Herbst',

@@ -29,8 +29,8 @@ jobs:
 
           cd interposer/verif && python3 verif.py spike
 
-  verilator:
-    name: Verilator
+  zmq:
+    name: ZMQ
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -38,11 +38,23 @@ jobs:
       - name: Verilator simulation
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+          sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libzmq3-dev iverilog
 
           python3 -m pip install -e .
 
-          cd interposer/verif && python3 verif.py verilator
+          cd interposer/verif
+
+          cd cocotb
+          pytest &
+          PYTEST_PID=$!
+          cd ..
+          python3 verif.py zmq:hello
+          kill $PYTEST_PID
+
+          python3 verif.py verilator &
+          VERILATOR_PID=$!
+          python3 verif.py zmq
+          kill $VERILATOR_PID
 
   sc_spike:
     name: Spike (thru SC)

@@ -154,8 +154,8 @@ def configure_verilator(hex_path, expect):
     chip.set('option', 'flow', 'verilator_compilation')
 
     # Additional verification sources
-    chip.add('input', 'verilog', glob.glob('verif/verilator/*.v'))
-    chip.add('input', 'c', glob.glob('verif/verilator/*.cc'))
+    chip.add('input', 'verilog', glob.glob('verif/old/*.v'))
+    chip.add('input', 'c', glob.glob('verif/old/*.cc'))
 
     # Tool configuration
     chip.set('tool', 'verilator', 'var', 'compile', '0', 'extraopts', ['--trace'])
