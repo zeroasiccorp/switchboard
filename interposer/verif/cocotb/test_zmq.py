@@ -18,6 +18,8 @@ def test_zmq():
         UMI_DIR / 'umi_decode.v',
         UMI_DIR / 'umi_pack.v',
         UMI_DIR / 'umi_unpack.v',
+        VERILOG_DIR / 'axi_to_umi.v',
+        VERILOG_DIR / 'umi_to_axi.v',
         VERILOG_AXI / 'arbiter.v',
         VERILOG_AXI / 'priority_encoder.v',
         VERILOG_AXI / 'axil_interconnect.v',
