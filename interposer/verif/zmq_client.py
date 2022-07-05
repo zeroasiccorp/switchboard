@@ -82,8 +82,9 @@ def main():
         sys.exit(exit_code)
     
     # then check the output
-    for elem in args.expect:
-        assert elem in stdout, f'Did not find "{elem}" in output.'
+    if args.expect is not None:
+        for elem in args.expect:
+            assert elem in stdout, f'Did not find "{elem}" in output.'
 
 if __name__ == '__main__':
     main()
