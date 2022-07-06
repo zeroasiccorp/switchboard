@@ -25,6 +25,9 @@ void vpi_zmq_recv(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
+    // argument is unused
+    (void)userdata;
+
     // start ZMQ if neeced
     if (!socket) {
         vpi_zmq_start();
@@ -68,6 +71,9 @@ void vpi_zmq_send(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
+    // argument is unused
+    (void)userdata;
+
     // start ZMQ if neeced
     if (!socket) {
         vpi_zmq_start();
@@ -104,6 +110,9 @@ void vpi_zmq_send(char *userdata) {
 void vpi_time_taken(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
+
+    // argument is unused
+    (void)userdata;
 
     // get the time taken
     double time_taken;
