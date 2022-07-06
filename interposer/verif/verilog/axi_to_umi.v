@@ -41,12 +41,12 @@ module axi_to_umi (
 	end
 
 	umi_pack umi_pack_i (
-		.opcode(0),
-		.size(0),
-		.user(0),
-		.burst(0),
+		.opcode(8'd0),
+		.size(4'd0),
+		.user(20'd0),
+		.burst(1'b0),
 		.dstaddr(axi_awaddr),
-		.srcaddr(0),
+		.srcaddr(64'd0),
 		.data(axi_wdata),
 		.packet_out(umi_packet)
 	);

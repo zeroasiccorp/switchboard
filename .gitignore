@@ -15,6 +15,9 @@ tags
 *.elf
 *.hex
 *.so
+*.o
+*.vpi
+*.vvp
 
 # other outputs
 *.log
