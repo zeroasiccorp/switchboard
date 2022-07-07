@@ -10,4 +10,4 @@
 ../verilog/verilog-axi/rtl/axil_dp_ram.v
 ../verilog/axil_interconnect_wrap_1x2.v
 ../verilog/zverif_top.v
-testbench_vpi.v
+testbench.sv

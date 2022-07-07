@@ -1,14 +1,16 @@
 `timescale 1ns/1ps
 
-`ifndef CYCLES_PER_RECV
-`define CYCLES_PER_RECV 1000
+`ifdef DPI
+	`define PI(f) ``f``
+	`define VAR_BIT var bit
+	`define WIRE_BIT wire bit
+`else
+	`define PI(f) $``f``
+	`define VAR_BIT reg
+	`define WIRE_BIT wire
 `endif
 
-`ifndef CYCLES_PER_MEAS
-`define CYCLES_PER_MEAS 10000000
-`endif
-
-module testbench_dpi(
+module testbench(
 	`ifdef VERILATOR
 		input clk
 	`endif
@@ -25,9 +27,11 @@ module testbench_dpi(
 	`endif
 
 	// DPI imports
-	import "DPI-C" function dpi_zmq_recv (output int nrecv, output bit [7:0] rbuf [0:31]);
-	import "DPI-C" function dpi_zmq_send (input int nsend, input bit [7:0] sbuf [0:31]);
-	import "DPI-C" function real dpi_time_taken ();
+	`ifdef DPI
+		import "DPI-C" function pi_zmq_recv (output int nrecv, output bit [7:0] rbuf [0:31]);
+		import "DPI-C" function pi_zmq_send (input int nsend, input bit [7:0] sbuf [0:31]);
+		import "DPI-C" function pi_time_taken (output real t);
+	`endif
 
 	// UMI RX port
 	wire [255:0] umi_packet_rx;
@@ -57,7 +61,7 @@ module testbench_dpi(
 
     integer nrecv;
 	integer zmq_counter = 0;
-    var bit [7:0] rbuf [0:31];
+	`VAR_BIT [7:0] rbuf [0:31];
     reg rx_in_progress = 1'b0;
     always @(posedge clk) begin
     	if (rx_in_progress) begin
@@ -68,7 +72,7 @@ module testbench_dpi(
 		end else begin
 			if (zmq_counter == `CYCLES_PER_RECV) begin
 				/* verilator lint_off IGNOREDRETURN */
-				dpi_zmq_recv(nrecv, rbuf);
+				`PI(pi_zmq_recv)(nrecv, rbuf);
 				/* verilator lint_on IGNOREDRETURN */
 				umi_valid_rx <= 1'b1;
 				rx_in_progress <= 1'b1;
@@ -81,7 +85,7 @@ module testbench_dpi(
 
     // UMI TX
 
-	wire bit [7:0] sbuf [0:31];
+	`WIRE_BIT [7:0] sbuf [0:31];
 	reg tx_in_progress = 1'b0;
 	always @(posedge clk) begin
 		if (tx_in_progress) begin
@@ -90,7 +94,7 @@ module testbench_dpi(
 		end else begin
 			if (umi_valid_tx) begin
 				/* verilator lint_off IGNOREDRETURN */
-				dpi_zmq_send(32, sbuf);
+				`PI(pi_zmq_send)(32, sbuf);
 				/* verilator lint_on IGNOREDRETURN */
 				umi_ready_tx <= 1'b1;
 				tx_in_progress <= 1'b1;
@@ -111,11 +115,15 @@ module testbench_dpi(
 	integer total_clock_cycles = 0;
 	real t, sim_rate;
 	initial begin
-		t = dpi_time_taken();
+		/* verilator lint_off IGNOREDRETURN */
+		`PI(pi_time_taken)(t);
+		/* verilator lint_on IGNOREDRETURN */
 	end
 	always @(posedge clk) begin
 		if (total_clock_cycles >= `CYCLES_PER_MEAS) begin
-			t = dpi_time_taken();
+			/* verilator lint_off IGNOREDRETURN */
+			`PI(pi_time_taken)(t);
+			/* verilator lint_on IGNOREDRETURN */
 			sim_rate = (1.0*total_clock_cycles)/t;
 			if (sim_rate < 1.0e6) begin
 				$display("Simulation rate: %0.3f kHz", 1e-3*sim_rate);

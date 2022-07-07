@@ -7,23 +7,23 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "Vtestbench_dpi__Dpi.h"
+#include "Vtestbench__Dpi.h"
 
 static void *context = NULL;
 static void *socket = NULL;
 static struct timeval stop_time, start_time;
 
-static void dpi_zmq_start (void) {
+static void pi_zmq_start (void) {
     context = zmq_ctx_new ();
     socket = zmq_socket (context, ZMQ_PAIR);
     int rc = zmq_bind (socket, "tcp://*:5555");
     assert (rc == 0);
 }
 
-svLogic dpi_zmq_recv(int* nrecv, svBitVecVal* rbuf) {
+svLogic pi_zmq_recv(int* nrecv, svBitVecVal* rbuf) {
     // start ZMQ if neeced
     if (!socket) {
-        dpi_zmq_start();
+        pi_zmq_start();
     }
 
     // try to receive data
@@ -45,10 +45,10 @@ svLogic dpi_zmq_recv(int* nrecv, svBitVecVal* rbuf) {
     return 0;
 }
 
-svLogic dpi_zmq_send(int nsend, const svBitVecVal* sbuf) {
+svLogic pi_zmq_send(int nsend, const svBitVecVal* sbuf) {
     // start ZMQ if neeced
     if (!socket) {
-        dpi_zmq_start();
+        pi_zmq_start();
     }
 
     // copy data into a buffer.  we can't directly use sbuf
@@ -66,14 +66,15 @@ svLogic dpi_zmq_send(int nsend, const svBitVecVal* sbuf) {
     return 0;
 }
 
-double dpi_time_taken() {
+svLogic pi_time_taken(double* t) {
     // compute time taken in seconds
 	gettimeofday(&stop_time, NULL);
     unsigned long t_us = 0;
     t_us += ((stop_time.tv_sec - start_time.tv_sec) * 1000000);
     t_us += (stop_time.tv_usec - start_time.tv_usec);
-    double t = 1.0e-6*t_us;
+    *t = 1.0e-6*t_us;
     gettimeofday(&start_time, NULL);
- 
-    return t;
+
+    // unused return value
+    return 0;
 }

@@ -14,14 +14,14 @@ static void *context = NULL;
 static void *socket = NULL;
 static struct timeval stop_time, start_time;
 
-void vpi_zmq_start (void) {
+void pi_zmq_start (void) {
     context = zmq_ctx_new ();
     socket = zmq_socket (context, ZMQ_PAIR);
     int rc = zmq_bind (socket, "tcp://*:5555");
     assert (rc == 0);
 }
 
-void vpi_zmq_recv(char *userdata) {
+void pi_zmq_recv(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
@@ -30,7 +30,7 @@ void vpi_zmq_recv(char *userdata) {
 
     // start ZMQ if neeced
     if (!socket) {
-        vpi_zmq_start();
+        pi_zmq_start();
     }
 
     // try to receive data
@@ -67,7 +67,7 @@ void vpi_zmq_recv(char *userdata) {
     vpi_free_object(args_iter);
 }
 
-void vpi_zmq_send(char *userdata) {
+void pi_zmq_send(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
@@ -76,7 +76,7 @@ void vpi_zmq_send(char *userdata) {
 
     // start ZMQ if neeced
     if (!socket) {
-        vpi_zmq_start();
+        pi_zmq_start();
     }
 
     // interface with VPI arguments
@@ -107,7 +107,7 @@ void vpi_zmq_send(char *userdata) {
 	vpi_free_object(args_iter);
 }
 
-void vpi_time_taken(char *userdata) {
+void pi_time_taken(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
@@ -137,12 +137,12 @@ void vpi_time_taken(char *userdata) {
 	vpi_free_object(args_iter);
 }
 
-void register_zmq_recv(void) {
+void register_pi_zmq_recv(void) {
     s_vpi_systf_data data = {
 		vpiSysTask,
 		0,
-		"$zmq_recv",
-		(void *)vpi_zmq_recv,
+		"$pi_zmq_recv",
+		(void *)pi_zmq_recv,
 		0,
 		0,
 		0
@@ -151,12 +151,12 @@ void register_zmq_recv(void) {
 	vpi_register_systf(&data);
 }
 
-void register_zmq_send(void) {
+void register_pi_zmq_send(void) {
     s_vpi_systf_data data = {
 		vpiSysTask,
 		0,
-		"$zmq_send",
-		(void *)vpi_zmq_send,
+		"$pi_zmq_send",
+		(void *)pi_zmq_send,
 		0,
 		0,
 		0
@@ -165,12 +165,12 @@ void register_zmq_send(void) {
 	vpi_register_systf(&data);
 }
 
-void register_time_taken(void) {
+void register_pi_time_taken(void) {
     s_vpi_systf_data data = {
 		vpiSysTask,
 		0,
-		"$time_taken",
-		(void *)vpi_time_taken,
+		"$pi_time_taken",
+		(void *)pi_time_taken,
 		0,
 		0,
 		0
@@ -180,8 +180,8 @@ void register_time_taken(void) {
 }
 
 void (*vlog_startup_routines[])(void) = {
-	register_zmq_recv,
-    register_zmq_send,
-    register_time_taken,
+	register_pi_zmq_recv,
+    register_pi_zmq_send,
+    register_pi_time_taken,
 	0  // last entry must be 0
 };

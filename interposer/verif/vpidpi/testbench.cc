@@ -1,11 +1,11 @@
 #include <iostream>
 
-#include "Vtestbench_dpi.h"
+#include "Vtestbench.h"
 #include "verilated.h"
 int main(int argc, char **argv, char **env)
 {
         Verilated::commandArgs(argc, argv);
-        Vtestbench_dpi *top = new Vtestbench_dpi;
+        Vtestbench *top = new Vtestbench;
         top->clk = 0;
         top->eval();
         while (!Verilated::gotFinish()) {
