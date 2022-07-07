@@ -24,6 +24,21 @@ VERILOG_SOURCES := $(VERILOG_SOURCES) \
 	../verilog/zverif_top.v
 # use VHDL_SOURCES for VHDL files
 
+# define environment variables.  for some reason, using the same name
+# as the environment variable to be exported does not work
+ifeq ($(SIM), verilator)
+	CPR := 10
+	CPM := 6000
+else ifeq ($(SIM), icarus)
+	CPR := 10
+	CPM := 5000
+else ifeq ($(SIM), vcs)
+	CPR := 10
+	CPM := 6000
+endif
+all: export CYCLES_PER_RECV=$(CPR)
+all: export CYCLES_PER_MEAS=$(CPM)
+
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
 TOPLEVEL = zverif_top
 

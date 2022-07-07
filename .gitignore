@@ -24,6 +24,7 @@ tags
 *.egg-info
 *.doit*
 *.vcd
+results.xml
 __pycache__
 obj_dir
 

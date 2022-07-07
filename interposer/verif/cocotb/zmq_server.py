@@ -1,5 +1,6 @@
 import zmq
 import cocotb
+import os
 from time import time
 from cocotb.triggers import Timer
 
@@ -10,6 +11,9 @@ async def run(dut):
     CONTEXT = zmq.Context()
     socket = CONTEXT.socket(zmq.PAIR)
     socket.bind("tcp://*:5555")
+
+    CYCLES_PER_RECV = int(os.environ['CYCLES_PER_RECV'])
+    CYCLES_PER_MEAS = int(os.environ['CYCLES_PER_MEAS'])
 
     rx_in_progress = False
     tx_in_progress = False
@@ -22,6 +26,8 @@ async def run(dut):
     dut.umi_packet_rx.value = umi_packet_rx
     dut.umi_valid_rx.value = umi_valid_rx
     dut.umi_ready_tx.value = umi_ready_tx
+
+    recv_counter = 0
 
     start_time = time()
     total_clock_cycles = 0
@@ -39,15 +45,21 @@ async def run(dut):
                     umi_valid_rx = 0
                     rx_in_progress = False
             else:
-                try:
-                    rbuf = socket.recv(flags=zmq.NOBLOCK)
-                except:
-                    rbuf = bytes([])
-                if (len(rbuf) == 32):
-                    socket.send(bytes([]))
-                    umi_packet_rx = int.from_bytes(rbuf, 'little')
-                    umi_valid_rx = 1
-                    rx_in_progress = True
+                if (recv_counter >= CYCLES_PER_RECV):
+                    try:
+                        rbuf = socket.recv(flags=zmq.NOBLOCK)
+                    except:
+                        rbuf = bytes([])
+                    if (len(rbuf) == 32):
+                        socket.send(bytes([]))
+                        umi_packet_rx = int.from_bytes(rbuf, 'little')
+                        umi_valid_rx = 1
+                        rx_in_progress = True
+                    
+                    # reset counter
+                    recv_counter = 0
+                else:
+                    recv_counter += 1
 
             # look for writes
             if tx_in_progress:
@@ -78,7 +90,7 @@ async def run(dut):
         # measure performance
         if clk:
             total_clock_cycles += 1
-            if total_clock_cycles >= 20000:
+            if total_clock_cycles >= CYCLES_PER_MEAS:
                 stop_time = time()
                 time_taken = stop_time - start_time
                 sim_rate = (1.0*total_clock_cycles)/time_taken
