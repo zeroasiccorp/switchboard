@@ -15,7 +15,7 @@ verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv
 		--top testbench \
 		-DDPI \
 		-DCYCLES_PER_RECV=1000 \
-		-DCYCLES_PER_MEAS=10000000 \
+		-DCYCLES_PER_MEAS=4000000 \
 		-CFLAGS "-Wno-unknown-warning-option" \
 		-LDFLAGS "-lzmq" \
 		testbench.cc \
