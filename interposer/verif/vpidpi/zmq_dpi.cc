@@ -20,7 +20,7 @@ static void pi_zmq_start (void) {
     assert (rc == 0);
 }
 
-svLogic pi_zmq_recv(int* nrecv, svBitVecVal* rbuf) {
+svLogic pi_umi_recv(int* got_packet, svBitVecVal* rbuf) {
     // start ZMQ if neeced
     if (!socket) {
         pi_zmq_start();
@@ -28,9 +28,11 @@ svLogic pi_zmq_recv(int* nrecv, svBitVecVal* rbuf) {
 
     // try to receive data
     uint8_t buf[32];
-    *nrecv = zmq_recv(socket, buf, 32, ZMQ_NOBLOCK);
+    int nrecv = zmq_recv(socket, buf, 32, ZMQ_NOBLOCK);
 
-    if (*nrecv == 32) {
+    if (nrecv == 32) {
+        *got_packet = 1;
+
         // acknowledge receipt of data
         zmq_send(socket, NULL, 0, 0);
 
@@ -39,13 +41,15 @@ svLogic pi_zmq_recv(int* nrecv, svBitVecVal* rbuf) {
         for (int i=0; i<32; i++) {
             rbuf[i] = buf[i];
         }
+    } else {
+        *got_packet = 0;
     }
 
     // unused return value
     return 0;
 }
 
-svLogic pi_zmq_send(int nsend, const svBitVecVal* sbuf) {
+svLogic pi_umi_send(const svBitVecVal* sbuf) {
     // start ZMQ if neeced
     if (!socket) {
         pi_zmq_start();
@@ -59,7 +63,7 @@ svLogic pi_zmq_send(int nsend, const svBitVecVal* sbuf) {
     }
 
     // send message
-    zmq_send(socket, buf, nsend, 0);
+    zmq_send(socket, buf, 32, 0);
 	zmq_recv(socket, NULL, 0, 0);
 
     // unused return value

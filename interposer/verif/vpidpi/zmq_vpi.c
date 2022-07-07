@@ -21,7 +21,7 @@ void pi_zmq_start (void) {
     assert (rc == 0);
 }
 
-void pi_zmq_recv(char *userdata) {
+void pi_umi_recv(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
@@ -38,25 +38,29 @@ void pi_zmq_recv(char *userdata) {
     int nrecv = zmq_recv(socket, rbuf, 32, ZMQ_NOBLOCK);
 
     // acknowledge if needed
+    int got_packet;
     if (nrecv == 32) {
         zmq_send(socket, NULL, 0, 0);
+        got_packet = 1;
+    } else {
+        got_packet = 0;
     }
 
     // interface with VPI arguments
 	systfref = vpi_handle(vpiSysTfCall, NULL);
 	args_iter = vpi_iterate(vpiArgument, systfref);
 	
-    // write back number of items read
+    // indicate if a packet was received
     argh = vpi_scan(args_iter);
 	argval.format = vpiIntVal;
-    argval.value.integer = nrecv;
+    argval.value.integer = got_packet;
     vpi_put_value(argh, &argval, NULL, vpiNoDelay);
 
     // write back data that was read
-    if (nrecv == 32){
+    if (got_packet){
         argh = vpi_scan(args_iter);
         vpiHandle elem;
-        for (int i=0; i<nrecv; i++) {
+        for (int i=0; i<32; i++) {
             elem = vpi_handle_by_index(argh, i);
             argval.value.integer = (uint32_t)rbuf[i];
             vpi_put_value(elem, &argval, NULL, vpiNoDelay);
@@ -67,7 +71,7 @@ void pi_zmq_recv(char *userdata) {
     vpi_free_object(args_iter);
 }
 
-void pi_zmq_send(char *userdata) {
+void pi_umi_send(char *userdata) {
     vpiHandle systfref, args_iter, argh;
 	struct t_vpi_value argval;
 
@@ -82,25 +86,20 @@ void pi_zmq_send(char *userdata) {
     // interface with VPI arguments
 	systfref = vpi_handle(vpiSysTfCall, NULL);
 	args_iter = vpi_iterate(vpiArgument, systfref);
-	
-    // get number of items to write
-	argh = vpi_scan(args_iter);
-	argval.format = vpiIntVal;
-	vpi_get_value(argh, &argval);
-	int nsend = argval.value.integer;
 
-    // send each items
+    // send each item
     argh = vpi_scan(args_iter);
+    argval.format = vpiIntVal;
     vpiHandle elem;
     uint8_t sbuf[32];
-    for (int i=0; i<nsend; i=i+1) {
+    for (int i=0; i<32; i=i+1) {
         elem = vpi_handle_by_index(argh, i);
         vpi_get_value(elem, &argval);
         sbuf[i] = (uint8_t)argval.value.integer;
     }
 
     // send message
-    zmq_send(socket, sbuf, nsend, 0);
+    zmq_send(socket, sbuf, 32, 0);
 	zmq_recv(socket, NULL, 0, 0);
 
 	// Cleanup and return
@@ -137,12 +136,12 @@ void pi_time_taken(char *userdata) {
 	vpi_free_object(args_iter);
 }
 
-void register_pi_zmq_recv(void) {
+void register_pi_umi_recv(void) {
     s_vpi_systf_data data = {
 		vpiSysTask,
 		0,
-		"$pi_zmq_recv",
-		(void *)pi_zmq_recv,
+		"$pi_umi_recv",
+		(void *)pi_umi_recv,
 		0,
 		0,
 		0
@@ -151,12 +150,12 @@ void register_pi_zmq_recv(void) {
 	vpi_register_systf(&data);
 }
 
-void register_pi_zmq_send(void) {
+void register_pi_umi_send(void) {
     s_vpi_systf_data data = {
 		vpiSysTask,
 		0,
-		"$pi_zmq_send",
-		(void *)pi_zmq_send,
+		"$pi_umi_send",
+		(void *)pi_umi_send,
 		0,
 		0,
 		0
@@ -180,8 +179,8 @@ void register_pi_time_taken(void) {
 }
 
 void (*vlog_startup_routines[])(void) = {
-	register_pi_zmq_recv,
-    register_pi_zmq_send,
+	register_pi_umi_recv,
+    register_pi_umi_send,
     register_pi_time_taken,
 	0  // last entry must be 0
 };

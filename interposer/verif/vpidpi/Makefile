@@ -4,7 +4,7 @@
 verilator_dpi: verilator_dpi/Vtestbench
 	./verilator_dpi/Vtestbench
 
-verilator_dpi/Vtestbench:
+verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv
 	rm -rf verilator_dpi
 	verilator \
 		--cc \

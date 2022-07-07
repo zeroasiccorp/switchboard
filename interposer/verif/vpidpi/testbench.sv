@@ -28,8 +28,8 @@ module testbench(
 
 	// DPI imports
 	`ifdef DPI
-		import "DPI-C" function pi_zmq_recv (output int nrecv, output bit [7:0] rbuf [0:31]);
-		import "DPI-C" function pi_zmq_send (input int nsend, input bit [7:0] sbuf [0:31]);
+		import "DPI-C" function pi_umi_recv (output int got_packet, output bit [7:0] rbuf [0:31]);
+		import "DPI-C" function pi_umi_send (input bit [7:0] sbuf [0:31]);
 		import "DPI-C" function pi_time_taken (output real t);
 	`endif
 
@@ -59,8 +59,8 @@ module testbench(
 
     // UMI RX
 
-    integer nrecv;
-	integer zmq_counter = 0;
+    integer got_packet;
+	integer recv_counter = 0;
 	`VAR_BIT [7:0] rbuf [0:31];
     reg rx_in_progress = 1'b0;
     always @(posedge clk) begin
@@ -68,17 +68,19 @@ module testbench(
 			if (umi_ready_rx) begin
 				umi_valid_rx <= 1'b0;
 				rx_in_progress <= 1'b0;
-            end 
+            end
 		end else begin
-			if (zmq_counter == `CYCLES_PER_RECV) begin
+			if (recv_counter == `CYCLES_PER_RECV) begin
 				/* verilator lint_off IGNOREDRETURN */
-				`PI(pi_zmq_recv)(nrecv, rbuf);
+				`PI(pi_umi_recv)(got_packet, rbuf);
 				/* verilator lint_on IGNOREDRETURN */
-				umi_valid_rx <= 1'b1;
-				rx_in_progress <= 1'b1;
-				zmq_counter <= 0;
+				if (got_packet == 32'd1) begin
+					umi_valid_rx <= 1'b1;
+					rx_in_progress <= 1'b1;
+				end
+				recv_counter <= 0;
 			end else begin
-				zmq_counter <= zmq_counter + 1;
+				recv_counter <= recv_counter + 1;
 			end
 		end
     end
@@ -94,7 +96,7 @@ module testbench(
 		end else begin
 			if (umi_valid_tx) begin
 				/* verilator lint_off IGNOREDRETURN */
-				`PI(pi_zmq_send)(32, sbuf);
+				`PI(pi_umi_send)(sbuf);
 				/* verilator lint_on IGNOREDRETURN */
 				umi_ready_tx <= 1'b1;
 				tx_in_progress <= 1'b1;
