@@ -9,8 +9,16 @@ async def run(dut):
     """Run server for ZMQ"""
 
     CONTEXT = zmq.Context()
-    socket = CONTEXT.socket(zmq.PAIR)
-    socket.bind("tcp://*:5555")
+
+    # UMI RX
+    RX_PORT = int(os.environ['RX_PORT'])
+    rx_socket = CONTEXT.socket(zmq.REP)
+    rx_socket.bind(f"tcp://*:{RX_PORT}")
+
+    # UMI TX
+    TX_PORT = int(os.environ['TX_PORT'])
+    tx_socket = CONTEXT.socket(zmq.REQ)
+    tx_socket.connect(f"tcp://localhost:{TX_PORT}")
 
     CYCLES_PER_RECV = int(os.environ['CYCLES_PER_RECV'])
     CYCLES_PER_MEAS = int(os.environ['CYCLES_PER_MEAS'])
@@ -47,11 +55,11 @@ async def run(dut):
             else:
                 if (recv_counter >= CYCLES_PER_RECV):
                     try:
-                        rbuf = socket.recv(flags=zmq.NOBLOCK)
+                        rbuf = rx_socket.recv(flags=zmq.NOBLOCK)
                     except:
                         rbuf = bytes([])
                     if (len(rbuf) == 32):
-                        socket.send(bytes([]))
+                        rx_socket.send(bytes([]))
                         umi_packet_rx = int.from_bytes(rbuf, 'little')
                         umi_valid_rx = 1
                         rx_in_progress = True
@@ -68,8 +76,8 @@ async def run(dut):
             else:
                 if dut.umi_valid_tx.value:
                     packet = int(dut.umi_packet_tx.value).to_bytes(32, 'little')
-                    socket.send(packet)
-                    socket.recv()
+                    tx_socket.send(packet)
+                    tx_socket.recv()
                     umi_ready_tx = 1
                     tx_in_progress = True
 

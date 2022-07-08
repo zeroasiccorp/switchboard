@@ -13,6 +13,7 @@
 #include <inttypes.h>
 
 #define CYCLES_PER_RECV 1000
+#define CYCLES_PER_MEAS 3000000
 
 enum state {AXI_RST, PGM_CPU, RUN_CPU};
 
@@ -20,12 +21,37 @@ int main(int argc, char **argv, char **env)
 {
 	// Start up ZMQ server
     void *context = zmq_ctx_new ();
-    void *socket = zmq_socket (context, ZMQ_PAIR);
-    int rc = zmq_bind (socket, "tcp://*:5555");
+
+	// Parse command-line arguments
+	Verilated::commandArgs(argc, argv);
+
+	// UMI RX
+    void *rx_socket = zmq_socket (context, ZMQ_REP);
+	const char* rx_port = Verilated::commandArgsPlusMatch("rx_port");
+	char rx_uri[128] = "tcp://*:";
+	if (rx_port && (strncmp(rx_port, "+rx_port=", 9) == 0)) {
+		strncat(rx_uri, rx_port+9, 5);
+	} else {
+		strncat(rx_uri, "5555", 4);
+	}
+	printf("%s\n", rx_uri);
+    int rc = zmq_bind (rx_socket, rx_uri);
+    assert (rc == 0);
+
+	// UMI TX
+    void *tx_socket = zmq_socket (context, ZMQ_REQ);
+	const char* tx_port = Verilated::commandArgsPlusMatch("tx_port");
+	char tx_uri[128] = "tcp://localhost:";
+	if (tx_port && (strncmp(tx_port, "+tx_port=", 9) == 0)) {
+		strncat(tx_uri, tx_port+9, 5);
+	} else {
+		strncat(tx_uri, "5556", 4);
+	}
+	printf("%s\n", tx_uri);
+    rc = zmq_connect (tx_socket, tx_uri);
     assert (rc == 0);
 
 	// Instantiate design
-	Verilated::commandArgs(argc, argv);
 	Vzverif_top* top = new Vzverif_top;
 
 	// Set up optional tracing
@@ -79,8 +105,8 @@ int main(int argc, char **argv, char **env)
 				if (zmq_counter == CYCLES_PER_RECV){
 					int nrecv;
 					uint8_t rbuf[32];
-					if ((nrecv = zmq_recv(socket, rbuf, 32, ZMQ_NOBLOCK)) == 32) {
-						zmq_send(socket, NULL, 0, 0);  // ACK
+					if ((nrecv = zmq_recv(rx_socket, rbuf, 32, ZMQ_NOBLOCK)) == 32) {
+						zmq_send(rx_socket, NULL, 0, 0);  // ACK
 						for (int i=0; i<8; i++) {
 							umi_packet_rx[i] = 0;
 							for (int j=0; j<4; j++) {
@@ -118,8 +144,8 @@ int main(int argc, char **argv, char **env)
 					sbuf[12] = (top->umi_packet_tx[3] >>  0) & 0xff;
 
 					// zmq transaction
-					zmq_send(socket, sbuf, 32, 0);
-					zmq_recv(socket, NULL, 0, 0);
+					zmq_send(tx_socket, sbuf, 32, 0);
+					zmq_recv(tx_socket, NULL, 0, 0);
 
 					// handshaking
 					umi_ready_tx = 1;
@@ -146,7 +172,7 @@ int main(int argc, char **argv, char **env)
 		// keep track of performance
 		if (clk) {
 			total_clock_cycles++;
-			if (total_clock_cycles >= 10000000) {
+			if (total_clock_cycles >= CYCLES_PER_MEAS) {
 				gettimeofday(&stop_time, NULL);
 
 				unsigned long time_taken_us = 0;

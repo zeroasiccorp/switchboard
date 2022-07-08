@@ -38,6 +38,8 @@ else ifeq ($(SIM), vcs)
 endif
 all: export CYCLES_PER_RECV=$(CPR)
 all: export CYCLES_PER_MEAS=$(CPM)
+all: export RX_PORT=5555
+all: export TX_PORT=5556
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
 TOPLEVEL = zverif_top

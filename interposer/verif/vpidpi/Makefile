@@ -1,8 +1,15 @@
+# port information
+
+RX_PORT := 5555
+TX_PORT := 5556
+
 # verilator_dpi
 
 .PHONY: verilator_dpi
 verilator_dpi: verilator_dpi/Vtestbench
-	./verilator_dpi/Vtestbench
+	./verilator_dpi/Vtestbench \
+	+rx_port=$(RX_PORT) \
+	+tx_port=$(TX_PORT)
 
 verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv
 	rm -rf verilator_dpi
@@ -25,7 +32,13 @@ verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv
 
 .PHONY: iverilog_vpi
 iverilog_vpi: iverilog_vpi/zmq_vpi.o iverilog_vpi/testbench.vvp
-	vvp -n -M iverilog_vpi -m zmq_vpi iverilog_vpi/testbench.vvp
+	vvp \
+	-n \
+	-M iverilog_vpi \
+	-m zmq_vpi \
+	iverilog_vpi/testbench.vvp \
+	+rx_port=$(RX_PORT) \
+	+tx_port=$(TX_PORT)
 
 iverilog_vpi/zmq_vpi.o: zmq_vpi.c
 	iverilog-vpi zmq_vpi.c -lzmq

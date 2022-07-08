@@ -10,31 +10,49 @@
 #include "Vtestbench__Dpi.h"
 
 static void *context = NULL;
-static void *socket = NULL;
+static void *rx_socket = NULL;
+static void *tx_socket = NULL;
 static struct timeval stop_time, start_time;
 
-static void pi_zmq_start (void) {
+svLogic pi_umi_init(int rx_port, int tx_port) {
+    // create ZMQ context
     context = zmq_ctx_new ();
-    socket = zmq_socket (context, ZMQ_PAIR);
-    int rc = zmq_bind (socket, "tcp://*:5555");
-    assert (rc == 0);
+
+    // determine RX URI
+    char rx_uri[128];
+    sprintf(rx_uri, "tcp://*:%d", rx_port);
+
+    // setup RX port
+    rx_socket = zmq_socket (context, ZMQ_REP);
+    int rcrx = zmq_bind (rx_socket, rx_uri);
+    assert (rcrx == 0);
+
+    // determine TX URI
+    char tx_uri[128];
+    sprintf(tx_uri, "tcp://localhost:%d", tx_port);
+
+    // TX port
+    tx_socket = zmq_socket (context, ZMQ_REQ);
+    int rctx = zmq_connect (tx_socket, tx_uri);
+    assert (rctx == 0);
+
+    // unused return value
+    return 0;
 }
 
 svLogic pi_umi_recv(int* got_packet, svBitVecVal* rbuf) {
-    // start ZMQ if neeced
-    if (!socket) {
-        pi_zmq_start();
-    }
+    // make sure that RX socket has started
+    assert(rx_socket);
 
     // try to receive data
     uint8_t buf[32];
-    int nrecv = zmq_recv(socket, buf, 32, ZMQ_NOBLOCK);
+    int nrecv = zmq_recv(rx_socket, buf, 32, ZMQ_NOBLOCK);
 
     if (nrecv == 32) {
         *got_packet = 1;
 
         // acknowledge receipt of data
-        zmq_send(socket, NULL, 0, 0);
+        zmq_send(rx_socket, NULL, 0, 0);
 
         // copy data into the output buffer.  we can't directly
         // use rbuf with zmq_recv because it is an array of uint32_t
@@ -50,10 +68,8 @@ svLogic pi_umi_recv(int* got_packet, svBitVecVal* rbuf) {
 }
 
 svLogic pi_umi_send(const svBitVecVal* sbuf) {
-    // start ZMQ if neeced
-    if (!socket) {
-        pi_zmq_start();
-    }
+    // make sure that TX socket has started
+    assert(tx_socket);
 
     // copy data into a buffer.  we can't directly use sbuf
     // with zmq_send, because it is an array of uint32_t
@@ -63,8 +79,8 @@ svLogic pi_umi_send(const svBitVecVal* sbuf) {
     }
 
     // send message
-    zmq_send(socket, buf, 32, 0);
-	zmq_recv(socket, NULL, 0, 0);
+    zmq_send(tx_socket, buf, 32, 0);
+	zmq_recv(tx_socket, NULL, 0, 0);
 
     // unused return value
     return 0;

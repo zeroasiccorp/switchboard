@@ -26,8 +26,6 @@ setup(
         'doit',
         'jinja2',
         'cocotb',
-        'cocotb-test',
-        'pytest',
         'zmq'
     ],
     url=f'https://github.com/zeroasiccorp/interposer-verif.git',

@@ -49,31 +49,38 @@ def run(dut, program):
 
 class DUT:
     CONTEXT = zmq.Context()  # context is shared across DUT instances
-    def __init__(self, uri):
-        self.socket = self.CONTEXT.socket(zmq.PAIR)
-        self.socket.connect(uri)
+    def __init__(self, rx_uri, tx_uri):
+        self.rx_socket = self.CONTEXT.socket(zmq.REP)
+        self.rx_socket.bind(rx_uri)
+        self.tx_socket = self.CONTEXT.socket(zmq.REQ)
+        self.tx_socket.connect(tx_uri)
 
     def send(self, packet: UmiPacket):        
         # send message
-        self.socket.send(packet.pack())
-        self.socket.recv()
+        self.tx_socket.send(packet.pack())
+        self.tx_socket.recv()
     
     def recv(self) -> UmiPacket:
         # receive data
-        packet = self.socket.recv(32)
-        self.socket.send(bytes([]))
+        packet = self.rx_socket.recv(32)
+        self.rx_socket.send(bytes([]))
 
         # unpack data
         return UmiPacket.unpack(packet)
 
 def main():
     parser = ArgumentParser()
+    parser.add_argument('--rx_port', type=int, default=5556)
+    parser.add_argument('--tx_port', type=int, default=5555)
     parser.add_argument('--bin', type=str, default='build/sw/hello.bin')
     parser.add_argument('--expect', type=str, nargs='*')
 
     args = parser.parse_args()
 
-    dut = DUT("tcp://localhost:5555")
+    dut = DUT(
+        rx_uri=f"tcp://*:{args.rx_port}",
+        tx_uri=f"tcp://localhost:{args.tx_port}"
+    )
 
     exit_code, stdout = run(dut, args.bin)
     

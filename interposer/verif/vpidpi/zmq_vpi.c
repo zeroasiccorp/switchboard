@@ -11,14 +11,50 @@
 #include <vpi_user.h>
 
 static void *context = NULL;
-static void *socket = NULL;
+static void *rx_socket = NULL;
+static void *tx_socket = NULL;
 static struct timeval stop_time, start_time;
 
-void pi_zmq_start (void) {
+void pi_umi_init (char *userdata) {
+    vpiHandle systfref, args_iter, argh;
+	struct t_vpi_value argval;
+
+    // argument is unused
+    (void)userdata;
+
+    // set up mechanism to get arguments
+	systfref = vpi_handle(vpiSysTfCall, NULL);
+	args_iter = vpi_iterate(vpiArgument, systfref);
+
+    // create ZMQ context
     context = zmq_ctx_new ();
-    socket = zmq_socket (context, ZMQ_PAIR);
-    int rc = zmq_bind (socket, "tcp://*:5555");
-    assert (rc == 0);
+
+    // determine RX URI
+    argh = vpi_scan(args_iter);
+	argval.format = vpiIntVal;
+    vpi_get_value(argh, &argval);
+    int rx_port = argval.value.integer;
+    char rx_uri[128];
+    sprintf(rx_uri, "tcp://*:%d", rx_port);
+
+    // set up RX port
+    rx_socket = zmq_socket (context, ZMQ_REP);
+    int rcrx = zmq_bind (rx_socket, rx_uri);
+    assert (rcrx == 0);
+
+    // determine TX URI
+    argh = vpi_scan(args_iter);
+	argval.format = vpiIntVal;
+    vpi_get_value(argh, &argval);
+    int tx_port = argval.value.integer;
+    char tx_uri[128];
+    sprintf(tx_uri, "tcp://localhost:%d", tx_port);
+
+    // set up TX port
+    tx_socket = zmq_socket (context, ZMQ_REQ);
+    int rctx = zmq_connect (tx_socket, tx_uri);
+    assert (rctx == 0);
+
 }
 
 void pi_umi_recv(char *userdata) {
@@ -28,19 +64,17 @@ void pi_umi_recv(char *userdata) {
     // argument is unused
     (void)userdata;
 
-    // start ZMQ if neeced
-    if (!socket) {
-        pi_zmq_start();
-    }
+    // make sure that RX socket has started
+    assert(rx_socket);
 
     // try to receive data
     uint8_t rbuf[32];
-    int nrecv = zmq_recv(socket, rbuf, 32, ZMQ_NOBLOCK);
+    int nrecv = zmq_recv(rx_socket, rbuf, 32, ZMQ_NOBLOCK);
 
     // acknowledge if needed
     int got_packet;
     if (nrecv == 32) {
-        zmq_send(socket, NULL, 0, 0);
+        zmq_send(rx_socket, NULL, 0, 0);
         got_packet = 1;
     } else {
         got_packet = 0;
@@ -78,10 +112,8 @@ void pi_umi_send(char *userdata) {
     // argument is unused
     (void)userdata;
 
-    // start ZMQ if neeced
-    if (!socket) {
-        pi_zmq_start();
-    }
+    // make sure that TX socket has started
+    assert(tx_socket);
 
     // interface with VPI arguments
 	systfref = vpi_handle(vpiSysTfCall, NULL);
@@ -99,8 +131,8 @@ void pi_umi_send(char *userdata) {
     }
 
     // send message
-    zmq_send(socket, sbuf, 32, 0);
-	zmq_recv(socket, NULL, 0, 0);
+    zmq_send(tx_socket, sbuf, 32, 0);
+	zmq_recv(tx_socket, NULL, 0, 0);
 
 	// Cleanup and return
 	vpi_free_object(args_iter);
@@ -134,6 +166,20 @@ void pi_time_taken(char *userdata) {
 
 	// Cleanup and return
 	vpi_free_object(args_iter);
+}
+
+void register_pi_umi_init(void) {
+    s_vpi_systf_data data = {
+		vpiSysTask,
+		0,
+		"$pi_umi_init",
+		(void *)pi_umi_init,
+		0,
+		0,
+		0
+	};
+
+	vpi_register_systf(&data);
 }
 
 void register_pi_umi_recv(void) {
@@ -179,7 +225,8 @@ void register_pi_time_taken(void) {
 }
 
 void (*vlog_startup_routines[])(void) = {
-	register_pi_umi_recv,
+	register_pi_umi_init,
+    register_pi_umi_recv,
     register_pi_umi_send,
     register_pi_time_taken,
 	0  // last entry must be 0
