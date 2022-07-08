@@ -46,10 +46,10 @@ jobs:
 
           cd cocotb
           make &
-          PYTEST_PID=$!
+          MAKE_PID=$!
           cd ..
           python3 verif.py zmq:hello
-          kill $PYTEST_PID
+          kill $MAKE_PID
 
           python3 verif.py verilator &
           VERILATOR_PID=$!
