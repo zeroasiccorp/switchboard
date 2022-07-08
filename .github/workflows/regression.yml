@@ -45,7 +45,7 @@ jobs:
           cd interposer/verif
 
           cd cocotb
-          pytest &
+          make &
           PYTEST_PID=$!
           cd ..
           python3 verif.py zmq:hello

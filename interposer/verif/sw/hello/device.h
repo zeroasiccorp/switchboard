@@ -1,3 +1,6 @@
+#ifndef __DEVICE_H__
+#define __DEVICE_H__
+
 #include "common.h"
 
 static inline void delay(unsigned int nops)
@@ -41,3 +44,5 @@ static inline int coreid()
 }
 
 long long int tohost, fromhost; // These are only defined to quiet Spike
+
+#endif // __DEVICE_H__

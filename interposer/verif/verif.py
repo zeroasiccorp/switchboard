@@ -30,9 +30,10 @@ def gen_tasks():
     # is invoked, these compiled plugins and their addresses
     # will be specified as command-line arguments
 
+    OFF_CHIP = 0x80000000
     mmap = {
-        'uart_plugin': 0x10000000,
-        'exit_plugin': 0x10000008
+        'uart_plugin': OFF_CHIP | 0x10000000,
+        'exit_plugin': OFF_CHIP | 0x10000008
     }
     plugins = {}
     for name, addr in mmap.items():
@@ -91,8 +92,19 @@ def gen_tasks():
         include_paths=[folder, VERIF_DIR / 'common'],
         linker_script=folder / '*.ld'
     )
-    apps.append((name, ['Hello World from core 0!']))
-    
+    apps.append((name, ['Hello World from core 0!'], True))
+
+    name = 'daisy'
+    folder = SW_DIR / name
+    add_riscv_elf_task(
+        tasks=tasks,
+        name=name,
+        sources=[folder / '*.c', folder / '*.s'],
+        include_paths=[folder, VERIF_DIR / 'common'],
+        linker_script=folder / '*.ld'
+    )
+    apps.append((name, None, False))
+
     # pattern 2: RISC-V tests from an external source (https://github.com/riscv-software-src/riscv-tests)
     # the tests are included as an unmodified git submodule
     # the test environment (which implements a test pass/fail, among other things)
@@ -119,38 +131,39 @@ def gen_tasks():
             linker_script=env_dir / 'p' / '*.ld'
         )
 
-        apps.append((app.stem, ['OK']))
+        apps.append((app.stem, ['OK'], True))
     
     # add per-application tasks
-    for app, expect in apps:
+    for app, expect, should_test in apps:
         # task to generate a "bin" file for a particular app
         add_riscv_bin_task(tasks, app)
 
         # task to generate a "hex" file for a particular app
         add_hex_task(tasks, app)
 
-        # task to run Spike emulation for a particular app
-        add_spike_task(tasks, app, plugins=plugins, expect=expect)
+        if should_test:
+            # task to run Spike emulation for a particular app
+            add_spike_task(tasks, app, plugins=plugins, expect=expect)
 
-        # task to run a Verilator simulation for a particular app
-        bin_file = Path(CFG.sw_dir / f'{app}.bin').resolve()
-        zmq_action = []
-        zmq_action += [Path('zmq_client.py').resolve()]
-        zmq_action += ['--bin', bin_file]
-        if len(expect) > 0:
-            zmq_action += ['--expect'] + expect
-        zmq_action = [str(elem) for elem in zmq_action]
-        add_task(
-            task=dict(
-                name=app,
-                file_dep=[bin_file],
-                actions=[zmq_action],
-                uptodate=[False]  # i.e., always run
-            ),
-            tasks=tasks,
-            basename='zmq',
-            doc='Run a program on a simulator instance.'
-        )
+            # task to run a Verilator simulation for a particular app
+            bin_file = Path(CFG.sw_dir / f'{app}.bin').resolve()
+            zmq_action = []
+            zmq_action += [Path('zmq_client.py').resolve()]
+            zmq_action += ['--bin', bin_file]
+            if len(expect) > 0:
+                zmq_action += ['--expect'] + expect
+            zmq_action = [str(elem) for elem in zmq_action]
+            add_task(
+                task=dict(
+                    name=app,
+                    file_dep=[bin_file],
+                    actions=[zmq_action],
+                    uptodate=[False]  # i.e., always run
+                ),
+                tasks=tasks,
+                basename='zmq',
+                doc='Run a program on a simulator instance.'
+            )
 
     # output is an iterable of Task objects
     return tasks.values()
