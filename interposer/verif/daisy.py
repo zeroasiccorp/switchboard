@@ -1,19 +1,26 @@
 #!/usr/bin/env python
 
+from ast import arg
 import sys
 import atexit
 import subprocess
+import argparse
 
 from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
 
-def main(start_port=5555, n_chips=10):
+def main(start_port=5555, n_chips=2):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--sim', default='verilator')
+    args = parser.parse_args()
+
     # chips
     for k in range(n_chips):
         p = start_chip(
             rx_port=start_port+k,
-            tx_port=start_port+k+1
+            tx_port=start_port+k+1,
+            sim=args.sim
         )
         atexit.register(p.terminate)
 
@@ -27,9 +34,18 @@ def main(start_port=5555, n_chips=10):
     # wait for client to complete
     client.wait()
 
-def start_chip(rx_port, tx_port):
+def start_chip(rx_port, tx_port, sim='verilator'):
     cmd = []
-    cmd += [THIS_DIR / 'vpidpi' / 'verilator_dpi' / 'Vtestbench']
+    if sim == 'verilator':
+        cmd += [THIS_DIR / 'vpidpi' / 'verilator_dpi' / 'Vtestbench']
+    elif sim == 'iverilog':
+        cmd += ['vvp']
+        cmd += ['-n']
+        cmd += ['-M', THIS_DIR / 'vpidpi' / 'iverilog_vpi']
+        cmd += ['-m', 'zmq_vpi']
+        cmd += [THIS_DIR / 'vpidpi' / 'iverilog_vpi' / 'testbench.vvp']
+    else:
+        raise Exception(f'Unknown simulator: {sim}')
     cmd += [f'+rx_port={rx_port}']
     cmd += [f'+tx_port={tx_port}']
     cmd = [str(elem) for elem in cmd]

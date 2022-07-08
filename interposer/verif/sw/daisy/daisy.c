@@ -1,6 +1,6 @@
 #include "device.h"
 
-#define LAST_CHIP 9
+#define LAST_CHIP 1
 #define MSG_SIZE 128
 
 // data passed from one chip to the next

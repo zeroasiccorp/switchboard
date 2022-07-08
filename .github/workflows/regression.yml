@@ -29,32 +29,32 @@ jobs:
 
           cd interposer/verif && python3 verif.py spike
 
-  zmq:
-    name: ZMQ
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v2
-      - name: Verilator simulation
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libzmq3-dev iverilog
+  # zmq:
+  #   name: ZMQ
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 5
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Verilator simulation
+  #       run: |
+  #         sudo apt-get update -y
+  #         sudo apt-get install -y python3-pip verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libzmq3-dev iverilog
 
-          python3 -m pip install -e .
+  #         python3 -m pip install -e .
 
-          cd interposer/verif
+  #         cd interposer/verif
 
-          cd cocotb
-          make &
-          MAKE_PID=$!
-          cd ..
-          python3 verif.py zmq:hello
-          kill $MAKE_PID
+  #         cd cocotb
+  #         make &
+  #         MAKE_PID=$!
+  #         cd ..
+  #         python3 verif.py zmq:hello
+  #         kill $MAKE_PID
 
-          python3 verif.py verilator &
-          VERILATOR_PID=$!
-          python3 verif.py zmq
-          kill $VERILATOR_PID
+  #         python3 verif.py verilator &
+  #         VERILATOR_PID=$!
+  #         python3 verif.py zmq
+  #         kill $VERILATOR_PID
 
   sc_spike:
     name: Spike (thru SC)
