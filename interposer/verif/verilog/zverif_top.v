@@ -167,7 +167,9 @@ module zverif_top (
 		.axi_wready(ctrl_wready),
 		.axi_bvalid(ctrl_bvalid),
 		.axi_bready(ctrl_bready),
-		.axi_awaddr({32'h0, ctrl_awaddr}),
+		// clip the "external" bit off the address
+		// when writing to the outside
+		.axi_awaddr({32'h0, 1'b0, ctrl_awaddr[30:0]}),
 		.axi_wdata({224'h0, ctrl_wdata}),
 		// UMI interface
 		.umi_packet(umi_packet_tx),
@@ -178,10 +180,10 @@ module zverif_top (
 	axil_interconnect_wrap_1x2 # (
 		.DATA_WIDTH(32),
 		.ADDR_WIDTH(32),
-		.M00_BASE_ADDR(0), // RAM
+		.M00_BASE_ADDR(0), // Internal
 		.M00_ADDR_WIDTH(32'd17),
-		.M01_BASE_ADDR(32'h10000000), // External
-		.M01_ADDR_WIDTH(32'd4),
+		.M01_BASE_ADDR(32'h80000000), // External
+		.M01_ADDR_WIDTH(32'd31),
 		.M01_CONNECT_READ(1'b0)
 	) iconnect_cpu (
 		.clk(clk),
