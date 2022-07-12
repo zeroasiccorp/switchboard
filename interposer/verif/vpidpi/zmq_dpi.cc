@@ -1,85 +1,66 @@
 #include <sys/time.h>
 
-// ZMQ stuff
-#include <zmq.h>
-#include <string.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <assert.h>
-#include<pthread.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/mman.h>
+#include <stdatomic.h>
+#include <sched.h>
 
 #include "Vtestbench__Dpi.h"
-#define BUFSIZE 100
 
-int rx_port_arg;  // TODO clean this up
-bool rx_data_valid = false;
-bool rx_data_accepted = false;
-uint8_t zmq_buf[BUFSIZE][32];
-int buf_fill_ptr = 0;
-int buf_use_ptr = 0;
-int buf_count = 0;
-pthread_t rx_tid;
-pthread_mutex_t buf_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t buf_empty = PTHREAD_COND_INITIALIZER;
+#define BUFFER_SIZE 4096
+#define BUFFER_ENTRIES 100
+#define PACKET_SIZE 32
 
-static void *context = NULL;
-static void *rx_socket = NULL;
-static void *tx_socket = NULL;
 static struct timeval stop_time, start_time;
 
-void* rx_thread(void *arg) {
-    // determine RX URI
-    char rx_uri[128];
-    sprintf(rx_uri, "ipc:///tmp/feeds-%d", rx_port_arg);
+int rxfd;
+int txfd;
 
-    // setup RX port
-    rx_socket = zmq_socket (context, ZMQ_DEALER);
-    int rcrx = zmq_bind (rx_socket, rx_uri);
-    assert (rcrx == 0);
+int rxptr = 0;
+int txptr = 0;
 
-    while (1) {
-        // receive data
-        uint8_t buf[32];
-        zmq_recv(rx_socket, buf, 32, 0);
-
-        // transfer data, indicate that it is ready,
-        // and wait for the data to be accepted
-        pthread_mutex_lock(&buf_lock);
-
-        // wait for space
-        while(buf_count == BUFSIZE) {
-            pthread_cond_wait(&buf_empty, &buf_lock);
-        }
-
-        // put data
-        for (int i=0; i<32; i++) {
-            zmq_buf[buf_fill_ptr][i] = buf[i];
-        }
-        buf_fill_ptr = (buf_fill_ptr+1) % BUFSIZE;
-        buf_count++;
-
-        pthread_mutex_unlock(&buf_lock);
-    }
-
-    return NULL;
-}
+atomic_int* rxmem;
+atomic_int* txmem;
 
 svLogic pi_umi_init(int rx_port, int tx_port) {
-    // create ZMQ context
-    context = zmq_ctx_new ();
+    // determine RX URI
+    char rx_uri[128];
+    sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
+	rxfd = open(rx_uri, O_RDWR | O_CREAT, 0666);
+    ftruncate(rxfd, BUFFER_SIZE);
 
-    // create RX thread
-    rx_port_arg = rx_port;
-    pthread_create(&rx_tid, NULL, &rx_thread, NULL);
+    rxmem = (atomic_int*)mmap(
+        NULL,
+        BUFFER_SIZE,
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
+        rxfd,
+        0
+	);
+    atomic_store(rxmem, 0);
 
     // determine TX URI
     char tx_uri[128];
-    sprintf(tx_uri, "ipc:///tmp/feeds-%d", tx_port);
+    sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
+    txfd = open(tx_uri, O_RDWR | O_CREAT, 0666);
+    ftruncate(txfd, BUFFER_SIZE);
 
-    // TX port
-    tx_socket = zmq_socket (context, ZMQ_DEALER);
-    int rctx = zmq_connect (tx_socket, tx_uri);
-    assert (rctx == 0);
+    txmem = (atomic_int*)mmap(
+        NULL,
+        BUFFER_SIZE,
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
+        txfd,
+        0
+	);
+    atomic_store(txmem, 0);
 
     // unused return value
     return 0;
@@ -87,40 +68,45 @@ svLogic pi_umi_init(int rx_port, int tx_port) {
 
 svLogic pi_umi_recv(int* got_packet, svBitVecVal* rbuf) {
     // try to receive data
-    pthread_mutex_lock(&buf_lock);
-    if (buf_count > 0) {
-        // copy out data
+    if (atomic_load(rxmem) > 0) {
         *got_packet = 1;
-        for (int i=0; i<32; i++) {
-            rbuf[i] = zmq_buf[buf_use_ptr][i];
-        }
-        buf_use_ptr = (buf_use_ptr + 1)% BUFSIZE;
-        buf_count--;
 
-        // signaling to RX thread
-        pthread_cond_signal(&buf_empty);
+        // read packet
+        // TODO: change to memcpy
+        int off = 1+PACKET_SIZE*rxptr;
+        for (int i=0; i<PACKET_SIZE; i++) {
+            rbuf[i] = rxmem[off+i];
+        }
+
+        // update pointer
+        rxptr = (rxptr+1)%BUFFER_ENTRIES;
+
+        // update count of data
+        atomic_fetch_add(rxmem, -1);
     } else {
         *got_packet = 0;
     }
-    pthread_mutex_unlock(&buf_lock);
 
     // unused return value
     return 0;
 }
 
 svLogic pi_umi_send(const svBitVecVal* sbuf) {
-    // make sure that TX socket has started
-    assert(tx_socket);
-
-    // copy data into a buffer.  we can't directly use sbuf
-    // with zmq_send, because it is an array of uint32_t
-    uint8_t buf[32];
-    for (int i=0; i<32; i++) {
-        buf[i] = sbuf[i];
+    while(atomic_load(txmem) >= BUFFER_ENTRIES) {
+        sched_yield();
     }
 
-    // send message
-    zmq_send(tx_socket, buf, 32, 0);
+    // write data to memory
+    int off = 1+PACKET_SIZE*txptr;
+    for (int i=0; i<32; i++) {
+        txmem[off+i] = sbuf[i];
+    }
+
+    // update pointer
+    txptr = (txptr+1)%BUFFER_ENTRIES;
+
+    // update count of data
+    atomic_fetch_add(txmem, +1);
 
     // unused return value
     return 0;

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
+import os
 import sys
-import zmq
 
 from pathlib import Path
 from argparse import ArgumentParser
@@ -48,20 +48,19 @@ def run(dut, program):
     return exit_code, stdout
 
 class DUT:
-    CONTEXT = zmq.Context()  # context is shared across DUT instances
     def __init__(self, rx_uri, tx_uri):
-        self.rx_socket = self.CONTEXT.socket(zmq.DEALER)
-        self.rx_socket.bind(rx_uri)
-        self.tx_socket = self.CONTEXT.socket(zmq.DEALER)
-        self.tx_socket.connect(tx_uri)
+        self.rx_socket = os.open(rx_uri, os.O_RDONLY)
+        self.tx_socket = os.open(tx_uri, os.O_WRONLY)
 
     def send(self, packet: UmiPacket):        
         # send message
-        self.tx_socket.send(packet.pack())
+        os.write(self.tx_socket, packet.pack())
     
     def recv(self) -> UmiPacket:
         # receive data
-        packet = self.rx_socket.recv(32)
+        packet = bytes([])
+        while len(packet) < 32:
+            packet += os.read(self.rx_socket, 32-len(packet))
 
         # unpack data
         return UmiPacket.unpack(packet)
@@ -76,8 +75,8 @@ def main():
     args = parser.parse_args()
 
     dut = DUT(
-        rx_uri=f"ipc:///tmp/feeds-{args.rx_port}",
-        tx_uri=f"ipc:///tmp/feeds-{args.tx_port}"
+        rx_uri=f"/tmp/feeds-{args.rx_port}",
+        tx_uri=f"/tmp/feeds-{args.tx_port}"
     )
 
     exit_code, stdout = run(dut, args.bin)
