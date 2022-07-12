@@ -6,26 +6,65 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
+#include<pthread.h>
 
 #include "Vtestbench__Dpi.h"
+
+int rx_port_arg;  // TODO clean this up
+bool rx_data_valid = false;
+bool rx_data_accepted = false;
+uint8_t zmq_global_buf[32];
+pthread_t rx_tid;
+pthread_mutex_t rx_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t rx_cond = PTHREAD_COND_INITIALIZER;
 
 static void *context = NULL;
 static void *rx_socket = NULL;
 static void *tx_socket = NULL;
 static struct timeval stop_time, start_time;
 
-svLogic pi_umi_init(int rx_port, int tx_port) {
-    // create ZMQ context
-    context = zmq_ctx_new ();
-
+void* rx_thread(void *arg) {
     // determine RX URI
     char rx_uri[128];
-    sprintf(rx_uri, "tcp://*:%d", rx_port);
+    sprintf(rx_uri, "tcp://*:%d", rx_port_arg);
 
     // setup RX port
     rx_socket = zmq_socket (context, ZMQ_REP);
     int rcrx = zmq_bind (rx_socket, rx_uri);
     assert (rcrx == 0);
+
+    while (1) {
+        // receive data
+        uint8_t buf[32];
+        zmq_recv(rx_socket, buf, 32, 0);
+
+        // acknowledge receipt of data
+        zmq_send(rx_socket, NULL, 0, 0);
+
+        // transfer data, indicate that it is ready,
+        // and wait for the data to be accepted
+        pthread_mutex_lock(&rx_lock);
+        rx_data_valid = true;
+        for (int i=0; i<32; i++) {
+            zmq_global_buf[i] = buf[i];
+        }
+        while(!rx_data_accepted) {
+            pthread_cond_wait(&rx_cond, &rx_lock);
+        }
+        rx_data_accepted = false;
+        pthread_mutex_unlock(&rx_lock);
+    }
+
+    return NULL;
+}
+
+svLogic pi_umi_init(int rx_port, int tx_port) {
+    // create ZMQ context
+    context = zmq_ctx_new ();
+
+    // create RX thread
+    rx_port_arg = rx_port;
+    pthread_create(&rx_tid, NULL, &rx_thread, NULL);
 
     // determine TX URI
     char tx_uri[128];
@@ -41,27 +80,23 @@ svLogic pi_umi_init(int rx_port, int tx_port) {
 }
 
 svLogic pi_umi_recv(int* got_packet, svBitVecVal* rbuf) {
-    // make sure that RX socket has started
-    assert(rx_socket);
-
     // try to receive data
-    uint8_t buf[32];
-    int nrecv = zmq_recv(rx_socket, buf, 32, ZMQ_NOBLOCK);
-
-    if (nrecv == 32) {
+    pthread_mutex_lock(&rx_lock);
+    if (rx_data_valid) {
+        // copy out data
         *got_packet = 1;
-
-        // acknowledge receipt of data
-        zmq_send(rx_socket, NULL, 0, 0);
-
-        // copy data into the output buffer.  we can't directly
-        // use rbuf with zmq_recv because it is an array of uint32_t
         for (int i=0; i<32; i++) {
-            rbuf[i] = buf[i];
+            rbuf[i] = zmq_global_buf[i];
         }
+
+        // signaling to RX thread
+        rx_data_valid = false;
+        rx_data_accepted = true;
+        pthread_cond_signal(&rx_cond);
     } else {
         *got_packet = 0;
     }
+    pthread_mutex_unlock(&rx_lock);
 
     // unused return value
     return 0;

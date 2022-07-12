@@ -21,7 +21,6 @@ verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv
 		-Mdir verilator_dpi \
 		--top testbench \
 		-DDPI \
-		-DCYCLES_PER_RECV=1000 \
 		-DCYCLES_PER_MEAS=4000000 \
 		-CFLAGS "-Wno-unknown-warning-option" \
 		-LDFLAGS "-lzmq" \
@@ -50,7 +49,6 @@ iverilog_vpi/testbench.vvp: testbench.sv
 	mkdir -p iverilog_vpi
 	iverilog \
 		-s testbench \
-		-DCYCLES_PER_RECV=10 \
 		-DCYCLES_PER_MEAS=20000 \
 		-o iverilog_vpi/testbench.vvp \
 		-f files.txt

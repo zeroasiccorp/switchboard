@@ -78,7 +78,6 @@ module testbench(
     // UMI RX
 
     integer got_packet;
-	integer recv_counter = 0;
 	`VAR_BIT [7:0] rbuf [0:31];
     reg rx_in_progress = 1'b0;
     always @(posedge clk) begin
@@ -88,17 +87,12 @@ module testbench(
 				rx_in_progress <= 1'b0;
             end
 		end else begin
-			if (recv_counter == `CYCLES_PER_RECV) begin
-				/* verilator lint_off IGNOREDRETURN */
-				`PI(pi_umi_recv)(got_packet, rbuf);
-				/* verilator lint_on IGNOREDRETURN */
-				if (got_packet == 32'd1) begin
-					umi_valid_rx <= 1'b1;
-					rx_in_progress <= 1'b1;
-				end
-				recv_counter <= 0;
-			end else begin
-				recv_counter <= recv_counter + 1;
+			/* verilator lint_off IGNOREDRETURN */
+			`PI(pi_umi_recv)(got_packet, rbuf);
+			/* verilator lint_on IGNOREDRETURN */
+			if (got_packet == 32'd1) begin
+				umi_valid_rx <= 1'b1;
+				rx_in_progress <= 1'b1;
 			end
 		end
     end
