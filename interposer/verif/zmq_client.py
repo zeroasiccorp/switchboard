@@ -50,20 +50,18 @@ def run(dut, program):
 class DUT:
     CONTEXT = zmq.Context()  # context is shared across DUT instances
     def __init__(self, rx_uri, tx_uri):
-        self.rx_socket = self.CONTEXT.socket(zmq.REP)
+        self.rx_socket = self.CONTEXT.socket(zmq.DEALER)
         self.rx_socket.bind(rx_uri)
-        self.tx_socket = self.CONTEXT.socket(zmq.REQ)
+        self.tx_socket = self.CONTEXT.socket(zmq.DEALER)
         self.tx_socket.connect(tx_uri)
 
     def send(self, packet: UmiPacket):        
         # send message
         self.tx_socket.send(packet.pack())
-        self.tx_socket.recv()
     
     def recv(self) -> UmiPacket:
         # receive data
         packet = self.rx_socket.recv(32)
-        self.rx_socket.send(bytes([]))
 
         # unpack data
         return UmiPacket.unpack(packet)
@@ -78,8 +76,8 @@ def main():
     args = parser.parse_args()
 
     dut = DUT(
-        rx_uri=f"tcp://*:{args.rx_port}",
-        tx_uri=f"tcp://localhost:{args.tx_port}"
+        rx_uri=f"ipc:///tmp/feeds-{args.rx_port}",
+        tx_uri=f"ipc:///tmp/feeds-{args.tx_port}"
     )
 
     exit_code, stdout = run(dut, args.bin)
