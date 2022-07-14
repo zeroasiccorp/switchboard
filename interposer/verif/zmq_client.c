@@ -13,8 +13,7 @@
 #include <sched.h>
 #include <stdbool.h>
 
-#define BUFFER_ENTRIES 2000
-#define PACKET_SIZE 32
+#include "vpidpi/spsc_queue.h"
 
 struct timeval stop_time, start_time;
 
@@ -24,11 +23,6 @@ int txfd;
 int rxptr = 0;
 int txptr = 0;
 
-typedef struct spsc_queue {
-    atomic_int count;
-    int packets[BUFFER_ENTRIES][32];
-} spsc_queue;
-
 spsc_queue* rxq;
 spsc_queue* txq;
 
@@ -36,60 +30,24 @@ void umi_init(int rx_port, int tx_port) {
     // determine RX URI
     char rx_uri[128];
     sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-	rxfd = open(rx_uri, O_RDWR);
-
-    rxq = (spsc_queue*)mmap(
-        NULL,
-        sizeof(spsc_queue),
-        PROT_READ | PROT_WRITE,
-        MAP_SHARED,
-        rxfd,
-        0
-	);
+    rxq = spsc_open(rx_uri);
 
     // determine TX URI
     char tx_uri[128];
     sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    txfd = open(tx_uri, O_RDWR);
-
-    txq = (spsc_queue*)mmap(
-        NULL,
-        sizeof(spsc_queue),
-        PROT_READ | PROT_WRITE,
-        MAP_SHARED,
-        txfd,
-        0
-	);
+    txq = spsc_open(tx_uri);
 }
 
 void umi_recv(int* rbuf) {
-    while (atomic_load(&rxq->count) <= 0){
+    while (spsc_recv(rxq, rbuf, &rxptr) == 0){
         sched_yield();
     }
-
-    // read packet
-    memcpy(rbuf, rxq->packets[rxptr], sizeof(int)*PACKET_SIZE);
-
-    // update pointer
-    rxptr = (rxptr+1)%BUFFER_ENTRIES;
-
-    // update count of data
-    atomic_fetch_add(&rxq->count, -1);
 }
 
 void umi_send(const int* sbuf) {
-    while(atomic_load(&txq->count) >= BUFFER_ENTRIES) {
+    while (spsc_send(txq, sbuf, &txptr) == 0) {
         sched_yield();
     }
-
-    // write data to memory
-    memcpy(txq->packets[txptr], sbuf, sizeof(int)*PACKET_SIZE);
-
-    // update pointer
-    txptr = (txptr+1)%BUFFER_ENTRIES;
-
-    // update count of data
-    atomic_fetch_add(&txq->count, +1);
 }
 
 void dut_send(const uint32_t data, const uint32_t addr){
