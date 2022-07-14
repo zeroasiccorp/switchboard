@@ -17,35 +17,29 @@
 
 struct timeval stop_time, start_time;
 
-int rxfd;
-int txfd;
-
-int rxptr = 0;
-int txptr = 0;
-
-spsc_queue* rxq;
-spsc_queue* txq;
+spsc_queue rxq;
+spsc_queue txq;
 
 void umi_init(int rx_port, int tx_port) {
     // determine RX URI
     char rx_uri[128];
     sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-    rxq = spsc_open(rx_uri);
+    spsc_open(&rxq, rx_uri);
 
     // determine TX URI
     char tx_uri[128];
     sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    txq = spsc_open(tx_uri);
+    spsc_open(&txq, tx_uri);
 }
 
 void umi_recv(int* rbuf) {
-    while (spsc_recv(rxq, rbuf, &rxptr) == 0){
+    while (spsc_recv(&rxq, rbuf) == 0){
         sched_yield();
     }
 }
 
 void umi_send(const int* sbuf) {
-    while (spsc_send(txq, sbuf, &txptr) == 0) {
+    while (spsc_send(&txq, sbuf) == 0) {
         sched_yield();
     }
 }

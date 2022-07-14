@@ -13,7 +13,7 @@ from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
 
-def main(start_port=5555, n_chips=1):
+def main(start_port=5555, n_chips=10):
     parser = argparse.ArgumentParser()
     parser.add_argument('--sim', default='verilator')
     args = parser.parse_args()
