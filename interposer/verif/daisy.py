@@ -2,18 +2,30 @@
 
 from ast import arg
 import sys
+import os
 import atexit
 import subprocess
 import argparse
+import time
+import shutil
 
 from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
 
-def main(start_port=5555, n_chips=10):
+def main(start_port=5555, n_chips=1):
     parser = argparse.ArgumentParser()
     parser.add_argument('--sim', default='verilator')
     args = parser.parse_args()
+
+    # create the files of interest
+    for k in range(n_chips+1):
+        name = f'/tmp/feeds-{start_port+k}'
+        if os.path.exists(name):
+            os.remove(name)
+        with open(name, 'wb') as f:
+            f.truncate(262144)
+        os.chmod(name, 0o666)
 
     # chips
     for k in range(n_chips):
@@ -32,7 +44,11 @@ def main(start_port=5555, n_chips=10):
     )
 
     # wait for client to complete
+    tic = time.time()
     client.wait()
+    toc = time.time()
+
+    print(f"Took {1e3*(toc-tic):0.3f} ms")
 
 def start_chip(rx_port, tx_port, sim='verilator'):
     cmd = []
@@ -51,15 +67,15 @@ def start_chip(rx_port, tx_port, sim='verilator'):
     cmd = [str(elem) for elem in cmd]
 
     p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    #p = subprocess.Popen(cmd)
     return p
 
 def start_client(rx_port, tx_port, bin):
     cmd = []
-    cmd += [sys.executable]
-    cmd += [THIS_DIR / 'zmq_client.py']
-    cmd += ['--rx_port', rx_port]
-    cmd += ['--tx_port', tx_port]
-    cmd += ['--bin', bin]
+    cmd += [THIS_DIR / 'zmq_client']
+    cmd += [rx_port]
+    cmd += [tx_port]
+    cmd += [bin]
     cmd = [str(elem) for elem in cmd]
 
     p = subprocess.Popen(cmd)

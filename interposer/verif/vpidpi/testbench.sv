@@ -29,8 +29,8 @@ module testbench(
 	// DPI imports
 	`ifdef DPI
 		import "DPI-C" function pi_umi_init (input int rx_port, input int tx_port);
-		import "DPI-C" function pi_umi_recv (output int got_packet, output bit [7:0] rbuf [0:31]);
-		import "DPI-C" function pi_umi_send (input bit [7:0] sbuf [0:31]);
+		import "DPI-C" function pi_umi_recv (output int success, output bit [7:0] rbuf [0:31]);
+		import "DPI-C" function pi_umi_send (output int success, input bit [7:0] sbuf [0:31]);
 		import "DPI-C" function pi_time_taken (output real t);
 	`endif
 
@@ -77,7 +77,7 @@ module testbench(
 
     // UMI RX
 
-    integer got_packet;
+    integer rx_success;
 	`VAR_BIT [7:0] rbuf [0:31];
     reg rx_in_progress = 1'b0;
     always @(posedge clk) begin
@@ -88,9 +88,9 @@ module testbench(
             end
 		end else begin
 			/* verilator lint_off IGNOREDRETURN */
-			`PI(pi_umi_recv)(got_packet, rbuf);
+			`PI(pi_umi_recv)(rx_success, rbuf);
 			/* verilator lint_on IGNOREDRETURN */
-			if (got_packet == 32'd1) begin
+			if (rx_success == 32'd1) begin
 				umi_valid_rx <= 1'b1;
 				rx_in_progress <= 1'b1;
 			end
@@ -99,6 +99,7 @@ module testbench(
 
     // UMI TX
 
+	integer tx_success;
 	`WIRE_BIT [7:0] sbuf [0:31];
 	reg tx_in_progress = 1'b0;
 	always @(posedge clk) begin
@@ -108,10 +109,12 @@ module testbench(
 		end else begin
 			if (umi_valid_tx) begin
 				/* verilator lint_off IGNOREDRETURN */
-				`PI(pi_umi_send)(sbuf);
+				`PI(pi_umi_send)(tx_success, sbuf);
 				/* verilator lint_on IGNOREDRETURN */
-				umi_ready_tx <= 1'b1;
-				tx_in_progress <= 1'b1;
+				if (tx_success == 32'd1) begin
+					umi_ready_tx <= 1'b1;
+					tx_in_progress <= 1'b1;
+				end
 			end
 		end
 	end

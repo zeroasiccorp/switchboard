@@ -1,11 +1,11 @@
 #include "device.h"
 
-#define LAST_CHIP 9
-#define MSG_SIZE 128
+#define LAST_CHIP 0
+#define MSG_SIZE 32
 
 // data passed from one chip to the next
 int chip_id = 0;
-char msg[32];
+char msg[MSG_SIZE] = {0};
 
 extern int __end_addr;  // linker symbol: end address of text and data
 

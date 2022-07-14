@@ -14,8 +14,7 @@
 
 #include "Vtestbench__Dpi.h"
 
-#define BUFFER_SIZE 4096
-#define BUFFER_ENTRIES 100
+#define BUFFER_ENTRIES 2000
 #define PACKET_SIZE 32
 
 static struct timeval stop_time, start_time;
@@ -26,87 +25,84 @@ int txfd;
 int rxptr = 0;
 int txptr = 0;
 
-atomic_int* rxmem;
-atomic_int* txmem;
+typedef struct spsc_queue {
+    atomic_int count;
+    int packets[BUFFER_ENTRIES][32];
+} spsc_queue;
+
+spsc_queue* rxq;
+spsc_queue* txq;
 
 svLogic pi_umi_init(int rx_port, int tx_port) {
     // determine RX URI
     char rx_uri[128];
     sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-	rxfd = open(rx_uri, O_RDWR | O_CREAT, 0666);
-    ftruncate(rxfd, BUFFER_SIZE);
+	rxfd = open(rx_uri, O_RDWR);
 
-    rxmem = (atomic_int*)mmap(
+    rxq = (spsc_queue*)mmap(
         NULL,
-        BUFFER_SIZE,
+        sizeof(spsc_queue),
         PROT_READ | PROT_WRITE,
         MAP_SHARED,
         rxfd,
         0
 	);
-    atomic_store(rxmem, 0);
 
     // determine TX URI
     char tx_uri[128];
     sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    txfd = open(tx_uri, O_RDWR | O_CREAT, 0666);
-    ftruncate(txfd, BUFFER_SIZE);
+    txfd = open(tx_uri, O_RDWR);
 
-    txmem = (atomic_int*)mmap(
+    txq = (spsc_queue*)mmap(
         NULL,
-        BUFFER_SIZE,
+        sizeof(spsc_queue),
         PROT_READ | PROT_WRITE,
         MAP_SHARED,
         txfd,
         0
 	);
-    atomic_store(txmem, 0);
 
     // unused return value
     return 0;
 }
 
-svLogic pi_umi_recv(int* got_packet, svBitVecVal* rbuf) {
+svLogic pi_umi_recv(int* success, svBitVecVal* rbuf) {
     // try to receive data
-    if (atomic_load(rxmem) > 0) {
-        *got_packet = 1;
+    if (atomic_load(&rxq->count) > 0) {
+        *success = 1;
 
         // read packet
-        // TODO: change to memcpy
-        int off = 1+PACKET_SIZE*rxptr;
-        for (int i=0; i<PACKET_SIZE; i++) {
-            rbuf[i] = rxmem[off+i];
-        }
+        memcpy(rbuf, rxq->packets[rxptr], sizeof(int)*PACKET_SIZE);
 
         // update pointer
         rxptr = (rxptr+1)%BUFFER_ENTRIES;
 
         // update count of data
-        atomic_fetch_add(rxmem, -1);
+        atomic_fetch_add(&rxq->count, -1);
     } else {
-        *got_packet = 0;
+        *success = 0;
     }
 
     // unused return value
     return 0;
 }
 
-svLogic pi_umi_send(const svBitVecVal* sbuf) {
-    while(atomic_load(txmem) >= BUFFER_ENTRIES) {
-        sched_yield();
+svLogic pi_umi_send(int* success, const svBitVecVal* sbuf) {
+    if (atomic_load(&txq->count) < BUFFER_ENTRIES) {
+        // write data to memory
+        memcpy(txq->packets[txptr], sbuf, sizeof(int)*PACKET_SIZE);
+
+        // update pointer
+        txptr = (txptr+1)%BUFFER_ENTRIES;
+
+        // update count of data
+        atomic_fetch_add(&txq->count, +1);
+
+        // indicate succcess
+        *success = 1;
+    } else {
+        *success = 0;
     }
-
-    // write data to memory
-    int off = 1+PACKET_SIZE*txptr;
-    for (int i=0; i<32; i++) {
-        txmem[off+i] = sbuf[i];
-    }
-
-    // update pointer
-    txptr = (txptr+1)%BUFFER_ENTRIES;
-
-    // update count of data
-    atomic_fetch_add(txmem, +1);
 
     // unused return value
     return 0;
