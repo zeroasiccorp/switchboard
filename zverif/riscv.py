@@ -57,6 +57,7 @@ def build_elf(sources, linker_script, include_paths, output,
     cmd += [f'-mabi={abi}']
     cmd += [f'-march={isa}']
     cmd += ['-static']
+    cmd += ['-O3']
     cmd += ['-mcmodel=medany']
     cmd += ['-fvisibility=hidden']
     cmd += ['-nostdlib']
