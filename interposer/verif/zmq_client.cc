@@ -1,89 +1,83 @@
-#include <sys/time.h>
-
-#include <unistd.h>
-#include <stdlib.h>
+#include "vpidpi/spsc_queue.hpp"
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
-#include <errno.h>
-#include <sys/mman.h>
-#include <stdatomic.h>
-#include <sched.h>
-#include <stdbool.h>
-
-#include "vpidpi/spsc_queue.h"
+#include <thread>
 
 struct timeval stop_time, start_time;
 
-spsc_queue rxq;
-spsc_queue txq;
+static bip::managed_shared_memory rxs;
+static bip::managed_shared_memory txs;
+
+ring_buffer* rxq;
+ring_buffer* txq;
+
+packet rxp;
+packet txp;
 
 void umi_init(int rx_port, int tx_port) {
     // determine RX URI
     char rx_uri[128];
-    sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-    spsc_open(&rxq, rx_uri);
+    sprintf(rx_uri, "shmem-%d", rx_port);
+    rxq = spsc_open(rxs, rx_uri);
 
     // determine TX URI
     char tx_uri[128];
-    sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    spsc_open(&txq, tx_uri);
+    sprintf(tx_uri, "shmem-%d", tx_port);
+    txq = spsc_open(txs, tx_uri);
+    txq->reset();
 }
 
-void umi_recv(int* rbuf) {
-    while (spsc_recv(&rxq, rbuf) == 0){
-        sched_yield();
+void umi_recv() {
+    while (!rxq->pop(rxp)){
+        std::this_thread::yield();
     }
 }
 
-void umi_send(const int* sbuf) {
-    while (spsc_send(&txq, sbuf) == 0) {
-        sched_yield();
+void umi_send() {
+    while (!txq->push(txp)) {
+        std::this_thread::yield();
     }
 }
 
 void dut_send(const uint32_t data, const uint32_t addr){
-    int buf[PACKET_SIZE] = {0};
+    for (int i=0; i<PACKET_SIZE; i++){
+        txp[i] = 0;
+    }
+    
+    txp[ 4] = (addr >>  0) & 0xff;
+    txp[ 5] = (addr >>  8) & 0xff;
+    txp[ 6] = (addr >> 16) & 0xff;
+    txp[ 7] = (addr >> 24) & 0xff;
 
-    buf[ 4] = (addr >>  0) & 0xff;
-    buf[ 5] = (addr >>  8) & 0xff;
-    buf[ 6] = (addr >> 16) & 0xff;
-    buf[ 7] = (addr >> 24) & 0xff;
+    txp[12] = (data >>  0) & 0xff;
+    txp[13] = (data >>  8) & 0xff;
+    txp[14] = (data >> 16) & 0xff;
+    txp[15] = (data >> 24) & 0xff;
 
-    buf[12] = (data >>  0) & 0xff;
-    buf[13] = (data >>  8) & 0xff;
-    buf[14] = (data >> 16) & 0xff;
-    buf[15] = (data >> 24) & 0xff;
-
-    umi_send(buf);
+    umi_send();
 }
 
 void dut_recv(uint32_t* data, uint32_t* addr){
-    int buf[PACKET_SIZE];
-
-    umi_recv(buf);
+    umi_recv();
 
     uint32_t laddr = 0;
-    laddr |= (buf[ 4] & 0xff) <<  0;
-    laddr |= (buf[ 5] & 0xff) <<  8;
-    laddr |= (buf[ 6] & 0xff) << 16;
-    laddr |= (buf[ 7] & 0xff) << 24;
+    laddr |= (rxp[ 4] & 0xff) <<  0;
+    laddr |= (rxp[ 5] & 0xff) <<  8;
+    laddr |= (rxp[ 6] & 0xff) << 16;
+    laddr |= (rxp[ 7] & 0xff) << 24;
     *addr = laddr;
 
     uint32_t ldata = 0;
-    ldata |= (buf[12] & 0xff) <<  0;
-    ldata |= (buf[13] & 0xff) <<  8;
-    ldata |= (buf[14] & 0xff) << 16;
-    ldata |= (buf[15] & 0xff) << 24;
+    ldata |= (rxp[12] & 0xff) <<  0;
+    ldata |= (rxp[13] & 0xff) <<  8;
+    ldata |= (rxp[14] & 0xff) << 16;
+    ldata |= (rxp[15] & 0xff) << 24;
     *data = ldata;
 }
 
 int main(int argc, char* argv[]) {
     int rx_port = 5556;
     int tx_port = 5555;
-    char* binfile = "build/sw/hello.bin";
+    const char* binfile = "build/sw/hello.bin";
     if (argc >= 2) {
         rx_port = atoi(argv[1]);
     }
