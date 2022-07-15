@@ -1,28 +1,26 @@
 #ifndef __SPSC_QUEUE__
 #define __SPSC_QUEUE__
 
+#include <unistd.h>
+#include <stdatomic.h>
+#include <fcntl.h>
 #include <sys/mman.h>
 
-#define BUFFER_ENTRIES 2000
-#define PACKET_SIZE 32
-
-typedef struct spsc_mmap {
-    int head;
-    int tail;
-    int packets[BUFFER_ENTRIES][PACKET_SIZE];
-} spsc_mmap;
+#define SPSC_QUEUE_CAPACITY 1000
+#define SPSC_QUEUE_PACKET_SIZE 8
+#define SPSC_QUEUE_CACHE_LINE_SIZE 64
 
 typedef struct spsc_queue {
-    int cached_head;
-    int cached_tail;
-    spsc_mmap* m;
+    uint32_t packets[SPSC_QUEUE_CAPACITY][SPSC_QUEUE_PACKET_SIZE];
+    int head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int cached_tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
 } spsc_queue;
 
-static inline void spsc_open(spsc_queue* q, char* name) {
+static inline spsc_queue* spsc_open(char* name) {
     int fd = open(name, O_RDWR);
-    q->cached_head = 0;
-    q->cached_tail = 0;
-    q->m = (spsc_mmap*)mmap(
+    return (spsc_queue*)mmap(
         NULL,
         sizeof(spsc_queue),
         PROT_READ | PROT_WRITE,
@@ -32,44 +30,56 @@ static inline void spsc_open(spsc_queue* q, char* name) {
 	);
 }
 
-static inline int spsc_send(spsc_queue *q, const int* buf) {
+static inline int spsc_send(spsc_queue *q, const uint32_t* buf) {
+    // get pointer to head
     int head;
-    __atomic_load(&q->m->head, &head, __ATOMIC_RELAXED);
+    __atomic_load(&q->head, &head, __ATOMIC_RELAXED);
 
-    if (q->cached_tail == ((head-1)%BUFFER_ENTRIES)) {
-        int tail;
-        __atomic_load(&q->m->tail, &tail, __ATOMIC_ACQUIRE);
-        if (tail == q->cached_tail) {
-            return 0;
-        }
-        q->cached_tail = tail;
+    // compute the head pointer
+    int next_head = head + 1;
+    if (next_head == SPSC_QUEUE_CAPACITY) {
+        next_head = 0;
     }
 
-    memcpy(q->m->packets[head], buf, sizeof(int)*PACKET_SIZE);
+    // if the queue is full, bail out
+    if (next_head == q->cached_tail) {
+        __atomic_load(&q->tail, &q->cached_tail, __ATOMIC_ACQUIRE);
+        if (next_head == q->cached_tail) {
+            return 0;
+        }
+    }
 
-    head = (head+1)%BUFFER_ENTRIES;
-    __atomic_store(&q->m->head, &head, __ATOMIC_RELEASE);
+    // otherwise write in the packet
+    memcpy(q->packets[head], buf, sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE);
+
+    // and update the head pointer
+    __atomic_store(&q->head, &next_head, __ATOMIC_RELEASE);
 
     return 1;
 }
 
-static inline int spsc_recv(spsc_queue* q, int* buf) {
+static inline int spsc_recv(spsc_queue* q, uint32_t* buf) {
+    // get the read pointer
     int tail;
-    __atomic_load(&q->m->tail, &tail, __ATOMIC_RELAXED);
+    __atomic_load(&q->tail, &tail, __ATOMIC_RELAXED);
 
-    if (q->cached_head == tail) {
-        int head;
-        __atomic_load(&q->m->head, &head, __ATOMIC_ACQUIRE);
-        if (head == q->cached_head) {
+    // if the queue is empty, bail out
+    if (tail == q->cached_head) {
+        __atomic_load(&q->head, &q->cached_head, __ATOMIC_ACQUIRE);
+        if (tail == q->cached_head) {
             return 0;
         }
-        q->cached_head = head;
     }
 
-    memcpy(buf, q->m->packets[tail], sizeof(int)*PACKET_SIZE);
+    // otherwise read out the packet
+    memcpy(buf, q->packets[tail], sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE);
 
-    tail = (tail+1)%BUFFER_ENTRIES;
-    __atomic_store(&q->m->tail, &tail, __ATOMIC_RELEASE);
+    // and update the read pointer
+    tail++;
+    if (tail == SPSC_QUEUE_CAPACITY) {
+        tail = 0;
+    }
+    __atomic_store(&q->tail, &tail, __ATOMIC_RELEASE);
 
     return 1;
 }

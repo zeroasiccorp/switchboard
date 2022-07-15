@@ -1,37 +1,49 @@
 #include <sys/time.h>
 #include <thread>
 
-#include "spsc_queue.h"
+#include "spsc_queue.hpp"
 #include "Vtestbench__Dpi.h"
 
 static struct timeval stop_time, start_time;
-static spsc_queue* rxq;
-static spsc_queue* txq;
-uint32_t rxp[SPSC_QUEUE_PACKET_SIZE];
-uint32_t txp[SPSC_QUEUE_PACKET_SIZE];
+static bip::managed_shared_memory rxs;
+static bip::managed_shared_memory txs;
+ring_buffer* rxq;
+ring_buffer* txq;
+
+packet rxp;
+packet txp;
 
 svLogic pi_umi_init(int rx_port, int tx_port) {
     // determine RX URI
     char rx_uri[128];
-    sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-    rxq = spsc_open(rx_uri);
+    sprintf(rx_uri, "shmem-%d", rx_port);
+    rxq = spsc_open(rxs, rx_uri);
 
     // determine TX URI
     char tx_uri[128];
-    sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    txq = spsc_open(tx_uri);
+    sprintf(tx_uri, "shmem-%d", tx_port);
+    txq = spsc_open(txs, tx_uri);
+    txq->reset();
 
     // unused return value
     return 0;
 }
 
 svLogic pi_umi_recv(int* success, svBitVecVal* rbuf){
-    *success =  spsc_recv(rxq, rbuf);
+    *success = rxq->pop(rxp) ? 1 : 0;
+    if (*success) {
+        for (int i=0; i<PACKET_SIZE; i++){
+            rbuf[i] = rxp[i];
+        }
+    }
     return 0;
 }
 
 svLogic pi_umi_send(int* success, const svBitVecVal* sbuf) {
-    *success = spsc_send(txq, sbuf);
+    for (int i=0; i<PACKET_SIZE; i++){
+        txp[i] = sbuf[i];
+    }
+    *success = txq->push(txp) ? 1 : 0;
     return 0;
 }
 

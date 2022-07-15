@@ -11,7 +11,7 @@ verilator_dpi: verilator_dpi/Vtestbench
 	+rx_port=$(RX_PORT) \
 	+tx_port=$(TX_PORT)
 
-verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv spsc_queue.hpp
+verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv spsc_queue.hpp spsc_queue.h
 	rm -rf verilator_dpi
 	verilator \
 		--cc \
@@ -22,8 +22,7 @@ verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv spsc_queue.hpp
 		--top testbench \
 		-DDPI \
 		-DCYCLES_PER_MEAS=4000000 \
-		-CFLAGS "-std=c++14 -Wno-unknown-warning-option" \
-		-LDFLAGS "-lboost_system -lpthread" \
+		-CFLAGS "-O3 -Wno-unknown-warning-option" \
 		testbench.cc \
 		zmq_dpi.cc \
 		../verilator/config.vlt \

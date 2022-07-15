@@ -18,6 +18,15 @@ def main(start_port=5555, n_chips=10):
     parser.add_argument('--sim', default='verilator')
     args = parser.parse_args()
 
+    # create the files of interest
+    for k in range(n_chips+1):
+        name = f'/tmp/feeds-{start_port+k}'
+        if os.path.exists(name):
+            os.remove(name)
+        with open(name, 'wb') as f:
+            f.truncate(65536)
+        os.chmod(name, 0o666)
+
     # chips
     for k in range(n_chips):
         p = start_chip(
