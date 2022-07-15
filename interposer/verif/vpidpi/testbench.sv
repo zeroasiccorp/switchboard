@@ -29,8 +29,8 @@ module testbench(
 	// DPI imports
 	`ifdef DPI
 		import "DPI-C" function pi_umi_init (input int rx_port, input int tx_port);
-		import "DPI-C" function pi_umi_recv (output int success, output bit [7:0] rbuf [0:31]);
-		import "DPI-C" function pi_umi_send (output int success, input bit [7:0] sbuf [0:31]);
+		import "DPI-C" function pi_umi_recv (output int success, output bit [31:0] rbuf [0:7]);
+		import "DPI-C" function pi_umi_send (output int success, input bit [31:0] sbuf [0:7]);
 		import "DPI-C" function pi_time_taken (output real t);
 	`endif
 
@@ -78,7 +78,7 @@ module testbench(
     // UMI RX
 
     integer rx_success;
-	`VAR_BIT [7:0] rbuf [0:31];
+	`VAR_BIT [31:0] rbuf [0:7];
     reg rx_in_progress = 1'b0;
     always @(posedge clk) begin
     	if (rx_in_progress) begin
@@ -100,7 +100,7 @@ module testbench(
     // UMI TX
 
 	integer tx_success;
-	`WIRE_BIT [7:0] sbuf [0:31];
+	`WIRE_BIT [31:0] sbuf [0:7];
 	reg tx_in_progress = 1'b0;
 	always @(posedge clk) begin
 		if (tx_in_progress) begin
@@ -122,9 +122,9 @@ module testbench(
 	// wire up rbuf and sbuf
 	genvar i;
 	generate
-		for (i=0; i<32; i=i+1) begin
-			assign umi_packet_rx[(((i+1)*8)-1):(i*8)] = rbuf[i];
-			assign sbuf[i] = umi_packet_tx[(((i+1)*8)-1):(i*8)];
+		for (i=0; i<8; i=i+1) begin
+			assign umi_packet_rx[(((i+1)*32)-1):(i*32)] = rbuf[i];
+			assign sbuf[i] = umi_packet_tx[(((i+1)*32)-1):(i*32)];
 		end
 	endgenerate
 

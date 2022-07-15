@@ -27,6 +27,8 @@ def main(start_port=5555, n_chips=10):
         )
         atexit.register(p.terminate)
 
+    time.sleep(2)
+
     # client
     client = start_client(
         tx_port=start_port,

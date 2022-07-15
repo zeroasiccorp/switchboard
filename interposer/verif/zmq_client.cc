@@ -39,39 +39,21 @@ void umi_send() {
 }
 
 void dut_send(const uint32_t data, const uint32_t addr){
-    for (int i=0; i<PACKET_SIZE; i++){
-        txp[i] = 0;
-    }
-    
-    txp[ 4] = (addr >>  0) & 0xff;
-    txp[ 5] = (addr >>  8) & 0xff;
-    txp[ 6] = (addr >> 16) & 0xff;
-    txp[ 7] = (addr >> 24) & 0xff;
-
-    txp[12] = (data >>  0) & 0xff;
-    txp[13] = (data >>  8) & 0xff;
-    txp[14] = (data >> 16) & 0xff;
-    txp[15] = (data >> 24) & 0xff;
-
+    txp[0] = 0;
+    txp[1] = addr;
+    txp[2] = 0;
+    txp[3] = data;
+    txp[4] = 0;
+    txp[5] = 0;
+    txp[6] = 0;
+    txp[7] = 0;
     umi_send();
 }
 
 void dut_recv(uint32_t* data, uint32_t* addr){
     umi_recv();
-
-    uint32_t laddr = 0;
-    laddr |= (rxp[ 4] & 0xff) <<  0;
-    laddr |= (rxp[ 5] & 0xff) <<  8;
-    laddr |= (rxp[ 6] & 0xff) << 16;
-    laddr |= (rxp[ 7] & 0xff) << 24;
-    *addr = laddr;
-
-    uint32_t ldata = 0;
-    ldata |= (rxp[12] & 0xff) <<  0;
-    ldata |= (rxp[13] & 0xff) <<  8;
-    ldata |= (rxp[14] & 0xff) << 16;
-    ldata |= (rxp[15] & 0xff) << 24;
-    *data = ldata;
+    *addr = rxp[1];
+    *data = rxp[3];
 }
 
 int main(int argc, char* argv[]) {
