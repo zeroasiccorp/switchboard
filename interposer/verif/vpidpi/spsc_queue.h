@@ -2,7 +2,6 @@
 #define __SPSC_QUEUE__
 
 #include <unistd.h>
-#include <stdatomic.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 

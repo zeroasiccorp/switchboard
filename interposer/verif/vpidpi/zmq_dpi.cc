@@ -1,5 +1,6 @@
 #include <sys/time.h>
-#include <thread>
+#include <stdio.h>
+#include <string.h>
 
 #include "spsc_queue.h"
 #include "Vtestbench__Dpi.h"
