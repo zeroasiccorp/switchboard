@@ -8,8 +8,8 @@
 static struct timeval stop_time, start_time;
 static spsc_queue* rxq;
 static spsc_queue* txq;
-uint32_t rxp[SPSC_QUEUE_PACKET_SIZE];
-uint32_t txp[SPSC_QUEUE_PACKET_SIZE];
+static uint32_t rxp[SPSC_QUEUE_PACKET_SIZE];
+static uint32_t txp[SPSC_QUEUE_PACKET_SIZE];
 
 svLogic pi_umi_init(int rx_port, int tx_port) {
     // determine RX URI
@@ -27,7 +27,7 @@ svLogic pi_umi_init(int rx_port, int tx_port) {
 }
 
 svLogic pi_umi_recv(int* success, svBitVecVal* rbuf){
-    *success =  spsc_recv(rxq, rbuf);
+    *success = spsc_recv(rxq, rbuf);
     return 0;
 }
 

@@ -49,7 +49,7 @@ static inline int spsc_send(spsc_queue *q, const uint32_t* buf) {
     }
 
     // otherwise write in the packet
-    memcpy(q->packets[head], buf, sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE);
+    memcpy(q->packets[head], buf, 32);
 
     // and update the head pointer
     __atomic_store(&q->head, &next_head, __ATOMIC_RELEASE);
@@ -71,7 +71,7 @@ static inline int spsc_recv(spsc_queue* q, uint32_t* buf) {
     }
 
     // otherwise read out the packet
-    memcpy(buf, q->packets[tail], sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE);
+    memcpy(buf, q->packets[tail], 32);
 
     // and update the read pointer
     tail++;
