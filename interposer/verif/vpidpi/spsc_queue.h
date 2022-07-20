@@ -83,4 +83,35 @@ static inline int spsc_recv(spsc_queue* q, uint32_t* buf) {
     return 1;
 }
 
+static inline void spsc_to_recv_contiguous(spsc_queue* q, int* n, uint32_t** buf) {
+    // get the read pointer
+    int tail;
+    __atomic_load(&q->tail, &tail, __ATOMIC_RELAXED);
+
+    if (tail > q->cached_head) {
+        // no need to even update the cached head, since we know
+        // that there is a contiguous segment to the end of the buffer
+        *n = SPSC_QUEUE_CAPACITY - tail;
+    } else {
+        __atomic_load(&q->head, &q->cached_head, __ATOMIC_ACQUIRE);
+        *n = (q->cached_head - tail);
+    }
+
+    *buf = q->packets[tail];
+}
+
+static inline void spsc_mark_received(spsc_queue* q, int n) {
+    // get the read pointer
+    int tail;
+    __atomic_load(&q->tail, &tail, __ATOMIC_RELAXED);
+
+    // and update the read pointer
+    tail += n;
+    if (tail >= SPSC_QUEUE_CAPACITY) {
+        tail -= SPSC_QUEUE_CAPACITY;
+    }
+
+    __atomic_store(&q->tail, &tail, __ATOMIC_RELEASE);
+}
+
 #endif // _SPSC_QUEUE

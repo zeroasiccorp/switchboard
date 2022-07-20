@@ -40,18 +40,16 @@ void tcp_write_loop(struct sockaddr_in* serv_addr, spsc_queue* q) {
         sched_yield();
     }
 
-    int i;
-    uint32_t buf[SPSC_QUEUE_CAPACITY][SPSC_QUEUE_PACKET_SIZE];
+    int n;
+    uint32_t* buf;
     while (1) {
         // receive packets into a buffer
-        i = 0;
-        while ((spsc_recv(q, buf[i]) != 0) && (i < SPSC_QUEUE_CAPACITY)) {
-            i++;
-        }
+        spsc_to_recv_contiguous(q, &n, &buf);
 
         // send packets over the socket
-        if (i > 0) {
-            write(sockfd, buf, sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE*i);
+        if (n > 0) {
+            write(sockfd, buf, sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE*n);
+            spsc_mark_received(q, n);
         } else {
             sched_yield();
         }
@@ -93,6 +91,7 @@ void tcp_read_loop(struct sockaddr_in* serv_addr, spsc_queue* q, int port) {
 
     // read from socket
     int off = 0;
+    int n;
     uint32_t buf[SPSC_QUEUE_CAPACITY][SPSC_QUEUE_PACKET_SIZE];
     while (1) {
         // receive packets into a buffer
