@@ -1,6 +1,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "umi_intf.h"
 #include "Vtestbench__Dpi.h"
@@ -32,12 +33,12 @@ svLogic pi_umi_init(int rx_port, int tx_port, int mode) {
 }
 
 svLogic pi_umi_recv(int* success, svBitVecVal* rbuf){
-    *success = spsc_recv(rxq, rbuf);
+    *success = spsc_recv(rxq, (uint8_t*)rbuf, 32);
     return 0;
 }
 
 svLogic pi_umi_send(int* success, const svBitVecVal* sbuf) {
-    *success = spsc_send(txq, sbuf);
+    *success = spsc_send(txq, (uint8_t*)sbuf, 32);
     return 0;
 }
 

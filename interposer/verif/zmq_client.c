@@ -9,8 +9,8 @@
 struct timeval stop_time, start_time;
 spsc_queue* rxq;
 spsc_queue* txq;
-uint32_t rxp[SPSC_QUEUE_PACKET_SIZE] = {0};
-uint32_t txp[SPSC_QUEUE_PACKET_SIZE] = {0};
+uint32_t rxp[8] = {0};
+uint32_t txp[8] = {0};
 
 void my_umi_init(int rx_port, int tx_port, int mode) {
     // determine URIs
@@ -32,13 +32,13 @@ void my_umi_init(int rx_port, int tx_port, int mode) {
 }
 
 void my_umi_recv() {
-    while (spsc_recv(rxq, rxp) == 0){
+    while (spsc_recv(rxq, (uint8_t*)rxp, 32) == 0){
         sched_yield();
     }
 }
 
 void my_umi_send() {
-    while (spsc_send(txq, txp) == 0) {
+    while (spsc_send(txq, (uint8_t*)txp, 32) == 0) {
         sched_yield();
     }
 }

@@ -41,15 +41,15 @@ void tcp_write_loop(struct sockaddr_in* serv_addr, spsc_queue* q) {
     }
 
     int n;
-    uint32_t* buf;
+    uint8_t* buf;
     while (1) {
         // receive packets into a buffer
         spsc_to_recv_contiguous(q, &n, &buf);
 
         // send packets over the socket
         if (n > 0) {
-            write(sockfd, buf, sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE*n);
-            spsc_mark_received(q, n);
+            int n_written = write(sockfd, buf, n);
+            spsc_mark_received(q, n_written);
         } else {
             sched_yield();
         }
@@ -90,26 +90,17 @@ void tcp_read_loop(struct sockaddr_in* serv_addr, spsc_queue* q, int port) {
     }
 
     // read from socket
-    int off = 0;
     int n;
-    uint32_t buf[SPSC_QUEUE_CAPACITY][SPSC_QUEUE_PACKET_SIZE];
+    uint8_t* buf;
     while (1) {
         // receive packets into a buffer
-        uint8_t* ptr = (uint8_t*)(buf[0]) + off;
-        int n_bytes = read(newsockfd, ptr, (sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE*SPSC_QUEUE_CAPACITY) - off);
+        spsc_to_send_contiguous(q, &n, &buf);
         
-        // send all complete packets
-        int n_packets = n_bytes / (sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE);
-        for (int i=0; i<n_packets; i++) {
-            while(spsc_send(q, buf[i]) == 0) {
-                sched_yield();
-            }
-        }
-        
-        // deal with packet tearing
-        off = n_bytes - (n_packets*sizeof(uint32_t)*SPSC_QUEUE_PACKET_SIZE);
-        if ((off != 0) && (n_packets >= 1)) {
-            memcpy(buf[0], buf[n_packets], off);
+        if (n > 0){
+            int n_read = read(newsockfd, buf, n);
+            spsc_mark_sent(q, n_read);
+        } else {
+            sched_yield();
         }
     }
 }
