@@ -11,7 +11,7 @@ verilator_dpi: verilator_dpi/Vtestbench
 	+rx_port=$(RX_PORT) \
 	+tx_port=$(TX_PORT)
 
-verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv spsc_queue.hpp spsc_queue.h
+verilator_dpi/Vtestbench: testbench.cc zmq_dpi.cc testbench.sv spsc_queue.hpp spsc_queue.h umi_intf.h
 	rm -rf verilator_dpi
 	verilator \
 		--cc \

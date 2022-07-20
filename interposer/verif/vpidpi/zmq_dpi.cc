@@ -2,27 +2,32 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "spsc_queue.h"
+#include "umi_intf.h"
 #include "Vtestbench__Dpi.h"
 
 static struct timeval stop_time, start_time;
 static spsc_queue* rxq;
 static spsc_queue* txq;
-static uint32_t rxp[SPSC_QUEUE_PACKET_SIZE];
-static uint32_t txp[SPSC_QUEUE_PACKET_SIZE];
 
-svLogic pi_umi_init(int rx_port, int tx_port) {
-    // determine RX URI
+svLogic pi_umi_init(int rx_port, int tx_port, int mode) {
+    // determine URIs
     char rx_uri[128];
-    sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-    rxq = spsc_open(rx_uri);
-
-    // determine TX URI
     char tx_uri[128];
-    sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    txq = spsc_open(tx_uri);
+    if (mode == UMI_QUEUE) {
+        sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
+        sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
+    } else if (mode == UMI_TCP) {
+        sprintf(rx_uri, "127.0.0.1:%d", rx_port);
+        sprintf(tx_uri, "127.0.0.1:%d", tx_port);
+    } else {
+        fprintf(stderr, "Unknown interface mode.\n");
+        exit(1);
+    }
 
-    // unused return value
+    rxq = umi_init(rx_uri, false, (umi_mode)mode);
+    txq = umi_init(tx_uri, true, (umi_mode)mode);
+
+    // return unused value
     return 0;
 }
 

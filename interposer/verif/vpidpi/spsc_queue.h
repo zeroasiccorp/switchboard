@@ -17,7 +17,7 @@ typedef struct spsc_queue {
     int cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
 } spsc_queue;
 
-static inline spsc_queue* spsc_open(char* name) {
+static inline spsc_queue* spsc_open(const char* name) {
     int fd = open(name, O_RDWR);
     return (spsc_queue*)mmap(
         NULL,

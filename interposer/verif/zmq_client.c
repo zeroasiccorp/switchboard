@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sched.h>
+#include <sys/time.h>
 
-#include "vpidpi/spsc_queue.h"
+#include "vpidpi/umi_intf.h"
 
 struct timeval stop_time, start_time;
 spsc_queue* rxq;
@@ -11,25 +12,32 @@ spsc_queue* txq;
 uint32_t rxp[SPSC_QUEUE_PACKET_SIZE] = {0};
 uint32_t txp[SPSC_QUEUE_PACKET_SIZE] = {0};
 
-void umi_init(int rx_port, int tx_port) {
-    // determine RX URI
+void my_umi_init(int rx_port, int tx_port, int mode) {
+    // determine URIs
     char rx_uri[128];
-    sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
-    rxq = spsc_open(rx_uri);
-
-    // determine TX URI
     char tx_uri[128];
-    sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
-    txq = spsc_open(tx_uri);
+    if (mode == UMI_QUEUE) {
+        sprintf(rx_uri, "/tmp/feeds-%d", rx_port);
+        sprintf(tx_uri, "/tmp/feeds-%d", tx_port);
+    } else if (mode == UMI_TCP) {
+        sprintf(rx_uri, "127.0.0.1:%d", rx_port);
+        sprintf(tx_uri, "127.0.0.1:%d", tx_port);
+    } else {
+        fprintf(stderr, "Unknown interface mode.\n");
+        exit(1);
+    }
+
+    rxq = umi_init(rx_uri, false, (umi_mode)mode);
+    txq = umi_init(tx_uri, true, (umi_mode)mode);
 }
 
-void umi_recv() {
+void my_umi_recv() {
     while (spsc_recv(rxq, rxp) == 0){
         sched_yield();
     }
 }
 
-void umi_send() {
+void my_umi_send() {
     while (spsc_send(txq, txp) == 0) {
         sched_yield();
     }
@@ -38,11 +46,11 @@ void umi_send() {
 void dut_send(const uint32_t data, const uint32_t addr){
     txp[1] = addr;
     txp[3] = data;
-    umi_send();
+    my_umi_send();
 }
 
 void dut_recv(uint32_t* data, uint32_t* addr){
-    umi_recv();
+    my_umi_recv();
     *addr = rxp[1];
     *data = rxp[3];
 }
@@ -50,6 +58,7 @@ void dut_recv(uint32_t* data, uint32_t* addr){
 int main(int argc, char* argv[]) {
     int rx_port = 5556;
     int tx_port = 5555;
+    int intf_mode = 0;
     const char* binfile = "build/sw/hello.bin";
     if (argc >= 2) {
         rx_port = atoi(argv[1]);
@@ -58,10 +67,16 @@ int main(int argc, char* argv[]) {
         tx_port = atoi(argv[2]);
     }
     if (argc >= 4) {
-        binfile = argv[3];
+        intf_mode = atoi(argv[3]);
     }
-    
-    umi_init(rx_port, tx_port);
+    if (argc >= 5) {
+        binfile = argv[4];
+    }    
+
+    my_umi_init(rx_port, tx_port, intf_mode);
+
+    gettimeofday(&start_time, NULL);
+
     dut_send(0, 0x20000000);
 
     FILE *ptr;
@@ -87,6 +102,7 @@ int main(int argc, char* argv[]) {
 
         waddr += 4;
     }
+
     dut_send(1, 0x20000000);
     uint16_t exit_code;
     uint32_t data, addr;
@@ -106,5 +122,15 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    gettimeofday(&stop_time, NULL);
+
+    unsigned long t_us = 0;
+    t_us += ((stop_time.tv_sec - start_time.tv_sec) * 1000000);
+    t_us += (stop_time.tv_usec - start_time.tv_usec);
+    double t = 1.0e-6*t_us;
+
+    printf("Time taken: %0.3f ms\n", t*1.0e3);
+
     return exit_code;
 }

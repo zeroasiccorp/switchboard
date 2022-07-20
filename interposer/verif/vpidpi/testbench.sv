@@ -28,7 +28,7 @@ module testbench(
 
 	// DPI imports
 	`ifdef DPI
-		import "DPI-C" function pi_umi_init (input int rx_port, input int tx_port);
+		import "DPI-C" function pi_umi_init (input int rx_port, input int tx_port, input int mode);
 		import "DPI-C" function pi_umi_recv (output int success, output bit [31:0] rbuf [0:7]);
 		import "DPI-C" function pi_umi_send (output int success, input bit [31:0] sbuf [0:7]);
 		import "DPI-C" function pi_time_taken (output real t);
@@ -61,6 +61,7 @@ module testbench(
 	// Initialize UMI
 	integer rx_port;
 	integer tx_port;
+	integer intf_mode;
 	initial begin
 		// read command-line arguments
 		if (!$value$plusargs("rx_port=%d", rx_port)) begin
@@ -69,9 +70,12 @@ module testbench(
 		if (!$value$plusargs("tx_port=%d", tx_port)) begin
 			tx_port = 5556;
 		end
+		if (!$value$plusargs("mode=%d", intf_mode)) begin
+			intf_mode = 0;
+		end
 
 		/* verilator lint_off IGNOREDRETURN */
-		`PI(pi_umi_init)(rx_port, tx_port);
+		`PI(pi_umi_init)(rx_port, tx_port, intf_mode);
 		/* verilator lint_on IGNOREDRETURN */
 	end
 
