@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         tx_port = atoi(argv[2]);
     }
 
-    const char* binfile = "apps/hello.bin";
+    const char* binfile = "riscv/hello.bin";
     if (argc >= 4) {
         binfile = argv[3];
     }    

@@ -18,22 +18,22 @@ module umi_rx_sim (
 			$pi_umi_init(id, uri, 0);
 		endtask
 
-		task pi_umi_recv(input int id, output [31:0] rbuf [0:7], output int success);
+		task pi_umi_recv(input int id, output [255:0] rbuf, output int success);
 			$pi_umi_recv(id, rbuf, success);
 		endtask
 
-		reg [31:0] rbuf [0:7];
+		reg [255:0] rbuf;
 	`else
-		import "DPI-C" function pi_umi_init(output int id, input string uri, input int is_tx);
-		import "DPI-C" function pi_umi_recv(input int id, output bit [31:0] rbuf [0:7], output int success);
+		import "DPI-C" function void pi_umi_init(output int id, input string uri, input int is_tx);
+		import "DPI-C" function void pi_umi_recv(input int id, output bit [255:0] rbuf, output int success);
 
-		function init(input string uri);
+		function void init(input string uri);
 			/* verilator lint_off IGNOREDRETURN */
 			pi_umi_init(id, uri, 0);
 			/* verilator lint_on IGNOREDRETURN */
 		endfunction
 
-		var bit [31:0] rbuf [0:7];
+		var bit [255:0] rbuf;
 	`endif
 
 	// main logic
@@ -58,12 +58,6 @@ module umi_rx_sim (
 	// wire up I/O
 
 	assign valid = valid_reg;
-
-	genvar i;
-	generate
-		for (i=0; i<8; i=i+1) begin
-			assign packet[(((i+1)*32)-1):(i*32)] = rbuf[i];
-		end
-	endgenerate
+	assign packet = rbuf;
 
 endmodule

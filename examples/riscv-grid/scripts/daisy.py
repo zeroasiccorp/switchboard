@@ -1,28 +1,20 @@
 #!/usr/bin/env python
 
-import os
+import time
 import atexit
 import subprocess
 import argparse
-import time
 
 from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
+EXAMPLE_DIR = THIS_DIR.parent
 
 def main(start_port=5555, n_chips=10):
     parser = argparse.ArgumentParser()
     parser.add_argument('--sim', default='verilator')
-    parser.add_argument('--mode', type=str, default='queue')
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
-
-    # initialize queues
-    if args.mode == 'queue':
-        for k in range(n_chips+1):
-            name = f'/tmp/boost_interprocess/queue-{start_port+k}'
-            if os.path.exists(name):
-                os.remove(name)
 
     # chips
     for k in range(n_chips):
@@ -34,13 +26,11 @@ def main(start_port=5555, n_chips=10):
         )
         atexit.register(p.terminate)
 
-    time.sleep(2)
-
     # client
     client = start_client(
         tx_port=start_port,
         rx_port=start_port+n_chips,
-        bin = THIS_DIR / 'apps' / 'daisy.bin',
+        bin = EXAMPLE_DIR / 'riscv' / 'daisy.bin',
         verbose=args.verbose
     )
 
@@ -50,7 +40,7 @@ def main(start_port=5555, n_chips=10):
 def start_chip(rx_port, tx_port, sim='verilator', verbose=False):
     cmd = []
     if sim == 'verilator':
-        cmd += [THIS_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
+        cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
     else:
         raise Exception(f'Unknown simulator: {sim}')
     cmd += [f'+rx_port={rx_port}']
@@ -70,7 +60,7 @@ def start_chip(rx_port, tx_port, sim='verilator', verbose=False):
 
 def start_client(rx_port, tx_port, bin, verbose=False):
     cmd = []
-    cmd += [THIS_DIR / 'cpp' / 'client']
+    cmd += [EXAMPLE_DIR / 'cpp' / 'client']
     cmd += [rx_port]
     cmd += [tx_port]
     cmd += [bin]

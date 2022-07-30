@@ -9,7 +9,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module zverif_top (
+module dut (
 	input clk,
 	output trap,
 	output trace_valid,

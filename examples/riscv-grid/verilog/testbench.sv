@@ -1,5 +1,3 @@
-`timescale 1ns/1ps
-
 module testbench (
 	`ifdef VERILATOR
 		input clk
@@ -27,7 +25,7 @@ module testbench (
 	reg umi_ready_tx = 1'b0;
 
     // instantiate top-level module
-    zverif_top zverif_top_i (
+    dut dut_i (
 	    .clk(clk),
 	    .trap(),
 	    .trace_valid(),

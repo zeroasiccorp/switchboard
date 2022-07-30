@@ -7,17 +7,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    extern svLogic pi_umi_init(int* id, const char* uri, int is_tx);
-    extern svLogic pi_umi_recv(int id, svBitVecVal* rbuf, int* success);
-    extern svLogic pi_umi_send(int id, const svBitVecVal* sbuf, int* success);
-    extern svLogic pi_time_taken(double* t);
+    extern void pi_umi_init(int* id, const char* uri, int is_tx);
+    extern void pi_umi_recv(int id, svBitVecVal* rbuf, int* success);
+    extern void pi_umi_send(int id, const svBitVecVal* sbuf, int* success);
+    extern void pi_time_taken(double* t);
 #ifdef __cplusplus
 }
 #endif
 
 static std::array<UmiConnection, 2> connections;
 
-svLogic pi_umi_init(int* id, const char* uri, int is_tx) {
+void pi_umi_init(int* id, const char* uri, int is_tx) {
     static int cur_id = 0;
 
     // make sure that we haven't run out of space
@@ -31,12 +31,9 @@ svLogic pi_umi_init(int* id, const char* uri, int is_tx) {
 
     // increment the ID counter
     cur_id++;
-
-    // return unused value
-    return 0;
 }
 
-svLogic pi_umi_recv(int id, svBitVecVal* rbuf, int* success) {
+void pi_umi_recv(int id, svBitVecVal* rbuf, int* success) {
     umi_packet p;
     
     if (connections[id].recv(p)) {
@@ -44,13 +41,10 @@ svLogic pi_umi_recv(int id, svBitVecVal* rbuf, int* success) {
         *success = 1;
     } else {
         *success = 0;
-    }
-
-    // return unused value
-    return 0;    
+    } 
 }
 
-svLogic pi_umi_send(int id, const svBitVecVal* sbuf, int* success) {
+void pi_umi_send(int id, const svBitVecVal* sbuf, int* success) {
     umi_packet p;
     memcpy(&p, sbuf, 32);  // TODO: possible to remove this?
     
@@ -59,12 +53,9 @@ svLogic pi_umi_send(int id, const svBitVecVal* sbuf, int* success) {
     } else {
         *success = 0;
     }
-
-    // return unused value
-    return 0;  
 }
 
-svLogic pi_time_taken(double* t) {
+void pi_time_taken(double* t) {
     static std::chrono::steady_clock::time_point start_time;
     static std::chrono::steady_clock::time_point stop_time;
 
@@ -72,7 +63,4 @@ svLogic pi_time_taken(double* t) {
 	stop_time = std::chrono::steady_clock::now();
     *t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
     start_time = std::chrono::steady_clock::now();
-
-    // unused return value
-    return 0;
 }

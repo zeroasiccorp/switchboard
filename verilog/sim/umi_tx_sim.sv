@@ -18,22 +18,27 @@ module umi_tx_sim (
 			$pi_umi_init(id, uri, 0);
 		endtask
 
-		task pi_umi_send(input int id, input [31:0] sbuf [0:7], output int success);
+		task pi_umi_send(input int id, input [255:0] sbuf, output int success);
 			$pi_umi_send(id, sbuf, success);
 		endtask
 
-		wire [31:0] sbuf [0:7];
+		wire [255:0] sbuf;
 	`else
-		import "DPI-C" function pi_umi_init (output int id, input string uri, input int is_tx);
-		import "DPI-C" function pi_umi_send (input int id, input bit [31:0] sbuf [0:7], output int success);
+		import "DPI-C" function void pi_umi_init (output int id, input string uri, input int is_tx);
+		import "DPI-C" function void pi_umi_send (input int id, input bit [255:0] sbuf, output int success);
 
-		function init(input string uri);
+		function void init(input string uri);
 			/* verilator lint_off IGNOREDRETURN */
 			pi_umi_init(id, uri, 0);
 			/* verilator lint_on IGNOREDRETURN */
 		endfunction
 
-		wire bit [31:0] sbuf [0:7];
+		// TODO: is this variable really necessary?  perhaps it is optimized
+		// away by verilator, but if not, it might be worth removing, since
+		// its only purpose is to convert the type of the packet signal from
+		// "logic" (default) to "bit".  in Verilator, all signals are 2-level
+		// anyway, so this should have no effect...
+		wire bit [255:0] sbuf;
 	`endif
 
     // main logic
@@ -58,12 +63,6 @@ module umi_tx_sim (
 	// wire up I/O
 
 	assign ready = ready_reg;
-
-	genvar i;
-	generate
-		for (i=0; i<8; i=i+1) begin
-			assign sbuf[i] = packet[(((i+1)*32)-1):(i*32)];
-		end
-	endgenerate
+	assign sbuf = packet;
 
 endmodule
