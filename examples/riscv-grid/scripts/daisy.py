@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import time
+import os
+import platform
 import atexit
 import subprocess
 import argparse
@@ -10,11 +11,25 @@ from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
 
+# figure out where shared memory queues are located
+if platform.system() == 'Darwin':
+    SHMEM_DIR = Path('/tmp/boost_interprocess')
+else:
+    SHMEM_DIR = Path('/dev/shm')
+
 def main(start_port=5555, n_chips=10):
     parser = argparse.ArgumentParser()
     parser.add_argument('--sim', default='verilator')
     parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
+
+    # clean up old queues if present
+    for k in range(n_chips+1):
+        filename = str(SHMEM_DIR / f'queue-{start_port+k}')
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
 
     # chips
     for k in range(n_chips):
