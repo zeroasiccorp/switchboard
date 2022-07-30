@@ -2,7 +2,7 @@
 # see https://github.com/nektos/act
 
 name: Regression
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   verilator:
@@ -11,11 +11,19 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
-  
-      - name: Run RTL simulation
+
+      - name: Install prerequisites
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libboost-all-dev
-          cd examples/riscv-grid
-          make hello > tee out.log
+          sudo apt-get install -y \
+            verilator \
+            gcc-riscv64-unknown-elf \
+            binutils-riscv64-unknown-elf \
+            libboost-all-dev
+
+      - name: Run RTL simulation
+        working-directory: examples/riscv-grid
+        run: |
+          make hello > out.log
+          cat out.log
           grep -Fxq "Hello World!" out.log
