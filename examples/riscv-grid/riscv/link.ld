@@ -33,5 +33,5 @@ SECTIONS
     . = ALIGN(4);
     PROVIDE(__end_addr = .);
 
-    PROVIDE(__stack_top = ORIGIN(RAM) + LENGTH(RAM));
+    PROVIDE(__stack_top = ORIGIN(RAM) + LENGTH(RAM) - 128);
 }

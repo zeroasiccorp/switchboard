@@ -10,7 +10,6 @@ OBJCOPY := $(RISCV_PREFIX)objcopy
 
 %.elf: %.c device.h init.s link.ld
 	$(GCC) \
-	-O3 \
 	-mabi=ilp32 \
 	-march=rv32im \
 	-static \

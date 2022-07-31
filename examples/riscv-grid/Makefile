@@ -1,16 +1,24 @@
 .PHONY: hello
-hello:
+hello: prereqs
 	make -C riscv hello.bin
-	make -C cpp client
-	make -C verilator obj_dir/Vtestbench
-	./scripts/hello.sh
+	./scripts/hello.py
 
-.PHONY: daisy
-daisy:
-	make -C riscv daisy.bin
+.PHONY: grid
+grid: prereqs
+	make -C riscv grid.bin
+	./scripts/grid.py
+
+# not working
+.PHONY: addloop
+addloop: prereqs
+	make -C riscv addloop.bin
+	./scripts/grid.py --rows 1 --cols 5 --binfile riscv/addloop.bin --verbose
+
+.PHONY: prereqs
+prereqs:
 	make -C cpp client
 	make -C verilator obj_dir/Vtestbench
-	./scripts/daisy.py
+	make -C ../../models router
 
 .PHONY: clean
 clean:

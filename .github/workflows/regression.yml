@@ -2,7 +2,7 @@
 # see https://github.com/nektos/act
 
 name: Regression
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   verilator:

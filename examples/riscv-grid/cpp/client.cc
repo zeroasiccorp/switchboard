@@ -19,10 +19,16 @@ void init(int rx_port, int tx_port) {
     tx.init(tx_uri, true, false);
 }
 
-void dut_send(const uint32_t data, const uint32_t addr){
+void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, const uint32_t col){
     // format the packet
     umi_packet p = {0};
     umi_pack(p, data, addr);
+
+    // add row/col information
+    // TODO: cleanup
+    p[7] = 0;
+    p[7] |= (row & 0xf) << 24;
+    p[7] |= (col & 0xf) << 16;
 
     // send the packet
     while (!tx.send(p)) {
@@ -41,32 +47,9 @@ void dut_recv(uint32_t& data, uint32_t& addr){
     umi_unpack(p, data, addr);
 }
 
-int main(int argc, char* argv[]) {
-    // process command-line arguments
-
-    int rx_port = 5556;
-    if (argc >= 2) {
-        rx_port = atoi(argv[1]);
-    }
-
-    int tx_port = 5555;
-    if (argc >= 3) {
-        tx_port = atoi(argv[2]);
-    }
-
-    const char* binfile = "riscv/hello.bin";
-    if (argc >= 4) {
-        binfile = argv[3];
-    }    
-
-    // set up UMI ports
-    init(rx_port, tx_port);
-
-    // start measuring time taken here
-    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-
+void init_chip(int row, int col, int rows, int cols, const char* binfile) {
     // put the DUT into reset
-    dut_send(0, 0x20000000);
+    dut_send(0, 0x400000, row, col);
 
     // write program
     std::ifstream file(binfile, std::ios::in|std::ios::binary);
@@ -77,24 +60,78 @@ int main(int argc, char* argv[]) {
         file.read((char*)&data, 4);
 
         // write value
-        dut_send(data, waddr);
+        dut_send(data, waddr, row, col);
 
         // increment address
         waddr += 4;
     } while(file);
 
+    // write chiplet index and rows/cols
+    uint32_t memory_size = 1 << 17;
+    dut_send(row,  memory_size - 4,  row, col);
+    dut_send(col,  memory_size - 8,  row, col);
+    dut_send(rows, memory_size - 12, row, col);
+    dut_send(cols, memory_size - 16, row, col);
+    dut_send(0, memory_size - 20, row, col); // clear for CPU-CPU communication
+
     // take DUT out of reset
-    dut_send(1, 0x20000000);
+    dut_send(1, 0x400000, row, col);
+}
+
+int main(int argc, char* argv[]) {
+    // process command-line arguments
+
+    int rows = 1;
+    if (argc >= 2) {
+        rows = atoi(argv[1]);
+    }
+
+    int cols = 1;
+    if (argc >= 3) {
+        cols = atoi(argv[2]);
+    }
+
+    int rx_port = 5556;
+    if (argc >= 4) {
+        rx_port = atoi(argv[3]);
+    }
+
+    int tx_port = 5555;
+    if (argc >= 5) {
+        tx_port = atoi(argv[4]);
+    }
+
+    const char* binfile = "riscv/hello.bin";
+    if (argc >= 6) {
+        binfile = argv[5];
+    }    
+
+    // set up UMI ports
+    init(rx_port, tx_port);
+
+    // start measuring time taken here
+    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+
+    for (int row=0; row<rows; row++) {
+        for (int col=0; col<cols; col++) {
+            if ((row == 0) && (col == 0)) {
+                // skip since this is where the client resides
+                continue;
+            } else {
+                init_chip(row, col, rows, cols, binfile);
+            }
+        }
+    }
 
     // receive characters sent by DUT
     uint16_t exit_code;
     uint32_t data, addr;
     while(1){
         dut_recv(data, addr);
-        if (addr == 0x10000000) {
+        if (addr == 0x500000) {
             printf("%c", data & 0xff);
             fflush(stdout);
-        } else if (addr == 0x10000008) {
+        } else if (addr == 0x600000) {
             uint16_t kind = data & 0xffff;
             if (kind == 0x3333) {
                 exit_code = (data >> 16) & 0xffff;

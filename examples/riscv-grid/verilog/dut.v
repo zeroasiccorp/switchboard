@@ -167,9 +167,12 @@ module dut (
 		.axi_wready(ctrl_wready),
 		.axi_bvalid(ctrl_bvalid),
 		.axi_bready(ctrl_bready),
-		// clip the "external" bit off the address
-		// when writing to the outside
-		.axi_awaddr({32'h0, 1'b0, ctrl_awaddr[30:0]}),
+		// interpret 32-bit address from process as a 64-bit UMI address:
+		// Bit  31   : Indicates external write
+		// Bits 30-27: Row
+		// Bits 26-23: Col
+		// Bits 22-0 : Local address
+		.axi_awaddr({4'b0, ctrl_awaddr[30:27], 4'b0, ctrl_awaddr[26:23], 16'b0, 9'b0, ctrl_awaddr[22:0]}),
 		.axi_wdata({224'h0, ctrl_wdata}),
 		// UMI interface
 		.umi_packet(umi_packet_tx),
@@ -256,7 +259,7 @@ module dut (
 		.ADDR_WIDTH(32),
 		.M00_BASE_ADDR(0), // RAM
 		.M00_ADDR_WIDTH(32'd17),
-		.M01_BASE_ADDR(32'h20000000), // GPIO
+		.M01_BASE_ADDR(32'h400000), // GPIO
 		.M01_ADDR_WIDTH(32'd1),
 		.M01_CONNECT_READ(1'b0)
 	) iconnect_ext (

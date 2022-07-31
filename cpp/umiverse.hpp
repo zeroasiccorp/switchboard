@@ -17,6 +17,7 @@ typedef boost::lockfree::spsc_queue<umi_packet, boost::lockfree::capacity<1024> 
 
 class UmiConnection {
     public:
+        UmiConnection() : active(false) {}
         void init(const char* uri, bool is_tx, bool is_blocking) {
             // allocate the memory if needed
             // TODO: deal with case that memory region hasn't been created
@@ -25,15 +26,24 @@ class UmiConnection {
 
             // find the queue
             queue = segment.find_or_construct<shared_queue>("q")();
+
+            // mark connection as active
+            active = true;
         }
         bool send(umi_packet& p) {
+            assert(active);
             return queue->push(p);
         }
 
         bool recv(umi_packet& p) {
+            assert(active);
             return queue->pop(p);
         }
+        bool is_active() {
+            return active;
+        }
     private:
+        bool active;
         bip::managed_shared_memory segment;
         shared_queue* queue;
 };
