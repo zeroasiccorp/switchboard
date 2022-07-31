@@ -25,3 +25,4 @@ clean:
 	make -C riscv clean
 	make -C cpp clean
 	make -C verilator clean
+	make -C ../../models clean
