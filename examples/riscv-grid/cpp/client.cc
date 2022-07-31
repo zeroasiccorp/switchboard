@@ -48,9 +48,6 @@ void dut_recv(uint32_t& data, uint32_t& addr){
 }
 
 void init_chip(int row, int col, int rows, int cols, const char* binfile) {
-    // put the DUT into reset
-    dut_send(0, 0x400000, row, col);
-
     // write program
     std::ifstream file(binfile, std::ios::in|std::ios::binary);
     uint32_t waddr = 0;
@@ -73,9 +70,6 @@ void init_chip(int row, int col, int rows, int cols, const char* binfile) {
     dut_send(rows, memory_size - 12, row, col);
     dut_send(cols, memory_size - 16, row, col);
     dut_send(0, memory_size - 20, row, col); // clear for CPU-CPU communication
-
-    // take DUT out of reset
-    dut_send(1, 0x400000, row, col);
 }
 
 int main(int argc, char* argv[]) {
@@ -112,6 +106,23 @@ int main(int argc, char* argv[]) {
     // start measuring time taken here
     std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
+    // put all chips in reset
+    for (int row=0; row<rows; row++) {
+        for (int col=0; col<cols; col++) {
+            if ((row == 0) && (col == 0)) {
+                // skip since this is where the client resides
+                continue;
+            } else {
+                dut_send(0, 0x400000, row, col);
+            }
+        }
+    }
+
+    // program all chips
+    // it's important to not release any chips from reset until
+    // all chip have been programmed, since some might write to
+    // the memory of other chips, and those writes may be clobbered
+    // by the programming operation.
     for (int row=0; row<rows; row++) {
         for (int col=0; col<cols; col++) {
             if ((row == 0) && (col == 0)) {
@@ -119,6 +130,18 @@ int main(int argc, char* argv[]) {
                 continue;
             } else {
                 init_chip(row, col, rows, cols, binfile);
+            }
+        }
+    }
+
+    // release all chips from reset
+    for (int row=0; row<rows; row++) {
+        for (int col=0; col<cols; col++) {
+            if ((row == 0) && (col == 0)) {
+                // skip since this is where the client resides
+                continue;
+            } else {
+                dut_send(1, 0x400000, row, col);
             }
         }
     }

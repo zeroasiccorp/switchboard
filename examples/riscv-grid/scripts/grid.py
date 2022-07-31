@@ -112,11 +112,13 @@ def main():
     # wait for client to complete
     client.wait()
 
-def start_chip(rx_port, tx_port, verbose=False):
+def start_chip(rx_port, tx_port, vcd=False, verbose=False):
     cmd = []
     cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
     cmd += [f'+rx_port={rx_port}']
     cmd += [f'+tx_port={tx_port}']
+    if vcd:
+        cmd += [f'+vcd']
     cmd = [str(elem) for elem in cmd]
 
     if verbose:

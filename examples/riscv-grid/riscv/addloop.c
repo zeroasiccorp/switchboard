@@ -14,12 +14,14 @@ void main() {
 		*((volatile int*)MAIL_ADDR) = 1;
 	}
 
+	int prev_mail = 0;
 	while (1) {
-		// blocking mail read (i.e., wait until it is non-zero)
+		// blocking mail read
 		int mail;
 		do {
 			mail = *((volatile int*)MAIL_ADDR);
-		} while (mail == 0);
+		} while (mail == prev_mail);
+		prev_mail = mail;
 
 		int next_mail;
 		if (mail == 10) {
@@ -58,9 +60,6 @@ void main() {
 			next_row = row;
 			next_col = col+1;
 		}
-
-		// clear mailbox so that we can detect when new mail arrives
-		*((volatile int*)MAIL_ADDR) = 0;
 
 		// send the new mail to the calculated address
 		write_off_chip(next_row, next_col, MAIL_ADDR, next_mail);

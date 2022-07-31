@@ -12,7 +12,7 @@ grid: prereqs
 .PHONY: addloop
 addloop: prereqs
 	make -C riscv addloop.bin
-	./scripts/grid.py --rows 1 --cols 5 --binfile riscv/addloop.bin --verbose
+	./scripts/grid.py --binfile riscv/addloop.bin
 
 .PHONY: prereqs
 prereqs:
