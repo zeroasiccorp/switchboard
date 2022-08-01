@@ -57,10 +57,14 @@ int main(int argc, char* argv[]) {
     // handle incoming packets
     while (true) {
         // round robin over the RX ports
+        bool any_recv = false;
+
         for (int i=0; i<10; i+=2) {
             if (connections[i].is_active()) {
                 umi_packet p;
                 if (connections[i].recv(p)) {
+                    any_recv = true;
+
                     // extract row / column
                     uint32_t packet_row = (p[7] >> 24) & 0xff;
                     uint32_t packet_col = (p[7] >> 16) & 0xff;
@@ -92,6 +96,10 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
+        }
+
+        if (!any_recv) {
+            std::this_thread::yield();
         }
     }
 

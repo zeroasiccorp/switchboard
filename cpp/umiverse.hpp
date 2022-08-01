@@ -30,15 +30,27 @@ class UmiConnection {
             // mark connection as active
             active = true;
         }
+
         bool send(umi_packet& p) {
-            assert(active);
             return queue->push(p);
         }
 
+        bool recv_peek(umi_packet& p) {
+            size_t avail = queue->read_available();
+            if (avail > 0) {
+                p = queue->front();
+            }
+            return avail;
+        }
+
         bool recv(umi_packet& p) {
-            assert(active);
             return queue->pop(p);
         }
+
+        bool recv() {
+            return queue->pop();
+        }
+
         bool is_active() {
             return active;
         }

@@ -134,6 +134,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // 17 ms seems to be the smallest wait that is OK
+    // TODO: use feedback to determine when it is OK
+    // to proceed
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     // release all chips from reset
     for (int row=0; row<rows; row++) {
         for (int col=0; col<cols; col++) {
