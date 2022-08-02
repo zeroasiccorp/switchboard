@@ -25,7 +25,7 @@ Then install the needed prerequisites:
 ### Linux
 
 ```shell
-sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libboost-all-dev
+sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libboost-dev libboost-system-dev
 ```
 
 ### macOS

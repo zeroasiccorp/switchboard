@@ -21,7 +21,8 @@ jobs:
             verilator \
             gcc-riscv64-unknown-elf \
             binutils-riscv64-unknown-elf \
-            libboost-all-dev
+            libboost-dev \
+            libboost-system-dev
 
       - name: Run RTL simulation
         working-directory: examples/riscv-grid
