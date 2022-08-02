@@ -5,7 +5,7 @@ else
 	CPP_LIBS := -lboost_system -pthread -lrt
 endif
 
-%: %.cc ../../../cpp/umiverse.hpp
+%: %.cc ../../../cpp/phiber.hpp
 	g++ -I../../../cpp $< -o $@ $(CPP_LIBS)
 
 .PHONY: clean

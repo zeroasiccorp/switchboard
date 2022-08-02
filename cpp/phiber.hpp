@@ -1,5 +1,5 @@
-#ifndef __UMIVERSE_HPP__
-#define __UMIVERSE_HPP__
+#ifndef __PHIBER_HPP__
+#define __PHIBER_HPP__
 
 #include <boost/lockfree/spsc_queue.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
@@ -109,4 +109,4 @@ static inline void umi_unpack(const umi_packet& p, uint32_t& data, uint32_t& add
     data = p[3];
 }
 
-#endif // __UMIVERSE_HPP__
+#endif // __PHIBER_HPP__
