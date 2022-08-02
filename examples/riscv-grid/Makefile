@@ -1,7 +1,7 @@
 .PHONY: hello
 hello: prereqs
 	make -C riscv hello.bin
-	./scripts/hello.py --verbose
+	./scripts/hello.py
 
 .PHONY: grid
 grid: prereqs
@@ -12,7 +12,7 @@ grid: prereqs
 .PHONY: addloop
 addloop: prereqs
 	make -C riscv addloop.bin
-	./scripts/grid.py --rows 2 --cols 3 --binfile riscv/addloop.bin
+	./scripts/grid.py --rows 2 --cols 3 --binfile riscv/addloop.bin --params 1000 0
 
 .PHONY: prereqs
 prereqs:

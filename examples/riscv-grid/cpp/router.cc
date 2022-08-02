@@ -73,25 +73,26 @@ int main(int argc, char* argv[]) {
     // set up connections
     init(argc, argv);
 
+    int i, j;
+    umi_packet p;
+    uint32_t packet_row, packet_col;
     while (true) {
         // loop over the connections
-        bool any_msg = false;
-        for (int i=0; i<rows; i++) {
-            for (int j=0; j<cols; j++) {
+        for (i=0; i<rows; i++) {
+            for (j=0; j<cols; j++) {
                 if (rx_connections[i][j].is_active()) {
                     // if this connection is active, try to receive a packet
-                    umi_packet p;
                     if (rx_connections[i][j].recv_peek(p)) {
-                        any_msg = true;
-
                         // determine where the packet is headed
-                        uint32_t packet_row = (p[7] >> 24) & 0xff;
-                        uint32_t packet_col = (p[7] >> 16) & 0xff;
+                        packet_row = (p[7] >> 24) & 0xff;
+                        packet_col = (p[7] >> 16) & 0xff;
 
                         // make sure the destination exists and is active
-                        assert((0 <= packet_row) && (packet_row < rows));
-                        assert((0 <= packet_col) && (packet_col < cols));
-                        assert(tx_connections[packet_row][packet_col].is_active());
+                        assert(
+                            (0 <= packet_row) && (packet_row < rows) &&
+                            (0 <= packet_col) && (packet_col < cols) &&
+                            tx_connections[packet_row][packet_col].is_active()
+                        );
 
                         // try to send the packet, removing it from
                         // the RX queue if the send is successful
@@ -101,12 +102,6 @@ int main(int argc, char* argv[]) {
                     }
                 }
             }
-        }
-
-        // if there weren't any messages, yield since there
-        // isn't any communication going on at the moment
-        if (!any_msg) {
-            std::this_thread::yield();
         }
     }
 

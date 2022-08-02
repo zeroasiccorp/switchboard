@@ -53,7 +53,13 @@ module testbench (
 		.valid(umi_valid_tx)
 	);
 
+	// performance measurement
+	perf_meas_sim perf_meas_i (
+		.clk(clk)
+	);
+
 	// Initialize UMI
+	integer cycles_per_meas;
 	integer rx_port;
 	integer tx_port;
 	initial begin
@@ -64,10 +70,14 @@ module testbench (
 		if (!$value$plusargs("tx_port=%d", tx_port)) begin
 			tx_port = 5556;
 		end
+		if (!$value$plusargs("cycles_per_meas=%d", cycles_per_meas)) begin
+			cycles_per_meas = 1000000;
+		end
 
 		/* verilator lint_off IGNOREDRETURN */
 		rx_i.init($sformatf("queue-%0d", rx_port));
 		tx_i.init($sformatf("queue-%0d", tx_port));
+		perf_meas_i.init(cycles_per_meas);
 		/* verilator lint_on IGNOREDRETURN */
 	end
 

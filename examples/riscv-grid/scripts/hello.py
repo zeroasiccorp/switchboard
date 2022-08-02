@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import time
 import platform
 import atexit
 import subprocess
@@ -20,6 +21,7 @@ else:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--extra_time', type=float, default=None)
     args = parser.parse_args()
 
     # clean up old queues if present
@@ -58,6 +60,10 @@ def main():
 
     # wait for client to complete
     client.wait()
+
+    # wait extra time (perhaps too see certain values printed)
+    if args.extra_time is not None:
+        time.sleep(args.extra_time)
 
 def start_chip(rx_port, tx_port, verbose=False):
     cmd = []

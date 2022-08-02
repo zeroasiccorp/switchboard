@@ -15,7 +15,7 @@ module umi_tx_sim (
 
 	`ifdef __ICARUS__
 		task init(input string uri);
-			$pi_umi_init(id, uri, 0);
+			$pi_umi_init(id, uri, 1);
 		endtask
 
 		task pi_umi_send(input int id, input [255:0] sbuf, output int success);
@@ -29,7 +29,7 @@ module umi_tx_sim (
 
 		function void init(input string uri);
 			/* verilator lint_off IGNOREDRETURN */
-			pi_umi_init(id, uri, 0);
+			pi_umi_init(id, uri, 1);
 			/* verilator lint_on IGNOREDRETURN */
 		endfunction
 

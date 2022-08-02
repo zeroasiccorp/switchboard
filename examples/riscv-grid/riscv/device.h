@@ -8,12 +8,8 @@
 #define EXIT_FAIL 0x3333
 #define EXIT_PASS 0x5555
 
-// chiplet addressing
-#define ROW_ADDR  0x1fffc
-#define COL_ADDR  0x1fff8
-#define ROWS_ADDR 0x1fff4
-#define COLS_ADDR 0x1fff0
-#define MAIL_ADDR 0x1ffec
+// TODO: consider defining in the linker script
+#define MEMORY_TOP 0x20000
 
 static inline void write_off_chip(int row, int col, int addr, int data) {
 	int off_chip_addr;

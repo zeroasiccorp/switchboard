@@ -7,16 +7,19 @@
 UmiConnection rx;
 UmiConnection tx;
 
+// don't have this defined in multiple places
+#define PICORV32_MEM_TOP (1<<17)
+
 void init(int rx_port, int tx_port) {
     // RX
     char rx_uri[128];
     sprintf(rx_uri, "queue-%d", rx_port);
-    rx.init(rx_uri, false, false);
+    rx.init(rx_uri, false, true);
 
     // TX
     char tx_uri[128];
     sprintf(tx_uri, "queue-%d", tx_port);
-    tx.init(tx_uri, true, false);
+    tx.init(tx_uri, true, true);
 }
 
 void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, const uint32_t col){
@@ -31,17 +34,13 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
     p[7] |= (col & 0xf) << 16;
 
     // send the packet
-    while (!tx.send(p)) {
-        std::this_thread::yield();
-    }
+    tx.send_blocking(p);
 }
 
 void dut_recv(uint32_t& data, uint32_t& addr){
     // receive packet
     umi_packet p;
-    while (!rx.recv(p)){
-        std::this_thread::yield();
-    }
+    rx.recv_blocking(p);
 
     // parse packet
     umi_unpack(p, data, addr);
@@ -63,41 +62,42 @@ void init_chip(int row, int col, int rows, int cols, const char* binfile) {
         waddr += 4;
     } while(file);
 
-    // write chiplet index and rows/cols
-    uint32_t memory_size = 1 << 17;
-    dut_send(row,  memory_size - 4,  row, col);
-    dut_send(col,  memory_size - 8,  row, col);
-    dut_send(rows, memory_size - 12, row, col);
-    dut_send(cols, memory_size - 16, row, col);
-    dut_send(0, memory_size - 20, row, col); // clear for CPU-CPU communication
+    // write to a certain region of memory to specify the row, col
+    // address of the chip, and the total number of rows and columns
+    dut_send(row,  (uint32_t)(PICORV32_MEM_TOP) -  4, row, col);
+    dut_send(col,  (uint32_t)(PICORV32_MEM_TOP) -  8, row, col);
+    dut_send(rows, (uint32_t)(PICORV32_MEM_TOP) - 12, row, col);
+    dut_send(cols, (uint32_t)(PICORV32_MEM_TOP) - 16, row, col);
 }
 
 int main(int argc, char* argv[]) {
     // process command-line arguments
 
+    int arg_idx = 1;
+
     int rows = 1;
-    if (argc >= 2) {
-        rows = atoi(argv[1]);
+    if (arg_idx < argc) {
+        rows = atoi(argv[arg_idx++]);
     }
 
     int cols = 1;
-    if (argc >= 3) {
-        cols = atoi(argv[2]);
+    if (arg_idx < argc) {
+        cols = atoi(argv[arg_idx++]);
     }
 
     int rx_port = 5556;
-    if (argc >= 4) {
-        rx_port = atoi(argv[3]);
+    if (arg_idx < argc) {
+        rx_port = atoi(argv[arg_idx++]);
     }
 
     int tx_port = 5555;
-    if (argc >= 5) {
-        tx_port = atoi(argv[4]);
+    if (arg_idx < argc) {
+        tx_port = atoi(argv[arg_idx++]);
     }
 
     const char* binfile = "riscv/hello.bin";
-    if (argc >= 6) {
-        binfile = argv[5];
+    if (arg_idx < argc) {
+        binfile = argv[arg_idx++];
     }    
 
     // set up UMI ports
@@ -134,10 +134,32 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // 17 ms seems to be the smallest wait that is OK
-    // TODO: use feedback to determine when it is OK
-    // to proceed
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // write command-line provided parameters into the top of memory
+    // TODO: don't hard-code the memory size
+    int param_idx = 4;  // the first 4 are already populated
+    while (arg_idx < argc) {
+        int param_val = atoi(argv[arg_idx++]);
+        for (int row=0; row<rows; row++) {
+            for (int col=0; col<cols; col++) {
+                if ((row == 0) && (col == 0)) {
+                    // skip since this is where the client resides
+                    continue;
+                } else {
+                    dut_send(param_val, PICORV32_MEM_TOP - 4*(param_idx+1), row, col);
+                }
+            }
+        }
+        param_idx++;
+    }
+
+    // we need to wait for all of the messages from the client to have been
+    // accepted by the router, since this means they have at least been
+    // queued up for writing to the memory of each CPU.  we can then safely
+    // release the reset for all processors, since any inter-CPU writes
+    // will be queued up afterwards
+    while (!tx.all_read()) {
+        std::this_thread::yield();
+    }
 
     // release all chips from reset
     for (int row=0; row<rows; row++) {

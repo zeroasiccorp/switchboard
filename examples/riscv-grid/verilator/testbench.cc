@@ -1,4 +1,6 @@
+#include <cstdio>
 #include <iostream>
+#include <thread>
 
 #include "Vtestbench.h"
 #ifdef USE_VCD
@@ -16,7 +18,7 @@ int main(int argc, char **argv, char **env)
         #ifdef USE_VCD
                 VerilatedVcdC* tfp = NULL;
                 const char* flag_vcd = Verilated::commandArgsPlusMatch("vcd");
-                if (flag_vcd && 0==strcmp(flag_vcd, "+vcd")) {
+                if (flag_vcd && (strcmp(flag_vcd, "+vcd")==0)) {
                         Verilated::traceEverOn(true);
                         tfp = new VerilatedVcdC;
                         top->trace (tfp, 99);
@@ -24,18 +26,39 @@ int main(int argc, char **argv, char **env)
                 }
         #endif
 
-        int t = 0;
+        int yield_every = -1;
+        const char* flag_yield = Verilated::commandArgsPlusMatch("yield_every");
+        if (flag_yield) {
+                std::sscanf(flag_yield, "+yield_every=%d", &yield_every);
+        }
+
+        // main loop
+        int t=0;
+        int yield_count=0;
         top->clk = 0;
         top->eval();
         while (!Verilated::gotFinish()) {
+                // update logic
                 top->clk ^= 1;
                 top->eval();
+
+                // update VCD
                 #ifdef USE_VCD
                         if (tfp) {
                                 tfp->dump (t);
                         }
                 #endif
                 t += 5;
+
+                // yield if needed
+                if ((yield_every != -1) && top->clk) {
+                        if (yield_count >= yield_every) {
+                                yield_count = 0;
+                                std::this_thread::yield();
+                        } else {
+                                yield_count++;
+                        }
+                }
         }
 
         #ifdef USE_VCD

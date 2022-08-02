@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import os
+import time
 import platform
 import atexit
 import subprocess
 import argparse
+import multiprocessing
 
 from pathlib import Path
 from tkinter import E
@@ -25,66 +27,58 @@ def main():
     parser.add_argument('--cols', type=int, default=3)
     parser.add_argument('--binfile', type=str, default=str(EXAMPLE_DIR / 'riscv' / 'grid.bin'))
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--extra_time', type=float, default=None)
+    parser.add_argument('--yield_every', type=int, default=None)
+    parser.add_argument('--params', type=int, nargs='+', default=None)
     args = parser.parse_args()
 
-    # launch all the routers
+    # set defaults
+    if args.yield_every is None:
+        if (args.rows * args.cols) > multiprocessing.cpu_count():
+            # number of active threads is (rows*cols) - 1, since the client mostly yields
+            # then add one extra thread for the router process, which gets us back to rows*cols
+            # we need to be careful if the number of active threads is greater than the hardware
+            # thread count, since in that case the latency is dominated by how often threads
+            # switch.  in the extreme case, yield_every=1, the verilator sims switch every clock
+            # cycle, which provides low latency, but terrible throughput due to the context
+            # switch overhead.  a good value for yield_every can be chosen by increasing it
+            # simulation throughput is reasonably close to the performance without explicit
+            # yielding (say within 10-20% of that value).  the default here seems to be reasonable
+            # for simulations running in the 1-5 MHz range.
+            args.yield_every = 250
+
+    # set up connections
     port = 5555
-    routers = []
+    rx_connections = []
+    tx_connections = []
     for row in range(args.rows):
-        routers.append([])
+        rx_connections.append([])
+        tx_connections.append([])
         for col in range(args.cols):
-            routers[-1].append({})
-            router = routers[-1][-1]
-            
-            # hub
-            router['h_rx'] = port
-            port += 1
-            router['h_tx'] = port
+            rx_connections[-1].append(port)
             port += 1
 
-            # north
-            if row != 0:
-                router['n_rx'] = routers[row-1][col]['s_tx']
-                router['n_tx'] = routers[row-1][col]['s_rx']
-
-            # south
-            if row != (args.rows-1):
-                router['s_rx'] = port
-                port += 1
-                router ['s_tx'] = port
-                port += 1
-
-            # west
-            if col != 0:
-                router['w_rx'] = routers[row][col-1]['e_tx']
-                router['w_tx'] = routers[row][col-1]['e_rx']
-            
-            # east
-            if col != (args.cols-1):
-                router['e_rx'] = port
-                port += 1
-                router ['e_tx'] = port
-                port += 1
+            tx_connections[-1].append(port)
+            port += 1
 
     # clean up old queues if present
     for row in range(args.rows):
         for col in range(args.cols):
-            for port in routers[row][col].values():
+            for port in [rx_connections[row][col], tx_connections[row][col]]:
                 filename = str(SHMEM_DIR / f'queue-{port}')
                 try:
                     os.remove(filename)
                 except OSError:
                     pass
 
-    # start routers
-    for row in range(args.rows):
-        for col in range(args.cols):
-            start_router(
-                row=row,
-                col=col,
-                **routers[row][col],
-                verbose=args.verbose
-            )
+    # start router
+    start_router(
+        rows=args.rows,
+        cols=args.cols,
+        rx_ports = tx_connections,
+        tx_ports = rx_connections,
+        verbose=args.verbose
+    )
 
     # start chips and client
     for row in range(args.rows):
@@ -94,8 +88,9 @@ def main():
                 continue
             else:
                 start_chip(
-                    rx_port=routers[row][col]['h_tx'],
-                    tx_port=routers[row][col]['h_rx'],
+                    rx_port=rx_connections[row][col],
+                    tx_port=tx_connections[row][col],
+                    yield_every=args.yield_every,
                     verbose=args.verbose
                 )
 
@@ -103,22 +98,29 @@ def main():
     client = start_client(
         rows=args.rows,
         cols=args.cols,
-        rx_port=routers[0][0]['h_tx'],
-        tx_port=routers[0][0]['h_rx'],
+        rx_port=rx_connections[0][0],
+        tx_port=tx_connections[0][0],
         bin = Path(args.binfile).resolve(),
+        params = args.params,
         verbose=args.verbose
     )
 
     # wait for client to complete
     client.wait()
 
-def start_chip(rx_port, tx_port, vcd=False, verbose=False):
+    # wait extra time (perhaps too see certain values printed)
+    if args.extra_time is not None:
+        time.sleep(args.extra_time)
+
+def start_chip(rx_port, tx_port, yield_every=None, vcd=False, verbose=False):
     cmd = []
     cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
     cmd += [f'+rx_port={rx_port}']
     cmd += [f'+tx_port={tx_port}']
     if vcd:
         cmd += [f'+vcd']
+    if yield_every is not None:
+        cmd += [f'+yield_every={yield_every}']
     cmd = [str(elem) for elem in cmd]
 
     if verbose:
@@ -133,11 +135,13 @@ def start_chip(rx_port, tx_port, vcd=False, verbose=False):
 
     atexit.register(p.terminate)
 
-def start_router(row=0, col=0, h_rx=0, h_tx=0, n_rx=0, n_tx=0, e_rx=0, e_tx=0,
-    s_rx=0, s_tx=0, w_rx=0, w_tx=0, verbose=False):
+def start_router(rows, cols, rx_ports, tx_ports, verbose=False):
     cmd = []
-    cmd += [TOP_DIR / 'models' / 'router']
-    cmd += [row, col, h_rx, h_tx, n_rx, n_tx, e_rx, e_tx, s_rx, s_tx, w_rx, w_tx]
+    cmd += [EXAMPLE_DIR / 'cpp' / 'router']
+    cmd += [rows, cols]
+    for i in range(rows):
+        for j in range(cols):
+            cmd += [rx_ports[i][j], tx_ports[i][j]]
     cmd = [str(elem) for elem in cmd]
 
     if verbose:
@@ -147,10 +151,12 @@ def start_router(row=0, col=0, h_rx=0, h_tx=0, n_rx=0, n_tx=0, e_rx=0, e_tx=0,
     
     atexit.register(p.terminate)
 
-def start_client(rows, cols, rx_port, tx_port, bin, verbose=False):
+def start_client(rows, cols, rx_port, tx_port, bin, params=None, verbose=False):
     cmd = []
     cmd += [EXAMPLE_DIR / 'cpp' / 'client']
     cmd += [rows, cols, rx_port, tx_port, bin]
+    if params is not None:
+        cmd += params
     cmd = [str(elem) for elem in cmd]
 
     if verbose:

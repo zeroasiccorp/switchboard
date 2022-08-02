@@ -2,10 +2,11 @@
 
 void main() {
 	// read information from memory
-	int row = *((volatile int*)ROW_ADDR);
-	int col = *((volatile int*)COL_ADDR);
-	int rows = *((volatile int*)ROWS_ADDR);
-	int cols = *((volatile int*)COLS_ADDR);
+	int __memory_top = (1<<17);
+	unsigned int row    = *((volatile unsigned int*)(MEMORY_TOP -  4));
+	unsigned int col    = *((volatile unsigned int*)(MEMORY_TOP -  8));
+	unsigned int rows   = *((volatile unsigned int*)(MEMORY_TOP - 12));
+	unsigned int cols   = *((volatile unsigned int*)(MEMORY_TOP - 16));
 
 	// format message
 	char msg [] = "Hello from (x, x)!";

@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdio>
+#include <thread>
 
 namespace bip = boost::interprocess;
 
@@ -13,7 +14,8 @@ namespace bip = boost::interprocess;
 typedef std::array<uint32_t, 8> umi_packet;
 
 // queue type
-typedef boost::lockfree::spsc_queue<umi_packet, boost::lockfree::capacity<1024> > shared_queue;
+#define UMI_QUEUE_CAPACITY 1024
+typedef boost::lockfree::spsc_queue<umi_packet, boost::lockfree::capacity<UMI_QUEUE_CAPACITY> > shared_queue;
 
 class UmiConnection {
     public:
@@ -29,13 +31,28 @@ class UmiConnection {
 
             // mark connection as active
             active = true;
+
+            // save settings
+            this->is_tx = is_tx;
+            this->is_blocking = is_blocking;
         }
 
         bool send(umi_packet& p) {
+            assert(is_tx);  // must be TX
             return queue->push(p);
         }
 
+        void send_blocking(umi_packet& p) {
+            assert(is_tx && is_blocking);
+
+            while(!(queue->push(p))) {
+                std::this_thread::yield();
+            }
+        }
+
         bool recv_peek(umi_packet& p) {
+            assert(!is_tx); // must be RX
+
             size_t avail = queue->read_available();
             if (avail > 0) {
                 p = queue->front();
@@ -44,18 +61,38 @@ class UmiConnection {
         }
 
         bool recv(umi_packet& p) {
+            assert(!is_tx);  // must be RX
+
             return queue->pop(p);
         }
 
+        void recv_blocking(umi_packet& p){
+            assert((!is_tx) && is_blocking);
+
+            while(!(queue->pop(p))) {
+                std::this_thread::yield();
+            }
+        }
+
         bool recv() {
+            assert(!is_tx);  // must be RX
+
             return queue->pop();
         }
 
         bool is_active() {
             return active;
         }
+
+        bool all_read() {
+            assert(is_tx);  // must be TX
+
+            return (UMI_QUEUE_CAPACITY == (queue->write_available()));
+        }
     private:
         bool active;
+        bool is_tx;
+        bool is_blocking;
         bip::managed_shared_memory segment;
         shared_queue* queue;
 };
