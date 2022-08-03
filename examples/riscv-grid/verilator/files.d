@@ -15,5 +15,5 @@ obj_dir/Vtestbench: timescale.sv \
 	../verilog/axil_interconnect_wrap_1x2.v \
 	../verilog/dut.v \
 	../verilog/testbench.sv \
-	../../../dpi/phiber_dpi.cc \
+	../../../dpi/switchboard_dpi.cc \
 	testbench.cc

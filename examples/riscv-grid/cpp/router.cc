@@ -3,7 +3,7 @@
 #include <thread>
 #include <cstdlib>
 
-#include "phiber.hpp"
+#include "switchboard.hpp"
 
 // connections to each of the entries in the grid
 UmiConnection** rx_connections;

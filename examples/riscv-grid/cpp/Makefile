@@ -5,7 +5,7 @@ else
 	CPP_LIBS := -lboost_system -pthread -lrt
 endif
 
-%: %.cc ../../../cpp/phiber.hpp
+%: %.cc ../../../cpp/switchboard.hpp
 	g++ -I../../../cpp $< -o $@ $(CPP_LIBS)
 
 .PHONY: clean

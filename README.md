@@ -1,6 +1,6 @@
-# PHIber
+# Switchboard
 
-[![Actions Status](https://github.com/zeroasiccorp/PHIber/actions/workflows/regression.yml/badge.svg)](https://github.com/zeroasiccorp/PHIber/actions)
+[![Actions Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/regression.yml/badge.svg)](https://github.com/zeroasiccorp/switchboard/actions)
 
 Framework for emulating chiplet arrays on CPU- and FPGA-based platforms.  The goal is to be able to model chiplets with RTL simulation, with optimized software emulators (e.g., QEMU), and on FPGAs.  Chiplet models are connected together through their UMI ports, which can be conveyed through shared memory queues and sockets for CPU-based models and through PCIe and QSFP+ for FPGA-based models.
 
@@ -9,11 +9,11 @@ Framework for emulating chiplet arrays on CPU- and FPGA-based platforms.  The go
 Clone the repository, change to its directory, and initialize its submodules:
 
 ```shell
-git clone https://github.com/zeroasiccorp/PHIber.git
+git clone https://github.com/zeroasiccorp/switchboard.git
 ```
 
 ```shell
-cd PHIber
+cd switchboard
 ```
 
 ```shell
