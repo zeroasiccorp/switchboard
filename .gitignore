@@ -7,18 +7,26 @@ build
 .sw[a-p]
 tags
 *~
+.DS_Store
+compile_flags.txt
 
 # binary outputs
 *.bin
 *.elf
 *.hex
 *.so
+*.o
+*.vpi
+*.vvp
 
 # other outputs
 *.log
 *.egg-info
 *.doit*
-__pycache__
+*.vcd
+results.xml
+obj_dir
+.pytest_cache
 
 # Python cache files
 __pycache__

@@ -1,39 +1,31 @@
-# Interposer Verification
+# Switchboard
 
-[![Actions Status](https://github.com/zeroasiccorp/interposer-verif/actions/workflows/regression.yml/badge.svg)](https://github.com/zeroasiccorp/interposer-verif/actions)
+[![Actions Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/regression.yml/badge.svg)](https://github.com/zeroasiccorp/switchboard/actions)
 
-Repository containing infrastructure and tests as a mockup for the verification of the interposer design.  Currently contains code to run a "Hello World" program on a PicoRV32 processor with both Verilator and Spike, in addition to running a standard suite of tests checking compliance with the RISC-V ISA.  These simulation and emulation tests are used in GitHub Actions to produce a pass/fail result for pull request regression testing.
+Framework for emulating chiplet arrays on CPU- and FPGA-based platforms.  The goal is to be able to model chiplets with RTL simulation, with optimized software emulators (e.g., QEMU), and on FPGAs.  Chiplet models are connected together through their UMI ports, which can be conveyed through shared memory queues and sockets for CPU-based models and through PCIe and QSFP+ for FPGA-based models.
 
 ## Installation
 
 Clone the repository, change to its directory, and initialize its submodules:
 
 ```shell
-git clone https://github.com/zeroasiccorp/interposer-verif.git
+git clone https://github.com/zeroasiccorp/switchboard.git
 ```
 
 ```shell
-cd interposer-verif
+cd switchboard
 ```
 
 ```shell
 git submodule update --init --recursive
 ```
 
-Then install the included `zverif` package as described below.  You may want to consider `pip`-installing in a `conda` environment, or other virtual environment.
-
-```shell
-pip3 install -e .
-```
-
-Next, build and install Spike following the directions [here](https://github.com/riscv-software-src/riscv-isa-sim#build-steps).
-
-Finally, install tools for RISC-V and RTL simulation using the commands below.
+Then install the needed prerequisites:
 
 ### Linux
 
 ```shell
-sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
+sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libboost-dev libboost-system-dev
 ```
 
 ### macOS
@@ -43,52 +35,45 @@ brew tap riscv/riscv
 ```
 
 ```shell
-brew install riscv-tools verilator
+brew install verilator riscv-tools boost
 ```
 
-## Running the code
+## Example
 
-Verification tasks are run via the script `interposer/verif/verif.py`.  For example, to run a "hello world" program (`interposer/verif/sw/hello/hello.c`) using a Verilator simulation, run:
+An example is provided in `examples/riscv-grid`, which constructs an MxN grid of PicoRV32 CPUs, each modeled with a Verilator simulation.  The (0, 0) location in the grid does not contain a CPU; instead, it is occupied by a program called `client` that programs the CPUs over UMI.  `client` can also receive UMI writes and interpret them as either characters to print, or an instruction to exit the emulator.
+
+Tasks are run via the Makefile in `examples/riscv-grid`.  For example, to run a "hello world" program (`examples/riscv-grid/riscv/hello.c`), run:
 
 ```shell
-cd interposer/verif
+cd examples/riscv-grid
 ```
 
 ```shell
-./verif.py verilator:hello
+make hello
 ```
 
-Or similarly, to run the Spike emulator on a simple addition test from the RISC-V test suite, type:
+This constructs a `1x2` grid, with `client` at (0, 0), and a PicoRV32 CPU at (0, 1).  `client` programs the CPU with a program that sends a message over UMI back to `client`, and then sends a command to exit the emulator.
 
-```shell
-./verif.py spike:add
-```
+Other options include:
+* `make grid`: Has the CPU in the bottom-right corner of the grid send a message back to `client`.
+* `make addloop`: Passes a counter from one CPU to the next, incrementing it each time.  Once the counter hits a target value, the CPU where the target was hit sends a message back to `client`.
 
-Under the hood, these commands are running intermediate tasks as needed, making use of a Python library called `doit`.  For example, running a Verilator simulation requires RTL to be converted to C, and then compiled with a top-level testbench.  It also requires the RISC-V compilation chain to be run to produce a `*.hex` file readable in the Verilator simulation.  The result is a directed graph of dependencies between tasks, which is managed by `doit` to avoid doing unecessary work.
+`grid` and `addloop` are both run using the script `grid.py`, which can construct an array of specified size via its `--row` and `--col` arguments.  The `--binfile` argument allows the location of the binary file to be programmed to the CPUs to be specified.
 
-Build results, such as ELF files or a Verilator simulation binary, are placed in a `build` directory, and the state of `doit` is maintained in a file called `.doit.db.db`.  If either is deleted or corrupted, `doit` will figure out what needs to be done to rebuild the next time a task is run.
+### Detail: address space
 
-To see available tasks, type `./verif.py list` for a short summary, or `./verif.py list --all` to see all avilable tasks.  There are currently tasks for generating various kinds of binaries (`*.elf`, `*.bin`, `*.hex`) for compiled RISC-V programs, in addition to Spike and Verilator simulation.
+Programs running on the PicoRV32 processor can send writes out to their UMI port, as well as reading/writing their own internal memory.  Since PicoRV32 is a 32-bit processor, this is accomplished by partitioning the 32-bit address space:
+* Bit 31 indicates if a write is external (if `1`) or internal (if `0`)
+* Bits 30-27 indicate the *row* destination of an external write.
+* Bits 26-23 indicate the *column* destination of an external write.
+* Bits 22-0 are the local address for a read/write.
 
-All of these tasks allow the application name to be specified with a colon, as shown earlier (e.g., `verilator:hello`).  Running one of these tasks without a colon means that all applications should be tested.  For example, typing `./verif.py verilator` means "run a Verilator simulation for each application".
+Note that in this example, up to 16 rows and 16 columns are supported (i.e., less than the full amount that will be possible in the chiplet array).  We may want to update the example at some point to use a 64-bit processor to remove this limitation.
 
-`doit` tasks are represented by a graph, and it can be interesting to visualize that graph.  To do that, there is a plugin called `doit-graph` (`pip install doit-graph`).  Note that this plugin requires graphviz and the graphviz development package installed (on Ubuntu, `sudo apt-get install graphviz graphviz-dev`).  For example, if you install the plugin and then run:
+### Detail: initialization
 
-```shell
-./verif.py graph --show-subtasks --reverse -o tasks.dot verilator:hello && dot -Tpng tasks.dot -o tasks.png
-```
+`client` programs the CPUs by first placing them all in reset via UMI writes that control GPIOs in the CPU hardware.  It then programs the internal memory of all CPUs, while they are in reset.
 
-you will see a graph representing actions that need to be taken to run a Verilator simulation: first an `*.elf` file is build, which is converted to `*.bin` and then `*.hex`.  In addition, the Verilator simulation binary is built.  `doit` has flags `-n` and `-P` to control how independent branches such as these can be run in parallel, although I haven't experimented with that feature yet.
+In the current configuration, the top 128 bytes of CPU internal memory are reserved for runtime parameters.  `client` populates the top 4 words of this space with the row and column of each CPU in the grid (unique for each location), as well as the total number of rows and columns.  It then programs additional parameters specified by the user, which may be used to control the runtime behavior of RISC-V programs.  For example, in `addloop` the target value is provided as a runtime parameter in this manner.
 
-A few other notes:
-* `./verif.py` presents exactly the same command-line interface as `doit`, which is documented here: https://pydoit.org/contents.html.
-* The `spike` task depends on a group of tasks called `spike_plugin`, which builds memory-mapped plugins for the Spike emulator.  Currently, there are just two: `uart_plugin`, which receives characters for printing, and `exit_plugin`, which exits the Spike emulator.  The RTL model has an equivalent memory map, so the exact same binary will run in Verilator and Spike.
-* Multiple tasks can be specified on the command-line, e.g. `./verif.py verilator:hello spike:hello`.  Even though these both depend on `hello.elf`, it is only built once (or possibly not built at all, if it exists and is up-to-date in terms of its dependencies).
-
-## Related
-
-The starting point for this work was PicoRV32 and its simulation flow (https://github.com/YosysHQ/picorv32).  It's included directly in this repository, instead of using a submodule, because it turned out that the processor implementation needed to be slightly edited to support the default Verilator version installed on Ubuntu (via `apt`) and macOS (via `brew`).
-
-In the future, it may be worth exploring the verification infrastructure used for Ibex (https://github.com/lowRISC/ibex).  The infrastructure is modular, allowing for various devices to be added to different places in the address space, and has various capabilities for software interaction with simulated RTL through DPI routines.
-
-On a similar note, it could be worth using features from the Ariane/CVA6 verification infrastructure in the future (https://github.com/openhwgroup/core-v-verif).  I did manage to get verification flows running for Ibex and CV32E40P (small processor related to CVA6), but decided to use PicoRV32 as the starting point, since it has a simple structure that lends itself well to customization.
+Runtime parameter initialization can also be used to initialize memory for inter-CPU communication.  For example, the counter used in `addloop` is initialized to zero using the runtime parameter feature.  This is necessary because once the CPUs are released from reset, it is not safe for them to initialize an externally writable location, because it might be clobbering a value written by another CPU.  At the same time, it cannot reliably read the memory contents at that location, since they might contain garbage, having not been initialized or externally written.
