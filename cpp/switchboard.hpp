@@ -109,4 +109,21 @@ static inline void umi_unpack(const umi_packet& p, uint32_t& data, uint32_t& add
     data = p[3];
 }
 
+static inline std::string umi_packet_to_str(const umi_packet& p) {
+    std::string retval = "{";
+
+    char buf[128];
+    for (int i=0; i<8; i++) {
+        sprintf(buf, "0x%08x", p[i]);
+        retval += buf;
+        if (i != 7) {
+            retval += ", ";
+        }
+    }
+
+    retval += "}";
+
+    return retval;
+}
+
 #endif // __SWITCHBOARD_HPP__
