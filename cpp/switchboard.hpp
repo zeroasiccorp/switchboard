@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdio>
 #include <thread>
+#include <vector>
 
 namespace bip = boost::interprocess;
 
@@ -20,6 +21,11 @@ typedef boost::lockfree::spsc_queue<umi_packet, boost::lockfree::capacity<UMI_QU
 class UmiConnection {
     public:
         UmiConnection() : active(false) {}
+
+        void init(std::string uri, bool is_tx, bool is_blocking) {
+            init(uri.c_str(), is_tx, is_blocking);
+        }
+
         void init(const char* uri, bool is_tx, bool is_blocking) {
             // allocate the memory if needed
             // TODO: deal with case that memory region hasn't been created
@@ -110,20 +116,87 @@ static inline void umi_unpack(const umi_packet& p, uint32_t& data, uint32_t& add
 }
 
 static inline std::string umi_packet_to_str(const umi_packet& p) {
-    std::string retval = "{";
+    std::string retval = "";
 
     char buf[128];
-    for (int i=0; i<8; i++) {
-        sprintf(buf, "0x%08x", p[i]);
+    for (int i=7; i>=0; i--) {
+        sprintf(buf, "%08x", p[i]);
         retval += buf;
-        if (i != 7) {
-            retval += ", ";
+        if (i != 0) {
+            retval += "_";
         }
     }
 
-    retval += "}";
-
     return retval;
+}
+
+static inline bool str_to_umi_packet(const char* str, umi_packet& p) {
+    // zero out the packet
+    for (int i=0; i<8; i++) {
+        p[i] = 0;
+    }
+
+    // read in all nibbles into an array
+    int shift=28;
+    int idxp=7;
+    int idxs=0;
+    int ncnt=0;
+    do {
+        // see if this is the end of the string, or the start of a comment
+        // (in which case we should ignore the rest of the string)
+        char cur = str[idxs++];
+        if ((cur == '\0') || (cur == '/')) {
+            break;
+        } else {
+            // parse nibble from character
+
+            uint32_t nibble;
+            cur = toupper(cur);
+
+            if (('0' <= cur) && (cur <= '9')) {
+                nibble = cur - 48;
+            } else if (('A' <= cur) && (cur <= 'F')) {
+                nibble = (cur - 65) + 0xA;
+            } else {
+                // skip character (could be an underscore, whitespace, etc.)
+                continue;
+            }
+
+            // add nibble to UMI packet
+            p[idxp] |= (nibble & 0xf) << shift;
+
+            // update nibble count for validation purposes
+            ncnt++;
+
+            // update shift and packet index
+            shift -= 4;
+            if (shift < 0) {
+                shift = 28;
+                idxp--;
+                if (idxp < 0) {
+                    // done reading characters
+                    break;
+                }
+            }
+        }
+    } while(ncnt < 64);
+
+    // for now, only consider the result valid if all 64 nibbles were read
+    // in the future, we might want to allow shorter inputs
+    bool valid = (ncnt == 64);
+    return valid;
+}
+
+static inline bool str_to_umi_packet(std::string str, umi_packet& p) {
+    return str_to_umi_packet(str.c_str(), p);
+}
+
+static inline void delete_shared_queue(const char* name) {    
+    bip::shared_memory_object::remove(name);
+}
+
+static inline void delete_shared_queue(std::string name) {    
+    delete_shared_queue(name.c_str());
 }
 
 #endif // __SWITCHBOARD_HPP__
