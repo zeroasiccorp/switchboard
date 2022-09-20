@@ -18,6 +18,7 @@ compile_flags.txt
 *.o
 *.vpi
 *.vvp
+*.out
 
 # other outputs
 *.log
