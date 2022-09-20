@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include "switchboard.hpp"
 
