@@ -16,8 +16,8 @@ int main(int argc, char* argv[]) {
     std::string txfile = "-";
     std::string rxfile = "-";
     std::string outfile = "out.memh";
-    std::string txqueue = "queue-5555";
-    std::string rxqueue = "queue-5556";
+    std::string txqueue = "queue-5556";
+    std::string rxqueue = "queue-5555";
 
     int arg_idx = 1;
     while (arg_idx < (argc-1)) {
@@ -218,12 +218,12 @@ int main(int argc, char* argv[]) {
         // send SIGINT to simulator and wait for it to exit
         kill(pid, SIGINT);
         wait(NULL);
-    }
 
-    // print a summary of the test
-    printf("*** summary ***\n");
-    printf("#   correct: %d\n", correct_count);
-    printf("# incorrect: %d\n", incorrect_count);
+        // print a summary of the test
+        printf("*** summary ***\n");
+        printf("#   correct: %d\n", correct_count);
+        printf("# incorrect: %d\n", incorrect_count);
+    }
 
     if (incorrect_count > 0) {
         // return non-zero code to indicate there were some errors
