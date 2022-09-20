@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
             rxeof = true;
         }
 
-        // open file the will store received UMI transactions
+        // open file that will store received UMI transactions
         std::ofstream outstream;
         if (outfile != "-") {
             outstream.open(outfile);
