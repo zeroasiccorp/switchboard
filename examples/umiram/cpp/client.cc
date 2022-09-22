@@ -1,5 +1,18 @@
 #include "switchboard.hpp"
 
+void print_packet_details(const umi_packet& p) {
+    uint32_t opcode, size, user;
+    uint64_t dstaddr, srcaddr;
+    uint32_t data_arr[4];
+    umi_unpack(p, opcode, size, user, dstaddr, srcaddr, data_arr);
+
+    // print details
+    printf("opcode:  %s\n", umi_opcode_to_str(opcode).c_str());
+    printf("dstaddr: 0x%016llx\n", dstaddr);
+    printf("size:    %u\n", size);
+    printf("data:    0x%08x\n", data_arr[0]);
+}
+
 int main() {
     // initialize tx connection
     UmiConnection tx;
@@ -9,35 +22,27 @@ int main() {
     UmiConnection rx;
     rx.init("queue-5556", false, true);
 
-    // variables for packet formation
+    // packet structure used for sending/receiving
     umi_packet p;
-    uint32_t dstaddr[2];
-    uint32_t srcaddr[2];
-    uint32_t data[8];
 
-    // send write packet
-    memset(dstaddr, 0, sizeof(dstaddr));
-    memset(srcaddr, 0, sizeof(srcaddr));
-    memset(data, 0, sizeof(data));
-    dstaddr[0] = 12;
-    data[0] = 0xBEEFCAFE;
-    umi_pack(p, UMI_WRITE_NORMAL, 5, 0, dstaddr, srcaddr, data);
+    // write 0xBEEFCAFE to address 0x12
+    umi_pack(p, UMI_WRITE_NORMAL, 0x12, 0, (uint32_t)0xBEEFCAFE);
     tx.send_blocking(p);
-    printf("Sent packet: %s\n", umi_packet_to_str(p).c_str());
-    
-    // send read request
-    memset(dstaddr, 0, sizeof(dstaddr));
-    memset(srcaddr, 0, sizeof(srcaddr));
-    memset(data, 0, sizeof(data));
-    dstaddr[0] = 12;
-    srcaddr[0] = 32;
-    umi_pack(p, UMI_READ, 5, 0, dstaddr, srcaddr, data);
+    printf("TX packet: %s\n", umi_packet_to_str(p).c_str());
+    print_packet_details(p);
+    printf("\n");
+
+    // send request to read address 0x12 into address 0x34
+    umi_pack(p, UMI_READ, 0x12, 0x34, (uint32_t)0);
     tx.send_blocking(p);
-    printf("Sent packet: %s\n", umi_packet_to_str(p).c_str());
+    printf("TX packet: %s\n", umi_packet_to_str(p).c_str());
+    print_packet_details(p);
+    printf("\n");
 
     // receive read request
     rx.recv_blocking(p);
-    printf("Received packet: %s\n", umi_packet_to_str(p).c_str());
+    printf("RX packet: %s\n", umi_packet_to_str(p).c_str());
+    print_packet_details(p);
 
     return 0;
 }

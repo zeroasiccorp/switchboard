@@ -55,7 +55,7 @@ module umiram #(
     reg [255:0] tx_data;
 
     /* verilator lint_off WIDTH */
-    localparam [3:0] UMI_SIZE = $clog2(DATA_WIDTH);
+    localparam [3:0] UMI_SIZE = $clog2(DATA_WIDTH/8);
     /* verilator lint_on WIDTH */
 
 	umi_pack umi_pack_i (
