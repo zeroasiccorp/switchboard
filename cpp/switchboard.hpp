@@ -103,16 +103,56 @@ class UmiConnection {
         shared_queue* queue;
 };
 
-static inline void umi_pack(umi_packet& p, const uint32_t data, const uint32_t addr) {
-    // only works with 32-bit data and address
-    p[1] = addr;
-    p[3] = data;
+enum UMI_CMD {UMI_WRITE_NORMAL=0b00000001, UMI_READ=0b00001000};
+
+static inline void umi_pack(umi_packet& p, uint32_t opcode, uint32_t size, uint32_t user,
+    uint32_t dstaddr[2], uint32_t srcaddr[2], uint32_t data[8], bool burst=false) {
+
+    // determine if this is a read command
+    bool cmd_read = (opcode >> 3) & 0b1;
+
+    // form the 32-bit command
+    uint32_t cmd_out = 0;
+    cmd_out |= (opcode & 0xff);
+    cmd_out |= (size & 0xf) << 8;
+    cmd_out |= (user & 0xfffff) << 12;
+
+    // populate the packet
+    p[7] = burst ? data[4] : dstaddr[1];
+    p[6] = cmd_read ? srcaddr[1] : data[3];
+    p[5] = data[2];
+    p[4] = data[1];
+    p[3] = data[0];
+    p[2] = burst ? data[7] : srcaddr[0];
+    p[1] = burst ? data[6] : dstaddr[0];
+    p[0] = burst ? data[5] : cmd_out;
 }
 
-static inline void umi_unpack(const umi_packet& p, uint32_t& data, uint32_t& addr) {
-    // only works with 32-bit data and address
-    addr = p[1];
-    data = p[3];
+static inline void umi_unpack(const umi_packet& p, uint32_t& opcode, uint32_t& size, uint32_t& user,
+    uint32_t dstaddr[2], uint32_t srcaddr[2], uint32_t data[8]) {
+    
+    // unpack the 32-bit command
+    opcode = p[0] & 0xff;
+    size = (p[0] >> 8) & 0xf;
+    user = (p[0] >> 12) & 0xfffff;
+
+    // determine destination address
+    dstaddr[0] = p[1];
+    dstaddr[1] = p[7];
+
+    // determine the source address (only valid for a read)
+    srcaddr[0] = p[2];
+    srcaddr[1] = p[6];
+    
+    // unpack the data
+    data[0] = p[3];
+    data[1] = p[4];
+    data[2] = p[5];
+    data[3] = p[6];
+    data[4] = p[7];
+    data[5] = p[0];
+    data[6] = p[1];
+    data[7] = p[2];
 }
 
 static inline std::string umi_packet_to_str(const umi_packet& p) {
