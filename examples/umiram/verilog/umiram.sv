@@ -59,7 +59,7 @@ module umiram #(
     /* verilator lint_on WIDTH */
 
 	umi_pack umi_pack_i (
-		.opcode(8'b0000_00001),  // WRITE-NORMAL
+		.opcode(8'b0000_0001),  // WRITE-NORMAL
 		.size(UMI_SIZE),
 		.user(20'd0),
 		.burst(1'b0),
