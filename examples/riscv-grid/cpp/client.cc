@@ -23,15 +23,17 @@ void init(int rx_port, int tx_port) {
 }
 
 void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, const uint32_t col){
-    // format the packet
-    umi_packet p = {0};
-    umi_pack(p, data, addr);
+    // determine destination address
+    uint64_t dstaddr;
+    dstaddr = 0;
+    dstaddr |= ((row & 0xf) << 24);
+    dstaddr |= ((col & 0xf) << 16);
+    dstaddr <<= 32;
+    dstaddr |= addr;
 
-    // add row/col information
-    // TODO: cleanup
-    p[7] = 0;
-    p[7] |= (row & 0xf) << 24;
-    p[7] |= (col & 0xf) << 16;
+    // form the UMI packet
+    umi_packet p;
+    umi_pack(p, UMI_WRITE_NORMAL, dstaddr, 0, data);
 
     // send the packet
     tx.send_blocking(p);
@@ -43,7 +45,14 @@ void dut_recv(uint32_t& data, uint32_t& addr){
     rx.recv_blocking(p);
 
     // parse packet
-    umi_unpack(p, data, addr);
+    uint32_t opcode, size, user;
+    uint64_t dstaddr, srcaddr;
+    uint32_t data_arr[4];
+    umi_unpack(p, opcode, size, user, dstaddr, srcaddr, data_arr);
+
+    // only the lowest 32 bits of data and address are used
+    data = data_arr[0];
+    addr = dstaddr & 0xffffffff;
 }
 
 void init_chip(int row, int col, int rows, int cols, const char* binfile) {
