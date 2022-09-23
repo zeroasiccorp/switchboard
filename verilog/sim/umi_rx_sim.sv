@@ -18,16 +18,14 @@ module umi_rx_sim (
 
 	`ifdef __ICARUS__
 		task init(input string uri);
-			tx_i.init(uri);
+			rx_i.init(uri);
 		endtask
 	`else
 		function void init(input string uri);
 			/* verilator lint_off IGNOREDRETURN */
-			tx_i.init(uri);
+			rx_i.init(uri);
 			/* verilator lint_on IGNOREDRETURN */
 		endfunction
-
-		var bit [255:0] rbuf;
 	`endif
 
 endmodule

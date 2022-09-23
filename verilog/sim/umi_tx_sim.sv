@@ -10,7 +10,7 @@ module umi_tx_sim (
 	sb_tx_sim tx_i (
 		.clk(clk),
 		.data(packet),
-		.dest({16'h0000, data[255:240]}),
+		.dest({16'h0000, packet[255:240]}),
 		.last(1'b0),
 		.ready(ready),
 		.valid(valid)

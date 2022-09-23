@@ -38,6 +38,9 @@ void pi_sb_tx_init(int* id, const char* uri) {
 }
 
 void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, int* success) {
+    // make sure this is a valid id
+    assert(id < rxconn.size());
+
     // try to receive an inbound packet
     sb_packet p;
     if (rxconn[id]->recv(p)) {
@@ -51,6 +54,8 @@ void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, in
 }
 
 void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast, int* success) {
+    // make sure this is a valid id
+    assert(id < txconn.size());
 
     // form the outbound packet
     sb_packet p;

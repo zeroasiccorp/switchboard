@@ -230,4 +230,8 @@ static inline bool str_to_umi_packet(std::string str, umi_packet p) {
     return str_to_umi_packet(str.c_str(), p);
 }
 
+static inline bool umi_packets_match(umi_packet a, umi_packet b) {
+    return (memcmp(a, b, 32) == 0);
+}
+
 #endif // __UMILIB_HPP__

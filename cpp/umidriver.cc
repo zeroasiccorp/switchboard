@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 
 #include "switchboard.hpp"
+#include "umilib.hpp"
 
 int main(int argc, char* argv[]) {
     // process command-line arguments
@@ -85,21 +86,21 @@ int main(int argc, char* argv[]) {
         }
     } else {
         // initialize driver's TX connection (which is connected to the DUT's RX port)
-        UmiConnection tx;
+        SBTX tx;
         if (rxqueue != "-") {
-            tx.init(rxqueue, true, false);
+            tx.init(rxqueue);
         }
 
         // initialize driver's RX connection (which is connected to the DUT's TX port)
-        UmiConnection rx;
+        SBRX rx;
         if (txqueue != "-") {
-            rx.init(txqueue, false, false);
+            rx.init(txqueue);
         }
 
         // open file of tx transactions
         bool txeof = false;
         bool txvalid = false;
-        umi_packet txp;
+        sb_packet txp;
         std::ifstream txstream;
         if (txfile != "-") {
             txstream.open(txfile);
@@ -110,7 +111,7 @@ int main(int argc, char* argv[]) {
         // open file of rx transactions
         bool rxeof = false;
         bool rxvalid = false;
-        umi_packet rxp;
+        sb_packet rxp;
         std::ifstream rxstream;
         if (rxfile != "-") {
             rxstream.open(rxfile);
@@ -134,9 +135,12 @@ int main(int argc, char* argv[]) {
             while ((!txvalid) && (!txeof)) {
                 std::string line;
                 if (std::getline(txstream, line)) {
-                    txvalid = str_to_umi_packet(line, txp);
+                    txvalid = str_to_umi_packet(line, (uint32_t*)txp.data);
                     if (!txvalid) {
                         printf("txfile: skipping line \"%s\"\n", line.c_str());
+                    } else { 
+                        txp.destination = 0;  // TODO: populate from address
+                        txp.last = 0;
                     }
                 } else {
                     txeof = true;
@@ -165,7 +169,7 @@ int main(int argc, char* argv[]) {
                 // read line
                 std::string line;
                 if (std::getline(rxstream, line)) {
-                    rxvalid = str_to_umi_packet(line, rxp);
+                    rxvalid = str_to_umi_packet(line, (uint32_t*)rxp.data);
                     if (!rxvalid) {
                         printf("rxfile: skipping line \"%s\"\n", line.c_str());
                     }
@@ -176,21 +180,21 @@ int main(int argc, char* argv[]) {
 
             // try to read the next RX packet from simulation
             if (rx.is_active()) {
-                umi_packet outp;
+                sb_packet outp;
                 if (rx.recv(outp)) {
                     // write to output file, if active
                     if (outstream.is_open()) {
-                        outstream << umi_packet_to_str(outp) << std::endl;
+                        outstream << umi_packet_to_str((uint32_t*)outp.data) << std::endl;
                     }
 
                     // if there's an expected RX packet, check against it
                     if (rxvalid) {
-                        if (outp != rxp) {
+                        if (!umi_packets_match((uint32_t*)outp.data, (uint32_t*)rxp.data)) {
                             // if there's an error, print out what it is, and
                             // increment the error counter
                             printf("*** mismatch at rxfile line %d ***\n", rxline);
-                            printf("got:      %s\n", umi_packet_to_str(outp).c_str());
-                            printf("expected: %s\n", umi_packet_to_str(rxp).c_str());
+                            printf("got:      %s\n", umi_packet_to_str((uint32_t*)outp.data).c_str());
+                            printf("expected: %s\n", umi_packet_to_str((uint32_t*)rxp.data).c_str());
                             incorrect_count++;
                         } else {
                             correct_count++;
