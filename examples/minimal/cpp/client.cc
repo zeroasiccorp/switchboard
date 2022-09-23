@@ -1,25 +1,35 @@
 #include "switchboard.hpp"
 
 int main() {
-    UmiConnection tx;
-    UmiConnection rx;
-    umi_packet txp = {0};
-    umi_packet rxp = {0};
+    SBTX tx;
+    SBRX rx;
     
     // initialize connections
-    tx.init("queue-5555", true, true);
-    rx.init("queue-5556", false, true);
+    tx.init("queue-5555");
+    rx.init("queue-5556");
 
     // send packet
-    for (int i=0; i<8; i++) {
-        txp[i] = i;
+    sb_packet txp;
+
+    txp.destination = 0xbeefcafe;
+    txp.last = 0;
+    for (int i=0; i<32; i++) {
+        txp.data[i] = i & 0xff;
     }
+    
     tx.send_blocking(txp);
-    printf("Sent packet: %s\n", umi_packet_to_str(txp).c_str());
+    printf("TX packet: %s\n", sb_packet_to_str(txp).c_str());
 
     // receive packet
+    sb_packet rxp;
+
     rx.recv_blocking(rxp);
-    printf("Received packet: %s\n", umi_packet_to_str(rxp).c_str());
+
+    printf("RX packet: %s\n", sb_packet_to_str(rxp).c_str());
+
+    for (int i=0; i<32; i++) {
+        assert(rxp.data[i] == (txp.data[i] + 1));
+    }
 
     return 0;
 }
