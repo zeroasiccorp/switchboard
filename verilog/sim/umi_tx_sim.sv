@@ -11,7 +11,7 @@ module umi_tx_sim (
 		.clk(clk),
 		.data(packet),
 		.dest({16'h0000, packet[255:240]}),
-		.last(1'b0),
+		.last(1'b1),
 		.ready(ready),
 		.valid(valid)
 	);

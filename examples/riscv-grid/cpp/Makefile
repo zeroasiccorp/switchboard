@@ -10,4 +10,4 @@ endif
 
 .PHONY: clean
 clean:
-	rm -f client router router-single
+	rm -f client

@@ -10,4 +10,4 @@ endif
 
 .PHONY: clean
 clean:
-	rm -f umidriver
+	rm -f umidriver router

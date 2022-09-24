@@ -46,8 +46,8 @@ class SBTX {
         }
 
         void init(const char* uri) {
-            m_active = true;
             m_queue = sb_init(uri, m_segment);
+            m_active = true;
         }
 
         bool send(sb_packet& p) {
@@ -82,8 +82,8 @@ class SBRX {
         }
 
         void init(const char* uri) {
-            m_active = true;
             m_queue = sb_init(uri, m_segment);
+            m_active = true;
         }
 
         bool recv(sb_packet& p) {

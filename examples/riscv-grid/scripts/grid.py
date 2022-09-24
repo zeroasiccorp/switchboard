@@ -9,7 +9,6 @@ import argparse
 import multiprocessing
 
 from pathlib import Path
-from tkinter import E
 
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
@@ -20,6 +19,9 @@ if platform.system() == 'Darwin':
     SHMEM_DIR = Path('/tmp/boost_interprocess')
 else:
     SHMEM_DIR = Path('/dev/shm')
+
+def rc2id(r, c):
+    return ((r & 0xf) << 8) | (c & 0xf)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -61,22 +63,37 @@ def main():
             tx_connections[-1].append(port)
             port += 1
 
-    # clean up old queues if present
+    # enumerate all connections
+
+    all_rx = []
+    all_tx = []
+
     for row in range(args.rows):
         for col in range(args.cols):
-            for port in [rx_connections[row][col], tx_connections[row][col]]:
-                filename = str(SHMEM_DIR / f'queue-{port}')
-                try:
-                    os.remove(filename)
-                except OSError:
-                    pass
+            all_rx.append(rx_connections[row][col])
+            all_tx.append(tx_connections[row][col])
 
-    # start router
+    # clean up old queues if present
+
+    for port in all_rx + all_tx:
+        filename = str(SHMEM_DIR / f'queue-{port}')
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
+
+    # build the routing tables
+
+    routing_table = {}
+    for row in range(args.rows):
+        for col in range(args.cols):
+            routing_table[rc2id(row, col)] = rx_connections[row][col]
+
+    # start router (note the flipped connections)
     start_router(
-        rows=args.rows,
-        cols=args.cols,
-        rx_ports = tx_connections,
-        tx_ports = rx_connections,
+        rx = all_tx,
+        tx = all_rx,
+        route = routing_table,
         verbose=args.verbose
     )
 
@@ -135,13 +152,12 @@ def start_chip(rx_port, tx_port, yield_every=None, vcd=False, verbose=False):
 
     atexit.register(p.terminate)
 
-def start_router(rows, cols, rx_ports, tx_ports, verbose=False):
+def start_router(rx, tx, route, verbose=False):
     cmd = []
-    cmd += [EXAMPLE_DIR / 'cpp' / 'router']
-    cmd += [rows, cols]
-    for i in range(rows):
-        for j in range(cols):
-            cmd += [rx_ports[i][j], tx_ports[i][j]]
+    cmd += [TOP_DIR / 'cpp' / 'router']
+    cmd += ['--tx'] + tx
+    cmd += ['--rx'] + rx
+    cmd += ['--route'] + [f'{k}:{v}' for k, v in route.items()]
     cmd = [str(elem) for elem in cmd]
 
     if verbose:

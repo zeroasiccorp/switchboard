@@ -11,6 +11,7 @@ from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
+TOP_DIR = EXAMPLE_DIR.parent.parent
 
 # figure out where shared memory queues are located
 if platform.system() == 'Darwin':
@@ -34,17 +35,16 @@ def main():
 
     # routers
     start_router(
-        rows=1,
-        cols=2,
-        rx_ports = [[5555, 5557]],
-        tx_ports = [[5556, 5558]],
+        tx = [5556, 5557],
+        rx = [5555, 5558],
+        route = {0: 5556, 1: 5557},
         verbose=args.verbose
     )
 
     # chip
     start_chip(
-        rx_port=5558,
-        tx_port=5557,
+        rx_port=5557,
+        tx_port=5558,
         verbose=args.verbose
     )
 
@@ -83,13 +83,12 @@ def start_chip(rx_port, tx_port, verbose=False):
 
     atexit.register(p.terminate)
 
-def start_router(rows, cols, rx_ports, tx_ports, verbose=False):
+def start_router(rx, tx, route, verbose=False):
     cmd = []
-    cmd += [EXAMPLE_DIR / 'cpp' / 'router']
-    cmd += [rows, cols]
-    for i in range(rows):
-        for j in range(cols):
-            cmd += [rx_ports[i][j], tx_ports[i][j]]
+    cmd += [TOP_DIR / 'cpp' / 'router']
+    cmd += ['--tx'] + tx
+    cmd += ['--rx'] + rx
+    cmd += ['--route'] + [f'{k}:{v}' for k, v in route.items()]
     cmd = [str(elem) for elem in cmd]
 
     if verbose:
