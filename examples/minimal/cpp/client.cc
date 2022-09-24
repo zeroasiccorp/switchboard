@@ -18,7 +18,7 @@ int main() {
     }
 
     txp.destination = 0xbeefcafe;
-    txp.last = 1;
+    txp.last = true;
     
     // send packet
 

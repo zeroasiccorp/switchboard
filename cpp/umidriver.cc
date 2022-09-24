@@ -138,9 +138,12 @@ int main(int argc, char* argv[]) {
                     txvalid = str_to_umi_packet(line, (uint32_t*)txp.data);
                     if (!txvalid) {
                         printf("txfile: skipping line \"%s\"\n", line.c_str());
-                    } else { 
-                        txp.destination = 0;  // TODO: populate from address
-                        txp.last = 0;
+                    } else {
+                        // interpret upper 16 bits of the address as the ID
+                        txp.destination = (((uint32_t*)txp.data)[7] >> 16) & 0xffff;
+
+                        // TODO: support bursts
+                        txp.last = true;
                     }
                 } else {
                     txeof = true;

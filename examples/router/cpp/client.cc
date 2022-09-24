@@ -18,7 +18,7 @@ int main() {
     }
 
     txp.destination = 1;
-    txp.last = 0;
+    txp.last = true;
     
     // send packet
 

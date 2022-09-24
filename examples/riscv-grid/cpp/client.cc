@@ -36,7 +36,7 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
     sb_packet p;
     umi_pack((uint32_t*)p.data, UMI_WRITE_NORMAL, dstaddr, 0, data);
     p.destination = ((row & 0xf) << 8) | (col & 0xf);
-    p.last = 1;
+    p.last = true;
 
     // send the packet
     tx.send_blocking(p);
