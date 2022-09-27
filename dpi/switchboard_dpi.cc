@@ -1,4 +1,6 @@
 #include <chrono>
+#include <memory>
+#include <mutex>
 
 #include "switchboard.hpp"
 #include "svdpi.h"
@@ -15,28 +17,23 @@ extern "C" {
 }
 #endif
 
-static std::array<UmiConnection, 2> connections;
+static std::vector<std::unique_ptr<UmiConnection>> connections;
 
 void pi_umi_init(int* id, const char* uri, int is_tx) {
-    static int cur_id = 0;
-
-    // make sure that we haven't run out of space
-    assert(cur_id < connections.size());
+    // create a new connection
+    connections.push_back(std::unique_ptr<UmiConnection>(new UmiConnection()));
 
     // initialize the connection
-    connections[cur_id].init(uri, is_tx, false);
+    connections.back()->init(uri, is_tx, false);
 
     // assign the ID of this connection
-    *id = cur_id;
-
-    // increment the ID counter
-    cur_id++;
+    *id = connections.size() - 1;
 }
 
 void pi_umi_recv(int id, svBitVecVal* rbuf, int* success) {
     umi_packet p;
     
-    if (connections[id].recv(p)) {
+    if (connections[id]->recv(p)) {
         memcpy(rbuf, &p, 32);  // TODO: possible to remove this?
         *success = 1;
     } else {
@@ -48,7 +45,7 @@ void pi_umi_send(int id, const svBitVecVal* sbuf, int* success) {
     umi_packet p;
     memcpy(&p, sbuf, 32);  // TODO: possible to remove this?
     
-    if (connections[id].send(p)) {
+    if (connections[id]->send(p)) {
         *success = 1;
     } else {
         *success = 0;
