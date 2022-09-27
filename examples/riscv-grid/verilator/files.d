@@ -4,9 +4,9 @@ obj_dir/Vtestbench: timescale.sv \
 	../../../verilog/sim/sb_tx_sim.sv \
 	../../../verilog/sim/umi_rx_sim.sv \
 	../../../verilog/sim/umi_tx_sim.sv \
-	../verilog/umi/umi/rtl/umi_decode.v \
-	../verilog/umi/umi/rtl/umi_pack.v \
-	../verilog/umi/umi/rtl/umi_unpack.v \
+	../../../deps/umi/umi/rtl/umi_decode.v \
+	../../../deps/umi/umi/rtl/umi_pack.v \
+	../../../deps/umi/umi/rtl/umi_unpack.v \
 	../verilog/axi_to_umi.v \
 	../verilog/umi_to_axi.v \
 	../verilog/picorv32.v \

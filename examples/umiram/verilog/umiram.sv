@@ -20,7 +20,7 @@ module umiram #(
 
 	umi_unpack umi_unpack_i (
         // input
-    	.packet_in(umi_rx_packet),
+    	.packet(umi_rx_packet),
 
         // output
         .data(rx_data),
@@ -66,7 +66,7 @@ module umiram #(
 		.dstaddr(tx_dstaddr),
 		.srcaddr(64'd0),
 		.data(tx_data),
-		.packet_out(umi_tx_packet)
+		.packet(umi_tx_packet)
 	);
 
     // main logic

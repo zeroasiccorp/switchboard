@@ -48,7 +48,7 @@ module axi_to_umi (
 		.dstaddr(axi_awaddr),
 		.srcaddr(64'd0),
 		.data(axi_wdata),
-		.packet_out(umi_packet)
+		.packet(umi_packet)
 	);
 
 endmodule
