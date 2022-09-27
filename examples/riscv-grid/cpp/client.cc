@@ -3,9 +3,10 @@
 #include <fstream>
 
 #include "switchboard.hpp"
+#include "umilib.hpp"
 
-UmiConnection rx;
-UmiConnection tx;
+SBRX rx;
+SBTX tx;
 
 // don't have this defined in multiple places
 #define PICORV32_MEM_TOP (1<<17)
@@ -14,12 +15,12 @@ void init(int rx_port, int tx_port) {
     // RX
     char rx_uri[128];
     sprintf(rx_uri, "queue-%d", rx_port);
-    rx.init(rx_uri, false, true);
+    rx.init(rx_uri);
 
     // TX
     char tx_uri[128];
     sprintf(tx_uri, "queue-%d", tx_port);
-    tx.init(tx_uri, true, true);
+    tx.init(tx_uri);
 }
 
 void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, const uint32_t col){
@@ -32,8 +33,10 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
     dstaddr |= addr;
 
     // form the UMI packet
-    umi_packet p;
-    umi_pack(p, UMI_WRITE_NORMAL, dstaddr, 0, data);
+    sb_packet p;
+    umi_pack((uint32_t*)p.data, UMI_WRITE_NORMAL, dstaddr, 0, data);
+    p.destination = ((row & 0xf) << 8) | (col & 0xf);
+    p.last = true;
 
     // send the packet
     tx.send_blocking(p);
@@ -41,14 +44,14 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
 
 void dut_recv(uint32_t& data, uint32_t& addr){
     // receive packet
-    umi_packet p;
+    sb_packet p;
     rx.recv_blocking(p);
 
     // parse packet
     uint32_t opcode, size, user;
     uint64_t dstaddr, srcaddr;
     uint32_t data_arr[4];
-    umi_unpack(p, opcode, size, user, dstaddr, srcaddr, data_arr);
+    umi_unpack((uint32_t*)p.data, opcode, size, user, dstaddr, srcaddr, data_arr);
 
     // only the lowest 32 bits of data and address are used
     data = data_arr[0];

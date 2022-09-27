@@ -17,7 +17,7 @@ int main() {
         txp.data[i] = i & 0xff;
     }
 
-    txp.destination = 0xbeefcafe;
+    txp.destination = 1;
     txp.last = true;
     
     // send packet
@@ -28,6 +28,7 @@ int main() {
     // receive packet
 
     sb_packet rxp;
+
     rx.recv_blocking(rxp);
     printf("RX packet: %s\n", sb_packet_to_str(rxp).c_str());
 

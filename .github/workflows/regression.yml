@@ -12,8 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          #ssh-key: ${{ secrets.SSH_KEY_FOR_UMI }}
+          token: ${{ secrets.SGH_REPO_PAT }}
           submodules: recursive
-
       - name: Install prerequisites
         run: |
           sudo apt-get update -y

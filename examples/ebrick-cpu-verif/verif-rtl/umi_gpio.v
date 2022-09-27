@@ -8,6 +8,8 @@
 
 `timescale 1ns / 1ps
 
+`include "umi_opcodes.vh"
+
 module umi_gpio #(
     parameter integer RWIDTH=32,
     parameter integer WWIDTH=32
@@ -40,14 +42,14 @@ module umi_gpio #(
     wire [255:0] umi_write_packet;
 
     umi_pack umi_pack_i (
-        .opcode(8'b0000_00001),
+        .opcode(`UMI_WRITE_RESPONSE),
         .size(UMI_SIZE_WR),
         .user(20'd0),
         .burst(1'b0),
         .dstaddr(umi_read_resp_addr),
         .srcaddr(64'b0),  // only relevant for read requests...
         .data({{(256-WWIDTH){1'b0}}, gpio_in}),
-        .packet_out(umi_out_packet)
+        .packet(umi_out_packet)
     );
 
     // can receive a write or a read request
@@ -60,7 +62,7 @@ module umi_gpio #(
 
     umi_unpack umi_unpack_i (
         // unpack data
-        .packet_in(umi_in_packet),
+        .packet(umi_in_packet),
         .data(umi_in_data),
 
         // determine what kind of command this is

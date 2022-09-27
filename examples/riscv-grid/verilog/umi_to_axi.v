@@ -44,7 +44,7 @@ module umi_to_axi (
 	assign umi_ready = axi_bready;
 
 	umi_unpack umi_unpack_i (
-    	.packet_in(umi_packet),
+    	.packet(umi_packet),
         .dstaddr(axi_awaddr),
 		.data(axi_wdata),
 

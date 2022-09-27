@@ -1,3 +1,5 @@
+`include "umi_opcodes.vh"
+
 module umiram #(
     parameter integer ADDR_WIDTH=8,
     parameter integer DATA_WIDTH=32
@@ -20,7 +22,7 @@ module umiram #(
 
 	umi_unpack umi_unpack_i (
         // input
-    	.packet_in(umi_rx_packet),
+    	.packet(umi_rx_packet),
 
         // output
         .data(rx_data),
@@ -59,14 +61,14 @@ module umiram #(
     /* verilator lint_on WIDTH */
 
 	umi_pack umi_pack_i (
-		.opcode(8'b0000_0001),  // WRITE-NORMAL
+		.opcode(`UMI_WRITE_RESPONSE),  // WRITE-NORMAL
 		.size(UMI_SIZE),
 		.user(20'd0),
 		.burst(1'b0),
 		.dstaddr(tx_dstaddr),
 		.srcaddr(64'd0),
 		.data(tx_data),
-		.packet_out(umi_tx_packet)
+		.packet(umi_tx_packet)
 	);
 
     // main logic

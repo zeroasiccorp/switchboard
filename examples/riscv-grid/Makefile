@@ -1,7 +1,7 @@
 .PHONY: hello
 hello: prereqs
 	make -C riscv hello.bin
-	./scripts/hello.py
+	./scripts/grid.py --binfile riscv/hello.bin --rows 1 --cols 2
 
 .PHONY: grid
 grid: prereqs
@@ -16,7 +16,8 @@ addloop: prereqs
 
 .PHONY: prereqs
 prereqs:
-	make -C cpp client router
+	make -C ../../cpp router
+	make -C cpp client
 	make -C verilator obj_dir/Vtestbench
 
 .PHONY: clean

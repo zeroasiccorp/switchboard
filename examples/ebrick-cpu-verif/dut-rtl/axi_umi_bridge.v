@@ -8,6 +8,8 @@
 
 `timescale 1ns / 1ps
 
+`include "umi_opcodes.vh"
+
 module axi_umi_bridge #(
     parameter integer ARWIDTH=32,
     parameter integer RWIDTH=32,
@@ -56,14 +58,14 @@ module axi_umi_bridge #(
     wire [255:0] umi_write_packet;
 
     umi_pack umi_pack_wr (
-        .opcode(8'b0000_00001),
+        .opcode(`UMI_WRITE_NORMAL),
         .size(UMI_SIZE_WR),
         .user(20'd0),
         .burst(1'b0),
         .dstaddr({{(64-AWWIDTH){1'b0}}, axi_awaddr}),
         .srcaddr(64'b0),  // only relevant for reads...
         .data({{(256-WWIDTH){1'b0}}, axi_wdata}),
-        .packet_out(umi_write_packet)
+        .packet(umi_write_packet)
     );
 
     // form UMI read packet
@@ -75,14 +77,14 @@ module axi_umi_bridge #(
     wire [255:0] umi_read_packet;
 
     umi_pack umi_pack_rd (
-        .opcode(8'b0000_1000),
+        .opcode(`UMI_READ),
         .size(UMI_SIZE_RD),
         .user(20'd0),
         .burst(1'b0),
         .dstaddr({{(64-ARWIDTH){1'b0}}, axi_araddr}),
         .srcaddr({{(64-ARWIDTH){1'b0}}, axi_araddr}),
         .data(256'b0),  // only relevant for writes...
-        .packet_out(umi_read_packet)
+        .packet(umi_read_packet)
     );
 
     // can only receive a response to data written
@@ -93,7 +95,7 @@ module axi_umi_bridge #(
 
     umi_unpack umi_unpack_i (
         // unpack data
-        .packet_in(umi_in_packet),
+        .packet(umi_in_packet),
         .data(umi_in_data),
 
         // only used to validate read operation
@@ -126,7 +128,6 @@ module axi_umi_bridge #(
 
     reg umi_read_in_progress = 1'b0;
     reg [63:0] expected_read_addr = '0;
-    reg [7:0] expected_read_opcode = 8'b0000_00001;
 
     always @(posedge clk) begin
         if (rst) begin
@@ -206,9 +207,9 @@ module axi_umi_bridge #(
                         umi_in_dstaddr, expected_read_addr);
                     $stop;
                 end
-                if (umi_in_opcode != expected_read_opcode) begin
+                if (umi_in_opcode != `UMI_WRITE_RESPONSE) begin
                     $display("ERROR: read response has wrong opcode: got 0x%02x, expected 0x%02x",
-                        umi_in_opcode, expected_read_opcode);
+                        umi_in_opcode, `UMI_WRITE_RESPONSE);
                     $stop;
                 end
 

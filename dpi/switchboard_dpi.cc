@@ -1,6 +1,6 @@
 #include <chrono>
 #include <memory>
-#include <mutex>
+#include <vector>
 
 #include "switchboard.hpp"
 #include "svdpi.h"
@@ -9,43 +9,62 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    extern void pi_umi_init(int* id, const char* uri, int is_tx);
-    extern void pi_umi_recv(int id, svBitVecVal* rbuf, int* success);
-    extern void pi_umi_send(int id, const svBitVecVal* sbuf, int* success);
+    extern void pi_sb_rx_init(int* id, const char* uri);
+    extern void pi_sb_tx_init(int* id, const char* uri);
+    extern void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, int* success);
+    extern void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast, int* success);
     extern void pi_time_taken(double* t);
 #ifdef __cplusplus
 }
 #endif
 
-static std::vector<std::unique_ptr<UmiConnection>> connections;
+static std::vector<std::unique_ptr<SBRX>> rxconn;
+static std::vector<std::unique_ptr<SBTX>> txconn;
 
-void pi_umi_init(int* id, const char* uri, int is_tx) {
-    // create a new connection
-    connections.push_back(std::unique_ptr<UmiConnection>(new UmiConnection()));
-
-    // initialize the connection
-    connections.back()->init(uri, is_tx, false);
+void pi_sb_rx_init(int* id, const char* uri) {
+    rxconn.push_back(std::unique_ptr<SBRX>(new SBRX()));
+    rxconn.back()->init(uri);
 
     // assign the ID of this connection
-    *id = connections.size() - 1;
+    *id = rxconn.size() - 1;
 }
 
-void pi_umi_recv(int id, svBitVecVal* rbuf, int* success) {
-    umi_packet p;
-    
-    if (connections[id]->recv(p)) {
-        memcpy(rbuf, &p, 32);  // TODO: possible to remove this?
+void pi_sb_tx_init(int* id, const char* uri) {
+    txconn.push_back(std::unique_ptr<SBTX>(new SBTX()));
+    txconn.back()->init(uri);
+
+    // assign the ID of this connection
+    *id = txconn.size() - 1;
+}
+
+void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, int* success) {
+    // make sure this is a valid id
+    assert(id < rxconn.size());
+
+    // try to receive an inbound packet
+    sb_packet p;
+    if (rxconn[id]->recv(p)) {
+        memcpy(rdata, p.data, 32);
+        *rdest = p.destination;
+        *rlast = p.last ? 1 : 0;
         *success = 1;
     } else {
         *success = 0;
     } 
 }
 
-void pi_umi_send(int id, const svBitVecVal* sbuf, int* success) {
-    umi_packet p;
-    memcpy(&p, sbuf, 32);  // TODO: possible to remove this?
+void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast, int* success) {
+    // make sure this is a valid id
+    assert(id < txconn.size());
+
+    // form the outbound packet
+    sb_packet p;
+    memcpy(p.data, sdata, 32);
+    p.destination = *sdest;
+    p.last = slast;
     
-    if (connections[id]->send(p)) {
+    // try to send the packet
+    if (txconn[id]->send(p)) {
         *success = 1;
     } else {
         *success = 0;

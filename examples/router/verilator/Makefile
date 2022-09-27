@@ -13,16 +13,12 @@ obj_dir/Vtestbench:
 		--cc \
 		--exe \
 		-sv \
-		--trace \
 		--top-module testbench \
-		-I../../../verilog/sim \
 		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
 		-LDFLAGS "$(CPP_LIBS)" \
-		config.vlt \
 		$^
 	make -C obj_dir -f Vtestbench.mk Vtestbench
 
 .PHONY: clean
 clean:
 	rm -rf obj_dir
-	rm -f *.vcd
