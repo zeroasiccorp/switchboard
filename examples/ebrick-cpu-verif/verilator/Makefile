@@ -15,9 +15,10 @@ obj_dir/Vtestbench:
 		-sv \
 		--trace \
 		--top-module testbench \
+		-I../../../verilog/sim \
 		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
 		-LDFLAGS "$(CPP_LIBS)" \
-		../verilator/config.vlt \
+		config.vlt \
 		$^
 	make -C obj_dir -f Vtestbench.mk Vtestbench
 

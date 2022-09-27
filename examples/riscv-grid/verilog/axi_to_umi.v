@@ -1,6 +1,8 @@
 // only handles writes
 // not high performance - has bubble cycles
 
+`include "umi_opcodes.vh"
+
 module axi_to_umi (
     input clk,
     input rst,
@@ -41,7 +43,7 @@ module axi_to_umi (
 	end
 
 	umi_pack umi_pack_i (
-		.opcode(8'd0),
+		.opcode(`UMI_WRITE_NORMAL),
 		.size(4'd0),
 		.user(20'd0),
 		.burst(1'b0),

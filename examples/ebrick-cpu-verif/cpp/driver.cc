@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
             } else if (opcode == UMI_READ) {
                 // try to send a read response
                 sb_packet resp;
-                umi_pack((uint32_t*)resp.data, UMI_WRITE_NORMAL, srcaddr, 0, sram[dstaddr>>2]);
+                umi_pack((uint32_t*)resp.data, UMI_WRITE_RESPONSE, srcaddr, 0, sram[dstaddr>>2]);
                 if (tx1.send(resp)) {
                     // ACK if the response was sent successfully
                     rx1.recv();

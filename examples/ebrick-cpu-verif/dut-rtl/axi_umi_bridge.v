@@ -8,6 +8,8 @@
 
 `timescale 1ns / 1ps
 
+`include "umi_opcodes.vh"
+
 module axi_umi_bridge #(
     parameter integer ARWIDTH=32,
     parameter integer RWIDTH=32,
@@ -56,7 +58,7 @@ module axi_umi_bridge #(
     wire [255:0] umi_write_packet;
 
     umi_pack umi_pack_wr (
-        .opcode(8'b0000_00001),
+        .opcode(`UMI_WRITE_NORMAL),
         .size(UMI_SIZE_WR),
         .user(20'd0),
         .burst(1'b0),
@@ -75,7 +77,7 @@ module axi_umi_bridge #(
     wire [255:0] umi_read_packet;
 
     umi_pack umi_pack_rd (
-        .opcode(8'b0000_1000),
+        .opcode(`UMI_READ),
         .size(UMI_SIZE_RD),
         .user(20'd0),
         .burst(1'b0),
@@ -126,7 +128,6 @@ module axi_umi_bridge #(
 
     reg umi_read_in_progress = 1'b0;
     reg [63:0] expected_read_addr = '0;
-    reg [7:0] expected_read_opcode = 8'b0000_00001;
 
     always @(posedge clk) begin
         if (rst) begin
@@ -206,9 +207,9 @@ module axi_umi_bridge #(
                         umi_in_dstaddr, expected_read_addr);
                     $stop;
                 end
-                if (umi_in_opcode != expected_read_opcode) begin
+                if (umi_in_opcode != `UMI_WRITE_RESPONSE) begin
                     $display("ERROR: read response has wrong opcode: got 0x%02x, expected 0x%02x",
-                        umi_in_opcode, expected_read_opcode);
+                        umi_in_opcode, `UMI_WRITE_RESPONSE);
                     $stop;
                 end
 

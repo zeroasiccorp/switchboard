@@ -40,7 +40,7 @@ int main() {
     print_packet_details((uint32_t*)p.data);
     printf("\n");
 
-    // receive read request
+    // receive read response
     rx.recv_blocking(p);
     printf("RX packet: %s\n", umi_packet_to_str((uint32_t*)p.data).c_str());
     print_packet_details((uint32_t*)p.data);

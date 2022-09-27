@@ -8,6 +8,8 @@
 
 `timescale 1ns / 1ps
 
+`include "umi_opcodes.vh"
+
 module umi_gpio #(
     parameter integer RWIDTH=32,
     parameter integer WWIDTH=32
@@ -40,7 +42,7 @@ module umi_gpio #(
     wire [255:0] umi_write_packet;
 
     umi_pack umi_pack_i (
-        .opcode(8'b0000_00001),
+        .opcode(`UMI_WRITE_RESPONSE),
         .size(UMI_SIZE_WR),
         .user(20'd0),
         .burst(1'b0),
