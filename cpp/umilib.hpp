@@ -4,7 +4,24 @@
 #include <string>
 #include <unistd.h>
 
-enum UMI_CMD {UMI_WRITE_NORMAL=0b00000001, UMI_READ=0b00001000};
+enum UMI_CMD {
+    UMI_INVALID        = 0b00000000,
+    UMI_WRITE_NORMAL   = 0b00000001,
+    UMI_WRITE_RESPONSE = 0b00000010,
+    UMI_WRITE_SIGNAL   = 0b00000011,
+    UMI_WRITE_STREAM   = 0b00000100,
+    UMI_WRITE_ACK      = 0b00000101,
+    UMI_READ           = 0b00001000,
+    UMI_ATOMIC_SWAP    = 0b00001001,
+    UMI_ATOMIC_ADD     = 0b00011001,
+    UMI_ATOMIC_AND     = 0b00101001,
+    UMI_ATOMIC_OR      = 0b00111001,
+    UMI_ATOMIC_XOR     = 0b01001001,
+    UMI_ATOMIC_MAX     = 0b01011001,
+    UMI_ATOMIC_MIN     = 0b01101001,
+    UMI_ATOMIC_USER    = 0b10001001,
+    UMI_USER           = 0b11111111
+};
 
 typedef uint32_t umi_packet[8];
 
@@ -121,48 +138,73 @@ static inline std::string umi_packet_to_str(const umi_packet p) {
     return retval;
 }
 
+static inline bool is_umi_write_normal(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_NORMAL;
+}
+
+static inline bool is_umi_write_response(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_RESPONSE;
+}
+
+static inline bool is_umi_write_signal(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_SIGNAL;
+}
+
+static inline bool is_umi_write_stream(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_STREAM;
+}
+
+static inline bool is_umi_write_ack(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_ACK;
+}
+
+static inline bool is_umi_atomic_user(uint32_t opcode) {
+    return (opcode & 0b10001111) == UMI_ATOMIC_USER;
+}
+
+static inline bool is_umi_user(uint32_t opcode) {
+    return (
+        ((opcode & 0b1110) == 0b0110) |
+        ((opcode & 0b1111) == 0b1011) |
+        ((opcode & 0b1111) == 0b1100) |
+        ((opcode & 0b1111) == 0b1101) |
+        ((opcode & 0b1111) == 0b1110) |
+        ((opcode & 0b1111) == 0b1111)
+    );
+}
+
 static inline std::string umi_opcode_to_str(uint32_t opcode) {
-    if (opcode == 0b00000000) {
+    if (opcode == UMI_INVALID) {
         return "INVALID";
-    } else if ((opcode & 0b1111) == 0b0001) {
+    } else if (is_umi_write_normal(opcode)) {
         return "WRITE-NORMAL";
-    } else if ((opcode & 0b1111) == 0b0010) {
+    } else if (is_umi_write_response(opcode)) {
         return "WRITE-RESPONSE";
-    } else if ((opcode & 0b1111) == 0b0011) {
+    } else if (is_umi_write_signal(opcode)) {
         return "WRITE-SIGNAL";
-    } else if ((opcode & 0b1111) == 0b0100) {
+    } else if (is_umi_write_stream(opcode)) {
         return "WRITE-STREAM";
-    } else if ((opcode & 0b1111) == 0b0101) {
+    } else if (is_umi_write_ack(opcode)) {
         return "WRITE-ACK";
-    } else if ((opcode & 0b1110) == 0b0110) {
-        return "USER";
-    } else if (opcode == 0b00001000) {
+    } else if (opcode == UMI_READ) {
         return "READ";
-    } else if (opcode == 0b00001001) {
+    } else if (opcode == UMI_ATOMIC_SWAP) {
         return "ATOMIC-SWAP";
-    } else if (opcode == 0b00011001) {
+    } else if (opcode == UMI_ATOMIC_ADD) {
         return "ATOMIC-ADD";
-    } else if (opcode == 0b00101001) {
+    } else if (opcode == UMI_ATOMIC_AND) {
         return "ATOMIC-AND";
-    } else if (opcode == 0b00111001) {
+    } else if (opcode == UMI_ATOMIC_OR) {
         return "ATOMIC-OR";
-    } else if (opcode == 0b01001001) {
+    } else if (opcode == UMI_ATOMIC_XOR) {
         return "ATOMIC-XOR";
-    } else if (opcode == 0b01011001) {
+    } else if (opcode == UMI_ATOMIC_MAX) {
         return "ATOMIC-MAX";
-    } else if (opcode == 0b01101001) {
+    } else if (opcode == UMI_ATOMIC_MIN) {
         return "ATOMIC-MIN";
-    } else if ((opcode & 0b10001111) == 0b10001001) {
+    } else if (is_umi_atomic_user(opcode)) {
         return "ATOMIC-USER";
-    } else if ((opcode & 0b1111) == 0b1011) {
-        return "USER";
-    } else if ((opcode & 0b1111) == 0b1100) {
-        return "USER";
-    } else if ((opcode & 0b1111) == 0b1101) {
-        return "USER";
-    } else if ((opcode & 0b1111) == 0b1110) {
-        return "USER";
-    } else if ((opcode & 0b1111) == 0b1111) {
+    } else if (is_umi_user(opcode)) {
         return "USER";
     } else {
         return "UNKNOWN";
