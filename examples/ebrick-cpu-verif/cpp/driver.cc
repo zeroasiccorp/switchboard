@@ -1,6 +1,8 @@
 #include <chrono>
 #include <thread>
 #include <fstream>
+#include <unistd.h>
+#include <signal.h>
 
 #include "switchboard.hpp"
 #include "umilib.hpp"
@@ -39,18 +41,34 @@ void init_sram(const char* binfile) {
     fread(sram, sizeof(uint32_t), sizeof(sram), f);
 }
 
+void start_simulator_process(const char* simulator) {
+    execl(simulator, simulator, (char*)NULL);
+}
+
 int main(int argc, char* argv[]) {
     // process command-line arguments
 
     int arg_idx = 1;
+
+    const char* simulator = "verilator/obj_dir/Vtestbench";
+    if (arg_idx < argc) {
+        simulator = argv[arg_idx++];
+    }
 
     const char* binfile = "riscv/hello.bin";
     if (arg_idx < argc) {
         binfile = argv[arg_idx++];
     }
 
-    // set up UMI ports
+    // set up UMI ports (important to do this before forking, since this
+    // initializes the shared memory queues)
     init();
+
+    // start the simulator as a child process
+    int pid = fork();
+    if (pid == 0) {
+        start_simulator_process(simulator);
+    }
 
     // initialize SRAM model
     init_sram(binfile);
@@ -107,6 +125,10 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    // stop the simulator process
+    kill(pid, SIGINT);
+    wait(NULL);
 
     return exit_code;
 }
