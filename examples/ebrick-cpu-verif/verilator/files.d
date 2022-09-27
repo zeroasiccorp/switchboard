@@ -1,7 +1,7 @@
 obj_dir/Vtestbench: timescale.sv \
-	../../../deps/umi/umi/rtl/umi_decode.v \
-	../../../deps/umi/umi/rtl/umi_pack.v \
-	../../../deps/umi/umi/rtl/umi_unpack.v \
+	../../deps/umi/umi/rtl/umi_decode.v \
+	../../deps/umi/umi/rtl/umi_pack.v \
+	../../deps/umi/umi/rtl/umi_unpack.v \
 	../dut-rtl/picorv32.v \
 	../dut-rtl/axi_umi_bridge.v \
 	../dut-rtl/ebrick_core.v \
