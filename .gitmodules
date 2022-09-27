@@ -1,3 +1,6 @@
 [submodule "examples/riscv-grid/verilog/verilog-axi"]
 	path = examples/riscv-grid/verilog/verilog-axi
 	url = git@github.com:alexforencich/verilog-axi.git
+[submodule "deps/umi"]
+	path = deps/umi
+	url = git@github.com:zeroasiccorp/umi.git
