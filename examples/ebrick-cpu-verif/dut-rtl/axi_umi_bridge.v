@@ -63,7 +63,7 @@ module axi_umi_bridge #(
         .dstaddr({{(64-AWWIDTH){1'b0}}, axi_awaddr}),
         .srcaddr(64'b0),  // only relevant for reads...
         .data({{(256-WWIDTH){1'b0}}, axi_wdata}),
-        .packet_out(umi_write_packet)
+        .packet(umi_write_packet)
     );
 
     // form UMI read packet
@@ -82,7 +82,7 @@ module axi_umi_bridge #(
         .dstaddr({{(64-ARWIDTH){1'b0}}, axi_araddr}),
         .srcaddr({{(64-ARWIDTH){1'b0}}, axi_araddr}),
         .data(256'b0),  // only relevant for writes...
-        .packet_out(umi_read_packet)
+        .packet(umi_read_packet)
     );
 
     // can only receive a response to data written
@@ -93,7 +93,7 @@ module axi_umi_bridge #(
 
     umi_unpack umi_unpack_i (
         // unpack data
-        .packet_in(umi_in_packet),
+        .packet(umi_in_packet),
         .data(umi_in_data),
 
         // only used to validate read operation

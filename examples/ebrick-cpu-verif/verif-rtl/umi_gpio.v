@@ -47,7 +47,7 @@ module umi_gpio #(
         .dstaddr(umi_read_resp_addr),
         .srcaddr(64'b0),  // only relevant for read requests...
         .data({{(256-WWIDTH){1'b0}}, gpio_in}),
-        .packet_out(umi_out_packet)
+        .packet(umi_out_packet)
     );
 
     // can receive a write or a read request
@@ -60,7 +60,7 @@ module umi_gpio #(
 
     umi_unpack umi_unpack_i (
         // unpack data
-        .packet_in(umi_in_packet),
+        .packet(umi_in_packet),
         .data(umi_in_data),
 
         // determine what kind of command this is
