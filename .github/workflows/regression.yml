@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
       - name: Install SSH key
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.SSH_KEY_FOR_UMI }}
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Initialize submodules
         run: |
           git submodule update --init
