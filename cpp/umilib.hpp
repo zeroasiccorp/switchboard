@@ -25,22 +25,16 @@ enum UMI_CMD {
 
 typedef uint32_t umi_packet[8];
 
-static inline void umi_pack_burst(umi_packet p, uint32_t data[]) {
-    p[7] = data[4];
-    p[6] = data[3];
-    p[5] = data[2];
-    p[4] = data[1];
-    p[3] = data[0];
-    p[2] = data[7];
-    p[1] = data[6];
-    p[0] = data[5];
+static inline void umi_pack_burst(umi_packet p, uint8_t data[], int nbytes=32) {
+    assert(nbytes <= 32);
+    memcpy(&p[3], data, std::min(nbytes, 20));
+    if (nbytes > 20) {
+        memcpy(p, &data[20], nbytes - 20);
+    }
 }
 
 static inline void umi_pack(umi_packet p, uint32_t opcode, uint32_t size, uint32_t user,
-    uint64_t dstaddr, uint64_t srcaddr, uint32_t data[]) {
-
-    // determine if this is a read command
-    bool cmd_read = (opcode >> 3) & 0b1;
+    uint64_t dstaddr, uint64_t srcaddr, uint8_t data[], int nbytes=16) {
 
     // form the 32-bit command
     uint32_t cmd_out = 0;
@@ -50,52 +44,29 @@ static inline void umi_pack(umi_packet p, uint32_t opcode, uint32_t size, uint32
 
     // populate the packet
     p[7] = (dstaddr >> 32) & 0xffffffff;
-    if (cmd_read) {
+    if (opcode == UMI_READ) {
         p[6] = (srcaddr >> 32) & 0xffffffff;
-    } else {
-        // size=4 corresponds to 16 bytes (128 bits) of data
-        p[6] = (size >= 4) ? data[3] : 0;
+    } else if (nbytes > 0) {
+        assert(nbytes <= 16);
+        memcpy(&p[3], data, std::min(1<<size, nbytes));
     }
-    p[5] = (size >= 4) ? data[2] : 0;  // size=4 corresponds to 16 bytes (128 bits) of data
-    p[4] = (size >= 3) ? data[1] : 0;  // size=3 corresponds to 8 bytes (64 bits) of data
-    p[3] = data[0];
+
     p[2] = srcaddr & 0xffffffff;
     p[1] = dstaddr & 0xffffffff;
     p[0] = cmd_out;
 }
 
-static inline void umi_pack(umi_packet p, uint32_t opcode, uint64_t dstaddr,
-    uint64_t srcaddr, uint64_t data, uint32_t user=0) {
-    
-    // format the data as 32-bit words
-    uint32_t data_arr[2];
-    data_arr[1] = (data >> 32) & 0xffffffff;
-    data_arr[0] = data & 0xffffffff;
+static inline void umi_unpack_burst(const umi_packet p, uint8_t data[], int nbytes=32) {
+    assert(nbytes <= 32);
 
-    // size=3 means than 2^3=8 bytes (64 bits) are sent
-    umi_pack(p, opcode, 3, user, dstaddr, srcaddr, data_arr);
-}
-
-static inline void umi_pack(umi_packet p, uint32_t opcode, uint64_t dstaddr,
-    uint64_t srcaddr, uint32_t data, uint32_t user=0) {
-    
-    // size=2 means than 2^2=4 bytes (32 bits) are sent
-    umi_pack(p, opcode, 2, user, dstaddr, srcaddr, &data);
-}
-
-static inline void umi_unpack_burst(const umi_packet p, uint32_t data[]) {
-    data[0] = p[3];
-    data[1] = p[4];
-    data[2] = p[5];
-    data[3] = p[6];
-    data[4] = p[7];
-    data[5] = p[0];
-    data[6] = p[1];
-    data[7] = p[2];
+    memcpy(data, &p[3], std::min(nbytes, 20));
+    if (nbytes > 20) {
+        memcpy(&data[20], p, nbytes - 20);
+    }
 }
 
 static inline void umi_unpack(const umi_packet p, uint32_t& opcode, uint32_t& size, uint32_t& user,
-    uint64_t& dstaddr, uint64_t& srcaddr, uint32_t data[]) {
+    uint64_t& dstaddr, uint64_t& srcaddr, uint8_t data[], int nbytes=16) {
 
     // unpack the 32-bit command
     opcode = p[0] & 0xff;
@@ -115,10 +86,8 @@ static inline void umi_unpack(const umi_packet p, uint32_t& opcode, uint32_t& si
     srcaddr |= p[2];
 
     // copy out the data
-    data[0] = p[3];
-    data[1] = p[4];
-    data[2] = p[5];
-    data[3] = p[6];
+    assert(nbytes <= 16);
+    memcpy(data, &p[3], nbytes);
 }
 
 static inline std::string umi_packet_to_str(const umi_packet p) {
