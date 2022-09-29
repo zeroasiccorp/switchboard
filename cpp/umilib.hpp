@@ -25,44 +25,43 @@ enum UMI_CMD {
 
 typedef uint32_t umi_packet[8];
 
+static inline void umi_pack_burst(umi_packet p, uint32_t data[]) {
+    p[7] = data[4];
+    p[6] = data[3];
+    p[5] = data[2];
+    p[4] = data[1];
+    p[3] = data[0];
+    p[2] = data[7];
+    p[1] = data[6];
+    p[0] = data[5];
+}
+
 static inline void umi_pack(umi_packet p, uint32_t opcode, uint32_t size, uint32_t user,
-    uint64_t dstaddr, uint64_t srcaddr, uint32_t data[], bool burst=false) {
+    uint64_t dstaddr, uint64_t srcaddr, uint32_t data[]) {
 
-    if (burst) {
-        // populate the packet
-        p[7] = data[4];
-        p[6] = data[3];
-        p[5] = data[2];
-        p[4] = data[1];
-        p[3] = data[0];
-        p[2] = data[7];
-        p[1] = data[6];
-        p[0] = data[5];
+    // determine if this is a read command
+    bool cmd_read = (opcode >> 3) & 0b1;
+
+    // form the 32-bit command
+    uint32_t cmd_out = 0;
+    cmd_out |= (opcode & 0xff);
+    cmd_out |= (size & 0xf) << 8;
+    cmd_out |= (user & 0xfffff) << 12;
+
+    // populate the packet
+    p[7] = (dstaddr >> 32) & 0xffffffff;
+    if (cmd_read) {
+        p[6] = (srcaddr >> 32) & 0xffffffff;
     } else {
-        // determine if this is a read command
-        bool cmd_read = (opcode >> 3) & 0b1;
-
-        // form the 32-bit command
-        uint32_t cmd_out = 0;
-        cmd_out |= (opcode & 0xff);
-        cmd_out |= (size & 0xf) << 8;
-        cmd_out |= (user & 0xfffff) << 12;
-
-        // populate the packet
-        p[7] = (dstaddr >> 32) & 0xffffffff;
-        if (cmd_read) {
-            p[6] = (srcaddr >> 32) & 0xffffffff;
-        } else {
-            // size=4 corresponds to 16 bytes (128 bits) of data
-            p[6] = (size >= 4) ? data[3] : 0;
-        }
-        p[5] = (size >= 4) ? data[2] : 0;  // size=4 corresponds to 16 bytes (128 bits) of data
-        p[4] = (size >= 3) ? data[1] : 0;  // size=3 corresponds to 8 bytes (64 bits) of data
-        p[3] = data[0];
-        p[2] = srcaddr & 0xffffffff;
-        p[1] = dstaddr & 0xffffffff;
-        p[0] = cmd_out;
+        // size=4 corresponds to 16 bytes (128 bits) of data
+        p[6] = (size >= 4) ? data[3] : 0;
     }
+    p[5] = (size >= 4) ? data[2] : 0;  // size=4 corresponds to 16 bytes (128 bits) of data
+    p[4] = (size >= 3) ? data[1] : 0;  // size=3 corresponds to 8 bytes (64 bits) of data
+    p[3] = data[0];
+    p[2] = srcaddr & 0xffffffff;
+    p[1] = dstaddr & 0xffffffff;
+    p[0] = cmd_out;
 }
 
 static inline void umi_pack(umi_packet p, uint32_t opcode, uint64_t dstaddr,
@@ -84,43 +83,42 @@ static inline void umi_pack(umi_packet p, uint32_t opcode, uint64_t dstaddr,
     umi_pack(p, opcode, 2, user, dstaddr, srcaddr, &data);
 }
 
+static inline void umi_unpack_burst(const umi_packet p, uint32_t data[]) {
+    data[0] = p[3];
+    data[1] = p[4];
+    data[2] = p[5];
+    data[3] = p[6];
+    data[4] = p[7];
+    data[5] = p[0];
+    data[6] = p[1];
+    data[7] = p[2];
+}
+
 static inline void umi_unpack(const umi_packet p, uint32_t& opcode, uint32_t& size, uint32_t& user,
-    uint64_t& dstaddr, uint64_t& srcaddr, uint32_t data[], bool burst=false) {
+    uint64_t& dstaddr, uint64_t& srcaddr, uint32_t data[]) {
 
-    if (burst) {
-        // unpack only the data
-        data[0] = p[3];
-        data[1] = p[4];
-        data[2] = p[5];
-        data[3] = p[6];
-        data[4] = p[7];
-        data[5] = p[0];
-        data[6] = p[1];
-        data[7] = p[2];
-    } else {
-        // unpack the 32-bit command
-        opcode = p[0] & 0xff;
-        size = (p[0] >> 8) & 0xf;
-        user = (p[0] >> 12) & 0xfffff;
+    // unpack the 32-bit command
+    opcode = p[0] & 0xff;
+    size = (p[0] >> 8) & 0xf;
+    user = (p[0] >> 12) & 0xfffff;
 
-        // determine destination address
-        dstaddr = 0;
-        dstaddr |= p[7];
-        dstaddr <<= 32;
-        dstaddr |= p[1];
+    // determine destination address
+    dstaddr = 0;
+    dstaddr |= p[7];
+    dstaddr <<= 32;
+    dstaddr |= p[1];
 
-        // determine the source address (only valid for a read)
-        srcaddr = 0;
-        srcaddr |= p[6];
-        srcaddr <<= 32;
-        srcaddr |= p[2];
+    // determine the source address (only valid for a read)
+    srcaddr = 0;
+    srcaddr |= p[6];
+    srcaddr <<= 32;
+    srcaddr |= p[2];
 
-        // copy out the data
-        data[0] = p[3];
-        data[1] = p[4];
-        data[2] = p[5];
-        data[3] = p[6];
-    }
+    // copy out the data
+    data[0] = p[3];
+    data[1] = p[4];
+    data[2] = p[5];
+    data[3] = p[6];
 }
 
 static inline std::string umi_packet_to_str(const umi_packet p) {
@@ -136,6 +134,10 @@ static inline std::string umi_packet_to_str(const umi_packet p) {
     }
 
     return retval;
+}
+
+static inline bool is_umi_read(uint32_t opcode) {
+    return (opcode == UMI_READ);
 }
 
 static inline bool is_umi_write_normal(uint32_t opcode) {
@@ -160,6 +162,13 @@ static inline bool is_umi_write_ack(uint32_t opcode) {
 
 static inline bool is_umi_atomic_user(uint32_t opcode) {
     return (opcode & 0b10001111) == UMI_ATOMIC_USER;
+}
+
+static inline bool is_umi_atomic(uint32_t opcode) {
+    return (
+        ((opcode & 0b00001111) == 0b00001001) && 
+                       (opcode != 0b11111001)  // TODO: is the intent that this is an atomic operation as well?
+    );
 }
 
 static inline bool is_umi_user(uint32_t opcode) {
