@@ -22,7 +22,7 @@ module sb_rx_sim (
 
 		task pi_sb_recv(input int id, output [255:0] rdata, output [31:0] rdest,
 			output rlast, output int success);
-			$pi_sb_recv(id, rbuf, rdest, rlast, success);
+			$pi_sb_recv(id, rdata, rdest, rlast, success);
 		endtask
 
 		reg [255:0] rdata;

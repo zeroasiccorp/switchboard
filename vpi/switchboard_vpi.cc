@@ -1,0 +1,304 @@
+#include <chrono>
+#include <memory>
+#include <vector>
+
+#include "switchboard.hpp"
+
+#include <vpi_user.h>
+
+static std::vector<std::unique_ptr<SBRX>> rxconn;
+static std::vector<std::unique_ptr<SBTX>> txconn;
+static std::chrono::steady_clock::time_point start_time;
+
+PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
+    (void)userdata;  // unused
+
+    // get arguments
+    vpiHandle args_iter;
+    std::vector<vpiHandle> argh;
+    {
+        vpiHandle systfref;
+        systfref = vpi_handle(vpiSysTfCall, NULL);
+        args_iter = vpi_iterate(vpiArgument, systfref);
+        for (size_t i=0; i<2; i++) {
+            argh.push_back(vpi_scan(args_iter));
+        }
+    }
+
+    // get uri
+    std::string uri;
+    {
+        t_vpi_value argval;
+	    argval.format = vpiStringVal;
+        vpi_get_value(argh[1], &argval);
+        uri = std::string(argval.value.str);
+    }
+
+    // initialize the connection
+    rxconn.push_back(std::unique_ptr<SBRX>(new SBRX()));
+    rxconn.back()->init(uri);
+
+    // assign the ID of this connection
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        argval.value.integer = rxconn.size()-1;
+        vpi_put_value(argh[0], &argval, NULL, vpiNoDelay);
+    }
+
+    // clean up
+    vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
+PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
+    (void)userdata;  // unused
+
+    // get arguments
+    vpiHandle args_iter;
+    std::vector<vpiHandle> argh;
+    {
+        vpiHandle systfref;
+        systfref = vpi_handle(vpiSysTfCall, NULL);
+        args_iter = vpi_iterate(vpiArgument, systfref);
+        for (size_t i=0; i<2; i++) {
+            argh.push_back(vpi_scan(args_iter));
+        }
+    }
+
+    // get uri
+    std::string uri;
+    {
+        t_vpi_value argval;
+	    argval.format = vpiStringVal;
+        vpi_get_value(argh[1], &argval);
+        uri = std::string(argval.value.str);
+    }
+
+    // initialize the connection
+    txconn.push_back(std::unique_ptr<SBTX>(new SBTX()));
+    txconn.back()->init(uri);
+
+    // assign the ID of this connection
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        argval.value.integer = txconn.size()-1;
+        vpi_put_value(argh[0], &argval, NULL, vpiNoDelay);
+    }
+
+    // clean up
+    vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
+PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
+    (void)userdata;  // unused
+
+    // get arguments
+    vpiHandle args_iter;
+    std::vector<vpiHandle> argh;
+    {
+        vpiHandle systfref;
+        systfref = vpi_handle(vpiSysTfCall, NULL);
+        args_iter = vpi_iterate(vpiArgument, systfref);
+        for (size_t i=0; i<5; i++) {
+            argh.push_back(vpi_scan(args_iter));
+        }
+    }
+
+    // get id
+    int id;
+    {
+        t_vpi_value argval;
+	    argval.format = vpiIntVal;
+        vpi_get_value(argh[0], &argval);
+        id = argval.value.integer;
+    }
+
+    // read incoming packet
+
+    sb_packet p;
+    int success;
+    if (rxconn[id]->recv(p)) {
+        success = 1;
+
+        t_vpi_value argval;
+
+        // store data
+        argval.format = vpiVectorVal;
+        s_vpi_vecval vecval[8];
+        argval.value.vector = vecval;
+        for (int i=0; i<8; i++) {
+            argval.value.vector[i].aval = *((uint32_t*)(&p.data[i*4]));
+            argval.value.vector[i].bval = 0;
+        }
+        vpi_put_value(argh[1], &argval, NULL, vpiNoDelay);
+
+        // store destination
+        argval.format = vpiIntVal;
+        argval.value.integer = p.destination;
+        vpi_put_value(argh[2], &argval, NULL, vpiNoDelay);
+
+        // store last
+        argval.format = vpiIntVal;
+        argval.value.integer = p.last ? 1 : 0;
+        vpi_put_value(argh[3], &argval, NULL, vpiNoDelay);
+    } else {
+        success = 0;
+    } 
+
+    // indicate success
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        argval.value.integer = success;
+        vpi_put_value(argh[4], &argval, NULL, vpiNoDelay);
+    }
+
+    // clean up
+    vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
+PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
+    (void)userdata;  // unused
+
+    // get arguments
+    vpiHandle args_iter;
+    std::vector<vpiHandle> argh;
+    {
+        vpiHandle systfref;
+        systfref = vpi_handle(vpiSysTfCall, NULL);
+        args_iter = vpi_iterate(vpiArgument, systfref);
+        for (size_t i=0; i<5; i++) {
+            argh.push_back(vpi_scan(args_iter));
+        }
+    }
+
+    // get id
+    int id;
+    {
+        t_vpi_value argval;
+	    argval.format = vpiIntVal;
+        vpi_get_value(argh[0], &argval);
+        id = argval.value.integer;
+    }
+
+    // get outgoing packet
+    // TODO: possible to use vpi_get_value_array?
+    sb_packet p;
+    {
+        t_vpi_value argval;
+
+        // store data
+        argval.format = vpiVectorVal;
+        vpi_get_value(argh[1], &argval);
+        for (int i=0; i<8; i++) {
+            *((uint32_t*)(&p.data[i*4])) = argval.value.vector[i].aval;
+        }
+
+        // store destination
+        argval.format = vpiIntVal;
+        vpi_get_value(argh[2], &argval);
+        p.destination = argval.value.integer;
+
+        // store last
+        argval.format = vpiIntVal;
+        vpi_get_value(argh[3], &argval);
+        p.last = argval.value.integer;
+    }
+    
+    // try to send packet
+    int success;
+    if (txconn[id]->send(p)) {
+        success = 1;
+    } else {
+        success = 0;
+    }
+
+    // indicate success
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        argval.value.integer = success;
+        vpi_put_value(argh[4], &argval, NULL, vpiNoDelay);
+    }
+
+	// clean up
+	vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
+PLI_INT32 pi_time_taken(PLI_BYTE8* userdata) {
+    (void)userdata;  // unused
+
+    // get argument
+
+    vpiHandle systfref, args_iter;
+    vpiHandle argh;
+    t_vpi_value argval;
+
+	systfref = vpi_handle(vpiSysTfCall, NULL);
+	args_iter = vpi_iterate(vpiArgument, systfref);
+    argh = vpi_scan(args_iter);
+
+    // calculate the time taken
+	std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
+    double t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
+    start_time = stop_time;
+
+    // store the time taken
+	argval.format = vpiRealVal;
+    argval.value.real = t;
+    vpi_put_value(argh, &argval, NULL, vpiNoDelay);
+
+	// clean up
+	vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
+// macro that creates a function to register PLI functions
+
+#define VPI_REGISTER_FUNC_NAME(name) register_##name
+#define VPI_REGISTER_FUNC(name) \
+    void VPI_REGISTER_FUNC_NAME(name)(void) { \
+        s_vpi_systf_data data = { \
+		    vpiSysTask, \
+		    0, \
+		    (char*)("$"#name), \
+		    name, \
+		    0, \
+		    0, \
+		    0 \
+	    }; \
+\
+	    vpi_register_systf(&data); \
+    }
+
+// create the PLI registration functions using this macro
+
+VPI_REGISTER_FUNC(pi_sb_rx_init)
+VPI_REGISTER_FUNC(pi_sb_tx_init)
+VPI_REGISTER_FUNC(pi_sb_recv)
+VPI_REGISTER_FUNC(pi_sb_send)
+VPI_REGISTER_FUNC(pi_time_taken)
+
+void (*vlog_startup_routines[])(void) = {
+    VPI_REGISTER_FUNC_NAME(pi_sb_rx_init),
+    VPI_REGISTER_FUNC_NAME(pi_sb_tx_init),
+    VPI_REGISTER_FUNC_NAME(pi_sb_recv),
+    VPI_REGISTER_FUNC_NAME(pi_sb_send),
+    VPI_REGISTER_FUNC_NAME(pi_time_taken),
+	0  // last entry must be 0
+};
