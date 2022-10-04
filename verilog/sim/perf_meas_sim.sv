@@ -15,7 +15,7 @@ module perf_meas_sim #(
         endtask
         task init(input integer n);
             cycles_per_meas = n;
-            pi_time_taken(t); //
+            pi_time_taken(t);
         endtask
     `else
         import "DPI-C" function void pi_time_taken(output real t);
@@ -36,7 +36,9 @@ module perf_meas_sim #(
             pi_time_taken(t);
             /* verilator lint_on IGNOREDRETURN */
             sim_rate = (1.0*total_clock_cycles)/t;
-            if (sim_rate < 1.0e6) begin
+            if (sim_rate < 1.0e3) begin
+                $display("Simulation rate: %0.3f Hz", sim_rate);
+            end else if (sim_rate < 1.0e6) begin
                 $display("Simulation rate: %0.3f kHz", 1e-3*sim_rate);
             end else begin
                 $display("Simulation rate: %0.3f MHz", 1e-6*sim_rate);
