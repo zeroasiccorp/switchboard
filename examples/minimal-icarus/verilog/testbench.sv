@@ -1,6 +1,17 @@
-module testbench (
-	input clk
-);
+`timescale 1ns / 1ps
+
+module testbench;
+
+	// clock
+
+	reg clk;
+	always begin
+		clk = 1'b0;
+		#5;
+		clk = 1'b1;
+		#5;
+	end
+
 	// SB RX port
 
 	wire [255:0] sb_rx_data;
@@ -52,10 +63,8 @@ module testbench (
 	// Initialize UMI
 
 	initial begin
-		/* verilator lint_off IGNOREDRETURN */
 		rx_i.init("queue-5555");
 		tx_i.init("queue-5556");
-		/* verilator lint_on IGNOREDRETURN */
 	end
 
 endmodule

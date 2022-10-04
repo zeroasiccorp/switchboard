@@ -138,7 +138,7 @@ static inline std::string sb_packet_to_str(sb_packet p) {
     retval += buf;
 
     // format data
-    for (int i=0; i<sizeof(p.data); i++) {
+    for (size_t i=0; i<sizeof(p.data); i++) {
         sprintf(buf, "%02x", p.data[i]);
         retval += buf;
         if (i != (sizeof(p.data)-1)) {

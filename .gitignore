@@ -19,6 +19,7 @@ compile_flags.txt
 *.vpi
 *.vvp
 *.out
+*.dSYM
 
 # other outputs
 *.log
