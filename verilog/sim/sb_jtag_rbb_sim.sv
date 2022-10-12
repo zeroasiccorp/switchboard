@@ -1,3 +1,5 @@
+`default_nettype none
+
 module sb_jtag_rbb_sim (
     input clk,
     input rst,
@@ -9,63 +11,50 @@ module sb_jtag_rbb_sim (
     output srst,
     output reg led=1'b0
 );
+    `ifdef __ICARUS__
+        `define SB_EXT_FUNC(x) $``x``
+        `define SB_START_FUNC task
+        `define SB_END_FUNC endtask
+        `define SB_VAR_BIT reg
+    `else
+        `define SB_EXT_FUNC(x) ``x``
+        `define SB_START_FUNC function void
+        `define SB_END_FUNC endfunction
+        `define SB_VAR_BIT var bit
+
+        import "DPI-C" function void pi_sb_rx_init(output int id, input string uri);
+        import "DPI-C" function void pi_sb_recv(input int id, output bit [255:0] rdata,
+            output bit [31:0] rdest, output bit rlast, output int success);
+
+        import "DPI-C" function void pi_sb_tx_init (output int id, input string uri);
+        import "DPI-C" function void pi_sb_send (input int id, input bit [255:0] sdata,
+            input bit [31:0] sdest, input bit slast, output int success);
+    `endif
+
     // SB DPI/VPI interface
 
-    integer rxid, txid;
+    integer rxid=-1;
+    integer txid=-1;
 
-	`ifdef __ICARUS__
-		task init(input string rxuri, input string txuri);
-			$pi_sb_rx_init(rxid, rxuri);
-            $pi_sb_rx_init(txid, txuri);
-		endtask
+    `SB_START_FUNC init(input string rxuri, input string txuri);
+        /* verilator lint_off IGNOREDRETURN */
+        `SB_EXT_FUNC(pi_sb_rx_init)(rxid, rxuri);
+        `SB_EXT_FUNC(pi_sb_tx_init)(txid, txuri);
+        /* verilator lint_on IGNOREDRETURN */
+    `SB_END_FUNC
 
-		task pi_sb_recv(input int id, output [255:0] rdata, output [31:0] rdest,
-			output rlast, output int success);
-			$pi_sb_recv(id, rdata, rdest, rlast, success);
-		endtask
+    `SB_VAR_BIT [255:0] sdata;
+    `SB_VAR_BIT [31:0] sdest;
+    `SB_VAR_BIT slast;
 
-		task pi_sb_send(input int id, input [255:0] sdata, input [31:0] sdest,
-			input slast, output int success);
-			$pi_sb_send(id, sdata, sdest, slast, success);
-		endtask
-
-		reg [255:0] sdata;
-		reg [31:0] sdest;
-		reg slast;
-
-		reg [255:0] rdata;
-		reg [31:0] rdest;
-		reg rlast;
-	`else
-		import "DPI-C" function void pi_sb_rx_init(output int id, input string uri);
-		import "DPI-C" function void pi_sb_recv(input int id, output bit [255:0] rdata,
-			output bit [31:0] rdest, output bit rlast, output int success);
-
-		import "DPI-C" function void pi_sb_tx_init (output int id, input string uri);
-		import "DPI-C" function void pi_sb_send (input int id, input bit [255:0] sdata, 
-			input bit [31:0] sdest, input bit slast, output int success);
-
-		function void init(input string rxuri, input string txuri);
-			/* verilator lint_off IGNOREDRETURN */
-			pi_sb_rx_init(rxid, rxuri);
-            pi_sb_tx_init(txid, txuri);
-			/* verilator lint_on IGNOREDRETURN */
-		endfunction
-
-		var bit [255:0] rdata;
-		var bit [31:0] rdest;
-		var bit rlast;
-
-		var bit [255:0] sdata;
-		var bit [31:0] sdest;
-		var bit slast;
-	`endif
-
+    `SB_VAR_BIT [255:0] rdata;
+    `SB_VAR_BIT [31:0] rdest;
+    `SB_VAR_BIT rlast;
 
     // initialize
 
-    integer r_success;
-    integer s_success;
+    integer r_success = 0;
+    integer s_success = 0;
 
     initial begin
         sdata = 256'd0;
@@ -102,8 +91,12 @@ module sb_jtag_rbb_sim (
         end else begin
             // write output value
             if (read_count > 0) begin
-                sdata[7:0] = tdo ? "1" : "0";
-                pi_sb_send(txid, sdata, sdest, slast, s_success);
+                sdata[7:0] = tdo ? "1" : "0";  // intended to be blocking
+                if (txid != -1) begin
+                    `SB_EXT_FUNC(pi_sb_send)(txid, sdata, sdest, slast, s_success);
+                end else begin
+                    s_success = 32'd0;
+                end
                 if (s_success == 32'd1) begin
                     read_count <= read_count - 1;
                 end
@@ -112,7 +105,11 @@ module sb_jtag_rbb_sim (
             // get next command as long as long as it
             // couldn't overflow the read counter
             if (read_count < 32'h7fffffff) begin
-                pi_sb_recv(rxid, rdata, rdest, rlast, r_success);
+                if (rxid != -1) begin
+                    `SB_EXT_FUNC(pi_sb_recv)(rxid, rdata, rdest, rlast, r_success);
+                end else begin
+                    r_success = 32'd0;
+                end
                 if (r_success == 32'd1) begin
                     if (rdata[7:0] == "B") begin
                         led <= 1'b1;
@@ -135,4 +132,14 @@ module sb_jtag_rbb_sim (
             end
         end
     end
+
+    // clean up macros
+
+    `undef SB_EXT_FUNC
+    `undef SB_START_FUNC
+    `undef SB_END_FUNC
+    `undef SB_VAR_BIT
+
 endmodule
+
+`default_nettype wire

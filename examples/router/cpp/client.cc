@@ -36,5 +36,9 @@ int main() {
         assert(rxp.data[i] == (txp.data[i] + 1));
     }
 
+    // declare test as having passed for regression testing purposes
+
+    printf("PASS!\n");
+
     return 0;
 }

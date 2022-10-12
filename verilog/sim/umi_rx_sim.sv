@@ -1,31 +1,42 @@
+`default_nettype none
+
 module umi_rx_sim (
-	input clk,
-	output [255:0] packet,
-	input ready,
-	output valid
+    input clk,
+    output [255:0] packet,
+    input ready,
+    output valid
 );
 
-	sb_rx_sim rx_i (
-		.clk(clk),
-		.data(packet),
-		.dest(),
-		.last(),
-		.ready(ready),
-		.valid(valid)
-	);
+    sb_rx_sim rx_i (
+        .clk(clk),
+        .data(packet),
+        .dest(),
+        .last(),
+        .ready(ready),
+        .valid(valid)
+    );
 
-	// handle differences between simulators
+    // handle differences between simulators
 
-	`ifdef __ICARUS__
-		task init(input string uri);
-			rx_i.init(uri);
-		endtask
-	`else
-		function void init(input string uri);
-			/* verilator lint_off IGNOREDRETURN */
-			rx_i.init(uri);
-			/* verilator lint_on IGNOREDRETURN */
-		endfunction
-	`endif
+    `ifdef __ICARUS__
+        `define SB_START_FUNC task
+        `define SB_END_FUNC endtask
+    `else
+        `define SB_START_FUNC function void
+        `define SB_END_FUNC endfunction
+    `endif
+
+    `SB_START_FUNC init(input string uri);
+        /* verilator lint_off IGNOREDRETURN */
+        rx_i.init(uri);
+        /* verilator lint_on IGNOREDRETURN */
+    `SB_END_FUNC
+
+    // clean up macros
+
+    `undef SB_START_FUNC
+    `undef SB_END_FUNC
 
 endmodule
+
+`default_nettype wire
