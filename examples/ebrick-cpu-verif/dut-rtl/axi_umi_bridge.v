@@ -91,38 +91,26 @@ module axi_umi_bridge #(
 
     wire [255:0] umi_in_data;
     wire [63:0] umi_in_dstaddr;
+    wire [31:0] umi_in_cmd;
     wire [7:0] umi_in_opcode;
 
     umi_unpack umi_unpack_i (
         // unpack data
         .packet(umi_in_packet),
         .data(umi_in_data),
-
-        // only used to validate read operation
+        .cmd(umi_in_cmd),
         .dstaddr(umi_in_dstaddr),
-        .cmd_opcode(umi_in_opcode),
 
-        // all of these outputs are unused...
-        .srcaddr(),
-        .cmd_write(),
-        .cmd_read(),
-        .cmd_atomic(),
-        .cmd_write_normal(),
-        .cmd_write_signal(),
-        .cmd_write_ack(),
-        .cmd_write_stream(),
-        .cmd_write_response(),
-        .cmd_atomic_swap(),
-        .cmd_atomic_add(),
-        .cmd_atomic_and(),
-        .cmd_atomic_or(),
-        .cmd_atomic_xor(),
-        .cmd_atomic_min(),
-        .cmd_invalid(),
-        .cmd_atomic_max(),
-        .cmd_size(),
-        .cmd_user()
+        // unused output
+        .srcaddr()
     );
+
+    /* verilator lint_off PINMISSING */
+    umi_decode umi_decode_i (
+        .cmd(umi_in_cmd),
+        .cmd_opcode(umi_in_opcode)
+    );
+    /* verilator lint_on PINMISSING */
 
     // main logic
 

@@ -59,37 +59,26 @@ module umi_gpio #(
     wire [7:0] umi_in_opcode;
     wire umi_in_cmd_write;
     wire umi_in_cmd_read;
+    wire [31:0] umi_in_cmd;
 
     umi_unpack umi_unpack_i (
         // unpack data
         .packet(umi_in_packet),
         .data(umi_in_data),
+        .cmd(umi_in_cmd),
 
-        // determine what kind of command this is
-        .cmd_write(umi_in_cmd_write),
-        .cmd_read(umi_in_cmd_read),
-
-        // all of these outputs are unused...
+        // unused outputs...
         .dstaddr(),
-        .cmd_opcode(),
-        .srcaddr(),
-        .cmd_atomic(),
-        .cmd_write_normal(),
-        .cmd_write_signal(),
-        .cmd_write_ack(),
-        .cmd_write_stream(),
-        .cmd_write_response(),
-        .cmd_atomic_swap(),
-        .cmd_atomic_add(),
-        .cmd_atomic_and(),
-        .cmd_atomic_or(),
-        .cmd_atomic_xor(),
-        .cmd_atomic_min(),
-        .cmd_invalid(),
-        .cmd_atomic_max(),
-        .cmd_size(),
-        .cmd_user()
+        .srcaddr()
     );
+
+    /* verilator lint_off PINMISSING */
+    umi_decode umi_decode_i (
+        .cmd(umi_in_cmd),
+        .cmd_read(umi_in_cmd_read),
+        .cmd_write(umi_in_cmd_write)
+    );
+    /* verilator lint_on PINMISSING */
 
     // main logic
 
