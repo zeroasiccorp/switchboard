@@ -2,11 +2,11 @@
 
 module sb_rx_sim (
     input clk,
-    output [255:0] data,
-    output [31:0] dest,
-    output last,
+    output reg [255:0] data=256'b0,
+    output reg [31:0] dest=32'b0,
+    output reg last=1'b0,
     input ready,
-    output valid
+    output reg valid=1'b0
 );
     `ifdef __ICARUS__
         `define SB_EXT_FUNC(x) $``x``
@@ -29,8 +29,6 @@ module sb_rx_sim (
     integer id = -1;
     integer success = 0;
     reg in_progress = 1'b0;
-    reg valid_reg = 1'b0;
-
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
@@ -53,7 +51,7 @@ module sb_rx_sim (
     always @(posedge clk) begin
         if (in_progress) begin
             if (ready) begin
-                valid_reg <= 1'b0;
+                valid <= 1'b0;
                 in_progress <= 1'b0;
             end
         end else begin
@@ -65,18 +63,14 @@ module sb_rx_sim (
                 success = 32'd0;
             end
             if (success == 32'd1) begin
-                valid_reg <= 1'b1;
+                valid <= 1'b1;
                 in_progress <= 1'b1;
+                data <= rdata;
+                dest <= rdest;
+                last <= rlast;
             end
         end
     end
-
-    // wire up I/O
-
-    assign data = rdata;
-    assign dest = rdest;
-    assign last = rlast;
-    assign valid = valid_reg;
 
     // clean up macros
 
