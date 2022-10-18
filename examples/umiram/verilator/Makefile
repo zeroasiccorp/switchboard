@@ -13,6 +13,7 @@ obj_dir/Vtestbench:
 		--cc \
 		--exe \
 		-sv \
+		--trace \
 		--top-module testbench \
 		-I../../../verilog/sim \
 		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \

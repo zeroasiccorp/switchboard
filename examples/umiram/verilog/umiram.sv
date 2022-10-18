@@ -14,6 +14,7 @@ module umiram #(
 );
     // interpret incoming packet
 
+    wire [31:0] rx_cmd;
     wire rx_cmd_read;
     wire rx_cmd_write;
     wire [63:0] rx_dstaddr;
@@ -28,28 +29,16 @@ module umiram #(
         .data(rx_data),
         .srcaddr(rx_srcaddr),
         .dstaddr(rx_dstaddr),
-		.cmd_write(rx_cmd_write),
-		.cmd_read(rx_cmd_read),
-
-        // all of these outputs are unused...
-		.cmd_atomic(),
-		.cmd_write_normal(),
-		.cmd_write_signal(),
-		.cmd_write_ack(),
-		.cmd_write_stream(),
-		.cmd_write_response(),
-		.cmd_atomic_swap(),
-		.cmd_atomic_add(),
-		.cmd_atomic_and(),
-		.cmd_atomic_or(),
-		.cmd_atomic_xor(),
-		.cmd_atomic_min(),
-		.cmd_invalid(),
-		.cmd_atomic_max(),
-		.cmd_opcode(),
-    	.cmd_size(),
-    	.cmd_user()
+		.cmd(rx_cmd)
     );
+
+    /* verilator lint_off PINMISSING */
+    umi_decode umi_decode_i (
+        .cmd(rx_cmd),
+        .cmd_read(rx_cmd_read),
+        .cmd_write(rx_cmd_write)
+    );
+    /* verilator lint_on PINMISSING */
 
     // form outgoing packet (which can only be a read response)
 

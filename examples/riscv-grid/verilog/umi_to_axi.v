@@ -48,27 +48,9 @@ module umi_to_axi (
         .dstaddr(axi_awaddr),
 		.data(axi_wdata),
 
-        // all of these outputs are unused...
+        // unused outputs...
         .srcaddr(),
-		.cmd_write(),
-		.cmd_read(),
-		.cmd_atomic(),
-		.cmd_write_normal(),
-		.cmd_write_signal(),
-		.cmd_write_ack(),
-		.cmd_write_stream(),
-		.cmd_write_response(),
-		.cmd_atomic_swap(),
-		.cmd_atomic_add(),
-		.cmd_atomic_and(),
-		.cmd_atomic_or(),
-		.cmd_atomic_xor(),
-		.cmd_atomic_min(),
-		.cmd_invalid(),
-		.cmd_atomic_max(),
-		.cmd_opcode(),
-    	.cmd_size(),
-    	.cmd_user()
+		.cmd()
     );
 
 endmodule

@@ -23,6 +23,10 @@ int main() {
     SBRX rx;
     rx.init("queue-5556");
 
+    // initialize tx connection
+    SBTX stop;
+    stop.init("queue-5557");
+
     // packet structure used for sending/receiving
     sb_packet p;
 
@@ -45,6 +49,9 @@ int main() {
     rx.recv_blocking(p);
     printf("RX packet: %s\n", umi_packet_to_str((uint32_t*)p.data).c_str());
     print_packet_details((uint32_t*)p.data);
+
+    // stop simulation
+    stop.send_blocking(p);
 
     return 0;
 }
