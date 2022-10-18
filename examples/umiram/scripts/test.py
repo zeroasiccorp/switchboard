@@ -22,28 +22,32 @@ def main():
     args = parser.parse_args()
 
     # clean up old queues if present
-    for port in [5555, 5556]:
+    for port in [5555, 5556, 5557]:
         filename = str(SHMEM_DIR / f'queue-{port}')
         try:
             os.remove(filename)
         except OSError:
             pass
 
-    # start chip simulation
-    start_chip()
+    chip = start_chip()
 
-    # wait for client to complete
     client = start_client()
     client.wait()
 
-def start_chip():
+    chip.wait()
+
+def start_chip(trace=True):
     cmd = []
     cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
+    if trace:
+        cmd += ['+trace']
     cmd = [str(elem) for elem in cmd]
 
     p = subprocess.Popen(cmd)
 
     atexit.register(p.terminate)
+
+    return p
 
 def start_client():
     cmd = []
@@ -51,6 +55,9 @@ def start_client():
     cmd = [str(elem) for elem in cmd]
 
     p = subprocess.Popen(cmd)
+
+    atexit.register(p.terminate)
+
     return p
 
 if __name__ == '__main__':
