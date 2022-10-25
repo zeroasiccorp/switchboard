@@ -1,17 +1,6 @@
-`timescale 1ns / 1ps
-
-module testbench;
-
-	// clock
-
-	reg clk;
-	always begin
-		clk = 1'b0;
-		#5;
-		clk = 1'b1;
-		#5;
-	end
-
+module testbench (
+	input clk
+);
 	// SB RX port
 
 	wire [255:0] sb_rx_data;
@@ -28,7 +17,9 @@ module testbench;
 	wire sb_tx_valid;
 	wire sb_tx_ready;
 
-	sb_rx_sim rx_i (
+	sb_rx_sim #(
+		.VALID_MODE_DEFAULT(0)
+	) rx_i (
 		.clk(clk),
 		.data(sb_rx_data),  // output
 		.dest(sb_rx_dest),  // output
@@ -37,7 +28,9 @@ module testbench;
 		.valid(sb_rx_valid)  // output
 	);
 
-	sb_tx_sim tx_i (
+	sb_tx_sim #(
+		.READY_MODE_DEFAULT(0)
+	) tx_i (
 		.clk(clk),
 		.data(sb_tx_data),  // input
 		.dest(sb_tx_dest),  // input
@@ -50,9 +43,7 @@ module testbench;
 
 	genvar i;
 	generate
-		for (i=0; i<32; i=i+1) begin
-			assign sb_tx_data[(i*8) +: 8] = sb_rx_data[(i*8) +: 8] + 8'd1;
-		end
+		assign sb_tx_data[63:0] = sb_rx_data[63:0] + 64'd42;
 	endgenerate
 
 	assign sb_tx_dest = sb_rx_dest;
@@ -63,8 +54,10 @@ module testbench;
 	// Initialize UMI
 
 	initial begin
+		/* verilator lint_off IGNOREDRETURN */
 		rx_i.init("queue-5555");
 		tx_i.init("queue-5556");
+		/* verilator lint_on IGNOREDRETURN */
 	end
 
 	// VCD

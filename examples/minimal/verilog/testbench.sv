@@ -58,4 +58,19 @@ module testbench (
 		/* verilator lint_on IGNOREDRETURN */
 	end
 
+	// VCD
+
+	initial begin
+		$dumpfile("testbench.vcd");
+		$dumpvars(0, testbench);
+	end
+
+	// $finish
+
+	always @(posedge clk) begin
+		if (sb_rx_valid && ((&sb_rx_data) == 1'b1)) begin
+			$finish;
+		end
+	end
+
 endmodule

@@ -5,6 +5,7 @@ import platform
 import atexit
 import subprocess
 import argparse
+import time
 
 from pathlib import Path
 
@@ -29,12 +30,15 @@ def main():
         except OSError:
             pass
 
-    # start chip simulation
-    start_chip()
-
-    # wait for client to complete
+    # start client and chip
+    # this order yields a smaller VCD
     client = start_client()
+    time.sleep(1)
+    chip = start_chip()
+
+    # wait for client and chip to complete
     client.wait()
+    chip.wait()
 
 def start_chip():
     cmd = []
@@ -49,12 +53,17 @@ def start_chip():
 
     atexit.register(p.terminate)
 
+    return p
+
 def start_client():
     cmd = []
     cmd += [EXAMPLE_DIR / 'cpp' / 'client']
     cmd = [str(elem) for elem in cmd]
 
     p = subprocess.Popen(cmd)
+
+    atexit.register(p.terminate)
+
     return p
 
 if __name__ == '__main__':

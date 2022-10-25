@@ -1,6 +1,15 @@
+// sb_rx_sim.sv
+
+// valid_mode settings (in all cases, valid remains low if there is no incoming data)
+// valid_mode=0: valid alternates between "0" and "1" if there is a continuous stream of incoming data
+// valid_mode=1: valid remains at "1" if there is a continuous stream of incoming data
+// valid_mode=2: valid toggles randomly if there is a continuous stream of incoming data
+
 `default_nettype none
 
-module sb_rx_sim (
+module sb_rx_sim #(
+    parameter integer VALID_MODE_DEFAULT = 0
+) (
     input clk,
     output reg [255:0] data=256'b0,
     output reg [31:0] dest=32'b0,
@@ -27,14 +36,14 @@ module sb_rx_sim (
     // internal signals
 
     integer id = -1;
-    integer success = 0;
-    reg in_progress = 1'b0;
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
         `SB_EXT_FUNC(pi_sb_rx_init)(id, uri);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
+
+    integer success = 0;
 
     `SB_VAR_BIT [255:0] rdata;
     `SB_VAR_BIT [31:0] rdest;
@@ -46,28 +55,75 @@ module sb_rx_sim (
         rlast = 1'b0;
     end
 
+    // valid mode
+
+    integer valid_mode = VALID_MODE_DEFAULT;
+
+    `SB_START_FUNC set_valid_mode(input integer value);
+        /* verilator lint_off IGNOREDRETURN */
+        valid_mode = value;
+        /* verilator lint_on IGNOREDRETURN */
+    `SB_END_FUNC
+
     // main logic
 
     always @(posedge clk) begin
-        if (in_progress) begin
-            if (ready) begin
-                valid <= 1'b0;
-                in_progress <= 1'b0;
-            end
-        end else begin
-            if (id != -1) begin
-                /* verilator lint_off IGNOREDRETURN */
-                `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
-                /* verilator lint_on IGNOREDRETURN */
+        if (ready && valid) begin
+            // the transaction has completed, so we can try to get another
+            // packet if we want to.  whether we try to do this or not depends
+            // on the valid_mode setting.
+
+            if ((valid_mode == 32'd1) ||
+                ((valid_mode == 32'd2) && ($random % 2 == 32'd1))) begin
+                // try to receive a packet
+                if (id != -1) begin
+                    /* verilator lint_off IGNOREDRETURN */
+                    `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
+                    /* verilator lint_on IGNOREDRETURN */
+                end else begin
+                    success = 32'd0;
+                end
+
+                // if a packet was received, mark the output as valid
+                if (success == 32'd0) begin
+                    valid <= 1'b0;
+                end else begin
+                    valid <= 1'b1;
+                    data <= rdata;
+                    dest <= rdest;
+                    last <= rlast;
+                end
             end else begin
-                success = 32'd0;
+                valid <= 1'b0;
             end
-            if (success == 32'd1) begin
-                valid <= 1'b1;
-                in_progress <= 1'b1;
-                data <= rdata;
-                dest <= rdest;
-                last <= rlast;
+        end else if (!valid) begin
+            // if there isn't a packet being presented, we can try to get one
+            // to present.  whether we do or not depends on valid_mode: if
+            // valid_mode=2, then flip a coin to decide if a new packet is read.
+            // in any other case, try to read a packet.
+
+            if ((valid_mode == 32'd0) || (valid_mode == 32'd1) ||
+                ((valid_mode == 32'd2) && ($random % 2 == 32'd1))) begin
+                // try to receive a packet
+                if (id != -1) begin
+                    /* verilator lint_off IGNOREDRETURN */
+                    `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
+                    /* verilator lint_on IGNOREDRETURN */
+                end else begin
+                    success = 32'd0;
+                end
+
+                // if a packet was received, mark the output as valid
+                if (success == 32'd0) begin
+                    valid <= 1'b0;
+                end else begin
+                    valid <= 1'b1;
+                    data <= rdata;
+                    dest <= rdest;
+                    last <= rlast;
+                end
+            end else begin
+                valid <= 1'b0;
             end
         end
     end
