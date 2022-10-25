@@ -1,13 +1,17 @@
 `default_nettype none
 
-module umi_rx_sim (
+module umi_rx_sim #(
+    parameter integer VALID_MODE_DEFAULT=0
+) (
     input clk,
     output [255:0] packet,
     input ready,
     output valid
 );
 
-    sb_rx_sim rx_i (
+    sb_rx_sim #(
+        .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT)
+    ) rx_i (
         .clk(clk),
         .data(packet),
         .dest(),
