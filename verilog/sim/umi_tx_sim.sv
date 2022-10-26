@@ -1,6 +1,8 @@
 `default_nettype none
 
-module umi_tx_sim (
+module umi_tx_sim #(
+    parameter integer READY_MODE_DEFAULT=0
+) (
     input clk,
     input [255:0] packet,
     output ready,
@@ -9,7 +11,9 @@ module umi_tx_sim (
 
     // TODO: support burst mode (through "last")
 
-    sb_tx_sim tx_i (
+    sb_tx_sim #(
+        .READY_MODE_DEFAULT(READY_MODE_DEFAULT)
+    ) tx_i (
         .clk(clk),
         .data(packet),
         .dest({16'h0000, packet[255:240]}),
@@ -31,6 +35,12 @@ module umi_tx_sim (
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
         tx_i.init(uri);
+        /* verilator lint_on IGNOREDRETURN */
+    `SB_END_FUNC
+
+    `SB_START_FUNC set_ready_mode(input integer value);
+        /* verilator lint_off IGNOREDRETURN */
+        tx_i.set_ready_mode(value);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 

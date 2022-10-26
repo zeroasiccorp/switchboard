@@ -17,7 +17,7 @@ obj_dir/Vtestbench:
 		--top-module testbench \
 		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
 		-LDFLAGS "$(CPP_LIBS)" \
-		$^
+		$(filter-out "../../../cpp/switchboard.hpp", $^)
 	make -C obj_dir -f Vtestbench.mk Vtestbench
 
 .PHONY: clean

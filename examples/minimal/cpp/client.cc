@@ -35,6 +35,13 @@ int main() {
         assert(rxp.data[i] == (txp.data[i] + 1));
     }
 
+    // send a packet that will end the test
+
+    for (int i=0; i<32; i++) {
+        txp.data[i] = 0xff;
+    }
+    tx.send_blocking(txp);
+
     // declare test as having passed for regression testing purposes
 
     printf("PASS!\n");
