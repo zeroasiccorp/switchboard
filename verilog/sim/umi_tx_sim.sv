@@ -38,6 +38,12 @@ module umi_tx_sim #(
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 
+    `SB_START_FUNC set_ready_mode(input integer value);
+        /* verilator lint_off IGNOREDRETURN */
+        tx_i.set_ready_mode(value);
+        /* verilator lint_on IGNOREDRETURN */
+    `SB_END_FUNC
+
     // clean up macros
 
     `undef SB_START_FUNC

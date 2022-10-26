@@ -36,6 +36,12 @@ module umi_rx_sim #(
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 
+    `SB_START_FUNC set_valid_mode(input integer value);
+        /* verilator lint_off IGNOREDRETURN */
+        rx_i.set_valid_mode(value);
+        /* verilator lint_on IGNOREDRETURN */
+    `SB_END_FUNC
+
     // clean up macros
 
     `undef SB_START_FUNC
