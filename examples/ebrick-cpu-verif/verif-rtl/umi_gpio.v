@@ -60,7 +60,6 @@ module umi_gpio #(
     wire [7:0] umi_in_opcode;
     wire umi_in_cmd_write;
     wire umi_in_cmd_read;
-    wire [7:0] umi_in_opcode;
 
     umi_unpack umi_unpack_i (
         // unpack data
