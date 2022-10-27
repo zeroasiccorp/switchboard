@@ -4,14 +4,15 @@
 #include <string>
 #include <unistd.h>
 
+// ref: umi/rtl/umi_messages.vh
 enum UMI_CMD {
     UMI_INVALID         = 0x00,
-    UMI_WRITE_NORMAL    = 0x01,
+    UMI_WRITE_POSTED    = 0x01,
     UMI_WRITE_RESPONSE  = 0x03,
     UMI_WRITE_SIGNAL    = 0x05,
     UMI_WRITE_STREAM    = 0x07,
     UMI_WRITE_ACK       = 0x09,
-    UMI_READ            = 0x02,
+    UMI_READ_REQUEST    = 0x02,
     UMI_ATOMIC_ADD      = 0x04,
     UMI_ATOMIC_AND      = 0x14,
     UMI_ATOMIC_OR       = 0x24,
@@ -45,7 +46,7 @@ static inline void umi_pack(umi_packet p, uint32_t opcode, uint32_t size, uint32
 
     // populate the packet
     p[7] = (dstaddr >> 32) & 0xffffffff;
-    if (opcode == UMI_READ) {
+    if (opcode == UMI_READ_REQUEST) {
         p[6] = (srcaddr >> 32) & 0xffffffff;
     } else if (nbytes > 0) {
         assert(nbytes <= 16);
@@ -106,12 +107,12 @@ static inline std::string umi_packet_to_str(const umi_packet p) {
     return retval;
 }
 
-static inline bool is_umi_read(uint32_t opcode) {
-    return (opcode == UMI_READ);
+static inline bool is_umi_read_request(uint32_t opcode) {
+    return (opcode == UMI_READ_REQUEST);
 }
 
-static inline bool is_umi_write_normal(uint32_t opcode) {
-    return (opcode & 0b00001111) == UMI_WRITE_NORMAL;
+static inline bool is_umi_write_posted(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_POSTED;
 }
 
 static inline bool is_umi_write_response(uint32_t opcode) {
@@ -131,15 +132,15 @@ static inline bool is_umi_write_ack(uint32_t opcode) {
 }
 
 static inline bool is_umi_atomic(uint32_t opcode) {
-    return ((opcode & 0xf) == (UMI_ATOMIC & 0xf));
+    return ((opcode & 0xf) == UMI_ATOMIC);
 }
 
-static inline bool is_umi_user(uint32_t opcode) {
+static inline bool is_umi_reserved(uint32_t opcode) {
     return (
         ((opcode & 0b1111) == 0b1011) |
         ((opcode & 0b1111) == 0b1101) |
         ((opcode & 0b1111) == 0b1111) |
-        ((opcode & 0b1110) == 0b0110) |
+        ((opcode & 0b1111) == 0b0110) |
         ((opcode & 0b1111) == 0b1000) |
         ((opcode & 0b1111) == 0b1010) |
         ((opcode & 0b1111) == 0b1100) |
@@ -150,8 +151,8 @@ static inline bool is_umi_user(uint32_t opcode) {
 static inline std::string umi_opcode_to_str(uint32_t opcode) {
     if (opcode == UMI_INVALID) {
         return "INVALID";
-    } else if (is_umi_write_normal(opcode)) {
-        return "WRITE-NORMAL";
+    } else if (is_umi_write_posted(opcode)) {
+        return "WRITE-POSTED";
     } else if (is_umi_write_response(opcode)) {
         return "WRITE-RESPONSE";
     } else if (is_umi_write_signal(opcode)) {
@@ -160,10 +161,8 @@ static inline std::string umi_opcode_to_str(uint32_t opcode) {
         return "WRITE-STREAM";
     } else if (is_umi_write_ack(opcode)) {
         return "WRITE-ACK";
-    } else if (opcode == UMI_READ) {
-        return "READ";
-    } else if (opcode == UMI_ATOMIC_SWAP) {
-        return "ATOMIC-SWAP";
+    } else if (opcode == UMI_READ_REQUEST) {
+        return "READ-REQUEST";
     } else if (opcode == UMI_ATOMIC_ADD) {
         return "ATOMIC-ADD";
     } else if (opcode == UMI_ATOMIC_AND) {
@@ -176,8 +175,16 @@ static inline std::string umi_opcode_to_str(uint32_t opcode) {
         return "ATOMIC-MAX";
     } else if (opcode == UMI_ATOMIC_MIN) {
         return "ATOMIC-MIN";
-    } else if (is_umi_user(opcode)) {
-        return "USER";
+    } else if (opcode == UMI_ATOMIC_MAXU) {
+        return "ATOMIC-MAXU";
+    } else if (opcode == UMI_ATOMIC_MINU) {
+        return "ATOMIC-MINU";
+    } else if (opcode == UMI_ATOMIC_SWAP) {
+        return "ATOMIC-SWAP";
+    } else if (is_umi_atomic(opcode)) {
+        return "ATOMIC-UNKNOWN";
+    } else if (is_umi_reserved(opcode)) {
+        return "RESERVED";
     } else {
         return "UNKNOWN";
     }
