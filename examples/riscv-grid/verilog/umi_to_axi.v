@@ -49,8 +49,11 @@ module umi_to_axi (
 		.data(axi_wdata),
 
         // unused outputs...
-        .srcaddr(),
-		.cmd()
+		.write(),
+		.command(),
+		.size(),
+		.options(),
+        .srcaddr()
     );
 
 endmodule

@@ -1,8 +1,6 @@
 // only handles writes
 // not high performance - has bubble cycles
 
-`include "umi_opcodes.vh"
-
 module axi_to_umi (
     input clk,
     input rst,
@@ -20,6 +18,8 @@ module axi_to_umi (
     output umi_valid,
     input umi_ready
 );
+
+	`include "umi_messages.vh"
 
 	// UMI packet is valid when both address
 	// and data are valid.
@@ -43,9 +43,10 @@ module axi_to_umi (
 	end
 
 	umi_pack umi_pack_i (
-		.opcode(`UMI_WRITE_NORMAL),
+		.write(WRITE_POSTED[0]),
+		.command(WRITE_POSTED[7:1]),
 		.size(4'd0),
-		.user(20'd0),
+		.options(20'd0),
 		.burst(1'b0),
 		.dstaddr(axi_awaddr),
 		.srcaddr(64'd0),
