@@ -32,14 +32,14 @@ int main() {
 
     // write 0xBEEFCAFE to address 0x12
     uint32_t val = 0xBEEFCAFE;
-    umi_pack((uint32_t*)p.data, UMI_WRITE_NORMAL, 2, 0, 0x12, 0, (uint8_t*)(&val), 4);
+    umi_pack((uint32_t*)p.data, UMI_WRITE_POSTED, 2, 0, 0x12, 0, (uint8_t*)(&val), 4);
     tx.send_blocking(p);
     printf("TX packet: %s\n", umi_packet_to_str((uint32_t*)p.data).c_str());
     print_packet_details((uint32_t*)p.data);
     printf("\n");
 
     // send request to read address 0x12 into address 0x34
-    umi_pack((uint32_t*)p.data, UMI_READ, 2, 0, 0x12, 0x34, NULL, 0);
+    umi_pack((uint32_t*)p.data, UMI_READ_REQUEST, 2, 0, 0x12, 0x34, NULL, 0);
     tx.send_blocking(p);
     printf("TX packet: %s\n", umi_packet_to_str((uint32_t*)p.data).c_str());
     print_packet_details((uint32_t*)p.data);

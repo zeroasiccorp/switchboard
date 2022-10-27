@@ -34,7 +34,7 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
 
     // form the UMI packet
     sb_packet p;
-    umi_pack((uint32_t*)p.data, UMI_WRITE_NORMAL, 2, 0, dstaddr, 0, (uint8_t*)(&data), 4);
+    umi_pack((uint32_t*)p.data, UMI_WRITE_POSTED, 2, 0, dstaddr, 0, (uint8_t*)(&data), 4);
     p.destination = ((row & 0xf) << 8) | (col & 0xf);
     p.last = true;
 
