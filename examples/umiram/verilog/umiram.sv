@@ -1,5 +1,3 @@
-`include "umi_opcodes.vh"
-
 module umiram #(
     parameter integer ADDR_WIDTH=8,
     parameter integer DATA_WIDTH=32
@@ -12,9 +10,12 @@ module umiram #(
 	output reg umi_tx_valid=1'b0,
 	input umi_tx_ready
 );
+
+    `include "umi_messages.vh"
+
     // interpret incoming packet
 
-    wire [31:0] rx_cmd;
+    wire [7:0] rx_opcode;
     wire rx_cmd_read;
     wire rx_cmd_write;
     wire [63:0] rx_dstaddr;
@@ -22,23 +23,21 @@ module umiram #(
     wire [255:0] rx_data;
 
 	umi_unpack umi_unpack_i (
-        // input
     	.packet(umi_rx_packet),
-
-        // output
         .data(rx_data),
         .srcaddr(rx_srcaddr),
         .dstaddr(rx_dstaddr),
-		.cmd(rx_cmd)
+		
+        // unused outputs
+        .write(),
+        .command(),
+        .size(),
+        .options()
     );
 
-    /* verilator lint_off PINMISSING */
-    umi_decode umi_decode_i (
-        .cmd(rx_cmd),
-        .cmd_read(rx_cmd_read),
-        .cmd_write(rx_cmd_write)
-    );
-    /* verilator lint_on PINMISSING */
+    assign rx_opcode = umi_rx_packet[7:0];
+    assign rx_cmd_read = (rx_opcode == READ_REQUEST) ? 1'b1 : 1'b0;
+    assign rx_cmd_write = (rx_opcode == WRITE_POSTED) ? 1'b1 : 1'b0;    
 
     // form outgoing packet (which can only be a read response)
 
@@ -50,9 +49,10 @@ module umiram #(
     /* verilator lint_on WIDTH */
 
 	umi_pack umi_pack_i (
-		.opcode(`UMI_WRITE_RESPONSE),  // WRITE-NORMAL
+		.write(WRITE_RESPONSE[0]),
+        .command(WRITE_RESPONSE[7:1]),
 		.size(UMI_SIZE),
-		.user(20'd0),
+		.options(20'd0),
 		.burst(1'b0),
 		.dstaddr(tx_dstaddr),
 		.srcaddr(64'd0),

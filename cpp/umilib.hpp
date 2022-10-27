@@ -5,22 +5,23 @@
 #include <unistd.h>
 
 enum UMI_CMD {
-    UMI_INVALID        = 0b00000000,
-    UMI_WRITE_NORMAL   = 0b00000001,
-    UMI_WRITE_RESPONSE = 0b00000010,
-    UMI_WRITE_SIGNAL   = 0b00000011,
-    UMI_WRITE_STREAM   = 0b00000100,
-    UMI_WRITE_ACK      = 0b00000101,
-    UMI_READ           = 0b00001000,
-    UMI_ATOMIC_SWAP    = 0b00001001,
-    UMI_ATOMIC_ADD     = 0b00011001,
-    UMI_ATOMIC_AND     = 0b00101001,
-    UMI_ATOMIC_OR      = 0b00111001,
-    UMI_ATOMIC_XOR     = 0b01001001,
-    UMI_ATOMIC_MAX     = 0b01011001,
-    UMI_ATOMIC_MIN     = 0b01101001,
-    UMI_ATOMIC_USER    = 0b10001001,
-    UMI_USER           = 0b11111111
+    UMI_INVALID         = 0x00,
+    UMI_WRITE_NORMAL    = 0x01,
+    UMI_WRITE_RESPONSE  = 0x03,
+    UMI_WRITE_SIGNAL    = 0x05,
+    UMI_WRITE_STREAM    = 0x07,
+    UMI_WRITE_ACK       = 0x09,
+    UMI_READ            = 0x02,
+    UMI_ATOMIC_ADD      = 0x04,
+    UMI_ATOMIC_AND      = 0x14,
+    UMI_ATOMIC_OR       = 0x24,
+    UMI_ATOMIC_XOR      = 0x34,
+    UMI_ATOMIC_MAX      = 0x44,
+    UMI_ATOMIC_MIN      = 0x54,
+    UMI_ATOMIC_MAXU     = 0x64,
+    UMI_ATOMIC_MINU     = 0x74,
+    UMI_ATOMIC_SWAP     = 0x84,
+    UMI_ATOMIC          = 0x04
 };
 
 typedef uint32_t umi_packet[8];
@@ -129,25 +130,20 @@ static inline bool is_umi_write_ack(uint32_t opcode) {
     return (opcode & 0b00001111) == UMI_WRITE_ACK;
 }
 
-static inline bool is_umi_atomic_user(uint32_t opcode) {
-    return (opcode & 0b10001111) == UMI_ATOMIC_USER;
-}
-
 static inline bool is_umi_atomic(uint32_t opcode) {
-    return (
-        ((opcode & 0b00001111) == 0b00001001) && 
-                       (opcode != 0b11111001)  // TODO: is the intent that this is an atomic operation as well?
-    );
+    return ((opcode & 0xf) == (UMI_ATOMIC & 0xf));
 }
 
 static inline bool is_umi_user(uint32_t opcode) {
     return (
-        ((opcode & 0b1110) == 0b0110) |
         ((opcode & 0b1111) == 0b1011) |
-        ((opcode & 0b1111) == 0b1100) |
         ((opcode & 0b1111) == 0b1101) |
-        ((opcode & 0b1111) == 0b1110) |
-        ((opcode & 0b1111) == 0b1111)
+        ((opcode & 0b1111) == 0b1111) |
+        ((opcode & 0b1110) == 0b0110) |
+        ((opcode & 0b1111) == 0b1000) |
+        ((opcode & 0b1111) == 0b1010) |
+        ((opcode & 0b1111) == 0b1100) |
+        ((opcode & 0b1111) == 0b1110)
     );
 }
 
@@ -180,8 +176,6 @@ static inline std::string umi_opcode_to_str(uint32_t opcode) {
         return "ATOMIC-MAX";
     } else if (opcode == UMI_ATOMIC_MIN) {
         return "ATOMIC-MIN";
-    } else if (is_umi_atomic_user(opcode)) {
-        return "ATOMIC-USER";
     } else if (is_umi_user(opcode)) {
         return "USER";
     } else {

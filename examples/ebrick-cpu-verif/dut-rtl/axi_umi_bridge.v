@@ -8,8 +8,6 @@
 
 `timescale 1ns / 1ps
 
-`include "umi_opcodes.vh"
-
 module axi_umi_bridge #(
     parameter integer ARWIDTH=32,
     parameter integer RWIDTH=32,
@@ -46,6 +44,9 @@ module axi_umi_bridge #(
     input umi_in_valid,
     output reg umi_in_ready = 1'b0
 );
+
+    `include "umi_messages.vh"
+
     // TODO: figure out how to deal with WSTRB
     // TODO: check dstaddr?
 
@@ -58,9 +59,10 @@ module axi_umi_bridge #(
     wire [255:0] umi_write_packet;
 
     umi_pack umi_pack_wr (
-        .opcode(`UMI_WRITE_NORMAL),
+        .write(WRITE_POSTED[0]),
+        .command(WRITE_POSTED[7:1]),
         .size(UMI_SIZE_WR),
-        .user(20'd0),
+        .options(20'd0),
         .burst(1'b0),
         .dstaddr({{(64-AWWIDTH){1'b0}}, axi_awaddr}),
         .srcaddr(64'b0),  // only relevant for reads...
@@ -77,9 +79,10 @@ module axi_umi_bridge #(
     wire [255:0] umi_read_packet;
 
     umi_pack umi_pack_rd (
-        .opcode(`UMI_READ),
+        .write(READ_REQUEST[0]),
+        .command(READ_REQUEST[7:1]),
         .size(UMI_SIZE_RD),
-        .user(20'd0),
+        .options(20'd0),
         .burst(1'b0),
         .dstaddr({{(64-ARWIDTH){1'b0}}, axi_araddr}),
         .srcaddr({{(64-ARWIDTH){1'b0}}, axi_araddr}),
@@ -91,26 +94,23 @@ module axi_umi_bridge #(
 
     wire [255:0] umi_in_data;
     wire [63:0] umi_in_dstaddr;
-    wire [31:0] umi_in_cmd;
     wire [7:0] umi_in_opcode;
+
+    assign umi_in_opcode = umi_in_packet[7:0];
 
     umi_unpack umi_unpack_i (
         // unpack data
         .packet(umi_in_packet),
         .data(umi_in_data),
-        .cmd(umi_in_cmd),
         .dstaddr(umi_in_dstaddr),
 
-        // unused output
+        // unused outputs
+        .write(),
+        .command(),
+        .size(),
+        .options(),
         .srcaddr()
     );
-
-    /* verilator lint_off PINMISSING */
-    umi_decode umi_decode_i (
-        .cmd(umi_in_cmd),
-        .cmd_opcode(umi_in_opcode)
-    );
-    /* verilator lint_on PINMISSING */
 
     // main logic
 
@@ -195,9 +195,9 @@ module axi_umi_bridge #(
                         umi_in_dstaddr, expected_read_addr);
                     $stop;
                 end
-                if (umi_in_opcode != `UMI_WRITE_RESPONSE) begin
+                if (umi_in_opcode != WRITE_RESPONSE) begin
                     $display("ERROR: read response has wrong opcode: got 0x%02x, expected 0x%02x",
-                        umi_in_opcode, `UMI_WRITE_RESPONSE);
+                        umi_in_opcode, WRITE_RESPONSE);
                     $stop;
                 end
 

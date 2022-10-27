@@ -8,8 +8,6 @@
 
 `timescale 1ns / 1ps
 
-`include "umi_opcodes.vh"
-
 module umi_gpio #(
     parameter integer RWIDTH=32,
     parameter integer WWIDTH=32
@@ -31,6 +29,8 @@ module umi_gpio #(
     input umi_in_valid,
     output reg umi_in_ready = 1'b0
 );
+    `include "umi_messages.vh"
+
     // form UMI write packet
     // only data ever written out is a read response
 
@@ -42,9 +42,10 @@ module umi_gpio #(
     wire [255:0] umi_write_packet;
 
     umi_pack umi_pack_i (
-        .opcode(`UMI_WRITE_RESPONSE),
+        .write(WRITE_RESPONSE[0]),
+        .command(WRITE_RESPONSE[7:1]),
         .size(UMI_SIZE_WR),
-        .user(20'd0),
+        .options(20'd0),
         .burst(1'b0),
         .dstaddr(umi_read_resp_addr),
         .srcaddr(64'b0),  // only relevant for read requests...
@@ -59,26 +60,24 @@ module umi_gpio #(
     wire [7:0] umi_in_opcode;
     wire umi_in_cmd_write;
     wire umi_in_cmd_read;
-    wire [31:0] umi_in_cmd;
 
     umi_unpack umi_unpack_i (
         // unpack data
         .packet(umi_in_packet),
         .data(umi_in_data),
-        .cmd(umi_in_cmd),
 
         // unused outputs...
+        .write(),
+        .command(),
+        .size(),
+        .options(),
         .dstaddr(),
         .srcaddr()
     );
 
-    /* verilator lint_off PINMISSING */
-    umi_decode umi_decode_i (
-        .cmd(umi_in_cmd),
-        .cmd_read(umi_in_cmd_read),
-        .cmd_write(umi_in_cmd_write)
-    );
-    /* verilator lint_on PINMISSING */
+    assign umi_in_opcode = umi_in_packet[7:0];
+    assign umi_in_cmd_read = (umi_in_opcode == READ_REQUEST) ? 1'b1 : 1'b0;
+    assign umi_in_cmd_write = (umi_in_opcode == WRITE_POSTED) ? 1'b1 : 1'b0;
 
     // main logic
 

@@ -14,7 +14,7 @@ obj_dir/Vtestbench:
 		--exe \
 		-sv \
 		--top-module testbench \
-		-I../../../verilog/sim \
+		-I../../deps/umi/umi/rtl \
 		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
 		-LDFLAGS "$(CPP_LIBS)" \
 		config.vlt \
