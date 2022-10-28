@@ -4,6 +4,3 @@
 [submodule "deps/umi"]
 	path = examples/deps/umi
 	url = git@github.com:zeroasiccorp/umi.git
-[submodule "tests/deps/riscv-tests"]
-	path = tests/deps/riscv-tests
-	url = git@github.com:riscv-software-src/riscv-tests
