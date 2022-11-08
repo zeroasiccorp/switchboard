@@ -71,7 +71,7 @@ module testbench (
 			tx_port = 5556;
 		end
 		if (!$value$plusargs("cycles_per_meas=%d", cycles_per_meas)) begin
-			cycles_per_meas = 1000000;
+			cycles_per_meas = 1;
 		end
 
 		/* verilator lint_off IGNOREDRETURN */

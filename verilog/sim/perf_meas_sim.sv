@@ -1,7 +1,10 @@
 `default_nettype none
 
 module perf_meas_sim #(
-    parameter integer default_cycles_per_meas=0
+    parameter integer default_cycles_per_meas=0,
+    parameter real max_report_time=3.0,
+    parameter real min_report_time=0.3,
+    parameter integer search_factor=2
 ) (
     input clk
 );
@@ -52,6 +55,22 @@ module perf_meas_sim #(
                 $display("Simulation rate: %0.3f MHz", 1e-6*sim_rate);
             end
             total_clock_cycles <= 0;
+
+            // update number of cycles in between updates appropriately
+            if (t < min_report_time) begin
+                // reporting in too frequent, increase cycles_per_meas
+                // to report less frequently
+                cycles_per_meas = cycles_per_meas * search_factor;
+            end else if (t > max_report_time) begin
+                // reporting in too infrequent, decrease cycles_per_meas
+                // to report more frequently
+                cycles_per_meas = cycles_per_meas / search_factor;
+                if (cycles_per_meas == 0) begin
+                    // but don't let cycles_per_meas drop to zero,
+                    // since that disables performance measurement
+                    cycles_per_meas = 1;
+                end
+            end
         end else begin
             total_clock_cycles <= total_clock_cycles + 1;
         end
