@@ -23,7 +23,7 @@ module axi_to_umi (
 
 	// UMI packet is valid when both address
 	// and data are valid.
-	assign umi_valid = axi_awvalid & axi_awvalid;
+	assign umi_valid = axi_awvalid & axi_wvalid;
 
 	// both address and data use the same "ready"
 	// signal, since they are sent as a packet
