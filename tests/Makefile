@@ -9,7 +9,14 @@ MODE ?= queue
 
 CPPFLAGS += -I../cpp
 
-%.out: %.cc ../cpp/switchboard.hpp ../cpp/umilib.hpp
+TARGETS += hello.out
+TARGETS += bandwidth.out
+TARGETS += latency.out
+
+-include $(TARGETS:.out=.d)
+CPPFLAGS += -MMD
+
+%.out: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: hello
