@@ -1,14 +1,16 @@
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-	CPP_LIBS := -lboost_system -lpthread
+	LDLIBS := -lboost_system -lpthread
 else
-	CPP_LIBS := -lboost_system -pthread -lrt
+	LDLIBS := -lboost_system -pthread -lrt
 endif
 
 MODE ?= queue
 
+CPPFLAGS += -I../cpp
+
 %.out: %.cc ../cpp/switchboard.hpp ../cpp/umilib.hpp
-	g++ -I../cpp $< -o $@ $(CPP_LIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: hello
 hello: hello.out $(MODE)
