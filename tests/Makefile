@@ -1,6 +1,10 @@
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 	LDLIBS := -lboost_system -lpthread
+	ifdef HOMEBREW_PREFIX
+		CPPFLAGS += -I$(HOMEBREW_PREFIX)/include/
+		LDFLAGS += -L$(HOMEBREW_PREFIX)/lib/
+	endif
 else
 	LDLIBS := -lboost_system -pthread -lrt
 endif
