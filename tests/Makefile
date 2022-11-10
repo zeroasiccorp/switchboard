@@ -1,14 +1,27 @@
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-	CPP_LIBS := -lboost_system -lpthread
+	LDLIBS := -lboost_system -lpthread
+	ifdef HOMEBREW_PREFIX
+		CPPFLAGS += -I$(HOMEBREW_PREFIX)/include/
+		LDFLAGS += -L$(HOMEBREW_PREFIX)/lib/
+	endif
 else
-	CPP_LIBS := -lboost_system -pthread -lrt
+	LDLIBS := -lboost_system -pthread -lrt
 endif
 
 MODE ?= queue
 
-%.out: %.cc ../cpp/switchboard.hpp ../cpp/umilib.hpp
-	g++ -I../cpp $< -o $@ $(CPP_LIBS)
+CPPFLAGS += -I../cpp
+
+TARGETS += hello.out
+TARGETS += bandwidth.out
+TARGETS += latency.out
+
+-include $(TARGETS:.out=.d)
+CPPFLAGS += -MMD
+
+%.out: %.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: hello
 hello: hello.out $(MODE)
