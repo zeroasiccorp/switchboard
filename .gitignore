@@ -16,6 +16,7 @@ compile_flags.txt
 *.hex
 *.so
 *.o
+*.d
 *.vpi
 *.vvp
 *.out
