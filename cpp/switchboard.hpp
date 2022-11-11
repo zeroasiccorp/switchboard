@@ -1,15 +1,13 @@
 #ifndef __SWITCHBOARD_HPP__
 #define __SWITCHBOARD_HPP__
 
-#include <boost/lockfree/spsc_queue.hpp>
-#include <boost/interprocess/managed_shared_memory.hpp>
-
+#include <string>
 #include <array>
 #include <cstdio>
 #include <thread>
 #include <vector>
 
-namespace bip = boost::interprocess;
+#include "spsc_queue.h"
 
 // packet type
 // TODO: make size runtime programmable
@@ -20,48 +18,39 @@ struct sb_packet {
     bool last;
 };
 
-// queue type
 // TODO: make queue capacity runtime programmable
 #define SB_QUEUE_CAPACITY 1024
-typedef boost::lockfree::spsc_queue<sb_packet, boost::lockfree::capacity<SB_QUEUE_CAPACITY> > shared_queue;
-
-static inline shared_queue* sb_init(const char* uri, bip::managed_shared_memory& segment) {
-    // allocate the memory if needed
-
-    // TODO: add locking as in some of the development branches
-
-    int extra_space = 4096;
-    segment = bip::managed_shared_memory(bip::open_or_create, uri, sizeof(shared_queue) + extra_space);
-
-    // find the queue
-    return segment.find_or_construct<shared_queue>("q")();
-}
 
 class SBTX {
     public:
-        SBTX() : m_active(false) {}
+        SBTX() : m_active(false), m_q(NULL) {}
+
+        ~SBTX() {
+            spsc_close(m_q);
+            m_active = false;
+        }
 
         void init(std::string uri) {
             init(uri.c_str());
         }
 
         void init(const char* uri) {
-            m_queue = sb_init(uri, m_segment);
+            m_q = spsc_open(uri);
             m_active = true;
         }
 
         bool send(sb_packet& p) {
-            return m_queue->push(p);
+            return spsc_send(m_q, &p);
         }
 
         void send_blocking(sb_packet& p) {
-            while(!(m_queue->push(p))) {
+            while(!send(p)) {
                 std::this_thread::yield();
             }
         }
 
         bool all_read() {
-            return (SB_QUEUE_CAPACITY == (m_queue->write_available()));
+            return spsc_size(m_q) == 0;
         }
 
         bool is_active() {
@@ -69,43 +58,44 @@ class SBTX {
         }
     private:
         bool m_active;
-        bip::managed_shared_memory m_segment;
-        shared_queue* m_queue;
+        spsc_queue *m_q;
 };
 
 class SBRX {
     public:
         SBRX() : m_active(false) {}
 
+        ~SBRX() {
+            spsc_close(m_q);
+            m_active = false;
+        }
+
         void init(std::string uri) {
             init(uri.c_str());
         }
 
         void init(const char* uri) {
-            m_queue = sb_init(uri, m_segment);
+            m_q = spsc_open(uri);
             m_active = true;
         }
 
         bool recv(sb_packet& p) {
-            return m_queue->pop(p);
+            return spsc_recv(m_q, &p);
         }
 
         bool recv() {
-            return m_queue->pop();
+            sb_packet dummy_p;
+            return spsc_recv(m_q, &dummy_p);
         }
 
         void recv_blocking(sb_packet& p){
-            while(!(m_queue->pop(p))) {
+            while(!recv(p)) {
                 std::this_thread::yield();
             }
         }
 
         bool recv_peek(sb_packet& p) {
-            size_t avail = m_queue->read_available();
-            if (avail > 0) {
-                p = m_queue->front();
-            }
-            return avail;
+            return spsc_recv_peek(m_q, &p);
         }
 
         bool is_active() {
@@ -113,15 +103,14 @@ class SBRX {
         }
     private:
         bool m_active;
-        bip::managed_shared_memory m_segment;
-        shared_queue* m_queue;
+        spsc_queue *m_q;
 };
 
-static inline void delete_shared_queue(const char* name) {    
-    bip::shared_memory_object::remove(name);
+static inline void delete_shared_queue(const char* name) {
+    spsc_remove_shmfile(name);
 }
 
-static inline void delete_shared_queue(std::string name) {    
+static inline void delete_shared_queue(std::string name) {
     delete_shared_queue(name.c_str());
 }
 
