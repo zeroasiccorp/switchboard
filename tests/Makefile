@@ -12,6 +12,8 @@ endif
 MODE ?= queue
 
 CPPFLAGS += -I../cpp
+CXXFLAGS += -O3
+CXXFLAGS += -g
 
 TARGETS += hello.out
 TARGETS += bandwidth.out
