@@ -20,6 +20,11 @@ using namespace std;
 #include <stdatomic.h>
 #endif
 
+#ifndef MAP_POPULATE
+// If the implementation lacks MAP_POPULATE, define it to 0 (no-op).
+#define MAP_POPULATE 0
+#endif
+
 #define SPSC_QUEUE_CAPACITY 1000
 #define SPSC_QUEUE_PACKET_SIZE 10
 #define SPSC_QUEUE_CACHE_LINE_SIZE 64
@@ -73,7 +78,7 @@ static inline spsc_queue* spsc_open(const char* name) {
     // Map a shared file-backed mapping for the SHM area.
     // This will always be page-aligned.
     p = mmap(NULL, mapsize,
-             PROT_READ | PROT_WRITE, MAP_SHARED,
+             PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE,
              fd, 0);
 
     if (p == MAP_FAILED) {
