@@ -18,7 +18,7 @@ struct sb_packet {
     bool last;
 };
 
-// TODO: make queue capacity runtime programmable
+// Default queue capacity
 #define SB_QUEUE_CAPACITY 1024
 
 class SBTX {
@@ -34,8 +34,8 @@ class SBTX {
             init(uri.c_str());
         }
 
-        void init(const char* uri) {
-            m_q = spsc_open(uri);
+        void init(const char* uri, size_t capacity = SB_QUEUE_CAPACITY) {
+            m_q = spsc_open(uri, capacity);
             m_active = true;
         }
 
@@ -74,8 +74,8 @@ class SBRX {
             init(uri.c_str());
         }
 
-        void init(const char* uri) {
-            m_q = spsc_open(uri);
+        void init(const char* uri, size_t capacity = SB_QUEUE_CAPACITY) {
+            m_q = spsc_open(uri, capacity);
             m_active = true;
         }
 

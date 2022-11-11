@@ -11,6 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <assert.h>
 #include <sys/mman.h>
 
 #ifdef __cplusplus
@@ -25,7 +26,6 @@ using namespace std;
 #define MAP_POPULATE 0
 #endif
 
-#define SPSC_QUEUE_CAPACITY 1000
 #define SPSC_QUEUE_PACKET_SIZE 10
 #define SPSC_QUEUE_CACHE_LINE_SIZE 64
 
@@ -40,9 +40,25 @@ typedef struct spsc_queue {
     int cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     spsc_queue_shared *shm;
     char *name;
+    size_t capacity;
 } spsc_queue;
 
-static inline spsc_queue* spsc_open(const char* name) {
+static inline size_t spsc_mapsize(size_t capacity) {
+    spsc_queue *q = NULL;
+    size_t mapsize;
+
+    assert(capacity > 0);
+
+    // Start with the size of the shared area. This includes the
+    // control members + one packet.
+    mapsize = sizeof(*q->shm);
+    // Add additional packets.
+    mapsize += sizeof(q->shm->packets[0]) * (capacity - 1);
+
+    return mapsize;
+}
+
+static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
     spsc_queue *q = NULL;
     size_t mapsize;
     void *p;
@@ -50,8 +66,7 @@ static inline spsc_queue* spsc_open(const char* name) {
     int r;
 
     // Compute the size of the SHM mapping.
-    mapsize = sizeof(*q->shm)
-             + sizeof(q->shm->packets[0]) * SPSC_QUEUE_CAPACITY;
+    mapsize = spsc_mapsize(capacity);
 
     fd = open(name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd < 0) {
@@ -91,6 +106,7 @@ static inline spsc_queue* spsc_open(const char* name) {
 
     q->shm = (spsc_queue_shared *) p;
     q->name = strdup(name);
+    q->capacity = capacity;
     return q;
 
 err:
@@ -106,12 +122,13 @@ static inline void spsc_remove_shmfile(const char *name) {
 }
 
 static inline void spsc_close(spsc_queue *q) {
+    size_t mapsize = spsc_mapsize(q->capacity);
+
     // We've already closed the file-descriptor. We now need to munmap the
     // mmap and remove the the shm files.
     spsc_remove_shmfile(q->name);
     free(q->name);
-    munmap(q->shm,
-           sizeof(q->shm) + sizeof(q->shm->packets[0]) * SPSC_QUEUE_CAPACITY);
+    munmap(q->shm, mapsize);
     free(q);
 }
 
@@ -124,7 +141,7 @@ static inline int spsc_size(spsc_queue *q) {
 
     size = head - tail;
     if (size < 0) {
-        size += SPSC_QUEUE_CAPACITY;
+        size += q->capacity;
     }
     return size;
 }
@@ -137,7 +154,7 @@ static inline int spsc_send(spsc_queue *q, void *buf) {
 
     // compute the head pointer
     int next_head = head + 1;
-    if (next_head == SPSC_QUEUE_CAPACITY) {
+    if (next_head == q->capacity) {
         next_head = 0;
     }
 
@@ -177,7 +194,7 @@ static inline int spsc_recv_base(spsc_queue* q, void *buf, bool pop) {
     if (pop) {
         // and update the read pointer
         tail++;
-        if (tail == SPSC_QUEUE_CAPACITY) {
+        if (tail == q->capacity) {
             tail = 0;
         }
         __atomic_store(&q->shm->tail, &tail, __ATOMIC_RELEASE);
