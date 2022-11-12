@@ -16,7 +16,7 @@ struct sb_packet {
     uint8_t data[SB_DATA_SIZE];
     uint32_t destination;
     bool last;
-};
+} __attribute__ ((packed));
 
 // Default queue capacity
 #define SB_QUEUE_CAPACITY 1024
