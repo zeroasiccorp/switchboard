@@ -45,7 +45,7 @@ class SBTX {
         }
 
         bool send(sb_packet& p) {
-            return spsc_send(m_q, &p);
+            return spsc_send(m_q, &p, sizeof p);
         }
 
         void send_blocking(sb_packet& p) {
@@ -85,12 +85,12 @@ class SBRX {
         }
 
         bool recv(sb_packet& p) {
-            return spsc_recv(m_q, &p);
+            return spsc_recv(m_q, &p, sizeof p);
         }
 
         bool recv() {
             sb_packet dummy_p;
-            return spsc_recv(m_q, &dummy_p);
+            return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
         }
 
         void recv_blocking(sb_packet& p){
@@ -100,7 +100,7 @@ class SBRX {
         }
 
         bool recv_peek(sb_packet& p) {
-            return spsc_recv_peek(m_q, &p);
+            return spsc_recv_peek(m_q, &p, sizeof p);
         }
 
         bool is_active() {
