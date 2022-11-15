@@ -26,7 +26,7 @@ using namespace std;
 #define MAP_POPULATE 0
 #endif
 
-#define SPSC_QUEUE_PACKET_SIZE 10
+#define SPSC_QUEUE_PACKET_SIZE 16
 #define SPSC_QUEUE_CACHE_LINE_SIZE 64
 
 typedef struct spsc_queue_shared {
