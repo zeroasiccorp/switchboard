@@ -148,7 +148,7 @@ static inline int spsc_size(spsc_queue *q) {
     return size;
 }
 
-static inline int spsc_send(spsc_queue *q, void *buf, size_t size) {
+static inline bool spsc_send(spsc_queue *q, void *buf, size_t size) {
     // get pointer to head
     int head;
 
@@ -166,7 +166,7 @@ static inline int spsc_send(spsc_queue *q, void *buf, size_t size) {
     if (next_head == q->cached_tail) {
         __atomic_load(&q->shm->tail, &q->cached_tail, __ATOMIC_ACQUIRE);
         if (next_head == q->cached_tail) {
-            return 0;
+            return false;
         }
     }
 
@@ -176,10 +176,10 @@ static inline int spsc_send(spsc_queue *q, void *buf, size_t size) {
     // and update the head pointer
     __atomic_store(&q->shm->head, &next_head, __ATOMIC_RELEASE);
 
-    return 1;
+    return true;
 }
 
-static inline int spsc_recv_base(spsc_queue* q, void *buf, size_t size, bool pop) {
+static inline bool spsc_recv_base(spsc_queue* q, void *buf, size_t size, bool pop) {
     // get the read pointer
     int tail;
     __atomic_load(&q->shm->tail, &tail, __ATOMIC_RELAXED);
@@ -190,7 +190,7 @@ static inline int spsc_recv_base(spsc_queue* q, void *buf, size_t size, bool pop
     if (tail == q->cached_head) {
         __atomic_load(&q->shm->head, &q->cached_head, __ATOMIC_ACQUIRE);
         if (tail == q->cached_head) {
-            return 0;
+            return false;
         }
     }
 
@@ -206,14 +206,14 @@ static inline int spsc_recv_base(spsc_queue* q, void *buf, size_t size, bool pop
         __atomic_store(&q->shm->tail, &tail, __ATOMIC_RELEASE);
     }
 
-    return 1;
+    return true;
 }
 
-static inline int spsc_recv(spsc_queue* q, void *buf, size_t size) {
+static inline bool spsc_recv(spsc_queue* q, void *buf, size_t size) {
     return spsc_recv_base(q, buf, size, true);
 }
 
-static inline int spsc_recv_peek(spsc_queue* q, void *buf, size_t size) {
+static inline bool spsc_recv_peek(spsc_queue* q, void *buf, size_t size) {
     return spsc_recv_base(q, buf, size, false);
 }
 #endif // _SPSC_QUEUE
