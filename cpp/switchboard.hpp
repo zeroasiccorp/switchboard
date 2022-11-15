@@ -24,7 +24,7 @@ struct sb_packet {
 } __attribute__ ((packed));
 
 // Default queue capacity
-#define SB_QUEUE_CAPACITY 1024
+#define SB_QUEUE_CAPACITY 64
 
 class SBTX {
     public:
