@@ -30,14 +30,14 @@ using namespace std;
 #define SPSC_QUEUE_CACHE_LINE_SIZE 64
 
 typedef struct spsc_queue_shared {
-    int head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
-    int tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int32_t head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int32_t tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     uint32_t packets[1][SPSC_QUEUE_PACKET_SIZE];
 } spsc_queue_shared;
 
 typedef struct spsc_queue {
-    int cached_tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
-    int cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int32_t cached_tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    int32_t cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     spsc_queue_shared *shm;
     char *name;
     size_t capacity;
