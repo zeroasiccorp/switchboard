@@ -13,7 +13,6 @@
 // TODO: make size runtime programmable
 #define SB_DATA_SIZE 32
 struct sb_packet {
-    uint8_t data[SB_DATA_SIZE];
     uint32_t destination;
     union {
         struct {
@@ -21,6 +20,7 @@ struct sb_packet {
         };
         uint32_t flags;
     };
+    uint8_t data[SB_DATA_SIZE];
 } __attribute__ ((packed));
 
 // Default queue capacity
