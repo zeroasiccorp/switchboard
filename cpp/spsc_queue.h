@@ -28,13 +28,13 @@ using namespace std;
 #define MAP_POPULATE 0
 #endif
 
-#define SPSC_QUEUE_PACKET_SIZE 64
+#define SPSC_QUEUE_MAX_PACKET_SIZE 64
 #define SPSC_QUEUE_CACHE_LINE_SIZE 64
 
 typedef struct spsc_queue_shared {
     int32_t head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     int32_t tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
-    uint32_t packets[1][SPSC_QUEUE_PACKET_SIZE / 4];
+    uint32_t packets[1][SPSC_QUEUE_MAX_PACKET_SIZE / 4];
 } spsc_queue_shared;
 
 typedef struct spsc_queue {
