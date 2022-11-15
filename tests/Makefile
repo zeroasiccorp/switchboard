@@ -51,4 +51,5 @@ umistr: umistr.out
 
 .PHONY: clean
 clean:
-	rm -f *.out
+	rm -f $(TARGETS)
+	rm -f $(TARGETS:.out=.d)
