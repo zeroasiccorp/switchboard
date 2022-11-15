@@ -5,18 +5,22 @@ LDFLAGS += -pthread
 MODE ?= queue
 
 CPPFLAGS += -I../cpp
-CXXFLAGS += -O3
-CXXFLAGS += -g
+CXXFLAGS += -Wall -O3 -g
+CFLAGS += -Wall -O3 -g
 
 TARGETS += hello.out
 TARGETS += bandwidth.out
 TARGETS += latency.out
+TARGETS += torture.out
 
 -include $(TARGETS:.out=.d)
 CPPFLAGS += -MMD
 
 %.out: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
+
+%.out: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: hello
 hello: hello.out $(MODE)
@@ -29,6 +33,10 @@ bandwidth: bandwidth.out $(MODE)
 .PHONY: latency
 latency: latency.out $(MODE)
 	./test.py --test latency --mode $(MODE)
+
+.PHONY: torture
+torture: torture.out
+	./$<
 
 .PHONY: tcp
 tcp:
