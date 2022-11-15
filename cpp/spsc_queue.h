@@ -49,7 +49,7 @@ static inline size_t spsc_mapsize(size_t capacity) {
     spsc_queue *q = NULL;
     size_t mapsize;
 
-    assert(capacity > 0);
+    assert(capacity >= 2);
 
     // Start with the size of the shared area. This includes the
     // control members + one packet.
