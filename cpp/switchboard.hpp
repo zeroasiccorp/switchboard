@@ -26,13 +26,14 @@ struct sb_packet {
 // Default queue capacity
 #define SB_QUEUE_CAPACITY 64
 
-class SBTX {
+class SB_base {
     public:
-        SBTX() : m_active(false), m_q(NULL) {}
+        SB_base(bool auto_deinit) : m_auto_deinit(auto_deinit), m_active(false), m_q(NULL) {}
 
-        ~SBTX() {
-            spsc_close(m_q);
-            m_active = false;
+        ~SB_base() {
+            if (m_auto_deinit) {
+                deinit();
+            }
         }
 
         void init(std::string uri) {
@@ -43,6 +44,24 @@ class SBTX {
             m_q = spsc_open(uri, capacity);
             m_active = true;
         }
+
+        void deinit(void) {
+            spsc_close(m_q);
+            m_active = false;
+        }
+
+        bool is_active() {
+            return m_active;
+        }
+    protected:
+        bool m_auto_deinit;
+        bool m_active;
+        spsc_queue *m_q;
+};
+
+class SBTX : public SB_base {
+    public:
+        SBTX (bool auto_deinit = false) : SB_base(auto_deinit) {}
 
         bool send(sb_packet& p) {
             return spsc_send(m_q, &p, sizeof p);
@@ -57,32 +76,11 @@ class SBTX {
         bool all_read() {
             return spsc_size(m_q) == 0;
         }
-
-        bool is_active() {
-            return m_active;
-        }
-    private:
-        bool m_active;
-        spsc_queue *m_q;
 };
 
-class SBRX {
+class SBRX : public SB_base {
     public:
-        SBRX() : m_active(false) {}
-
-        ~SBRX() {
-            spsc_close(m_q);
-            m_active = false;
-        }
-
-        void init(std::string uri) {
-            init(uri.c_str());
-        }
-
-        void init(const char* uri, size_t capacity = SB_QUEUE_CAPACITY) {
-            m_q = spsc_open(uri, capacity);
-            m_active = true;
-        }
+        SBRX (bool auto_deinit = false) : SB_base(auto_deinit) {}
 
         bool recv(sb_packet& p) {
             return spsc_recv(m_q, &p, sizeof p);
@@ -102,13 +100,6 @@ class SBRX {
         bool recv_peek(sb_packet& p) {
             return spsc_recv_peek(m_q, &p, sizeof p);
         }
-
-        bool is_active() {
-            return m_active;
-        }
-    private:
-        bool m_active;
-        spsc_queue *m_q;
 };
 
 static inline void delete_shared_queue(const char* name) {
