@@ -6,7 +6,9 @@ int main() {
     SBTX tx;
     SBRX rx;
 
-    int iterations=10;
+    // Do more iterations than the queue has capacity to make sure
+    // our peer connects before we exit.
+    unsigned int iterations=SB_QUEUE_CAPACITY * 2;
 
     // initialize connections
 
