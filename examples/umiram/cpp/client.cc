@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
+
 #include "switchboard.hpp"
 #include "umilib.hpp"
 
@@ -9,7 +13,7 @@ void print_packet_details(const uint32_t* p) {
 
     // print details
     printf("opcode:  %s\n", umi_opcode_to_str(opcode).c_str());
-    printf("dstaddr: 0x%016llx\n", dstaddr);
+    printf("dstaddr: 0x%016" PRIx64 "\n", dstaddr);
     printf("size:    %u\n", size);
     printf("data:    0x%08x\n", data_arr[0]);
 }
