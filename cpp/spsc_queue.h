@@ -42,10 +42,10 @@ typedef struct spsc_queue {
     int32_t cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     spsc_queue_shared *shm;
     char *name;
-    size_t capacity;
+    int capacity;
 } spsc_queue;
 
-static inline size_t spsc_mapsize(size_t capacity) {
+static inline size_t spsc_mapsize(int capacity) {
     spsc_queue *q = NULL;
     size_t mapsize;
 
