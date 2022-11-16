@@ -124,7 +124,13 @@ static inline void spsc_remove_shmfile(const char *name) {
 }
 
 static inline void spsc_close(spsc_queue *q) {
-    size_t mapsize = spsc_mapsize(q->capacity);
+    size_t mapsize;
+
+    if (!q) {
+        return;
+    }
+
+    mapsize = spsc_mapsize(q->capacity);
 
     // We've already closed the file-descriptor. We now need to munmap the
     // mmap and remove the the shm files.
