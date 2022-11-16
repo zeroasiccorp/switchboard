@@ -3,6 +3,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <signal.h>
+#include <assert.h>
 #include <sys/wait.h>
 
 #include "switchboard.hpp"
@@ -37,9 +38,13 @@ bool gpio_write(const uint32_t data) {
 }
 
 void init_sram(const char* binfile) {
+    size_t r;
     FILE* f;
+
     f = fopen(binfile, "rb");
-    fread(sram, sizeof(uint32_t), sizeof(sram), f);
+    assert(f);
+    r = fread(sram, 1, sizeof sram, f);
+    assert(r > 0);
 }
 
 void start_simulator_process(const char* simulator) {
