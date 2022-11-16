@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 
     const char* arg = "5555";
     if (arg_idx < argc) {
-        const char* arg = argv[arg_idx++];
+        arg = argv[arg_idx++];
     }
     char port[128];
     sprintf(port, "queue-%s", arg);
