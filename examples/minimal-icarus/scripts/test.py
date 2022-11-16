@@ -11,12 +11,7 @@ from pathlib import Path
 
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
-
-# figure out where shared memory queues are located
-if platform.system() == 'Darwin':
-    SHMEM_DIR = Path('/tmp/boost_interprocess')
-else:
-    SHMEM_DIR = Path('/dev/shm')
+SHMEM_DIR = EXAMPLE_DIR
 
 def main():
     parser = argparse.ArgumentParser()
@@ -33,7 +28,6 @@ def main():
     # start client and chip
     # this order yields a smaller VCD
     client = start_client()
-    time.sleep(1)
     chip = start_chip()
 
     # wait for client and chip to complete

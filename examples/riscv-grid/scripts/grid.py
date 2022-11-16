@@ -15,10 +15,7 @@ EXAMPLE_DIR = THIS_DIR.parent
 TOP_DIR = EXAMPLE_DIR.parent.parent
 
 # figure out where shared memory queues are located
-if platform.system() == 'Darwin':
-    SHMEM_DIR = Path('/tmp/boost_interprocess')
-else:
-    SHMEM_DIR = Path('/dev/shm')
+SHMEM_DIR = EXAMPLE_DIR
 
 def rc2id(r, c):
     return ((r & 0xf) << 8) | (c & 0xf)

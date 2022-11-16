@@ -1,26 +1,18 @@
-CXXFLAGS += -pthread
-CFLAGS += -pthread
-LDFLAGS += -pthread
+TOPDIR=..
+include $(TOPDIR)/Rules.mk
 
 MODE ?= queue
-
-CPPFLAGS += -I../cpp
-CXXFLAGS += -Wall -O3 -g
-CFLAGS += -Wall -O3 -g
 
 TARGETS += hello.out
 TARGETS += bandwidth.out
 TARGETS += latency.out
 TARGETS += torture.out
 
+all: $(TARGETS)
+
+-include $(OBJS:.o=.d)
 -include $(TARGETS:.out=.d)
 CPPFLAGS += -MMD
-
-%.out: %.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
-
-%.out: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: hello
 hello: hello.out $(MODE)

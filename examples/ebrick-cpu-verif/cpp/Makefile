@@ -1,13 +1,18 @@
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	CPP_LIBS := -lboost_system -lpthread
-else
-	CPP_LIBS := -lboost_system -pthread -lrt
-endif
+TOPDIR=../../..
+include $(TOPDIR)/Rules.mk
 
-%: %.cc ../../../cpp/switchboard.hpp
-	g++ -I../../../cpp $< -o $@ $(CPP_LIBS)
+OBJS += driver.o
+TARGETS = driver
+
+all: $(TARGETS)
+
+-include $(OBJS:.o=.d)
+CPPFLAGS += -MMD
+
+client: $(OBJS)
+	$(LINK.cc) $^ $(LDLIBS) -o $@
 
 .PHONY: clean
 clean:
-	rm -f driver
+	rm -f $(OBJS)
+	rm -f $(TARGETS)
