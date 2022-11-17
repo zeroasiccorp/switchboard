@@ -25,7 +25,7 @@ Then install the needed prerequisites:
 ### Linux
 
 ```shell
-sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf libboost-dev libboost-system-dev
+sudo apt-get install verilator gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
 ```
 
 ### macOS
@@ -35,7 +35,7 @@ brew tap riscv/riscv
 ```
 
 ```shell
-brew install verilator riscv-tools boost
+brew install verilator riscv-tools
 ```
 
 ## Example
