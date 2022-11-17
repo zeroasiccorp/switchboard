@@ -31,5 +31,8 @@ results.xml
 obj_dir
 .pytest_cache
 
+# queues
+queue-*
+
 # Python cache files
 __pycache__

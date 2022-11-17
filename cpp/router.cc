@@ -17,8 +17,8 @@ bool init(int argc, char* argv[]) {
 
     int arg_idx = 1;
 
-    enum MODE {RX, TX, ROUTE};
-    MODE mode;
+    enum MODE {RX, TX, ROUTE, UNDEF};
+    MODE mode = UNDEF;
 
     while (arg_idx < argc) {
         std::string arg = std::string(argv[arg_idx++]);

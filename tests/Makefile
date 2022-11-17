@@ -46,3 +46,4 @@ umistr: umistr.out
 clean:
 	rm -f $(TARGETS)
 	rm -f $(TARGETS:.out=.d)
+	rm -f queue-*

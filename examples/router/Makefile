@@ -12,3 +12,4 @@ prereqs:
 clean:
 	make -C cpp clean
 	make -C verilator clean
+	rm -f queue-*
