@@ -272,8 +272,16 @@ void torture_test(struct torture_state *ts) {
 
 int main(int argc, char *argv[]) {
 	struct torture_state ts = {0};
+	unsigned long runs = 1;
 
-	torture_test(&ts);
+	if (argc > 1) {
+		runs = strtoul(argv[1], NULL, 0);
+	}
+
+	while (runs--) {
+		torture_test(&ts);
+	}
+
 	printf("PASS\n");
 	return EXIT_SUCCESS;
 }
