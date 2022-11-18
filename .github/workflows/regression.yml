@@ -37,3 +37,10 @@ jobs:
           make hello > out.log
           cat out.log
           grep -Fxq "Hello World!" out.log
+
+      - name: Run torture tests
+        working-directory: tests
+        run: |
+          make torture > out.log
+          cat out.log
+          grep -Fxq "PASS" out.log
