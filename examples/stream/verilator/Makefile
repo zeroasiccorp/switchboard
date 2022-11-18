@@ -1,11 +1,6 @@
-include files.d
+include files.mk
 
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	CPP_LIBS := -lboost_system -lpthread
-else
-	CPP_LIBS := -lboost_system -pthread -lrt
-endif
+LDFLAGS = -pthread
 
 obj_dir/Vtestbench:
 	rm -rf obj_dir
@@ -16,7 +11,7 @@ obj_dir/Vtestbench:
 		--trace \
 		--top-module testbench \
 		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
-		-LDFLAGS "$(CPP_LIBS)" \
+		-LDFLAGS "$(LDFLAGS)" \
 		$(filter-out "../../../cpp/switchboard.hpp", $^)
 	make -C obj_dir -f Vtestbench.mk Vtestbench
 

@@ -1,6 +1,7 @@
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <assert.h>
 
 #include "switchboard.hpp"
 #include "svdpi.h"

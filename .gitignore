@@ -16,6 +16,7 @@ compile_flags.txt
 *.hex
 *.so
 *.o
+*.d
 *.vpi
 *.vvp
 *.out
@@ -29,6 +30,9 @@ compile_flags.txt
 results.xml
 obj_dir
 .pytest_cache
+
+# queues
+queue-*
 
 # Python cache files
 __pycache__

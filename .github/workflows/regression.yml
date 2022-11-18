@@ -22,9 +22,7 @@ jobs:
             verilator \
             iverilog \
             gcc-riscv64-unknown-elf \
-            binutils-riscv64-unknown-elf \
-            libboost-dev \
-            libboost-system-dev
+            binutils-riscv64-unknown-elf
 
       - name: Run Icarus simulation
         working-directory: examples/minimal-icarus

@@ -1,27 +1,18 @@
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	LDLIBS := -lboost_system -lpthread
-	ifdef HOMEBREW_PREFIX
-		CPPFLAGS += -I$(HOMEBREW_PREFIX)/include/
-		LDFLAGS += -L$(HOMEBREW_PREFIX)/lib/
-	endif
-else
-	LDLIBS := -lboost_system -pthread -lrt
-endif
+TOPDIR=..
+include $(TOPDIR)/Rules.mk
 
 MODE ?= queue
-
-CPPFLAGS += -I../cpp
 
 TARGETS += hello.out
 TARGETS += bandwidth.out
 TARGETS += latency.out
+TARGETS += torture.out
 
+all: $(TARGETS)
+
+-include $(OBJS:.o=.d)
 -include $(TARGETS:.out=.d)
 CPPFLAGS += -MMD
-
-%.out: %.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: hello
 hello: hello.out $(MODE)
@@ -34,6 +25,10 @@ bandwidth: bandwidth.out $(MODE)
 .PHONY: latency
 latency: latency.out $(MODE)
 	./test.py --test latency --mode $(MODE)
+
+.PHONY: torture
+torture: torture.out
+	./$<
 
 .PHONY: tcp
 tcp:
@@ -49,4 +44,6 @@ umistr: umistr.out
 
 .PHONY: clean
 clean:
-	rm -f *.out
+	rm -f $(TARGETS)
+	rm -f $(TARGETS:.out=.d)
+	rm -f queue-*

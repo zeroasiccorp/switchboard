@@ -11,3 +11,5 @@ prereqs:
 clean:
 	make -C cpp clean
 	make -C icarus clean
+	rm -f queue-*
+	rm -f *.vcd

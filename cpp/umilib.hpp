@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unistd.h>
+#include <assert.h>
 
 // ref: umi/rtl/umi_messages.vh
 enum UMI_CMD {
