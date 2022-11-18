@@ -11,9 +11,6 @@ CXXFLAGS += -pthread
 CFLAGS += -pthread
 LDFLAGS += -pthread
 
--include $(OBJS:.o=.d)
-CPPFLAGS += -MMD
-
 %.o: %.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< -c -o $@ $(LDFLAGS) $(LDLIBS)
 
