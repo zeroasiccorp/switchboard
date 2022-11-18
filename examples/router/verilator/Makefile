@@ -1,4 +1,4 @@
-include files.d
+include files.mk
 
 LDFLAGS = -pthread
 

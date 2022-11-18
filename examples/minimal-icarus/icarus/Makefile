@@ -3,7 +3,7 @@ include $(TOPDIR)/Rules.mk
 
 .DEFAULT_GOAL := all
 
-include files.d
+include files.mk
 
 .PHONY: all
 all: switchboard_vpi.vpi testbench.vvp
