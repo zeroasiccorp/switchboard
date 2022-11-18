@@ -28,6 +28,7 @@ def main():
     # start client and chip
     # this order yields a smaller VCD
     client = start_client()
+    time.sleep(1)
     chip = start_chip()
 
     # wait for client and chip to complete
