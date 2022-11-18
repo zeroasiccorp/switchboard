@@ -20,6 +20,9 @@ struct torture_state {
 	spsc_queue *tx_q;
 	spsc_queue *rx_q;
 
+	size_t tx_capacity;
+	size_t rx_capacity;
+
 	uint64_t tx_num;
 	uint64_t rx_num;
 
@@ -64,7 +67,7 @@ spsc_queue *torture_open(const char *prefix, size_t capacity) {
 	int r;
 
 	pid = getpid();
-	r = snprintf(name, sizeof name, "torture-queue-%s-%" PRIx64, prefix, pid);
+	r = snprintf(name, sizeof name, "queue-%s-%" PRIx64, prefix, pid);
 	assert(r > 0);
 	q = spsc_open(name, capacity);
 	return q;
@@ -134,15 +137,16 @@ void *torture_rx_worker(void *arg)
 {
 	uint8_t buf[SPSC_QUEUE_MAX_PACKET_SIZE];
 	struct torture_state *ts = arg;
+	spsc_queue *rx_q;
 	uint64_t tx_num;
 	int r;
 
-	usleep(100);
+	rx_q = torture_open("rx", ts->rx_capacity);
 	while (!ts->done) {
 		do {
-			r = spsc_recv(ts->rx_q, buf, SPSC_QUEUE_MAX_PACKET_SIZE);
+			r = spsc_recv(rx_q, buf, SPSC_QUEUE_MAX_PACKET_SIZE);
 			if (ts->done) {
-				return NULL;
+				goto done;
 			}
 		} while (!r);
 		assert(r);
@@ -157,6 +161,9 @@ void *torture_rx_worker(void *arg)
 		}
 		ts->rx_num++;
 	}
+
+done:
+	torture_close(rx_q);
 	return NULL;
 }
 
@@ -164,20 +171,29 @@ void *torture_loopback_worker(void *arg)
 {
 	struct torture_state *ts = arg;
 	uint8_t buf[SPSC_QUEUE_MAX_PACKET_SIZE];
+	spsc_queue *tx_q;
+	spsc_queue *rx_q;
 	int r;
 
+	tx_q = torture_open("tx", ts->tx_capacity);
+	rx_q = torture_open("rx", ts->rx_capacity);
+
 	while (!ts->done) {
-		r = spsc_recv(ts->tx_q, buf, SPSC_QUEUE_MAX_PACKET_SIZE);
+		r = spsc_recv(tx_q, buf, SPSC_QUEUE_MAX_PACKET_SIZE);
 		if (r) {
 			do {
 				D(hexdump("route buf", buf, SPSC_QUEUE_MAX_PACKET_SIZE));
-				r = spsc_send(ts->rx_q, buf, SPSC_QUEUE_MAX_PACKET_SIZE);
+				r = spsc_send(rx_q, buf, SPSC_QUEUE_MAX_PACKET_SIZE);
 				if (ts->done) {
-					return NULL;
+					goto done;
 				}
 			} while (!r);
 		}
 	}
+
+done:
+	torture_close(tx_q);
+	torture_close(rx_q);
 	return NULL;
 }
 
@@ -209,8 +225,6 @@ size_t torture_rand_capacity(unsigned int *seedp) {
 }
 
 void torture_test(struct torture_state *ts) {
-	size_t tx_capacity;
-	size_t rx_capacity;
 	unsigned int i;
 	unsigned int p;
 	int r;
@@ -219,11 +233,11 @@ void torture_test(struct torture_state *ts) {
 	for (i = 0; i < 2 * 1024; i++) {
 		ts->done = false;
 
-		tx_capacity = torture_rand_capacity(&ts->seed);
-		rx_capacity = torture_rand_capacity(&ts->seed);
+		ts->tx_capacity = torture_rand_capacity(&ts->seed);
+		ts->rx_capacity = torture_rand_capacity(&ts->seed);
 
-		ts->tx_q = torture_open("tx", tx_capacity);
-		ts->rx_q = torture_open("rx", rx_capacity);
+		ts->tx_q = torture_open("tx", ts->tx_capacity);
+		ts->rx_q = torture_open("rx", ts->rx_capacity);
 
 		assert(ts->tx_q);
 		assert(ts->rx_q);
@@ -231,16 +245,11 @@ void torture_test(struct torture_state *ts) {
 		ts->tx_num = 0;
 		ts->rx_num = 0;
 
-		D(printf("cap %zd %zd\n", tx_capacity, rx_capacity));
+		D(printf("cap %zd %zd\n", ts->tx_capacity, ts->rx_capacity));
 		torture_launch_loopback_worker(ts);
 
-		ts->has_rx_worker = false;
-		for (p = 0; p < (tx_capacity * 2); p++) {
-			torture_ping(ts);
-		}
-
 		torture_launch_rx_worker(ts);
-		for (p = 0; p < (tx_capacity * 2); p++) {
+		for (p = 0; p < (ts->tx_capacity * 2); p++) {
 			torture_ping(ts);
 		}
 
