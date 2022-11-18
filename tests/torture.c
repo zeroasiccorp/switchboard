@@ -270,6 +270,49 @@ void torture_test(struct torture_state *ts) {
 	printf("done\n");
 }
 
+void torture_test_open(struct torture_state *ts) {
+	unsigned int i;
+	int r;
+
+	printf("%s: ", __func__); fflush(NULL);
+	for (i = 0; i < 32 * 1024; i++) {
+		ts->done = false;
+
+		ts->tx_capacity = torture_rand_capacity(&ts->seed);
+		ts->rx_capacity = torture_rand_capacity(&ts->seed);
+
+		ts->tx_q = torture_open("tx", ts->tx_capacity);
+		ts->rx_q = torture_open("rx", ts->rx_capacity);
+
+		assert(ts->tx_q);
+		assert(ts->rx_q);
+
+		ts->tx_num = 0;
+		ts->rx_num = 0;
+
+		D(printf("cap %zd %zd\n", ts->tx_capacity, ts->rx_capacity));
+		torture_launch_loopback_worker(ts);
+
+		ts->has_rx_worker = false;
+		// single ping.
+		torture_ping(ts);
+
+		ts->done = true;
+		r = pthread_join(ts->loopback_worker, NULL);
+		assert(r == 0);
+
+		torture_close(ts->tx_q);
+		torture_close(ts->rx_q);
+
+		if ((i & 63) == 0) {
+			printf(".");
+			fflush(NULL);
+		}
+	}
+	printf("done\n");
+
+}
+
 int main(int argc, char *argv[]) {
 	struct torture_state ts = {0};
 	unsigned long runs = 1;
@@ -279,6 +322,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	while (runs--) {
+		torture_test_open(&ts);
 		torture_test(&ts);
 	}
 
