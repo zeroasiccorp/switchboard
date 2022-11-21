@@ -132,11 +132,9 @@ static inline void spsc_close(spsc_queue *q) {
 
     mapsize = spsc_mapsize(q->capacity);
 
-    // We've already closed the file-descriptor. We now need to munmap the
-    // mmap and remove the the shm files.
-    spsc_remove_shmfile(q->name);
-    free(q->name);
+    // We've already closed the file-descriptor. We now need to munmap the mmap.
     munmap(q->shm, mapsize);
+    free(q->name);
     free(q);
 }
 

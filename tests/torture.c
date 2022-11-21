@@ -74,6 +74,7 @@ spsc_queue *torture_open(const char *prefix, size_t capacity) {
 }
 
 void torture_close(spsc_queue *q) {
+	spsc_remove_shmfile(q->name);
 	spsc_close(q);
 }
 
