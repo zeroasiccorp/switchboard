@@ -45,6 +45,29 @@ typedef struct spsc_queue {
     int capacity;
 } spsc_queue;
 
+// Returns the capacity of a queue given a specific mapsize.
+static inline int spsc_capacity(size_t mapsize) {
+    spsc_queue *q = NULL;
+    int capacity;
+
+    if (mapsize < sizeof(*q->shm)) {
+        return 0;
+    }
+
+    // Start with the size of the shared area. This includes the
+    // control members + one packet.
+    mapsize -= sizeof(*q->shm);
+
+    capacity = mapsize / sizeof(q->shm->packets[0]) + 1;
+
+    if (capacity < 2) {
+        // Capacities less than 2 are invalid.
+        return 0;
+    }
+
+    return capacity;
+}
+
 static inline size_t spsc_mapsize(int capacity) {
     spsc_queue *q = NULL;
     size_t mapsize;

@@ -314,6 +314,26 @@ void torture_test_open(struct torture_state *ts) {
 
 }
 
+void torture_test_mapsize(struct torture_state *ts) {
+	int c;
+
+	printf("%s: ", __func__); fflush(NULL);
+	for (c = 2; c < 1 * 1024 * 1024; c++) {
+		size_t mapsize;
+		int c2;
+
+		mapsize = spsc_mapsize(c);
+		c2 = spsc_capacity(mapsize);
+		assert(c == c2);
+
+		if ((c & 1023) == 0) {
+			printf(".");
+			fflush(NULL);
+		}
+	}
+	printf("done\n");
+}
+
 int main(int argc, char *argv[]) {
 	struct torture_state ts = {0};
 	unsigned long runs = 1;
@@ -321,6 +341,8 @@ int main(int argc, char *argv[]) {
 	if (argc > 1) {
 		runs = strtoul(argv[1], NULL, 0);
 	}
+
+	torture_test_mapsize(&ts);
 
 	while (runs--) {
 		torture_test_open(&ts);
