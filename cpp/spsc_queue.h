@@ -129,6 +129,7 @@ static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void 
             perror("mmap");
             goto err;
         }
+
         // We can now close the fd without affecting active mmaps.
         close(fd);
         q->unmap_at_close = true;
@@ -145,6 +146,12 @@ err:
     }
     free(q);
     return NULL;
+}
+
+static inline int spsc_mlock(spsc_queue *q) {
+    size_t mapsize = spsc_mapsize(q->capacity);
+
+    return mlock(q->shm, mapsize);
 }
 
 static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
