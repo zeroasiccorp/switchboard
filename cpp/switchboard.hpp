@@ -28,12 +28,10 @@ struct sb_packet {
 
 class SB_base {
     public:
-        SB_base(bool auto_deinit) : m_auto_deinit(auto_deinit), m_active(false), m_q(NULL) {}
+        SB_base() : m_active(false), m_q(NULL) {}
 
         ~SB_base() {
-            if (m_auto_deinit) {
-                deinit();
-            }
+            deinit();
         }
 
         void init(std::string uri) {
@@ -61,7 +59,7 @@ class SB_base {
 
 class SBTX : public SB_base {
     public:
-        SBTX (bool auto_deinit = false) : SB_base(auto_deinit) {}
+        SBTX () {}
 
         bool send(sb_packet& p) {
             return spsc_send(m_q, &p, sizeof p);
@@ -80,7 +78,7 @@ class SBTX : public SB_base {
 
 class SBRX : public SB_base {
     public:
-        SBRX (bool auto_deinit = false) : SB_base(auto_deinit) {}
+        SBRX () {}
 
         bool recv(sb_packet& p) {
             return spsc_recv(m_q, &p, sizeof p);
