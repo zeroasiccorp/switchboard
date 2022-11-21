@@ -43,6 +43,8 @@ typedef struct spsc_queue {
     spsc_queue_shared *shm;
     char *name;
     int capacity;
+
+    bool unmap_at_close;
 } spsc_queue;
 
 // Returns the capacity of a queue given a specific mapsize.
@@ -83,7 +85,7 @@ static inline size_t spsc_mapsize(int capacity) {
     return mapsize;
 }
 
-static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
+static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void *mem) {
     spsc_queue *q = NULL;
     size_t mapsize;
     void *p;
@@ -92,18 +94,6 @@ static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
 
     // Compute the size of the SHM mapping.
     mapsize = spsc_mapsize(capacity);
-
-    fd = open(name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-    if (fd < 0) {
-        perror(name);
-        goto err;
-    }
-
-    r = ftruncate(fd, mapsize);
-    if (r < 0) {
-        perror("ftruncate");
-        goto err;
-    }
 
     // Allocate a cache-line aligned spsc-queue.
     r = posix_memalign(&p, SPSC_QUEUE_CACHE_LINE_SIZE,
@@ -115,19 +105,34 @@ static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
     q = (spsc_queue *) p;
     memset(q, 0, sizeof *q);
 
-    // Map a shared file-backed mapping for the SHM area.
-    // This will always be page-aligned.
-    p = mmap(NULL, mapsize,
-             PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE,
-             fd, 0);
+    p = mem;
+    if (!mem) {
+        fd = open(name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+        if (fd < 0) {
+            perror(name);
+            goto err;
+        }
 
-    if (p == MAP_FAILED) {
-        perror("mmap");
-        goto err;
+        r = ftruncate(fd, mapsize);
+        if (r < 0) {
+            perror("ftruncate");
+            goto err;
+        }
+
+        // Map a shared file-backed mapping for the SHM area.
+        // This will always be page-aligned.
+        p = mmap(NULL, mapsize,
+                 PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE,
+                 fd, 0);
+
+        if (p == MAP_FAILED) {
+            perror("mmap");
+            goto err;
+        }
+        // We can now close the fd without affecting active mmaps.
+        close(fd);
+        q->unmap_at_close = true;
     }
-
-    // We can now close the fd without affecting active mmaps.
-    close(fd);
 
     q->shm = (spsc_queue_shared *) p;
     q->name = strdup(name);
@@ -140,6 +145,10 @@ err:
     }
     free(q);
     return NULL;
+}
+
+static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
+    return spsc_open_mem(name, capacity, NULL);
 }
 
 static inline void spsc_remove_shmfile(const char *name) {
@@ -156,7 +165,10 @@ static inline void spsc_close(spsc_queue *q) {
     mapsize = spsc_mapsize(q->capacity);
 
     // We've already closed the file-descriptor. We now need to munmap the mmap.
-    munmap(q->shm, mapsize);
+    if (q->unmap_at_close) {
+        munmap(q->shm, mapsize);
+    }
+
     free(q->name);
     free(q);
 }
