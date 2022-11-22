@@ -51,6 +51,10 @@ class SB_base {
         bool is_active() {
             return m_active;
         }
+
+        void *get_shm_handle(void) {
+		return m_q->shm;
+        }
     protected:
         bool m_auto_deinit;
         bool m_active;
