@@ -52,6 +52,12 @@ class SB_base {
             return m_active;
         }
 
+        int mlock(void) {
+            assert(m_active);
+            assert(m_q);
+            return spsc_mlock(m_q);
+        }
+
         void *get_shm_handle(void) {
 		return m_q->shm;
         }
