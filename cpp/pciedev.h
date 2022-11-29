@@ -9,6 +9,48 @@
 #include <fcntl.h>
 
 #include <sys/mman.h>
+
+#define PCIE_READ_GEN(t, suffix)			\
+static inline t pcie_read ## suffix(void *p) {		\
+	uintptr_t i = (uintptr_t) p;			\
+	t val;						\
+							\
+	/* Enforce aligment. */				\
+	assert((i % sizeof(val)) == 0);			\
+							\
+	/* Make access.	*/				\
+	return *(volatile t *) p;			\
+}
+
+#define PCIE_WRITE_GEN(t, suffix)			\
+static inline void pcie_write ## suffix(void *p, t v) {	\
+	uintptr_t i = (uintptr_t) p;			\
+	t val;						\
+							\
+	/* Enforce aligment. */				\
+	assert((i % sizeof(val)) == 0);			\
+							\
+	/* Make access.	*/				\
+	* (volatile t *) p = v;				\
+}							\
+							\
+static inline void pcie_write ## suffix ## _strong(void *p, t v) {	\
+	t dummy;					\
+	pcie_write ## suffix(p, v);			\
+	/* Enforce PCI ordering by reading back the same reg. */	\
+	dummy = pcie_read ## suffix(p);			\
+	dummy = dummy;					\
+}
+
+PCIE_READ_GEN(uint64_t, 64)
+PCIE_WRITE_GEN(uint64_t, 64)
+PCIE_READ_GEN(uint32_t, 32)
+PCIE_WRITE_GEN(uint32_t, 32)
+PCIE_READ_GEN(uint16_t, 16)
+PCIE_WRITE_GEN(uint16_t, 16)
+PCIE_READ_GEN(uint8_t, 8)
+PCIE_WRITE_GEN(uint8_t, 8)
+
 static inline void *pcie_bar_map(const char *bdf, int bar_num,
 				 uint64_t offset, uint64_t size) {
 	char name[] = "/sys/bus/pci/devices/XXXX:XX:XX.X/resourceYY";
