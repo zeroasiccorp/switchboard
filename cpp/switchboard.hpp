@@ -58,6 +58,10 @@ class SB_base {
             return spsc_mlock(m_q);
         }
 
+        int get_capacity(void) {
+            return m_q->capacity;
+        }
+
         void *get_shm_handle(void) {
 		return m_q->shm;
         }
