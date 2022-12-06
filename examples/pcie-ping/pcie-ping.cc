@@ -28,8 +28,8 @@ int main(int argc, char* argv[]) {
 	bdf = argv[1];
 	bar_num = 0;
 
-	tx.init("queue-tx", bdf, bar_num);
-	rx.init("queue-rx", bdf, bar_num);
+	tx.init("queue-tx", bdf, bar_num, 0);
+	rx.init("queue-rx", bdf, bar_num, 1);
 
 	for (i = 0; i < 1024; i++) {
 		sb_packet p = {0};

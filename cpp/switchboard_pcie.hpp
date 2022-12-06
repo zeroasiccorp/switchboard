@@ -22,74 +22,137 @@
 #define REG_QUEUE_ADDRESS_HI	0x10
 #define REG_QUEUE_CAPACITY	0x14
 
+#define REG_QUEUE_AREA_SIZE	(3 * 4)
+
+class SB_pcie {
+    public:
+        SB_pcie() : m_map(NULL), m_addr(0) { }
+
+        ~SB_pcie() {
+            deinit_host();
+        }
+
+        virtual bool init_host(const char *uri, const char *bdf, int bar_num, void *handle) {
+            m_addr = pagemap_virt_to_phys(handle);
+            m_map = (char *) pcie_bar_map(bdf, bar_num, 0, getpagesize());
+            if (m_map == MAP_FAILED) {
+                return false;
+            }
+            return true;
+        }
+
+        virtual void deinit_host(void) {
+            if (m_map) {
+                pcie_bar_unmap(m_map, getpagesize());
+            }
+        }
+
+        bool init_dev(int capacity, int queue_num) {
+            int qoffset = queue_num * REG_QUEUE_AREA_SIZE;
+	    uint32_t r;
+
+            // TODO Validate the ID and version regs.
+            r = dev_read32(REG_ID);
+            printf("SB pcie ID=%x\n", r);
+            r = dev_read32(REG_CAP);
+            printf("SB pcie CAP=%x\n", r);
+
+            dev_write32(qoffset + REG_QUEUE_ADDRESS_LO, m_addr);
+            dev_write32(qoffset + REG_QUEUE_ADDRESS_HI, m_addr >> 32);
+            printf("SB QUEUE_ADDR=%lx\n", m_addr);
+
+            dev_write32(qoffset + REG_QUEUE_CAPACITY, capacity);
+            printf("SB CAPACITY=%d\n", capacity);
+
+            dev_write32_strong(REG_ACTIVE, 0x1);
+            return true;
+        }
+
+        virtual uint32_t dev_read32(uint64_t offset)
+        {
+                return pcie_read32(m_map + offset);
+        }
+
+        virtual void dev_write32(uint64_t offset, uint32_t v)
+        {
+                pcie_write32(m_map + offset, v);
+        }
+
+        virtual void dev_write32_strong(uint64_t offset, uint32_t v)
+        {
+                pcie_write32_strong(m_map + offset, v);
+        }
+
+protected:
+	// m_map holds a pointer to a mapped memory area that can be
+	// used for register accesses. Not all implementions will use it.
+        char *m_map;
+
+	// m_addr holds an address to the SPSC queue's SHM area. For some
+	// implementations this will simply be a user-space virtual address
+	// and for others it may be a physical address for HW DMA implementations
+	// to access.
+        uint64_t m_addr;
+};
+
+
+static inline bool sb_init_queue(SB_base *s, const char *uri) {
+        int capacity;
+
+        // Create queue's that fit into a single page.
+        capacity = spsc_capacity(getpagesize());
+        s->init(uri, capacity);
+
+        // Lock pages into RAM (avoid ondemand allocation or swapping).
+        if (s->mlock()) {
+            perror("mlock");
+            s->deinit();
+            return false;
+        }
+        return true;
+}
+
 template<typename T>
 static inline bool sb_pcie_init(T *s, const char *uri,
                                 const char *bdf, int bar_num,
-                                char * &map, uint64_t &phys) {
-            SB_base *sb_base = s;
-            int capacity;
-            uint32_t r;
+                                int queue_num) {
+    sb_init_queue(s, uri);
 
-            // Create queue's that fit into a single page.
-            capacity = spsc_capacity(getpagesize());
-            sb_base->init(uri, capacity);
+    if (!s->init_host(uri, bdf, bar_num, s->get_shm_handle())) {
+        s->deinit();
+        return false;
+    }
 
-            // Lock pages into RAM (avoid ondemand allocation or swapping).
-            if (sb_base->mlock()) {
-                perror("mlock");
-                return false;
-            }
-
-            phys = pagemap_virt_to_phys(sb_base->get_shm_handle());
-            map = (char *) pcie_bar_map(bdf, bar_num, 0, getpagesize());
-            if (map == MAP_FAILED) {
-                sb_base->deinit();
-                return false;
-            }
-
-            // TODO Validate the ID and version regs.
-            r = pcie_read32(map + REG_ID);
-            printf("SB pcie ID=%x\n", r);
-            r = pcie_read32(map + REG_CAP);
-            printf("SB pcie CAP=%x\n", r);
-
-            pcie_write32(map + REG_QUEUE_ADDRESS_LO, phys);
-            pcie_write32(map + REG_QUEUE_ADDRESS_HI, phys >> 32);
-            pcie_write32(map + REG_QUEUE_CAPACITY, capacity);
-            pcie_write32_strong(map + REG_ACTIVE, 0x1);
-            return true;
+    if (!s->init_dev(s->get_capacity(), queue_num)) {
+        s->deinit();
+        return false;
+    }
+    return true;
 }
 
-class SBTX_pcie : public SBTX {
+class SBTX_pcie : public SBTX, public SB_pcie {
     public:
-        SBTX_pcie() : m_map(NULL), m_phys(0) { }
         ~SBTX_pcie() {
-            pcie_bar_unmap(m_map, getpagesize());
         }
 
-        bool init(const char *uri, const char *bdf, int bar_num = 0) {
-            return sb_pcie_init(this, uri, bdf, bar_num, m_map, m_phys);
+        bool init(const char *uri, const char *bdf, int bar_num, int queue_num) {
+            return sb_pcie_init(this, uri, bdf, bar_num, queue_num);
         }
 
     private:
-        char *m_map;
-	uint64_t m_phys;
 };
 
-class SBRX_pcie : public SBRX {
+class SBRX_pcie : public SBRX, public SB_pcie {
     public:
-        SBRX_pcie() : m_map(NULL), m_phys(0) { }
         ~SBRX_pcie() {
-            pcie_bar_unmap(m_map, getpagesize());
+            // pcie unmap
         }
 
-        bool init(const char *uri, const char *bdf, int bar_num = 0) {
-            return sb_pcie_init(this, uri, bdf, bar_num, m_map, m_phys);
+        bool init(const char *uri, const char *bdf, int bar_num, int queue_num) {
+            return sb_pcie_init(this, uri, bdf, bar_num, queue_num);
         }
 
     private:
-        char *m_map;
-	uint64_t m_phys;
 };
 
 #endif // __SWITCHBOARD_PCIE_HPP__
