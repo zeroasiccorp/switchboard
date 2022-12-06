@@ -63,7 +63,7 @@ class SB_base {
         }
 
         void *get_shm_handle(void) {
-		return m_q->shm;
+            return m_q->shm;
         }
     protected:
         bool m_auto_deinit;
