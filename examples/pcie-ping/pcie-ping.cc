@@ -5,6 +5,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "switchboard_pcie.hpp"
@@ -19,6 +20,7 @@ int main(int argc, char* argv[]) {
 	SBTX_pcie tx;
 	SBRX_pcie rx;
 	int i;
+	struct timespec start, end;
 
 	if (argc < 2) {
 		usage(argv[0]);
@@ -35,10 +37,15 @@ int main(int argc, char* argv[]) {
 		sb_packet p = {0};
 
 		printf("ping %d\n", i);
+		clock_gettime(CLOCK_MONOTONIC, &start);
 		while(!tx.send(p))
 			;
 		while(!rx.recv(p))
 			;
+		clock_gettime(CLOCK_MONOTONIC, &end);
+
+		double tdiff = (end.tv_sec - start.tv_sec) + 1e-9 * (end.tv_nsec - start.tv_nsec);
+		printf("latency: %f sec\n", tdiff);
 	}
 
 	delete_shared_queue("queue-tx");
