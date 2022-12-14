@@ -60,6 +60,11 @@ class SB_pcie {
             r = dev_read32(REG_CAP);
             printf("SB pcie CAP=%x\n", r);
 
+            // Reset the device.
+            dev_write32(qoffset + REG_RESET, 0x1);
+            // TODO: timeout/yield?
+            while (dev_read32(qoffset + REG_STATUS) != 0x1);
+
             dev_write32(qoffset + REG_QUEUE_ADDRESS_LO, m_addr);
             dev_write32(qoffset + REG_QUEUE_ADDRESS_HI, m_addr >> 32);
             printf("SB QUEUE_ADDR=%lx\n", m_addr);
