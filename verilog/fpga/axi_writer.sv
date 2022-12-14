@@ -1,6 +1,8 @@
 `default_nettype none
 
-module axi_writer (
+module axi_writer #(
+    parameter ID_WIDTH = 16
+) (
     input wire clk,
 
     input wire wvalid,
@@ -9,7 +11,7 @@ module axi_writer (
     input wire [511:0] wdata,
     output wire wready,
 
-    output wire [15:0] m_axi_awid,
+    output wire [ID_WIDTH-1:0] m_axi_awid,
     output wire [63:0] m_axi_awaddr,
     output wire [7:0] m_axi_awlen,
     output wire [2:0] m_axi_awsize,
@@ -22,7 +24,7 @@ module axi_writer (
     output wire m_axi_wvalid,
     input wire m_axi_wready,
 
-    input wire [15:0] m_axi_bid,
+    input wire [ID_WIDTH-1:0] m_axi_bid,
     input wire [1:0] m_axi_bresp,
     input wire m_axi_bvalid,
     output wire m_axi_bready
@@ -72,7 +74,7 @@ module axi_writer (
     // Pulse wready after we get response
     assign wready = (state == STATE_WAIT_RESP) && (state_next == STATE_IDLE);
 
-    assign m_axi_awid = 16'b0;
+    assign m_axi_awid = {ID_WIDTH{1'b0}};
     assign m_axi_awaddr = waddr;
     assign m_axi_awlen = 8'b0;
     assign m_axi_awsize = 3'd6;

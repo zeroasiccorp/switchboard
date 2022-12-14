@@ -1,6 +1,8 @@
 `default_nettype none
 
-module axi_reader (
+module axi_reader #(
+    parameter ID_WIDTH = 16
+) (
     input wire clk,
 
     input wire rvalid,
@@ -8,14 +10,14 @@ module axi_reader (
     output wire [511:0] rdata,
     output wire rready,
 
-    output wire [15:0] m_axi_arid,
+    output wire [ID_WIDTH-1:0] m_axi_arid,
     output wire [63:0] m_axi_araddr,
     output wire [7:0] m_axi_arlen,
     output wire [2:0] m_axi_arsize,
     output wire m_axi_arvalid,
     input wire m_axi_arready,
 
-    input wire [15:0] m_axi_rid,
+    input wire [ID_WIDTH-1:0] m_axi_rid,
     input wire [511:0] m_axi_rdata,
     input wire [1:0] m_axi_rresp,
     input wire m_axi_rlast,
@@ -64,7 +66,7 @@ module axi_reader (
     assign rready = (state == STATE_WAIT_RESP) && (state_next == STATE_IDLE);
     assign rdata = m_axi_rdata;
 
-    assign m_axi_arid = 16'b0;
+    assign m_axi_arid = {ID_WIDTH{1'b0}};
     assign m_axi_araddr = raddr;
     assign m_axi_arlen = 8'b0;
     assign m_axi_arsize = 3'd6;

@@ -129,7 +129,9 @@ module sb_fpga_queues #(
     genvar i;
     generate
         for (i = 0; i < NUM_RX_QUEUES; i = i + 1) begin
-            sb_rx_fpga rx (
+            sb_rx_fpga #(
+                .ID_WIDTH(ID_WIDTH)
+            ) rx (
                 .clk(clk),
                 .en(cfg_enable[i]),
                 .reset(cfg_reset[i]),
@@ -182,7 +184,9 @@ module sb_fpga_queues #(
 
     generate
         for (i = NUM_RX_QUEUES; i < NUM_QUEUES; i = i + 1) begin
-            sb_tx_fpga tx (
+            sb_tx_fpga #(
+                .ID_WIDTH(ID_WIDTH)
+            ) tx (
                 .clk(clk),
                 .en(cfg_enable[i]),
                 .reset(cfg_reset[i]),

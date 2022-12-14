@@ -1,6 +1,8 @@
 `default_nettype none
 
-module sb_rx_fpga (
+module sb_rx_fpga #(
+    parameter ID_WIDTH = 16
+) (
     input wire clk,
     input wire en,
     input wire reset,
@@ -16,7 +18,7 @@ module sb_rx_fpga (
 
     output wire status_idle,
 
-    output wire [15:0] m_axi_awid,
+    output wire [ID_WIDTH-1:0] m_axi_awid,
     output wire [63:0] m_axi_awaddr,
     output wire [7:0] m_axi_awlen,
     output wire [2:0] m_axi_awsize,
@@ -29,19 +31,19 @@ module sb_rx_fpga (
     output wire m_axi_wvalid,
     input wire m_axi_wready,
 
-    input wire [15:0] m_axi_bid,
+    input wire [ID_WIDTH-1:0] m_axi_bid,
     input wire [1:0] m_axi_bresp,
     input wire m_axi_bvalid,
     output wire m_axi_bready,
 
-    output wire [15:0] m_axi_arid,
+    output wire [ID_WIDTH-1:0] m_axi_arid,
     output wire [63:0] m_axi_araddr,
     output wire [7:0] m_axi_arlen,
     output wire [2:0] m_axi_arsize,
     output wire m_axi_arvalid,
     input wire m_axi_arready,
 
-    input wire [15:0] m_axi_rid,
+    input wire [ID_WIDTH-1:0] m_axi_rid,
     input wire [511:0] m_axi_rdata,
     input wire [1:0] m_axi_rresp,
     input wire m_axi_rlast,
@@ -197,12 +199,16 @@ module sb_rx_fpga (
      * Simple W/R interface to AXI bus
      */
 
-    axi_writer writer (
+    axi_writer #(
+        .ID_WIDTH(ID_WIDTH)
+    ) writer (
         .wvalid(wvalid_checked),
         .*
     );
 
-    axi_reader reader (
+    axi_reader #(
+        .ID_WIDTH(ID_WIDTH)
+    ) reader (
         .*
     );
 
