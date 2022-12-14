@@ -26,7 +26,7 @@
 
 class SB_pcie {
     public:
-        SB_pcie() : m_map(NULL), m_addr(0) { }
+        SB_pcie(int queue_id) : m_queue_id(queue_id), m_map(NULL), m_addr(0) { }
 
         ~SB_pcie() {
             deinit_host();
@@ -47,9 +47,9 @@ class SB_pcie {
             }
         }
 
-        bool init_dev(int capacity, int queue_num) {
-            int qoffset = queue_num * REG_QUEUE_AREA_SIZE;
-	    uint32_t r;
+        bool init_dev(int capacity) {
+            int qoffset = m_queue_id * REG_QUEUE_AREA_SIZE;
+            uint32_t r;
 
             // TODO Validate the ID and version regs.
             r = dev_read32(REG_ID);
@@ -84,6 +84,9 @@ class SB_pcie {
         }
 
 protected:
+        // Queue index.
+        int m_queue_id;
+
 	// m_map holds a pointer to a mapped memory area that can be
 	// used for register accesses. Not all implementions will use it.
         char *m_map;
@@ -114,8 +117,7 @@ static inline bool sb_init_queue(SB_base *s, const char *uri) {
 
 template<typename T>
 static inline bool sb_pcie_init(T *s, const char *uri,
-                                const char *bdf, int bar_num,
-                                int queue_num) {
+                                const char *bdf, int bar_num) {
     sb_init_queue(s, uri);
 
     if (!s->init_host(uri, bdf, bar_num, s->get_shm_handle())) {
@@ -123,7 +125,7 @@ static inline bool sb_pcie_init(T *s, const char *uri,
         return false;
     }
 
-    if (!s->init_dev(s->get_capacity(), queue_num)) {
+    if (!s->init_dev(s->get_capacity())) {
         s->deinit();
         return false;
     }
@@ -132,11 +134,14 @@ static inline bool sb_pcie_init(T *s, const char *uri,
 
 class SBTX_pcie : public SBTX, public SB_pcie {
     public:
+        SBTX_pcie(int queue_id) : SB_pcie(queue_id) {
+        }
+
         ~SBTX_pcie() {
         }
 
-        bool init(const char *uri, const char *bdf, int bar_num, int queue_num) {
-            return sb_pcie_init(this, uri, bdf, bar_num, queue_num);
+        bool init(const char *uri, const char *bdf, int bar_num) {
+            return sb_pcie_init(this, uri, bdf, bar_num);
         }
 
     private:
@@ -144,12 +149,15 @@ class SBTX_pcie : public SBTX, public SB_pcie {
 
 class SBRX_pcie : public SBRX, public SB_pcie {
     public:
+        SBRX_pcie(int queue_id) : SB_pcie(queue_id) {
+        }
+
         ~SBRX_pcie() {
             // pcie unmap
         }
 
-        bool init(const char *uri, const char *bdf, int bar_num, int queue_num) {
-            return sb_pcie_init(this, uri, bdf, bar_num, queue_num);
+        bool init(const char *uri, const char *bdf, int bar_num) {
+            return sb_pcie_init(this, uri, bdf, bar_num);
         }
 
     private:

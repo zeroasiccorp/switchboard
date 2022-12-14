@@ -17,8 +17,8 @@ static void usage(const char *progname) {
 int main(int argc, char* argv[]) {
 	const char *bdf;
 	int bar_num;
-	SBTX_pcie tx;
-	SBRX_pcie rx;
+	SBTX_pcie tx(0);
+	SBRX_pcie rx(1);
 	int i;
 	struct timespec start, end;
 
@@ -30,8 +30,8 @@ int main(int argc, char* argv[]) {
 	bdf = argv[1];
 	bar_num = 0;
 
-	tx.init("queue-tx", bdf, bar_num, 0);
-	rx.init("queue-rx", bdf, bar_num, 1);
+	tx.init("queue-tx", bdf, bar_num);
+	rx.init("queue-rx", bdf, bar_num);
 
 	for (i = 0; i < 1024; i++) {
 		sb_packet p = {0};
