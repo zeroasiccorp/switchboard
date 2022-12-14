@@ -82,3 +82,7 @@ $(VOBJ_DIR)/V%.build:
 clean distclean:
 	$(RM) -fr $(VOBJ_DIR)
 	$(RM) -f queue-*
+
+.PHONY: test
+test: $(VOBJ_DIR)/Vloopback.build
+	$(VOBJ_DIR)/Vloopback
