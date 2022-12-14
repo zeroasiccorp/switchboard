@@ -72,7 +72,7 @@ class SB_pcie {
             dev_write32(qoffset + REG_QUEUE_CAPACITY, capacity);
             printf("SB CAPACITY=%d\n", capacity);
 
-            dev_write32_strong(REG_ENABLE, 0x1);
+            dev_write32_strong(qoffset + REG_ENABLE, 0x1);
             return true;
         }
 
