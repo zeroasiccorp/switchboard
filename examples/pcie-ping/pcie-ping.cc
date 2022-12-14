@@ -17,8 +17,8 @@ static void usage(const char *progname) {
 int main(int argc, char* argv[]) {
 	const char *bdf;
 	int bar_num;
-	SBTX_pcie tx(0);
-	SBRX_pcie rx(1);
+	SBTX_pcie tx(1);
+	SBRX_pcie rx(0);
 	int i;
 	struct timespec start, end;
 
