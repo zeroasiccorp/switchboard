@@ -29,6 +29,8 @@ class SB_tlm: public SB_pcie {
     public:
         tlm_utils::simple_initiator_socket<SB_tlm> socket;
 
+        SB_tlm(int queue_id) : SB_pcie(queue_id) { }
+
         bool init_host(const char *uri, const char *bdf, int bar_num, void *handle) {
             assert(handle);
             m_addr = (uintptr_t) handle;
@@ -81,15 +83,21 @@ class SB_tlm: public SB_pcie {
 
 class SBTX_tlm : public SBTX, public SB_tlm {
     public:
-        bool init(const char *uri, int queue_num) {
-            return sb_pcie_init(this, uri, NULL, -1, queue_num);
+        SBTX_tlm(int queue_id) : SB_tlm(queue_id) {
+        }
+
+        bool init(const char *uri) {
+            return sb_pcie_init(this, uri, NULL, -1);
         }
 };
 
 class SBRX_tlm : public SBRX, public SB_tlm {
     public:
-        bool init(const char *uri, int queue_num) {
-            return sb_pcie_init(this, uri, NULL, -1, queue_num);
+        SBRX_tlm(int queue_id) : SB_tlm(queue_id) {
+        }
+
+        bool init(const char *uri) {
+            return sb_pcie_init(this, uri, NULL, -1);
         }
 };
 #endif
