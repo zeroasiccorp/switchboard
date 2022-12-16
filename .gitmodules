@@ -6,4 +6,4 @@
 	url = git@github.com:zeroasiccorp/umi.git
 [submodule "examples/deps/libsystemctlm-soc"]
 	path = examples/deps/libsystemctlm-soc
-	url = git@github.com:nmoroze/libsystemctlm-soc.git
+	url = git@github.com:Xilinx/libsystemctlm-soc.git
