@@ -9,6 +9,8 @@ https://github.com/zeroasiccorp/aws-fpga. In this example, host memory access is
 performed via PCIe bus mastering, and the config registers are mapped to a PCIe
 BAR. A corresponding software example can be found in `examples/pcie-ping/`.
 
+A simulation setup for testing this RTL can be found in `examples/fpga-loopback/`.
+
 ## Memory Map
 
 This logic can be configured, controlled, and monitored by a set of registers
@@ -37,8 +39,7 @@ starting at `0x100` for the first queue, `0x200` for the second, etc.
 
 ## Dependencies
 
-- `config_registers.sv` requires https://github.com/alexforencich/verilog-axi, tested on `a91e98c`.
-- `config_registers.sv` requires Xilinx's `axi_register_slice_light` module.
+- Several modules require https://github.com/alexforencich/verilog-axi, see the submodule in `examples/deps/` for a supported version.
 - If the `DEBUG` macro is defined, you must configure a Xilinx ILA module `ila_0` with the following probe widths:
     - `probe0 [0:0]`
     - `probe1 [63:0]`
