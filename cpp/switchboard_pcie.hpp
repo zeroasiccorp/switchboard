@@ -39,6 +39,7 @@ class SB_pcie {
             m_addr = pagemap_virt_to_phys(handle);
             m_map = (char *) pcie_bar_map(bdf, bar_num, 0, getpagesize());
             if (m_map == MAP_FAILED) {
+                m_map = NULL;
                 return false;
             }
             return true;
@@ -77,6 +78,9 @@ class SB_pcie {
         }
 
         void deinit_dev() {
+            if (!m_map) {
+                return;
+            }
             int qoffset = m_queue_id * REG_QUEUE_ADDR_SIZE;
 
             // Must disable queue and wait for it to quiesce before unmapping
@@ -88,16 +92,19 @@ class SB_pcie {
 
         virtual uint32_t dev_read32(uint64_t offset)
         {
+                assert(m_map);
                 return pcie_read32(m_map + offset);
         }
 
         virtual void dev_write32(uint64_t offset, uint32_t v)
         {
+                assert(m_map);
                 pcie_write32(m_map + offset, v);
         }
 
         virtual void dev_write32_strong(uint64_t offset, uint32_t v)
         {
+                assert(m_map);
                 pcie_write32_strong(m_map + offset, v);
         }
 
