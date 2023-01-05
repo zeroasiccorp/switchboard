@@ -27,12 +27,20 @@
 
 #define REG_QUEUE_ADDR_SIZE   0x100 // size of addr space dedicated to each queue
 
+template<typename T>
+static inline void sb_pcie_deinit(T *s) {
+
+    // Needs to be done in reverse order.
+    s->deinit_dev();
+    s->deinit_host();
+}
+
 class SB_pcie {
     public:
         SB_pcie(int queue_id) : m_queue_id(queue_id), m_map(NULL), m_addr(0) { }
 
         ~SB_pcie() {
-            deinit_host();
+            sb_pcie_deinit(this);
         }
 
         virtual bool init_host(const char *uri, const char *bdf, int bar_num, void *handle) {
@@ -157,21 +165,9 @@ static inline bool sb_pcie_init(T *s, const char *uri,
     return true;
 }
 
-template<typename T>
-static inline void sb_pcie_deinit(T *s) {
-
-    // Needs to be done in reverse order.
-    s->deinit_dev();
-    s->deinit_host();
-}
-
 class SBTX_pcie : public SBTX, public SB_pcie {
     public:
         SBTX_pcie(int queue_id) : SB_pcie(queue_id) {
-        }
-
-        ~SBTX_pcie() {
-            sb_pcie_deinit(this);
         }
 
         bool init(const char *uri, const char *bdf, int bar_num) {
@@ -188,10 +184,6 @@ class SBTX_pcie : public SBTX, public SB_pcie {
 class SBRX_pcie : public SBRX, public SB_pcie {
     public:
         SBRX_pcie(int queue_id) : SB_pcie(queue_id) {
-        }
-
-        ~SBRX_pcie() {
-            sb_pcie_deinit(this);
         }
 
         bool init(const char *uri, const char *bdf, int bar_num) {
