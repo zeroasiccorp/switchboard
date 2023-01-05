@@ -170,6 +170,10 @@ class SBTX_pcie : public SBTX, public SB_pcie {
         SBTX_pcie(int queue_id) : SB_pcie(queue_id) {
         }
 
+        bool init(std::string uri, std::string bdf, int bar_num) {
+            return init(uri.c_str(), bdf.c_str(), bar_num);
+        }
+
         bool init(const char *uri, const char *bdf, int bar_num) {
             return sb_pcie_init(this, uri, bdf, bar_num);
         }
@@ -184,6 +188,10 @@ class SBTX_pcie : public SBTX, public SB_pcie {
 class SBRX_pcie : public SBRX, public SB_pcie {
     public:
         SBRX_pcie(int queue_id) : SB_pcie(queue_id) {
+        }
+
+        bool init(std::string uri, std::string bdf, int bar_num) {
+            return init(uri.c_str(), bdf.c_str(), bar_num);
         }
 
         bool init(const char *uri, const char *bdf, int bar_num) {
