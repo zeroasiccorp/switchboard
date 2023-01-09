@@ -30,7 +30,7 @@ class SB_base {
     public:
         SB_base() : m_active(false), m_q(NULL) {}
 
-        ~SB_base() {
+        virtual ~SB_base() {
             deinit();
         }
 
