@@ -72,8 +72,8 @@ void hello_world() {
     printf("Hello World!\n");
 }
 
-PYBIND11_MODULE(switchboard_pybind, m) {
-    m.doc() = "switchboard_pybind plugin";
+PYBIND11_MODULE(_switchboard, m) {
+    m.doc() = "switchboard pybind11 plugin";
     m.def("delete_queue", &delete_queue, "Deletes an old queue.");
     m.def("init_rx", &init_rx, "Initializes queue for receiving data.");
     m.def("init_tx", &init_tx, "Initializes queue for transmitting data.");
