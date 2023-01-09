@@ -1,10 +1,9 @@
 .PHONY: hello
 hello: prereqs
-	PYTHONPATH="$(abspath ../../python)" ./scripts/test.py
+	./scripts/test.py
 
 .PHONY: prereqs
 prereqs:
-	make -C ../../python
 	make -C verilator obj_dir/Vtestbench
 
 .PHONY: clean

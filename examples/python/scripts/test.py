@@ -5,7 +5,7 @@ import atexit
 import subprocess
 import argparse
 
-from switchboard_pybind import delete_queue, init_tx, init_rx, sb_send, sb_recv, PySbPacket
+from switchboard import delete_queue, PySbPacket, SBTX, SBRX
 
 from pathlib import Path
 
@@ -29,8 +29,11 @@ def main():
     for q in ['queue-5555', 'queue-5556']:
         delete_queue(q)
 
-    tx = init_tx("queue-5555")
-    rx = init_rx("queue-5556")
+    tx = SBTX()
+    rx = SBRX()
+
+    tx.init("queue-5555")
+    rx.init("queue-5556")
 
     # start chip
     chip = start_chip()
@@ -43,15 +46,13 @@ def main():
 
     # send packet
 
-    while not sb_send(tx, txp):
-        pass
+    tx.send_blocking(txp)
     print("*** TX packet ***")
     print(sb_packet_to_str(txp))
 
     # receive packet
     rxp = PySbPacket()
-    while not sb_recv(rx, rxp):
-        pass
+    rx.recv_blocking(rxp)
 
     print("*** RX packet ***")
     print(sb_packet_to_str(rxp))
@@ -64,8 +65,7 @@ def main():
     # send a packet that will end the test
 
     txp.data = [0xff for _ in range(32)]  # must set whole array at once
-    while not sb_send(tx, txp):
-        pass
+    tx.send_blocking(txp)
 
     # wait for chip to complete
     chip.wait()
