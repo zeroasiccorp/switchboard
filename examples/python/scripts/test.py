@@ -50,10 +50,7 @@ def main():
 
     # check that the received data 
 
-    success = True
-    for i in range(32):
-        if rxp.data[i] != (txp.data[i] + 1):
-            success = False
+    success = (rxp.data == (txp.data + 1)).all()
 
     # stop simulation
 
