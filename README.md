@@ -38,6 +38,16 @@ brew tap riscv/riscv
 brew install verilator riscv-tools
 ```
 
+### Python
+
+The Switchboard Python binding can be installed with `pip`:
+
+```shell
+pip install -e .
+```
+
+This will install `pybind11` if necessary and build a Python binding to the underlying C++ library.
+
 ## Example
 
 An example is provided in `examples/riscv-grid`, which constructs an MxN grid of PicoRV32 CPUs, each modeled with a Verilator simulation.  The (0, 0) location in the grid does not contain a CPU; instead, it is occupied by a program called `client` that programs the CPUs over UMI.  `client` can also receive UMI writes and interpret them as either characters to print, or an instruction to exit the emulator.
