@@ -23,9 +23,6 @@ struct sb_packet {
     uint8_t data[SB_DATA_SIZE];
 } __attribute__ ((packed));
 
-// Default queue capacity
-#define SB_QUEUE_CAPACITY 64
-
 class SB_base {
     public:
         SB_base() : m_active(false), m_q(NULL) {}
@@ -38,7 +35,11 @@ class SB_base {
             init(uri.c_str());
         }
 
-        void init(const char* uri, size_t capacity = SB_QUEUE_CAPACITY) {
+        void init(const char* uri, size_t capacity = 0) {
+            // Default to one page of capacity
+            if (capacity == 0) {
+                capacity = spsc_capacity(getpagesize());
+            }
             m_q = spsc_open(uri, capacity);
             m_active = true;
         }
