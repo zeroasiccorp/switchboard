@@ -28,7 +28,7 @@ setup (
     author="ZeroASIC",
     url="https://github.com/zeroasiccorp/switchboard",
     ext_modules=ext_modules,
-    setup_requires=['numpy'],
+    install_requires=['numpy'],
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
     python_requires=">=3.7",

@@ -8,29 +8,38 @@ jobs:
   verilator:
     name: Verilator
     runs-on: ubuntu-latest
+    container: verilator/verilator:latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
         with:
-          #ssh-key: ${{ secrets.SSH_KEY_FOR_UMI }}
           token: ${{ secrets.SGH_REPO_PAT }}
           submodules: recursive
 
       - name: Install prerequisites
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            verilator \
-            iverilog \
+          apt update -y
+          apt install -y \
             iverilog \
             gcc-riscv64-unknown-elf \
             binutils-riscv64-unknown-elf \
             python3-dev \
             python3-pip
-          python3 -m pip install pybind11
+          python3 -m pip install --upgrade pip
 
-      - name: Run simulation with pybind
+      - name: Install Switchboard Python package
+        run: |
+          python3 -m pip install -e .
+
+      - name: Run Python binding test
         working-directory: examples/python
+        run: |
+          make > out.log
+          cat out.log
+          grep -Fxq "PASS!" out.log
+
+      - name: Run Python binding test (UMI)
+        working-directory: examples/umiram_python
         run: |
           make > out.log
           cat out.log
@@ -60,6 +69,7 @@ jobs:
   fpga_sim:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
+    container: verilator/verilator:latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
@@ -68,9 +78,8 @@ jobs:
           submodules: recursive
       - name: Install prerequisites
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y verilator
-
+          apt update -y
+          apt install -y libsystemc libsystemc-dev
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga-loopback
         run: |
