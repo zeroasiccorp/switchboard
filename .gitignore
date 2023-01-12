@@ -36,3 +36,6 @@ queue-*
 
 # Python cache files
 __pycache__
+
+# act secrets
+.secrets
