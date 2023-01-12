@@ -1,73 +1,68 @@
 #!/usr/bin/env python3
 
-import os
+# Example illustrating how UMI packets handled in the Switchboard Python binding
+# Copyright (C) 2023 Zero ASIC
+
 import sys
 import atexit
 import subprocess
-import argparse
-
+import numpy as np
 from pathlib import Path
-
-from switchboard import UMI, SBTX, PyUmiPacket, PySbPacket, umi_opcode_to_str
-
-THIS_DIR = Path(__file__).resolve().parent
-EXAMPLE_DIR = THIS_DIR.parent
-SHMEM_DIR = EXAMPLE_DIR
-
-def print_packet_details(p: PyUmiPacket):
-    # print details
-    print("dstaddr: " + f"0x{p.dstaddr:016x}")
-    print("size:    " + str(p.size))
-    print("data:    " + "[" + ", ".join([f"0x{elem:02x}" for elem in p.data[:(1<<p.size)]]) + "]")
+from switchboard import PyUmi, PySbTx, PyUmiPacket, PySbPacket, delete_queue
 
 def main():
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
-
     # clean up old queues if present
-    for port in [5555, 5556, 5557]:
-        filename = str(SHMEM_DIR / f'queue-{port}')
-        try:
-            os.remove(filename)
-        except OSError:
-            pass
+    for q in ["queue-5555", "queue-5556", "queue-5557"]:
+        delete_queue(q)
 
     chip = start_chip()
 
-    umi = UMI()
-    umi.init("queue-5555", "queue-5556")
+    # instantiate TX and RX queues.  note that these can be instantiated without
+    # specifying a URI, in which case the URI can be specified later via the
+    # "init" method
 
-    stop = SBTX()
-    stop.init("queue-5557")
-
-    txp = PyUmiPacket()
+    umi = PyUmi("queue-5555", "queue-5556")
+    stop = PySbTx("queue-5557")
 
     # write 0xBEEFCAFE to address 0x12
-    txp.data = [0xBE, 0xEF, 0xCA, 0xFE][::-1] + [0]*28
-    txp.dstaddr = 0x12
-    txp.size = 2
-    umi.write(txp)
 
-    print("TX packet")
-    print_packet_details(txp)
+    wr_req = PyUmiPacket(
+        dstaddr = 0x12,
+        size = 2,
+        data = np.array([0xBEEFCAFE], dtype=np.uint32).view(np.uint8)
+    )
+
+    print("Write Request")
+    print(wr_req)
     print()
 
-    # send request to read address 0x12
-    rxp = PyUmiPacket()
-    rxp.dstaddr = 0x12
-    rxp.size = 2
-    umi.read(rxp)
+    umi.write(wr_req)  # note: blocking by default, can disable with blocking=False
 
-    print("RX packet")
-    print_packet_details(rxp)
+    # send request to read address 0x12
+
+    rd_req = PyUmiPacket (
+        dstaddr = 0x12,
+        size = 2
+    )
+
+    print("Read Request")
+    print(rd_req)
+    print()
+
+    rd_resp = umi.read(rd_req)  # note: blocking, will not return until sucessful
+
+    print("Read Response")
+    print(rd_resp)
     print()    
 
-    p = PySbPacket()
-    stop.send_blocking(p)
+    # stop simulation
 
+    stop.send(PySbPacket())
     chip.wait()
 
-    if rxp.data[:4] == txp.data[:4]:
+    # declare test as having passed for regression testing purposes
+
+    if (rd_resp.data[:4] == wr_req.data[:4]).all():
         print('PASS!')
         sys.exit(0)
     else:
@@ -75,8 +70,11 @@ def main():
         sys.exit(1)
 
 def start_chip(trace=True):
+    this_dir = Path(__file__).resolve().parent
+    example_dir = this_dir.parent
+
     cmd = []
-    cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
+    cmd += [example_dir / 'verilator' / 'obj_dir' / 'Vtestbench']
     if trace:
         cmd += ['+trace']
     cmd = [str(elem) for elem in cmd]

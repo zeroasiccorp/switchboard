@@ -1,73 +1,63 @@
 #!/usr/bin/env python3
 
+# Simple example illustrating the Switchboard Python binding
+# Copyright (C) 2023 Zero ASIC
+
 import sys
 import atexit
 import subprocess
-import argparse
-
-from switchboard import delete_queue, PySbPacket, SBTX, SBRX
-
+import numpy as np
 from pathlib import Path
-
-THIS_DIR = Path(__file__).resolve().parent
-EXAMPLE_DIR = THIS_DIR.parent
-
-def sb_packet_to_str(p):
-    retval = []
-
-    retval += [f'dest: 0x{p.destination:08x}']
-    retval += [f'last: {p.flags&1}']
-    retval += ['data: {' + ', '.join(f'0x{p.data[i]:02x}' for i in range(32)) + '}']
-
-    return ', '.join(retval)
+from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx
 
 def main():
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
-
     # clean up old queues if present
     for q in ['queue-5555', 'queue-5556']:
         delete_queue(q)
 
-    tx = SBTX()
-    rx = SBRX()
+    # instantiate TX and RX queues.  note that these can be instantiated without
+    # specifying a URI, in which case the URI can be specified later via the
+    # "init" method
 
-    tx.init("queue-5555")
-    rx.init("queue-5556")
+    tx = PySbTx("queue-5555")
+    rx = PySbRx("queue-5556")
 
-    # start chip
+    # start chip simulation
     chip = start_chip()
 
-    # form packet
-    txp = PySbPacket()
-    txp.destination = 0xbeefcafe
-    txp.flags = 1
-    txp.data = [i&0xff for i in range(32)]  # must set whole array at once
+    # form packet to be sent into the simulation.  note that the arguments
+    # to the constructor are all optional, and can all be specified later
+    txp = PySbPacket(
+        destination=123456789,
+        flags=1,
+        data=np.array([i&0xff for i in range(32)], dtype=np.uint8)
+    )
 
-    # send packet
+    # send the packet
 
-    tx.send_blocking(txp)
+    tx.send(txp)  # note: blocking by default, can disable with blocking=False
     print("*** TX packet ***")
-    print(sb_packet_to_str(txp))
+    print(txp)
+    print()
 
     # receive packet
-    rxp = PySbPacket()
-    rx.recv_blocking(rxp)
+
+    rxp = rx.recv()  # note: blocking by default, can disable with blocking=False
 
     print("*** RX packet ***")
-    print(sb_packet_to_str(rxp))
+    print(rxp)
+    print()
+
+    # check that the received data 
 
     success = True
     for i in range(32):
         if rxp.data[i] != (txp.data[i] + 1):
             success = False
 
-    # send a packet that will end the test
+    # stop simulation
 
-    txp.data = [0xff for _ in range(32)]  # must set whole array at once
-    tx.send_blocking(txp)
-
-    # wait for chip to complete
+    tx.send(PySbPacket(data=np.array([0xff for _ in range(32)], dtype=np.uint8)))
     chip.wait()
 
     # declare test as having passed for regression testing purposes
@@ -80,8 +70,11 @@ def main():
         sys.exit(1)
 
 def start_chip():
+    this_dir = Path(__file__).resolve().parent
+    example_dir = this_dir.parent
+
     cmd = []
-    cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
+    cmd += [example_dir / 'verilator' / 'obj_dir' / 'Vtestbench']
     cmd += ['+trace']
     cmd = [str(elem) for elem in cmd]
 
