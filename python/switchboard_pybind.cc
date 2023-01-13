@@ -14,10 +14,12 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
+#include <sys/_types/_size_t.h>
 
 #include "bytesobject.h"
 #include "object.h"
 #include "pybind11/buffer_info.h"
+#include "pybind11/detail/common.h"
 #include "pybind11/pytypes.h"
 #include "switchboard.hpp"
 #include "umilib.hpp"
@@ -63,40 +65,6 @@ struct PySbPacket {
     py::array_t<uint8_t> data;
  };
 
-// As with PySbPacket, PyUmiPacket makes the contents of umi_packet
-// accessible in a pybind-friendly manner.  The same comments about
-// setting the default value of the data argument to "None" apply.
-
-struct PyUmiPacket {
-    PyUmiPacket(uint32_t opcode=0, uint32_t size=0, uint32_t user=0, uint64_t dstaddr=0,
-        uint64_t srcaddr=0, std::optional<py::array_t<uint8_t>> data = std::nullopt) :
-        opcode(opcode), size(size), user(user), dstaddr(dstaddr), srcaddr(srcaddr) {
-        if (data.has_value()) {
-            this->data = data.value();
-        } else {
-            this->data = py::array_t<uint8_t>(SB_DATA_SIZE);
-        }
-    }
-
-    std::string toString() {
-        std::stringstream stream;
-        stream << "opcode: " << umi_opcode_to_str(opcode) << std::endl;
-        stream << "size: " << size << std::endl;
-        stream << "user: " << user << std::endl;
-        stream << "dstaddr: 0x" << std::hex << dstaddr << std::endl;
-        stream << "srcaddr: 0x" << std::hex << srcaddr << std::endl;
-        stream << "data: " << py::str(data);
-        return stream.str();
-    }
-
-    uint32_t opcode;
-    uint32_t size;
-    uint32_t user;
-    uint64_t dstaddr;
-    uint64_t srcaddr;
-    py::array_t<uint8_t> data;
-};
-
 // check_signals() should be called within any loops where the C++
 // code is waiting for something to happen.  this ensures that
 // the binding doesn't hang after the user presses Ctrl-C.  the
@@ -116,6 +84,17 @@ void check_signals() {
     } else {
         count++;
     }
+}
+
+// highest_bit: determine the highest bit in a number.  useful for
+// splitting apart data into power-of-two chunks.
+
+size_t highest_bit (size_t x) {
+    size_t retval = 0;
+    while ((x>>=1) != 0) {
+        retval++;
+    }
+    return retval;
 }
 
 // PySbTx: pybind-friendly version of SBTX that works with PySbPacket
@@ -242,78 +221,134 @@ class PyUmi {
             }
         }
 
-        bool write(const PyUmiPacket& umi, bool blocking=true) {
-            // in general, the user only needs to fill out "size",
-            // "dstaddr", and "data" in the provided UMI packet;
-            // the correct opcode will be used automatically, and
-            // other fields are not relevant to writes (except
-            // possibly "user", at some point in the future)
+        void write(uint64_t addr, py::array_t<uint8_t> data) {
+            // write data to the given address.  data can be of any length,
+            // including greater than the length of a header packet and
+            // values that are not powers of two.  this function is blocking.
 
-            // get access to the data pointer
-            py::buffer_info info = py::buffer(umi.data).request();
+            // get access to the data
+            py::buffer_info info = py::buffer(data).request();
 
-            // form the UMI packet
-            sb_packet p;
-            umi_pack((uint32_t*)(&p.data[0]), UMI_WRITE_POSTED, umi.size,
-                umi.user, umi.dstaddr, umi.srcaddr, (uint8_t*)info.ptr, info.size);
+            // if there is nothing to write, return
+            py::ssize_t num = info.size;
+            if (num <= 0) {
+                return;
+            }
 
-            // try to send the packet once or multiple times depending
-            // on the "blocking" argument
+            // otherwise get the data pointer and decompose the data into
+            // power-of-two chunks, sending them out from largest to smallest.
+            // it seems that this would probably be better than smallest to
+            // largest, to avoid forcing large transfers to be unaligned when
+            // they would necessarily have to be (e.g., a power-of-two chunk
+            // with an extra byte on the end)
+            
+            // TODO: use burst mode instead of all header packets, noting that
+            // there may have to be multiple bursts if the amount of data to be
+            // transferred is not a power of two.
 
-            if (!blocking) {
-                return m_tx.send(p);
-            } else {
+            uint8_t* ptr = (uint8_t*)info.ptr;
+
+            size_t max_size = highest_bit(num);
+
+            for (ssize_t size=max_size; size>=0; size--) {
+                if (((num >> size) & 1) == 0) {
+                    // skip if there is no chunk that needs to
+                    // be transmitted at this size
+                    continue;
+                }
+
+                // construct a packet
+                sb_packet p;
+                umi_pack((uint32_t*)(&p.data[0]), UMI_WRITE_POSTED, size, 0,
+                    addr, 0, ptr, SB_DATA_SIZE);
+
+                // send the packet
                 while (!m_tx.send(p)) {
                     check_signals();
                 }
-                return true;
+
+                // update write address and data pointer
+                addr += (1<<size);
+                ptr += (1<<size);
             }
         }
 
-        std::unique_ptr<PyUmiPacket> read(const PyUmiPacket& read_req) {
-            // The read request is provided in the argument to this function.  In
-            // general, the user only needs to fill out "size", "dstaddr", and "srcaddr",
-            // since the correct opcode is automatically used, and other fields are not
-            // used (except possibly "user", at some point in the future)
+        py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0) {
+            // read "num" bytes from the given address.  "num" may be any value,
+            // including greater than the length of a header packet, and values
+            // that are not powers of two.  the optional "srcaddr" argument is
+            // the source address to which responses should be sent.  this
+            // function is blocking.
 
-            // form the outbound UMI packet
-            sb_packet p;
-            umi_pack((uint32_t*)p.data, UMI_READ_REQUEST, read_req.size, read_req.user,
-                read_req.dstaddr, read_req.srcaddr, NULL, 0);
+            // create a buffer to hold the result
+            py::array_t<uint8_t> result = py::array_t<uint8_t>(num);
 
-            // send the read request
-            while(!m_tx.send(p)){
-                check_signals();
+            if (num == 0) {
+                // nothing to read, so just return the empty array
+                return result;
             }
 
-            // get the read response
-            while(!m_rx.recv(p)) {
-                check_signals();
+            // otherwise get the data pointer and decompose the data into
+            // power-of-two chunks, reading them in from largest to smallest,
+            // as was done for writing
+
+            // TODO: use burst mode instead of all header packets, noting that
+            // there may have to be multiple bursts if the amount of data to be
+            // transferred is not a power of two.
+
+            py::buffer_info info = py::buffer(result).request();
+            uint8_t* ptr = (uint8_t*)info.ptr;
+
+            size_t max_size = highest_bit(num);
+
+            for (ssize_t size=max_size; size>=0; size--) {
+                if (((num>>size) & 1) == 0) {
+                    // skip if there is no chunk that needs to
+                    // be read at this size
+                    continue;
+                }
+
+                // create the packet
+                sb_packet p;
+                umi_pack((uint32_t*)p.data, UMI_READ_REQUEST, size, 0,
+                    addr, srcaddr, NULL, 0);
+
+                // send the read request
+                while(!m_tx.send(p)){
+                    check_signals();
+                }
+
+                // get the read response
+                while(!m_rx.recv(p)) {
+                    check_signals();
+                }
+
+                // parse the response
+                uint32_t resp_opcode, resp_size, resp_user;
+                uint64_t resp_dstaddr, resp_srcaddr;
+                umi_unpack((uint32_t*)p.data, resp_opcode, resp_size, resp_user,
+                    resp_dstaddr, resp_srcaddr, ptr, 1<<size);
+
+                // check that the response makes sense
+                if (!is_umi_write_response(resp_opcode)) {
+                    std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
+                        << " in response to a READ (expected WRITE-RESPONSE)" << std::endl;
+                }
+                if (resp_size != size) {
+                    std::cerr << "Warning: read response size is " << std::to_string(resp_size)
+                        << " (expected " << std::to_string(size) << ")" << std::endl;
+                }
+                if (resp_dstaddr != srcaddr) {
+                    std::cerr <<  "Warning: dstaddr in read response is " << std::to_string(resp_dstaddr)
+                        << " (expected " << std::to_string(srcaddr) << ")" << std::endl;
+                }
+
+                // update address and pointer
+                addr += (1<<size);
+                ptr += (1<<size);
             }
 
-            // create an object to hold data to be returned to python
-            std::unique_ptr<PyUmiPacket> read_resp(new PyUmiPacket());
-
-            // parse the response
-            py::buffer_info info = py::buffer(read_resp->data).request();
-            umi_unpack((uint32_t*)p.data, read_resp->opcode, read_resp->size, read_resp->user,
-                read_resp->dstaddr, read_resp->srcaddr, (uint8_t*)info.ptr, info.size);
-
-            // check that the response makes sense
-            if (!is_umi_write_response(read_resp->opcode)) {
-                std::cerr << "Warning: got " << umi_opcode_to_str(read_resp->opcode)
-                    << " in response to a READ (expected WRITE-RESPONSE)" << std::endl;
-            }
-            if (read_resp->size != read_req.size) {
-                std::cerr << "Warning: read response size is " << std::to_string(read_resp->size)
-                    << " (expected " << std::to_string(read_req.size) << ")" << std::endl;
-            }
-            if (read_resp->dstaddr != read_req.srcaddr) {
-                std::cerr <<  "Warning: dstaddr in read response is " << std::to_string(read_resp->dstaddr)
-                    << " (expected " << std::to_string(read_req.srcaddr) << ")" << std::endl;
-            }
-
-            return read_resp;
+            return result;
         }
 
     private:
@@ -346,19 +381,6 @@ PYBIND11_MODULE(_switchboard, m) {
         .def_readwrite("flags", &PySbPacket::flags)
         .def_readwrite("data", &PySbPacket::data);
 
-    py::class_<PyUmiPacket>(m, "PyUmiPacket")
-        .def(py::init<uint32_t, uint32_t, uint32_t, uint64_t, uint64_t,
-            std::optional<py::array_t<uint8_t>>>(), py::arg("opcode") = 0,
-            py::arg("size") = 0, py::arg("user") = 0, py::arg("dstaddr") = 0,
-            py::arg("srcaddr") = 0, py::arg("data") = py::none())
-        .def("__str__", &PyUmiPacket::toString)
-        .def_readwrite("opcode", &PyUmiPacket::opcode)
-        .def_readwrite("size", &PyUmiPacket::size)
-        .def_readwrite("user", &PyUmiPacket::user)
-        .def_readwrite("dstaddr", &PyUmiPacket::dstaddr)
-        .def_readwrite("srcaddr", &PyUmiPacket::srcaddr)
-        .def_readwrite("data", &PyUmiPacket::data);
-
     py::class_<PySbTx>(m, "PySbTx")
         .def(py::init<std::string>(), py::arg("uri") = "")
         .def("init", &PySbTx::init)
@@ -372,8 +394,8 @@ PYBIND11_MODULE(_switchboard, m) {
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
         .def("init", &PyUmi::init)
-        .def("write", &PyUmi::write, py::arg("umi"), py::arg("blocking")=true)
-        .def("read", &PyUmi::read);
+        .def("write", &PyUmi::write)
+        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str, "Returns a string representation of a UMI opcode");
 
