@@ -257,15 +257,8 @@ class PyUmi {
                     continue;
                 }
 
-                // construct a packet
-                sb_packet p;
-                umi_pack((uint32_t*)(&p.data[0]), UMI_WRITE_POSTED, size, 0,
-                    addr, 0, ptr, SB_DATA_SIZE);
-
-                // send the packet
-                while (!m_tx.send(p)) {
-                    check_signals();
-                }
+                // perform a write of this size
+                write_low_level(addr, ptr, size);
 
                 // update write address and data pointer
                 addr += (1<<size);
@@ -308,40 +301,8 @@ class PyUmi {
                     continue;
                 }
 
-                // create the packet
-                sb_packet p;
-                umi_pack((uint32_t*)p.data, UMI_READ_REQUEST, size, 0,
-                    addr, srcaddr, NULL, 0);
-
-                // send the read request
-                while(!m_tx.send(p)){
-                    check_signals();
-                }
-
-                // get the read response
-                while(!m_rx.recv(p)) {
-                    check_signals();
-                }
-
-                // parse the response
-                uint32_t resp_opcode, resp_size, resp_user;
-                uint64_t resp_dstaddr, resp_srcaddr;
-                umi_unpack((uint32_t*)p.data, resp_opcode, resp_size, resp_user,
-                    resp_dstaddr, resp_srcaddr, ptr, 1<<size);
-
-                // check that the response makes sense
-                if (!is_umi_write_response(resp_opcode)) {
-                    std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
-                        << " in response to a READ (expected WRITE-RESPONSE)" << std::endl;
-                }
-                if (resp_size != size) {
-                    std::cerr << "Warning: read response size is " << std::to_string(resp_size)
-                        << " (expected " << std::to_string(size) << ")" << std::endl;
-                }
-                if (resp_dstaddr != srcaddr) {
-                    std::cerr <<  "Warning: dstaddr in read response is " << std::to_string(resp_dstaddr)
-                        << " (expected " << std::to_string(srcaddr) << ")" << std::endl;
-                }
+                // perform a read of this size
+                read_low_level(addr, ptr, size, srcaddr);
 
                 // update address and pointer
                 addr += (1<<size);
@@ -354,6 +315,96 @@ class PyUmi {
     private:
         SBTX m_tx;
         SBRX m_rx;
+
+        void write_low_level(uint64_t addr, uint8_t* ptr, uint32_t size) {
+            sb_packet p;
+            size_t flit_bytes = std::min(1<<size, 16);
+            umi_pack((uint32_t*)(&p.data[0]), UMI_WRITE_POSTED, size, 0,
+                addr, 0, ptr, flit_bytes);
+            ptr += flit_bytes;
+
+            // send the packet
+            while (!m_tx.send(p)) {
+                check_signals();
+            }
+
+            // send remaining packets if there are more to send
+            if (size > 4) {
+                size_t bytes_to_send = (1<<size) - 16;
+
+                while (bytes_to_send > 0) {
+                    // populate the next packet
+                    size_t flit_bytes = std::min(bytes_to_send, (size_t)32);
+                    umi_pack_burst((uint32_t*)p.data, ptr, flit_bytes);
+
+                    // send the packet
+                    while (!m_tx.send(p)) {
+                        check_signals();
+                    }
+
+                    // increment the pointer, decrement bytes left to send
+                    ptr += flit_bytes;
+                    bytes_to_send -= flit_bytes;
+                }
+            }
+        }
+
+        void read_low_level(uint64_t addr, uint8_t* ptr, uint32_t size, uint64_t srcaddr) {
+            // create the packet
+            sb_packet p;
+            umi_pack((uint32_t*)p.data, UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
+
+            // send the read request
+            while (!m_tx.send(p)){
+                check_signals();
+            }
+
+            // get the read response
+            while (!m_rx.recv(p)) {
+                check_signals();
+            }
+
+            // parse the response
+            uint32_t resp_opcode, resp_size, resp_user;
+            uint64_t resp_dstaddr, resp_srcaddr;
+            size_t flit_bytes = std::min(1<<size, 16);
+            umi_unpack((uint32_t*)p.data, resp_opcode, resp_size, resp_user,
+                resp_dstaddr, resp_srcaddr, ptr, flit_bytes);
+            ptr += flit_bytes;
+
+            // check that the response makes sense
+            if (!is_umi_write_response(resp_opcode)) {
+                std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
+                    << " in response to a READ (expected WRITE-RESPONSE)" << std::endl;
+            }
+            if (resp_size != size) {
+                std::cerr << "Warning: read response size is " << std::to_string(resp_size)
+                    << " (expected " << std::to_string(size) << ")" << std::endl;
+            }
+            if (resp_dstaddr != srcaddr) {
+                std::cerr <<  "Warning: dstaddr in read response is " << std::to_string(resp_dstaddr)
+                    << " (expected " << std::to_string(srcaddr) << ")" << std::endl;
+            }
+
+            // receive remaining packets if this was part of a burst
+            if (size > 4) {
+                size_t bytes_to_recv = (1<<size) - 16;
+                while (bytes_to_recv > 0) {
+                    // get the next packet
+                    while (!m_rx.recv(p)) {
+                        check_signals();
+                    }
+
+                    // unpack the data
+                    size_t flit_bytes = std::min(bytes_to_recv, (size_t)32);
+                    umi_unpack_burst((uint32_t*)p.data, ptr, flit_bytes);
+
+                    // increment the pointer, decrement bytes left to receive
+                    ptr += flit_bytes;
+                    bytes_to_recv -= flit_bytes;
+                }
+            }
+        }
 };
 
 // convenience function to delete old queues from previous runs
