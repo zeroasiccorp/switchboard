@@ -241,10 +241,6 @@ class PyUmi {
             // largest, to avoid forcing large transfers to be unaligned when
             // they would necessarily have to be (e.g., a power-of-two chunk
             // with an extra byte on the end)
-            
-            // TODO: use burst mode instead of all header packets, noting that
-            // there may have to be multiple bursts if the amount of data to be
-            // transferred is not a power of two.
 
             uint8_t* ptr = (uint8_t*)info.ptr;
 
@@ -285,10 +281,6 @@ class PyUmi {
             // power-of-two chunks, reading them in from largest to smallest,
             // as was done for writing
 
-            // TODO: use burst mode instead of all header packets, noting that
-            // there may have to be multiple bursts if the amount of data to be
-            // transferred is not a power of two.
-
             py::buffer_info info = py::buffer(result).request();
             uint8_t* ptr = (uint8_t*)info.ptr;
 
@@ -308,6 +300,44 @@ class PyUmi {
                 addr += (1<<size);
                 ptr += (1<<size);
             }
+
+            return result;
+        }
+
+        py::array_t<uint8_t> atomic(uint64_t addr, py::array_t<uint8_t> data,
+            uint32_t opcode, uint64_t srcaddr=0) {
+            // apply an atomic operation at addr with input data
+
+            // buffer for incoming data
+            py::buffer_info in_info = py::buffer(data).request();
+            py::ssize_t num = in_info.size;
+            uint8_t* in_ptr = (uint8_t*)in_info.ptr;
+
+            // buffer for outbound data
+            py::array_t<uint8_t> result = py::array_t<uint8_t>(num);
+            py::buffer_info out_info = py::buffer(result).request();
+            uint8_t* out_ptr = (uint8_t*)out_info.ptr;
+
+            if (num == 0) {
+                // nothing to read, so just return the empty array
+                return result;
+            }
+
+            size_t size = highest_bit(num);
+
+            if (size > 4) {            
+                throw std::runtime_error("Atomic operand must be 16 bytes or fewer to fit in a header packet.");
+            }
+
+            if (num != (1<<size)) {
+                throw std::runtime_error("Width of atomic operand must be a power of two number of bytes.");
+            }
+
+            // perform the atomic operation
+
+            read_low_level(addr, out_ptr, size, srcaddr, opcode, in_ptr);
+
+            // return the result of the operation
 
             return result;
         }
@@ -349,10 +379,19 @@ class PyUmi {
             }
         }
 
-        void read_low_level(uint64_t addr, uint8_t* ptr, uint32_t size, uint64_t srcaddr) {
+        void read_low_level(uint64_t addr, uint8_t* ptr, uint32_t size, uint64_t srcaddr,
+            uint32_t opcode=UMI_READ_REQUEST, uint8_t* data=NULL) {
+
+            // can handle both reads and atomic operations, since both involve a
+            // request followed by a response packet or burst
+
             // create the packet
             sb_packet p;
-            umi_pack((uint32_t*)p.data, UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
+            if (opcode == UMI_READ_REQUEST) {
+                umi_pack((uint32_t*)p.data, opcode, size, 0, addr, srcaddr, NULL, 0);
+            } else {
+                umi_pack((uint32_t*)p.data, opcode, size, 0, addr, srcaddr, data, 1<<size);
+            }
 
             // send the read request
             while (!m_tx.send(p)){
@@ -375,14 +414,17 @@ class PyUmi {
             // check that the response makes sense
             if (!is_umi_write_response(resp_opcode)) {
                 std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
-                    << " in response to a READ (expected WRITE-RESPONSE)" << std::endl;
+                    << " in response to " << umi_opcode_to_str(opcode)
+                    << " (expected WRITE-RESPONSE)" << std::endl;
             }
             if (resp_size != size) {
-                std::cerr << "Warning: read response size is " << std::to_string(resp_size)
+                std::cerr << "Warning: " << umi_opcode_to_str(opcode)
+                    << " response size is " << std::to_string(resp_size)
                     << " (expected " << std::to_string(size) << ")" << std::endl;
             }
             if (resp_dstaddr != srcaddr) {
-                std::cerr <<  "Warning: dstaddr in read response is " << std::to_string(resp_dstaddr)
+                std::cerr <<  "Warning: dstaddr in " << umi_opcode_to_str(opcode)
+                    << " response is " << std::to_string(resp_dstaddr)
                     << " (expected " << std::to_string(srcaddr) << ")" << std::endl;
             }
 
@@ -446,9 +488,31 @@ PYBIND11_MODULE(_switchboard, m) {
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
         .def("init", &PyUmi::init)
         .def("write", &PyUmi::write)
-        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0);
+        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0)
+        .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str, "Returns a string representation of a UMI opcode");
 
     m.def("delete_queue", &delete_queue, "Deletes an old queue.");
+
+    py::enum_<UMI_CMD>(m, "UmiCmd")
+        .value("UMI_INVALID", UMI_INVALID)
+        .value("UMI_WRITE_POSTED", UMI_WRITE_POSTED)
+        .value("UMI_WRITE_RESPONSE", UMI_WRITE_RESPONSE)
+        .value("UMI_WRITE_SIGNAL", UMI_WRITE_SIGNAL)
+        .value("UMI_WRITE_STREAM", UMI_WRITE_STREAM)
+        .value("UMI_WRITE_ACK", UMI_WRITE_ACK)
+        .value("UMI_READ_REQUEST", UMI_READ_REQUEST)
+        .value("UMI_ATOMIC_ADD", UMI_ATOMIC_ADD)
+        .value("UMI_ATOMIC_AND", UMI_ATOMIC_AND)
+        .value("UMI_ATOMIC_OR", UMI_ATOMIC_OR)
+        .value("UMI_ATOMIC_XOR", UMI_ATOMIC_XOR)
+        .value("UMI_ATOMIC_MAX", UMI_ATOMIC_MAX)
+        .value("UMI_ATOMIC_MIN", UMI_ATOMIC_MIN)
+        .value("UMI_ATOMIC_MAXU", UMI_ATOMIC_MAXU)
+        .value("UMI_ATOMIC_MINU", UMI_ATOMIC_MINU)
+        .value("UMI_ATOMIC_SWAP", UMI_ATOMIC_SWAP)
+        .value("UMI_ATOMIC", UMI_ATOMIC)
+        .export_values();
+
 }
