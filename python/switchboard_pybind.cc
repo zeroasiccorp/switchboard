@@ -14,7 +14,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
-#include <sys/_types/_size_t.h>
 
 #include "bytesobject.h"
 #include "object.h"
@@ -86,8 +85,8 @@ void check_signals() {
     }
 }
 
-// highest_bit: determine the highest bit in a number.  useful for
-// splitting apart data into power-of-two chunks.
+// highest_bit: determine the index of the most significant non-zero
+// bit in a number.
 
 size_t highest_bit (size_t x) {
     size_t retval = 0;
@@ -95,6 +94,25 @@ size_t highest_bit (size_t x) {
         retval++;
     }
     return retval;
+}
+
+// lowest_bit: determine index of the least significant non-zero
+// bit in a number.
+
+size_t lowest_bit (size_t x) {
+    if (x == 0) {
+        // if the input is zero, it is convenient to return a value
+        // that is larger than the return value for any non-zero
+        // input value, which is (sizeof(size_t)*8)-1.
+        return sizeof(size_t)*8;
+    } else {
+        size_t retval = 0;
+        while ((x & 1) == 0) {
+            x >>= 1;
+            retval++;
+        }
+        return retval;
+    }
 }
 
 // PySbTx: pybind-friendly version of SBTX that works with PySbPacket
@@ -244,19 +262,15 @@ class PyUmi {
 
             uint8_t* ptr = (uint8_t*)info.ptr;
 
-            size_t max_size = highest_bit(num);
-
-            for (ssize_t size=max_size; size>=0; size--) {
-                if (((num >> size) & 1) == 0) {
-                    // skip if there is no chunk that needs to
-                    // be transmitted at this size
-                    continue;
-                }
+            while (num > 0) {
+                // determine the largest aligned transaction that is possible
+                ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
 
                 // perform a write of this size
                 write_low_level(addr, ptr, size);
 
-                // update write address and data pointer
+                // update indices
+                num -= (1<<size);
                 addr += (1<<size);
                 ptr += (1<<size);
             }
@@ -284,19 +298,15 @@ class PyUmi {
             py::buffer_info info = py::buffer(result).request();
             uint8_t* ptr = (uint8_t*)info.ptr;
 
-            size_t max_size = highest_bit(num);
-
-            for (ssize_t size=max_size; size>=0; size--) {
-                if (((num>>size) & 1) == 0) {
-                    // skip if there is no chunk that needs to
-                    // be read at this size
-                    continue;
-                }
+            while (num > 0) {
+                // determine the largest aligned transaction that is possible
+                ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
 
                 // perform a read of this size
                 read_low_level(addr, ptr, size, srcaddr);
 
-                // update address and pointer
+                // update indices
+                num -= (1<<size);
                 addr += (1<<size);
                 ptr += (1<<size);
             }
