@@ -254,11 +254,9 @@ class PyUmi {
             }
 
             // otherwise get the data pointer and decompose the data into
-            // power-of-two chunks, sending them out from largest to smallest.
-            // it seems that this would probably be better than smallest to
-            // largest, to avoid forcing large transfers to be unaligned when
-            // they would necessarily have to be (e.g., a power-of-two chunk
-            // with an extra byte on the end)
+            // power-of-two chunks, with the size of each chunk being the
+            // largest that is possible while remaining aligned, and
+            // without exceeding the number of remaining bytes.
 
             uint8_t* ptr = (uint8_t*)info.ptr;
 
@@ -291,9 +289,10 @@ class PyUmi {
                 return result;
             }
 
-            // otherwise get the data pointer and decompose the data into
-            // power-of-two chunks, reading them in from largest to smallest,
-            // as was done for writing
+            // otherwise get the data pointer and read the data in
+            // power-of-two chunks, with the size of each chunk being the
+            // largest that is possible while remaining aligned, and
+            // without exceeding the number of remaining bytes.
 
             py::buffer_info info = py::buffer(result).request();
             uint8_t* ptr = (uint8_t*)info.ptr;
