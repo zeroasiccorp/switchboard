@@ -64,6 +64,40 @@ struct PySbPacket {
     py::array_t<uint8_t> data;
  };
 
+// As with PySbPacket, PyUmiPacket makes the contents of umi_packet
+// accessible in a pybind-friendly manner.  The same comments about
+// setting the default value of the data argument to "None" apply.
+
+struct PyUmiPacket {
+    PyUmiPacket(uint32_t opcode=0, uint32_t size=0, uint32_t user=0, uint64_t dstaddr=0,
+        uint64_t srcaddr=0, std::optional<py::array_t<uint8_t>> data = std::nullopt) :
+        opcode(opcode), size(size), user(user), dstaddr(dstaddr), srcaddr(srcaddr) {
+        if (data.has_value()) {
+            this->data = data.value();
+        } else {
+            this->data = py::array_t<uint8_t>(SB_DATA_SIZE);
+        }
+    }
+
+    std::string toString() {
+        std::stringstream stream;
+        stream << "opcode: " << umi_opcode_to_str(opcode) << std::endl;
+        stream << "size: " << size << std::endl;
+        stream << "user: " << user << std::endl;
+        stream << "dstaddr: 0x" << std::hex << dstaddr << std::endl;
+        stream << "srcaddr: 0x" << std::hex << srcaddr << std::endl;
+        stream << "data: " << py::str(data);
+        return stream.str();
+    }
+
+    uint32_t opcode;
+    uint32_t size;
+    uint32_t user;
+    uint64_t dstaddr;
+    uint64_t srcaddr;
+    py::array_t<uint8_t> data;
+};
+
 // check_signals() should be called within any loops where the C++
 // code is waiting for something to happen.  this ensures that
 // the binding doesn't hang after the user presses Ctrl-C.  the
@@ -237,6 +271,34 @@ class PyUmi {
             if (rx_uri != "") {
                 m_rx.init(rx_uri.c_str());
             }
+        }
+
+        std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
+            // get a resposne
+
+            sb_packet p;
+
+            if (!blocking) {
+                if (!m_rx.recv(p)) {
+                    return nullptr;
+                }
+            } else {
+                while (!m_rx.recv(p)) {
+                    check_signals();
+                }
+            }
+
+            // if we get to this point, there is valid data in "p"
+
+            // create an object to hold data to be returned to python
+            std::unique_ptr<PyUmiPacket> resp(new PyUmiPacket());
+
+            // parse the response
+            py::buffer_info info = py::buffer(resp->data).request();
+            umi_unpack((uint32_t*)p.data, resp->opcode, resp->size, resp->user,
+                resp->dstaddr, resp->srcaddr, (uint8_t*)info.ptr, info.size);
+
+            return resp;
         }
 
         void write(uint64_t addr, py::array_t<uint8_t> data) {
@@ -483,6 +545,19 @@ PYBIND11_MODULE(_switchboard, m) {
         .def_readwrite("flags", &PySbPacket::flags)
         .def_readwrite("data", &PySbPacket::data);
 
+    py::class_<PyUmiPacket>(m, "PyUmiPacket")
+        .def(py::init<uint32_t, uint32_t, uint32_t, uint64_t, uint64_t,
+            std::optional<py::array_t<uint8_t>>>(), py::arg("opcode") = 0,
+            py::arg("size") = 0, py::arg("user") = 0, py::arg("dstaddr") = 0,
+            py::arg("srcaddr") = 0, py::arg("data") = py::none())
+        .def("__str__", &PyUmiPacket::toString)
+        .def_readwrite("opcode", &PyUmiPacket::opcode)
+        .def_readwrite("size", &PyUmiPacket::size)
+        .def_readwrite("user", &PyUmiPacket::user)
+        .def_readwrite("dstaddr", &PyUmiPacket::dstaddr)
+        .def_readwrite("srcaddr", &PyUmiPacket::srcaddr)
+        .def_readwrite("data", &PyUmiPacket::data);
+
     py::class_<PySbTx>(m, "PySbTx")
         .def(py::init<std::string>(), py::arg("uri") = "")
         .def("init", &PySbTx::init)
@@ -496,6 +571,7 @@ PYBIND11_MODULE(_switchboard, m) {
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
         .def("init", &PyUmi::init)
+        .def("recv", &PyUmi::recv, py::arg("blocking")=true)
         .def("write", &PyUmi::write)
         .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0)
         .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);

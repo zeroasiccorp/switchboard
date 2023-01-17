@@ -14,7 +14,16 @@ class UmiTxRx:
     
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
-    
+
+    def recv(self, blocking=True):
+        """
+        Wait for and return a UMI packet (PyUmiPacket object) if blocking=True,
+        otherwise return a UMI packet if one can be read immediately, and
+        None otherwise.
+        """
+
+        return self.umi.recv(blocking)
+
     def write(self, addr, data):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
@@ -62,6 +71,13 @@ class UmiTxRx:
         if mask is None:
             nbits = (np.dtype(value.dtype).itemsize*8)
             mask = (1<<nbits) - 1
+
+        # convert mask to a numpy datatype if it is not already
+        if not isinstance(mask, np.integer):
+            if dtype is not None:
+                mask = dtype(mask)
+            else:
+                raise Exception("Must provide mask as a numpy integer type, or specify dtype.")
 
         # write, then read repeatedly until the value written is observed
         self.write(addr, value)
