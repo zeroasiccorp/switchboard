@@ -39,7 +39,7 @@ class UmiTxRx:
             write_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
             self.umi.write(addr, write_data)
         else:
-            raise Exception(f"Unknown data type: {type(data)}")
+            raise TypeError(f"Unknown data type: {type(data)}")
 
     def write_readback(self, addr, value, mask=None, srcaddr=0, dtype=None):
         """
@@ -65,7 +65,7 @@ class UmiTxRx:
             if dtype is not None:
                 value = dtype(value)
             else:
-                raise Exception("Must provide value as a numpy integer type, or specify dtype.")
+                raise TypeError("Must provide value as a numpy integer type, or specify dtype.")
 
         # set the mask to all ones if it is None
         if mask is None:
@@ -77,7 +77,7 @@ class UmiTxRx:
             if dtype is not None:
                 mask = dtype(mask)
             else:
-                raise Exception("Must provide mask as a numpy integer type, or specify dtype.")
+                raise TypeError("Must provide mask as a numpy integer type, or specify dtype.")
 
         # write, then read repeatedly until the value written is observed
         self.write(addr, value)
@@ -85,13 +85,13 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, num_or_dtype, srcaddr=0):
+    def read(self, addr, size_or_dtype, srcaddr=0):
         """
-        Reads from the provided 64-bit address.  The "num_or_dtype" argument can be
+        Reads from the provided 64-bit address.  The "size_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
         a numpy integer datatype (e.g., np.uint32).
 
-        If num_or_dtype is a plain integer, the value returned by this function
+        If size_or_dtype is a plain integer, the value returned by this function
         will be a numpy array of np.uint8 (an array of bytes).  If not, this
         function will return a numpy integer value of the given dtype.
 
@@ -99,11 +99,11 @@ class UmiTxRx:
         is sometimes needed to make sure that reads get routed to the right place.
         """
 
-        if isinstance(num_or_dtype, (type, np.dtype)):
-            size = np.dtype(num_or_dtype).itemsize
-            return self.umi.read(addr, size, srcaddr).view(num_or_dtype)[0]
+        if isinstance(size_or_dtype, (type, np.dtype)):
+            size = np.dtype(size_or_dtype).itemsize
+            return self.umi.read(addr, size, srcaddr).view(size_or_dtype)[0]
         else:
-            return self.umi.read(addr, num_or_dtype, srcaddr)
+            return self.umi.read(addr, size_or_dtype, srcaddr)
 
     def atomic(self, addr, data, opcode, srcaddr=0):
         """
@@ -125,7 +125,7 @@ class UmiTxRx:
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
             if opcode not in UmiCmd:
-                raise Exception(f'The provided opcode "{opcode}" does not appear to be valid.')
+                raise ValueError(f'The provided opcode "{opcode}" does not appear to be valid.')
             opcode = UmiCmd[opcode]
 
         # format the data for sending
@@ -136,5 +136,5 @@ class UmiTxRx:
             atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
             return self.umi.atomic(addr, atomic_data, opcode, srcaddr).view(data.dtype)[0]
         else:
-            raise Exception("The data provided to atomic should be of a numpy integer type"
+            raise TypeError("The data provided to atomic should be of a numpy integer type"
                 " so that the transaction size can be determined")
