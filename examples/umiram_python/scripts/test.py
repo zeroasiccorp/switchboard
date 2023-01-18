@@ -8,7 +8,7 @@ import atexit
 import subprocess
 import numpy as np
 from pathlib import Path
-from switchboard import PyUmi, PySbTx, PyUmiPacket, PySbPacket, delete_queue
+from switchboard import UmiTxRx, PySbTx, PySbPacket, delete_queue
 
 def main():
     # clean up old queues if present
@@ -21,39 +21,21 @@ def main():
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = PyUmi("queue-5555", "queue-5556")
+    umi = UmiTxRx("queue-5555", "queue-5556")
     stop = PySbTx("queue-5557")
 
-    # write 0xBEEFCAFE to address 0x12
+    # write 0xbeefcafe to address 0x12
 
-    wr_req = PyUmiPacket(
-        dstaddr = 0x12,
-        size = 2,
-        data = np.array([0xBEEFCAFE], dtype=np.uint32).view(np.uint8)
-    )
+    wr_addr = 0x12
+    wr_data = np.uint32(0xbeefcafe)
+    umi.write(wr_addr, wr_data)
+    print(f"Wrote to 0x{wr_addr:02x}: 0x{wr_data:08x}")
 
-    print("Write Request")
-    print(wr_req)
-    print()
+    # read data from address 0x12
 
-    umi.write(wr_req)  # note: blocking by default, can disable with blocking=False
-
-    # send request to read address 0x12
-
-    rd_req = PyUmiPacket (
-        dstaddr = 0x12,
-        size = 2
-    )
-
-    print("Read Request")
-    print(rd_req)
-    print()
-
-    rd_resp = umi.read(rd_req)  # note: blocking, will not return until sucessful
-
-    print("Read Response")
-    print(rd_resp)
-    print()    
+    rd_addr = wr_addr
+    rd_data = umi.read(rd_addr, np.uint32)
+    print(f"Read from 0x{rd_addr:02x}: 0x{rd_data:08x}")
 
     # stop simulation
 
@@ -62,7 +44,7 @@ def main():
 
     # declare test as having passed for regression testing purposes
 
-    if (rd_resp.data[:4] == wr_req.data[:4]).all():
+    if rd_data == wr_data:
         print('PASS!')
         sys.exit(0)
     else:
