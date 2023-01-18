@@ -290,13 +290,61 @@ class PyUmi {
 
             // if we get to this point, there is valid data in "p"
 
-            // create an object to hold data to be returned to python
-            std::unique_ptr<PyUmiPacket> resp(new PyUmiPacket());
+            // find out the size of the response
 
-            // parse the response
+            // TODO: make this less fragile, perhaps by adding a function
+            // to umilib.hpp that extracts the size from a packet
+
+            size_t size = p.data[1] & 0xf;
+
+            // create an object to hold data to be returned to python
+
+            py::array_t<uint8_t> data(1<<size);
+            std::unique_ptr<PyUmiPacket> resp(new PyUmiPacket(0, 0, 0, 0, 0, data));
+
+            // initialize indices
+
+            size_t num = 1<<size;
+
             py::buffer_info info = py::buffer(resp->data).request();
+            uint8_t* ptr = (uint8_t*)info.ptr;
+
+            // calculate how many bytes are in the first (and possibly only) flit
+
+            size_t flit_size = std::min(1<<size, 16);
+
+            // parse the packet
+
             umi_unpack((uint32_t*)p.data, resp->opcode, resp->size, resp->user,
-                resp->dstaddr, resp->srcaddr, (uint8_t*)info.ptr, info.size);
+                resp->dstaddr, resp->srcaddr, ptr, flit_size);
+
+            // update indices
+
+            num -= flit_size;
+            ptr += flit_size;
+
+            // receive more data if necessary
+
+            while (num > 0) {
+                // receive the next packet
+
+                while (!m_rx.recv(p)) {
+                    check_signals();
+                }
+
+                // calculate how many bytes will be in this flit
+
+                flit_size = std::min(num, (size_t)32);
+                
+                // unpack data from the flit
+
+                umi_unpack_burst((uint32_t*)p.data, ptr, flit_size);
+
+                // update indices
+
+                num -= flit_size;
+                ptr += flit_size;
+            }
 
             return resp;
         }
