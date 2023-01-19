@@ -4,7 +4,7 @@
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 # the pybind module is built as _switchboard that is imported
 # into the module called "switchboard".  this will allow us
