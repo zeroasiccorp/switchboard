@@ -21,6 +21,7 @@
 #include "pybind11/detail/common.h"
 #include "pybind11/pytypes.h"
 #include "switchboard.hpp"
+#include "switchboard_pcie.hpp"
 #include "umilib.hpp"
 
 namespace py = pybind11;
@@ -148,6 +149,45 @@ size_t lowest_bit (size_t x) {
         return retval;
     }
 }
+
+// PySbTxPcie / PySbRxPcie: these objects must be created to initialize Switchboard
+// queues that are accessed over PCIe.  Care must be taken to ensure that they
+// don't go out of scope, since that will invoke destructors that deinitialize
+// the queues.
+
+struct PySbTxPcie {
+    PySbTxPcie (std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
+        init(uri, idx, bar_num, bdf);
+    }
+
+    void init(std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
+        if ((uri != "") && (bdf != "")) {
+            m_tx = std::unique_ptr<SBTX_pcie>(new SBTX_pcie(idx));
+            m_tx->init(uri, bdf, bar_num);
+        }
+    }
+
+    private:
+        std::unique_ptr<SBTX_pcie> m_tx;
+};
+
+struct PySbRxPcie {
+    PySbRxPcie (std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
+        init(uri, idx, bar_num, bdf);
+    }
+
+    void init(std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
+        if ((uri != "") && (bdf != "")) {
+            m_rx = std::unique_ptr<SBRX_pcie>(new SBRX_pcie(idx));
+            m_rx->init(uri, bdf, bar_num);
+        }
+    }
+
+    private:
+        std::unique_ptr<SBRX_pcie> m_rx;
+};
+
+// fpga_init_tx: initialize an FPGA TX queue
 
 // PySbTx: pybind-friendly version of SBTX that works with PySbPacket
 
@@ -615,6 +655,18 @@ PYBIND11_MODULE(_switchboard, m) {
         .def(py::init<std::string>(), py::arg("uri") = "")
         .def("init", &PySbRx::init)
         .def("recv", &PySbRx::recv, py::arg("blocking")=true);
+
+    py::class_<PySbTxPcie>(m, "PySbTxPcie")
+        .def(py::init<std::string, int, int, std::string>(), py::arg("uri") = "",
+            py::arg("idx") = 0, py::arg("bar_num") = 0, py::arg("bdf") = "")
+        .def("init", &PySbTxPcie::init, py::arg("uri") = "", py::arg("idx") = 0,
+            py::arg("bar_num") = 0, py::arg("bdf") = "");
+
+    py::class_<PySbRxPcie>(m, "PySbRxPcie")
+        .def(py::init<std::string, int, int, std::string>(), py::arg("uri") = "",
+            py::arg("idx") = 0, py::arg("bar_num") = 0, py::arg("bdf") = "")
+        .def("init", &PySbRxPcie::init, py::arg("uri") = "", py::arg("idx") = 0,
+            py::arg("bar_num") = 0, py::arg("bdf") = "");
 
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
