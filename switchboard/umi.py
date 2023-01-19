@@ -2,22 +2,18 @@
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
-from _switchboard import PyUmi, UmiCmd, PyPcieConfig
+from _switchboard import PyUmi, UmiCmd
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
 # flexibility with numpy types
 
 class UmiTxRx:
-    def __init__(self, tx_uri="", rx_uri="", tx_pcie_cfg : PyPcieConfig = None,
-        rx_pcie_cfg : PyPcieConfig = None):
-
-        self.umi = PyUmi(tx_uri, rx_uri, tx_pcie_cfg, rx_pcie_cfg)
+    def __init__(self, tx_uri="", rx_uri=""):
+        self.umi = PyUmi(tx_uri, rx_uri)
     
-    def init_queues(self, tx_uri="", rx_uri="", tx_pcie_cfg : PyPcieConfig = None,
-        rx_pcie_cfg : PyPcieConfig = None):
-
-        self.umi.init(tx_uri, rx_uri, tx_pcie_cfg, rx_pcie_cfg)
+    def init_queues(self, tx_uri="", rx_uri=""):
+        self.umi.init(tx_uri, rx_uri)
 
     def recv(self, blocking=True):
         """

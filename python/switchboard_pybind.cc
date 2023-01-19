@@ -21,7 +21,6 @@
 #include "pybind11/detail/common.h"
 #include "pybind11/pytypes.h"
 #include "switchboard.hpp"
-#include "switchboard_pcie.hpp"
 #include "umilib.hpp"
 
 namespace py = pybind11;
@@ -99,17 +98,6 @@ struct PyUmiPacket {
     py::array_t<uint8_t> data;
 };
 
-// PyPcieConfig: object for holding the configuration of Switchboard
-// queue that is accessed over PCIe
-
-struct PyPcieConfig {
-    PyPcieConfig (int idx=0, int bar_num=0, std::string bdf="") :
-        idx(idx), bar_num(bar_num), bdf(bdf) {}
-    int idx;
-    int bar_num;
-    std::string bdf;
-};
-
 // check_signals() should be called within any loops where the C++
 // code is waiting for something to happen.  this ensures that
 // the binding doesn't hang after the user presses Ctrl-C.  the
@@ -165,21 +153,13 @@ size_t lowest_bit (size_t x) {
 
 class PySbTx {
     public:
-        PySbTx (std::string uri="", std::optional<PyPcieConfig> pcie_config = std::nullopt) {
-            init(uri, pcie_config);
+        PySbTx (std::string uri="") {
+            init(uri);
         }
 
-        void init(std::string uri="", std::optional<PyPcieConfig> pcie_config = std::nullopt) {
+        void init(std::string uri) {
             if (uri != "") {
-                if (pcie_config.has_value()) {
-                    // PCIe
-                    m_tx = std::unique_ptr<SBTX>(new SBTX_pcie(pcie_config.value().idx));
-                    ((SBTX_pcie*)m_tx.get())->init(uri, pcie_config.value().bdf, 
-                        pcie_config.value().bar_num);
-                } else {
-                    m_tx = std::unique_ptr<SBTX>(new SBTX());
-                    m_tx->init(uri.c_str());
-                }
+                m_tx.init(uri.c_str());
             }
         }
 
@@ -214,37 +194,29 @@ class PySbTx {
             // on the "blocking" argument
 
             if (!blocking) {
-                return m_tx->send(p);
+                return m_tx.send(p);
             } else {
-                while (!m_tx->send(p)) {
+                while (!m_tx.send(p)) {
                     check_signals();
                 }
                 return true;
             }
         }
     private:
-        std::unique_ptr<SBTX> m_tx;
+        SBTX m_tx;
 };
 
 // PySbTx: pybind-friendly version of SBTX that works with PySbPacket
 
 class PySbRx {
     public:
-        PySbRx (std::string uri="",  std::optional<PyPcieConfig> pcie_config = std::nullopt) {
-            init(uri, pcie_config);
+        PySbRx (std::string uri="") {
+            init(uri);
         }
 
-        void init(std::string uri, std::optional<PyPcieConfig> pcie_config = std::nullopt) {
+        void init(std::string uri) {
             if (uri != "") {
-                if (pcie_config.has_value()) {
-                    // PCIe
-                    m_rx = std::unique_ptr<SBRX>(new SBRX_pcie(pcie_config.value().idx));
-                    ((SBRX_pcie*)m_rx.get())->init(uri, pcie_config.value().bdf, 
-                        pcie_config.value().bar_num);
-                } else {
-                    m_rx = std::unique_ptr<SBRX>(new SBRX());
-                    m_rx->init(uri.c_str());
-                }
+                m_rx.init(uri.c_str());
             }
         }
 
@@ -256,11 +228,11 @@ class PySbRx {
 
             sb_packet p;
             if (!blocking) {
-                if (!m_rx->recv(p)) {
+                if (!m_rx.recv(p)) {
                     return nullptr;
                 }
             } else {
-                while (!m_rx->recv(p)) {
+                while (!m_rx.recv(p)) {
                     check_signals();
                 }
             }
@@ -279,7 +251,7 @@ class PySbRx {
             return py_packet;
         }
     private:
-        std::unique_ptr<SBRX> m_rx;
+        SBRX m_rx;
 };
 
 // PyUmi: Higher-level than PySbTx and PySbRx, this class works with two SB queues,
@@ -288,41 +260,16 @@ class PySbRx {
 
 class PyUmi {
     public:
-        PyUmi (std::string tx_uri="", std::string rx_uri="",
-            std::optional<PyPcieConfig> tx_pcie_cfg = std::nullopt,
-            std::optional<PyPcieConfig> rx_pcie_cfg = std::nullopt) {
-
-            init(tx_uri, rx_uri, tx_pcie_cfg, rx_pcie_cfg);
+        PyUmi (std::string tx_uri="", std::string rx_uri="") {
+            init(tx_uri, rx_uri);
         }
 
-        void init(std::string tx_uri, std::string rx_uri,
-            std::optional<PyPcieConfig> tx_pcie_cfg = std::nullopt,
-            std::optional<PyPcieConfig> rx_pcie_cfg = std::nullopt) {
-
-            // TODO: can some of this code be reused from PySbTx / PySbRx?
-
+        void init(std::string tx_uri, std::string rx_uri) {
             if (tx_uri != "") {
-                if (tx_pcie_cfg.has_value()) {
-                    // PCIe
-                    m_tx = std::unique_ptr<SBTX>(new SBTX_pcie(tx_pcie_cfg.value().idx));
-                    ((SBTX_pcie*)m_tx.get())->init(tx_uri, tx_pcie_cfg.value().bdf, 
-                        tx_pcie_cfg.value().bar_num);
-                } else {
-                    m_tx = std::unique_ptr<SBTX>(new SBTX());
-                    m_tx->init(tx_uri.c_str());
-                }
+                m_tx.init(tx_uri.c_str());
             }
-
             if (rx_uri != "") {
-                if (rx_pcie_cfg.has_value()) {
-                    // PCIe
-                    m_rx = std::unique_ptr<SBRX>(new SBRX_pcie(rx_pcie_cfg.value().idx));
-                    ((SBRX_pcie*)m_rx.get())->init(rx_uri, rx_pcie_cfg.value().bdf, 
-                        rx_pcie_cfg.value().bar_num);
-                } else {
-                    m_rx = std::unique_ptr<SBRX>(new SBRX());
-                    m_rx->init(rx_uri.c_str());
-                }
+                m_rx.init(rx_uri.c_str());
             }
         }
 
@@ -332,11 +279,11 @@ class PyUmi {
             sb_packet p;
 
             if (!blocking) {
-                if (!m_rx->recv(p)) {
+                if (!m_rx.recv(p)) {
                     return nullptr;
                 }
             } else {
-                while (!m_rx->recv(p)) {
+                while (!m_rx.recv(p)) {
                     check_signals();
                 }
             }
@@ -381,7 +328,7 @@ class PyUmi {
             while (num > 0) {
                 // receive the next packet
 
-                while (!m_rx->recv(p)) {
+                while (!m_rx.recv(p)) {
                     check_signals();
                 }
 
@@ -515,8 +462,8 @@ class PyUmi {
         }
 
     private:
-        std::unique_ptr<SBTX> m_tx;
-        std::unique_ptr<SBRX> m_rx;
+        SBTX m_tx;
+        SBRX m_rx;
 
         void write_low_level(uint64_t addr, uint8_t* ptr, uint32_t size) {
             sb_packet p;
@@ -526,7 +473,7 @@ class PyUmi {
             ptr += flit_bytes;
 
             // send the packet
-            while (!m_tx->send(p)) {
+            while (!m_tx.send(p)) {
                 check_signals();
             }
 
@@ -540,7 +487,7 @@ class PyUmi {
                     umi_pack_burst((uint32_t*)p.data, ptr, flit_bytes);
 
                     // send the packet
-                    while (!m_tx->send(p)) {
+                    while (!m_tx.send(p)) {
                         check_signals();
                     }
 
@@ -566,12 +513,12 @@ class PyUmi {
             }
 
             // send the read request
-            while (!m_tx->send(p)){
+            while (!m_tx.send(p)){
                 check_signals();
             }
 
             // get the read response
-            while (!m_rx->recv(p)) {
+            while (!m_rx.recv(p)) {
                 check_signals();
             }
 
@@ -605,7 +552,7 @@ class PyUmi {
                 size_t bytes_to_recv = (1<<size) - 16;
                 while (bytes_to_recv > 0) {
                     // get the next packet
-                    while (!m_rx->recv(p)) {
+                    while (!m_rx.recv(p)) {
                         check_signals();
                     }
 
@@ -659,23 +606,14 @@ PYBIND11_MODULE(_switchboard, m) {
         .def_readwrite("srcaddr", &PyUmiPacket::srcaddr)
         .def_readwrite("data", &PyUmiPacket::data);
 
-    py::class_<PyPcieConfig>(m, "PyPcieConfig")
-        .def(py::init<int, int, std::string>(),
-            py::arg("idx") = 0, py::arg("bar_num") = 0, py::arg("bdf") = "")
-        .def_readwrite("idx", &PyPcieConfig::idx)
-        .def_readwrite("bar_num", &PyPcieConfig::bar_num)
-        .def_readwrite("bdf", &PyPcieConfig::bdf);
-
     py::class_<PySbTx>(m, "PySbTx")
-        .def(py::init<std::string, std::optional<PyPcieConfig>>(),
-            py::arg("uri") = "", py::arg("pcie_config") = py::none())
-        .def("init", &PySbTx::init, py::arg("uri") = "", py::arg("pcie_config") = py::none())
+        .def(py::init<std::string>(), py::arg("uri") = "")
+        .def("init", &PySbTx::init)
         .def("send", &PySbTx::send, py::arg("py_packet"), py::arg("blocking")=true);
 
     py::class_<PySbRx>(m, "PySbRx")
-        .def(py::init<std::string, std::optional<PyPcieConfig>>(),
-            py::arg("uri") = "", py::arg("pcie_config") = py::none())
-        .def("init", &PySbRx::init, py::arg("uri") = "", py::arg("pcie_config") = py::none())
+        .def(py::init<std::string>(), py::arg("uri") = "")
+        .def("init", &PySbRx::init)
         .def("recv", &PySbRx::recv, py::arg("blocking")=true);
 
     py::class_<PyUmi>(m, "PyUmi")
