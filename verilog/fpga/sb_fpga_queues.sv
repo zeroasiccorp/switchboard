@@ -123,9 +123,6 @@ module sb_fpga_queues #(
     wire [NUM_QUEUES-1:0] axi_rvalid;
     wire [NUM_QUEUES-1:0] axi_rready;
 
-    assign axi_awid = 'd0;
-    assign axi_arid = 'd0;
-
     genvar i;
     generate
         for (i = 0; i < NUM_RX_QUEUES; i = i + 1) begin
