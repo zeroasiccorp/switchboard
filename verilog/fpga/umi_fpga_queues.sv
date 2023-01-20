@@ -96,7 +96,7 @@ module umi_fpga_queues #(
         .tx_data(tx_packet),
         .tx_dest(tx_dest),
         // TODO: support burst mode
-        .tx_last(3'b1),
+        .tx_last({NUM_TX_QUEUES{1'b1}}),
         .tx_ready(tx_ready),
         .tx_valid(tx_valid),
 

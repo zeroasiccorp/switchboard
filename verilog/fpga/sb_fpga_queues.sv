@@ -123,9 +123,6 @@ module sb_fpga_queues #(
     wire [NUM_QUEUES-1:0] axi_rvalid;
     wire [NUM_QUEUES-1:0] axi_rready;
 
-    assign axi_awid = 'd0;
-    assign axi_arid = 'd0;
-
     genvar i;
     generate
         for (i = 0; i < NUM_RX_QUEUES; i = i + 1) begin
@@ -133,13 +130,13 @@ module sb_fpga_queues #(
                 .ID_WIDTH(ID_WIDTH)
             ) rx (
                 .clk(clk),
-                .en(cfg_enable[i]),
-                .reset(cfg_reset[i]),
+                .en(cfg_enable[2*i]),
+                .reset(cfg_reset[2*i]),
 
-                .cfg_base_addr(cfg_base_addr[64*i+:64]),
-                .cfg_capacity(cfg_capacity[32*i+:32]),
+                .cfg_base_addr(cfg_base_addr[64*(2*i)+:64]),
+                .cfg_capacity(cfg_capacity[32*(2*i)+:32]),
 
-                .status_idle(status_idle[i]),
+                .status_idle(status_idle[2*i]),
 
                 .data(rx_data[256*i+:256]),
                 .dest(rx_dest[32*i+:32]),
@@ -188,13 +185,13 @@ module sb_fpga_queues #(
                 .ID_WIDTH(ID_WIDTH)
             ) tx (
                 .clk(clk),
-                .en(cfg_enable[i]),
-                .reset(cfg_reset[i]),
+                .en(cfg_enable[2*(i-NUM_RX_QUEUES)+1]),
+                .reset(cfg_reset[2*(i-NUM_RX_QUEUES)+1]),
 
-                .cfg_base_addr(cfg_base_addr[64*i+:64]),
-                .cfg_capacity(cfg_capacity[32*i+:32]),
+                .cfg_base_addr(cfg_base_addr[64*(2*(i-NUM_RX_QUEUES)+1)+:64]),
+                .cfg_capacity(cfg_capacity[32*(2*(i-NUM_RX_QUEUES)+1)+:32]),
 
-                .status_idle(status_idle[i]),
+                .status_idle(status_idle[2*(i-NUM_RX_QUEUES)+1]),
 
                 .data(tx_data[256*(i-NUM_RX_QUEUES)+:256]),
                 .dest(tx_dest[32*(i-NUM_RX_QUEUES)+:32]),
