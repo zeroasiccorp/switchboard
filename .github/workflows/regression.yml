@@ -8,7 +8,11 @@ jobs:
   verilator:
     name: Verilator
     runs-on: ubuntu-latest
-    container: sbtest
+    container:
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.1
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
@@ -18,7 +22,7 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          python3 -m pip install -e .
+          pip3 install -e .
 
       - name: Run Python binding test
         working-directory: examples/python
@@ -58,7 +62,11 @@ jobs:
   fpga_sim:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
-    container: sbtest
+    container:
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.1
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
