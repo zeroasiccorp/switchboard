@@ -9,17 +9,12 @@ jobs:
     name: Verilator
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:0.0.1
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.5
       credentials:
          username: ${{ github.actor }}
          password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
-      - name: Update git (temporary fix)
-        run: |
-          apt update -y
-          apt install -y git
-
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
@@ -68,17 +63,12 @@ jobs:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:0.0.1
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.5
       credentials:
          username: ${{ github.actor }}
          password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
-      - name: Update git (temporary fix)
-        run: |
-          apt update -y
-          apt install -y git
-
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
