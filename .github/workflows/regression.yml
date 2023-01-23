@@ -15,6 +15,11 @@ jobs:
          password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
+      - name: Update git (temporary fix)
+        run: |
+          apt update -y
+          apt install -y git
+
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
@@ -69,6 +74,11 @@ jobs:
          password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
+      - name: Update git (temporary fix)
+        run: |
+          apt update -y
+          apt install -y git
+
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
