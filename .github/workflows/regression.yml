@@ -8,7 +8,11 @@ jobs:
   verilator:
     name: Verilator
     runs-on: ubuntu-latest
-    container: verilator/verilator:latest
+    container:
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.5
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
@@ -16,20 +20,9 @@ jobs:
           token: ${{ secrets.SGH_REPO_PAT }}
           submodules: recursive
 
-      - name: Install prerequisites
-        run: |
-          apt update -y
-          apt install -y \
-            iverilog \
-            gcc-riscv64-unknown-elf \
-            binutils-riscv64-unknown-elf \
-            python3-dev \
-            python3-pip
-          python3 -m pip install --upgrade pip
-
       - name: Install Switchboard Python package
         run: |
-          python3 -m pip install -e .
+          pip3 install -e .
 
       - name: Run Python binding test
         working-directory: examples/python
@@ -69,17 +62,18 @@ jobs:
   fpga_sim:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
-    container: verilator/verilator:latest
+    container:
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.5
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
           submodules: recursive
-      - name: Install prerequisites
-        run: |
-          apt update -y
-          apt install -y libsystemc libsystemc-dev
+
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga-loopback
         run: |
