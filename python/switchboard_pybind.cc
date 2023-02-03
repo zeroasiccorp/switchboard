@@ -313,7 +313,77 @@ class PyUmi {
             }
         }
 
+        bool send(PyUmiPacket& py_packet, bool blocking=true) {
+            // sends (or tries to send, if blocking=false) a single UMI transaction
+            // if length of the data payload in the packet is greater than
+            // what can be sent in a header packet, then a header packet is sent
+            // containing the beginning of the data, followed by the rest in
+            // subsequent burst packets.
+
+            // get buffer protocol for incoming data
+
+            py::buffer_info info = py::buffer(py_packet.data).request();
+            size_t num = info.size;
+            uint8_t* ptr = (uint8_t*)info.ptr;
+
+            // calculate the number of data bytes in the first packet
+
+            size_t flit_size = std::min(num, (size_t)16);
+
+            // format data received from Python
+
+            sb_packet p;
+            umi_pack((uint32_t*)p.data, py_packet.opcode, py_packet.size, py_packet.user,
+                py_packet.dstaddr, py_packet.srcaddr, ptr, flit_size);
+
+            // try to send the packet once or multiple times depending
+            // on the "blocking" argument
+
+            bool header_sent = m_tx.send(p);
+            if ((!blocking) && (!header_sent)) {
+                return false;
+            }
+
+            // if we reach this point, we're committed to send out the whole UMI
+            // transaction, which may span multiple packet
+
+            // finish sending the header packet
+            if (!header_sent) {
+                while (!m_tx.send(p)) {
+                    check_signals();
+                }
+            }
+
+            // update indices
+            num -= flit_size;
+            ptr += flit_size;
+
+            // send the remaining data in burst packets as necessary
+            while (num > 0) {
+                // format the next burst packet
+                flit_size = std::min(num, (size_t)32);
+                umi_pack_burst((uint32_t*)p.data, ptr, flit_size);
+
+                // send the packet
+                while (!m_tx.send(p)) {
+                    check_signals();
+                }
+
+                // update indices
+                num -= flit_size;
+                ptr += flit_size;
+            }
+
+            // if we reach this point, we succeeded in sending the packet
+            return true;
+        } 
+
         std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
+            // if the receive side isn't active, return None
+            if (!m_rx.is_active()) {
+                return nullptr;
+            }
+
             // get a resposne
 
             sb_packet p;
@@ -330,33 +400,39 @@ class PyUmi {
 
             // if we get to this point, there is valid data in "p"
 
-            // find out the size of the response
+            // parse the packet (but don't copy out the data, since we don't yet
+            // know how much space to allocate to hold it)
 
-            // TODO: make this less fragile, perhaps by adding a function
-            // to umilib.hpp that extracts the size from a packet
+            uint32_t opcode, size, user;
+            uint64_t dstaddr, srcaddr;
+            umi_unpack((uint32_t*)p.data, opcode, size, user, dstaddr, srcaddr, NULL, 0);
 
-            size_t size = p.data[1] & 0xf;
+            // determine how many bytes are in the payload
+
+            size_t num;
+            if (is_umi_read_request(opcode)) {
+                num = 0;
+            } else {
+                num = 1 << size;
+            }
 
             // create an object to hold data to be returned to python
 
-            py::array_t<uint8_t> data(1<<size);
-            std::unique_ptr<PyUmiPacket> resp(new PyUmiPacket(0, 0, 0, 0, 0, data));
+            py::array_t<uint8_t> data(num);
+            std::unique_ptr<PyUmiPacket> resp(new PyUmiPacket(opcode, size, user, dstaddr, srcaddr, data));
 
             // initialize indices
-
-            size_t num = 1<<size;
 
             py::buffer_info info = py::buffer(resp->data).request();
             uint8_t* ptr = (uint8_t*)info.ptr;
 
             // calculate how many bytes are in the first (and possibly only) flit
 
-            size_t flit_size = std::min(1<<size, 16);
+            size_t flit_size = std::min(num, (size_t)16);
 
-            // parse the packet
+            // copy out the data from the header packet
 
-            umi_unpack((uint32_t*)p.data, resp->opcode, resp->size, resp->user,
-                resp->dstaddr, resp->srcaddr, ptr, flit_size);
+            copy_umi_data((uint32_t*)p.data, ptr, flit_size);
 
             // update indices
 
@@ -671,6 +747,7 @@ PYBIND11_MODULE(_switchboard, m) {
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
         .def("init", &PyUmi::init)
+        .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &PyUmi::recv, py::arg("blocking")=true)
         .def("write", &PyUmi::write)
         .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0)

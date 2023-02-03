@@ -15,6 +15,16 @@ class UmiTxRx:
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
 
+    def send(self, p, blocking=True):
+        """
+        Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket object).
+        The "data" field of the packet can contain more data than fits in a single
+        UMI packet, in which case the beginning of the data will be sent in a header
+        packet, and the rest will be sent as burst packets.
+        """
+
+        return self.umi.send(p, blocking)
+
     def recv(self, blocking=True):
         """
         Wait for and return a UMI packet (PyUmiPacket object) if blocking=True,

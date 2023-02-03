@@ -113,29 +113,55 @@ static inline void umi_unpack_burst(const umi_packet p, uint8_t data[], int nbyt
     }
 }
 
+static inline uint32_t umi_opcode(const umi_packet p) {
+    return (p[0] & 0xff);
+}
+
+static inline uint32_t umi_size(const umi_packet p) {
+    return (p[0] >> 8) & 0xf;
+}
+
+static inline uint32_t umi_user(const umi_packet p) {
+    return (p[0] >> 12) & 0xfffff;
+}
+
+static inline uint64_t umi_dstaddr(const umi_packet p) {
+    uint64_t retval;
+
+    retval = 0;
+    retval |= p[7];
+    retval <<= 32;
+    retval |= p[1];
+
+    return retval;
+}
+
+static inline uint64_t umi_srcaddr(const umi_packet p) {
+    uint64_t retval;
+
+    retval = 0;
+    retval |= p[6];
+    retval <<= 32;
+    retval |= p[2];
+
+    return retval;
+}
+
+static inline void copy_umi_data(const umi_packet p, uint8_t data[], int nbytes=16) {
+    assert(nbytes <= 16);
+    memcpy(data, &p[3], nbytes);
+}
+
 static inline void umi_unpack(const umi_packet p, uint32_t& opcode, uint32_t& size, uint32_t& user,
     uint64_t& dstaddr, uint64_t& srcaddr, uint8_t data[], int nbytes=16) {
 
-    // unpack the 32-bit command
-    opcode = p[0] & 0xff;
-    size = (p[0] >> 8) & 0xf;
-    user = (p[0] >> 12) & 0xfffff;
+    opcode = umi_opcode(p);
+    size = umi_size(p);
+    user = umi_user(p);
+    dstaddr = umi_dstaddr(p);
+    srcaddr = umi_srcaddr(p);
+    copy_umi_data(p, data, nbytes);
 
-    // determine destination address
-    dstaddr = 0;
-    dstaddr |= p[7];
-    dstaddr <<= 32;
-    dstaddr |= p[1];
-
-    // determine the source address (only valid for a read or atomic operation)
-    srcaddr = 0;
-    srcaddr |= p[6];
-    srcaddr <<= 32;
-    srcaddr |= p[2];
-
-    // copy out the data
-    assert(nbytes <= 16);
-    memcpy(data, &p[3], nbytes);
 }
 
 static inline std::string umi_packet_to_str(const umi_packet p) {
