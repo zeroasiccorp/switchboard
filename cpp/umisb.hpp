@@ -18,7 +18,7 @@ template <typename T> std::string umi_data_as_str(T& x) {
     // create a formatted representation
     std::stringstream stream;
     stream << "[";
-    for (int i=0; i<len; i++) {
+    for (size_t i=0; i<len; i++) {
         stream << "0x" << std::hex << ptr[i];
         if (i != (len-1)){
             stream << ", ";
