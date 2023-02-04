@@ -34,7 +34,7 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data):
+    def write(self, addr, data, max_size=15):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
@@ -47,7 +47,7 @@ class UmiTxRx:
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             write_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            self.umi.write(addr, write_data)
+            self.umi.write(addr, write_data, max_size)
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 
@@ -95,7 +95,7 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, size_or_dtype, srcaddr=0):
+    def read(self, addr, size_or_dtype, srcaddr=0, max_size=15):
         """
         Reads from the provided 64-bit address.  The "size_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
@@ -113,7 +113,7 @@ class UmiTxRx:
             size = np.dtype(size_or_dtype).itemsize
             return self.umi.read(addr, size, srcaddr).view(size_or_dtype)[0]
         else:
-            return self.umi.read(addr, size_or_dtype, srcaddr)
+            return self.umi.read(addr, size_or_dtype, srcaddr, max_size)
 
     def atomic(self, addr, data, opcode, srcaddr=0):
         """
