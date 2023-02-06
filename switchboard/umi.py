@@ -38,6 +38,19 @@ class UmiTxRx:
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
+
+        The "max_size" argument (optional) indicates the maximum UMI size that
+        can be used for any individual UMI transaction; the number of bytes in
+        a UMI transaction is equal to 2**size.
+
+        The "data" input may contain more bytes than 2**max_size, in which case
+        the write will automatically be split into multiple transactions.  In
+        fact, this might happen anyway if the number of bytes to be written is
+        not a power or two, or is not aligned.
+
+        Currently, the UMI size field is four bits wide, so the default value
+        of "max_size" represents the large single-transaction UMI write that
+        is possible.
         """
 
         if isinstance(data, np.ndarray):
@@ -107,6 +120,19 @@ class UmiTxRx:
 
         srcaddr is the UMI source address used for the read transaction.  This
         is sometimes needed to make sure that reads get routed to the right place.
+
+        The "max_size" argument (optional) indicates the maximum UMI size that
+        can be used for any individual UMI transaction; the number of bytes in
+        a UMI transaction is equal to 2**size.
+
+        The number of bytes to be read may be larger than 2**max_size, in which
+        case the read will automatically be split into multiple transactions.  In
+        fact, this might happen anyway if the number of bytes to be read is
+        not a power or two, or is not aligned.
+
+        Currently, the UMI size field is four bits wide, so the default value
+        of "max_size" represents the large single-transaction UMI read that
+        is possible.
         """
 
         if isinstance(size_or_dtype, (type, np.dtype)):
