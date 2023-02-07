@@ -23,6 +23,7 @@
 #include "switchboard.hpp"
 #include "switchboard_pcie.hpp"
 #include "umilib.hpp"
+#include "umisb.hpp"
 
 namespace py = pybind11;
 
@@ -81,14 +82,21 @@ struct PyUmiPacket {
     }
 
     std::string toString() {
-        std::stringstream stream;
-        stream << "opcode: " << umi_opcode_to_str(opcode) << std::endl;
-        stream << "size: " << size << std::endl;
-        stream << "user: " << user << std::endl;
-        stream << "dstaddr: 0x" << std::hex << dstaddr << std::endl;
-        stream << "srcaddr: 0x" << std::hex << srcaddr << std::endl;
-        stream << "data: " << py::str(data);
-        return stream.str();
+        return umi_transaction_as_str<PyUmiPacket>(*this);
+    }
+
+    void resize(size_t n) {
+        data = py::array_t<uint8_t>(n);
+    }
+
+    size_t len(){
+        py::buffer_info info = py::buffer(data).request();
+        return info.size;
+    }
+
+    uint8_t* ptr() {
+        py::buffer_info info = py::buffer(data).request();
+        return (uint8_t*)info.ptr;        
     }
 
     uint32_t opcode;
@@ -148,6 +156,17 @@ size_t lowest_bit (size_t x) {
         }
         return retval;
     }
+}
+
+// functions for allocating and accessing the pointer to pybind arrays
+
+py::array_t<uint8_t> alloc_pybind_array(int n) {
+    return py::array_t<uint8_t>(n);
+}
+
+uint8_t* get_pybind_array_ptr(py::array_t<uint8_t> arr) {
+    py::buffer_info info = py::buffer(arr).request();
+    return (uint8_t*)info.ptr;
 }
 
 // PySbTxPcie / PySbRxPcie: these objects must be created to initialize Switchboard
@@ -313,83 +332,31 @@ class PyUmi {
             }
         }
 
+        bool send(PyUmiPacket& py_packet, bool blocking=true) {
+            // sends (or tries to send, if blocking=false) a single UMI transaction
+            // if length of the data payload in the packet is greater than
+            // what can be sent in a header packet, then a header packet is sent
+            // containing the beginning of the data, followed by the rest in
+            // subsequent burst packets.
+
+            return umisb_send<PyUmiPacket>(py_packet, m_tx, blocking, &check_signals);
+        } 
+
         std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
-            // get a resposne
+            // try to receive a transaction
+            std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(
+                new PyUmiPacket(0, 0, 0, 0, 0, py::array_t<uint8_t>(0)));
+            bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
 
-            sb_packet p;
-
-            if (!blocking) {
-                if (!m_rx.recv(p)) {
-                    return nullptr;
-                }
+            // if we got something, return it, otherwise return a null pointer
+            if (success) {
+                return resp;
             } else {
-                while (!m_rx.recv(p)) {
-                    check_signals();
-                }
+                return nullptr;
             }
-
-            // if we get to this point, there is valid data in "p"
-
-            // find out the size of the response
-
-            // TODO: make this less fragile, perhaps by adding a function
-            // to umilib.hpp that extracts the size from a packet
-
-            size_t size = p.data[1] & 0xf;
-
-            // create an object to hold data to be returned to python
-
-            py::array_t<uint8_t> data(1<<size);
-            std::unique_ptr<PyUmiPacket> resp(new PyUmiPacket(0, 0, 0, 0, 0, data));
-
-            // initialize indices
-
-            size_t num = 1<<size;
-
-            py::buffer_info info = py::buffer(resp->data).request();
-            uint8_t* ptr = (uint8_t*)info.ptr;
-
-            // calculate how many bytes are in the first (and possibly only) flit
-
-            size_t flit_size = std::min(1<<size, 16);
-
-            // parse the packet
-
-            umi_unpack((uint32_t*)p.data, resp->opcode, resp->size, resp->user,
-                resp->dstaddr, resp->srcaddr, ptr, flit_size);
-
-            // update indices
-
-            num -= flit_size;
-            ptr += flit_size;
-
-            // receive more data if necessary
-
-            while (num > 0) {
-                // receive the next packet
-
-                while (!m_rx.recv(p)) {
-                    check_signals();
-                }
-
-                // calculate how many bytes will be in this flit
-
-                flit_size = std::min(num, (size_t)32);
-                
-                // unpack data from the flit
-
-                umi_unpack_burst((uint32_t*)p.data, ptr, flit_size);
-
-                // update indices
-
-                num -= flit_size;
-                ptr += flit_size;
-            }
-
-            return resp;
         }
 
-        void write(uint64_t addr, py::array_t<uint8_t> data) {
+        void write(uint64_t addr, py::array_t<uint8_t> data, uint32_t max_size=15) {
             // write data to the given address.  data can be of any length,
             // including greater than the length of a header packet and
             // values that are not powers of two.  this function is blocking.
@@ -413,9 +380,11 @@ class PyUmi {
             while (num > 0) {
                 // determine the largest aligned transaction that is possible
                 ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
+                size = std::min(size, (ssize_t)max_size);
 
                 // perform a write of this size
-                write_low_level(addr, ptr, size);
+                UmiTransaction x(UMI_WRITE_POSTED, size, 0, addr, 0, ptr, 1<<size);
+                umisb_send<UmiTransaction>(x, m_tx, true, &check_signals);
 
                 // update indices
                 num -= (1<<size);
@@ -424,7 +393,9 @@ class PyUmi {
             }
         }
 
-        py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0) {
+        py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0,
+            uint32_t max_size=15) {
+
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
             // that are not powers of two.  the optional "srcaddr" argument is
@@ -450,9 +421,18 @@ class PyUmi {
             while (num > 0) {
                 // determine the largest aligned transaction that is possible
                 ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
+                size = std::min(size, (ssize_t)max_size);
 
-                // perform a read of this size
-                read_low_level(addr, ptr, size, srcaddr);
+                // read request
+                UmiTransaction request(UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
+                umisb_send<UmiTransaction>(request, m_tx, true, &check_signals);
+
+                // get response
+                UmiTransaction reply(0, 0, 0, 0, 0, ptr, 1<<size);
+                umisb_recv<UmiTransaction>(reply, m_rx, true, &check_signals);
+
+                // check that the reply makes sense
+                umisb_check_reply<UmiTransaction>(request, reply);
 
                 // update indices
                 num -= (1<<size);
@@ -467,145 +447,51 @@ class PyUmi {
             uint32_t opcode, uint64_t srcaddr=0) {
             // apply an atomic operation at addr with input data
 
-            // buffer for incoming data
-            py::buffer_info in_info = py::buffer(data).request();
-            py::ssize_t num = in_info.size;
-            uint8_t* in_ptr = (uint8_t*)in_info.ptr;
+            // create outbound packet
 
-            // buffer for outbound data
-            py::array_t<uint8_t> result = py::array_t<uint8_t>(num);
-            py::buffer_info out_info = py::buffer(result).request();
-            uint8_t* out_ptr = (uint8_t*)out_info.ptr;
+            PyUmiPacket request(opcode, 0, 0, addr, srcaddr, data);
+            size_t num = request.len();
 
             if (num == 0) {
                 // nothing to read, so just return the empty array
-                return result;
+                return py::array_t<uint8_t>(0);
             }
 
-            size_t size = highest_bit(num);
+            // if we get to this point, there is a transaction of non-zero size
 
-            if (size > 4) {            
+            // calculate the size of the transaction
+
+            request.size = highest_bit(num); 
+
+            if (request.size > 4) {
                 throw std::runtime_error("Atomic operand must be 16 bytes or fewer to fit in a header packet.");
             }
 
-            if (num != (1<<size)) {
+            if (num != (1<<request.size)) {
                 throw std::runtime_error("Width of atomic operand must be a power of two number of bytes.");
             }
 
-            // perform the atomic operation
+            // send the request
 
-            read_low_level(addr, out_ptr, size, srcaddr, opcode, in_ptr);
+            umisb_send<PyUmiPacket>(request, m_tx, true, &check_signals);
+
+            // get the reply
+
+            PyUmiPacket reply;
+            umisb_recv<PyUmiPacket>(reply, m_rx, true, &check_signals);
+
+            // check that the reply makes sense
+
+            umisb_check_reply<PyUmiPacket>(request, reply);
 
             // return the result of the operation
 
-            return result;
+            return reply.data;
         }
 
     private:
         SBTX m_tx;
         SBRX m_rx;
-
-        void write_low_level(uint64_t addr, uint8_t* ptr, uint32_t size) {
-            sb_packet p;
-            size_t flit_bytes = std::min(1<<size, 16);
-            umi_pack((uint32_t*)(&p.data[0]), UMI_WRITE_POSTED, size, 0,
-                addr, 0, ptr, flit_bytes);
-            ptr += flit_bytes;
-
-            // send the packet
-            while (!m_tx.send(p)) {
-                check_signals();
-            }
-
-            // send remaining packets if there are more to send
-            if (size > 4) {
-                size_t bytes_to_send = (1<<size) - 16;
-
-                while (bytes_to_send > 0) {
-                    // populate the next packet
-                    size_t flit_bytes = std::min(bytes_to_send, (size_t)32);
-                    umi_pack_burst((uint32_t*)p.data, ptr, flit_bytes);
-
-                    // send the packet
-                    while (!m_tx.send(p)) {
-                        check_signals();
-                    }
-
-                    // increment the pointer, decrement bytes left to send
-                    ptr += flit_bytes;
-                    bytes_to_send -= flit_bytes;
-                }
-            }
-        }
-
-        void read_low_level(uint64_t addr, uint8_t* ptr, uint32_t size, uint64_t srcaddr,
-            uint32_t opcode=UMI_READ_REQUEST, uint8_t* data=NULL) {
-
-            // can handle both reads and atomic operations, since both involve a
-            // request followed by a response packet or burst
-
-            // create the packet
-            sb_packet p;
-            if (opcode == UMI_READ_REQUEST) {
-                umi_pack((uint32_t*)p.data, opcode, size, 0, addr, srcaddr, NULL, 0);
-            } else {
-                umi_pack((uint32_t*)p.data, opcode, size, 0, addr, srcaddr, data, 1<<size);
-            }
-
-            // send the read request
-            while (!m_tx.send(p)){
-                check_signals();
-            }
-
-            // get the read response
-            while (!m_rx.recv(p)) {
-                check_signals();
-            }
-
-            // parse the response
-            uint32_t resp_opcode, resp_size, resp_user;
-            uint64_t resp_dstaddr, resp_srcaddr;
-            size_t flit_bytes = std::min(1<<size, 16);
-            umi_unpack((uint32_t*)p.data, resp_opcode, resp_size, resp_user,
-                resp_dstaddr, resp_srcaddr, ptr, flit_bytes);
-            ptr += flit_bytes;
-
-            // check that the response makes sense
-            if (!is_umi_write_response(resp_opcode)) {
-                std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
-                    << " in response to " << umi_opcode_to_str(opcode)
-                    << " (expected WRITE-RESPONSE)" << std::endl;
-            }
-            if (resp_size != size) {
-                std::cerr << "Warning: " << umi_opcode_to_str(opcode)
-                    << " response size is " << std::to_string(resp_size)
-                    << " (expected " << std::to_string(size) << ")" << std::endl;
-            }
-            if (resp_dstaddr != srcaddr) {
-                std::cerr <<  "Warning: dstaddr in " << umi_opcode_to_str(opcode)
-                    << " response is " << std::to_string(resp_dstaddr)
-                    << " (expected " << std::to_string(srcaddr) << ")" << std::endl;
-            }
-
-            // receive remaining packets if this was part of a burst
-            if (size > 4) {
-                size_t bytes_to_recv = (1<<size) - 16;
-                while (bytes_to_recv > 0) {
-                    // get the next packet
-                    while (!m_rx.recv(p)) {
-                        check_signals();
-                    }
-
-                    // unpack the data
-                    size_t flit_bytes = std::min(bytes_to_recv, (size_t)32);
-                    umi_unpack_burst((uint32_t*)p.data, ptr, flit_bytes);
-
-                    // increment the pointer, decrement bytes left to receive
-                    ptr += flit_bytes;
-                    bytes_to_recv -= flit_bytes;
-                }
-            }
-        }
 };
 
 // convenience function to delete old queues from previous runs
@@ -671,9 +557,10 @@ PYBIND11_MODULE(_switchboard, m) {
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
         .def("init", &PyUmi::init)
+        .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &PyUmi::recv, py::arg("blocking")=true)
-        .def("write", &PyUmi::write)
-        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0)
+        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_size")=15)
+        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0, py::arg("max_size")=15)
         .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str, "Returns a string representation of a UMI opcode");

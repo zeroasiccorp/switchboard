@@ -15,6 +15,16 @@ class UmiTxRx:
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
 
+    def send(self, p, blocking=True):
+        """
+        Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket object).
+        The "data" field of the packet can contain more data than fits in a single
+        UMI packet, in which case the beginning of the data will be sent in a header
+        packet, and the rest will be sent as burst packets.
+        """
+
+        return self.umi.send(p, blocking)
+
     def recv(self, blocking=True):
         """
         Wait for and return a UMI packet (PyUmiPacket object) if blocking=True,
@@ -24,10 +34,23 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data):
+    def write(self, addr, data, max_size=15):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
+
+        The "max_size" argument (optional) indicates the maximum UMI size that
+        can be used for any individual UMI transaction; the number of bytes in
+        a UMI transaction is equal to 2**size.
+
+        The "data" input may contain more bytes than 2**max_size, in which case
+        the write will automatically be split into multiple transactions.  In
+        fact, this might happen anyway if the number of bytes to be written is
+        not a power or two, or is not aligned.
+
+        Currently, the UMI size field is four bits wide, so the default value
+        of "max_size" represents the large single-transaction UMI write that
+        is possible.
         """
 
         if isinstance(data, np.ndarray):
@@ -37,7 +60,7 @@ class UmiTxRx:
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             write_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            self.umi.write(addr, write_data)
+            self.umi.write(addr, write_data, max_size)
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 
@@ -85,7 +108,7 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, size_or_dtype, srcaddr=0):
+    def read(self, addr, size_or_dtype, srcaddr=0, max_size=15):
         """
         Reads from the provided 64-bit address.  The "size_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
@@ -97,13 +120,26 @@ class UmiTxRx:
 
         srcaddr is the UMI source address used for the read transaction.  This
         is sometimes needed to make sure that reads get routed to the right place.
+
+        The "max_size" argument (optional) indicates the maximum UMI size that
+        can be used for any individual UMI transaction; the number of bytes in
+        a UMI transaction is equal to 2**size.
+
+        The number of bytes to be read may be larger than 2**max_size, in which
+        case the read will automatically be split into multiple transactions.  In
+        fact, this might happen anyway if the number of bytes to be read is
+        not a power or two, or is not aligned.
+
+        Currently, the UMI size field is four bits wide, so the default value
+        of "max_size" represents the large single-transaction UMI read that
+        is possible.
         """
 
         if isinstance(size_or_dtype, (type, np.dtype)):
             size = np.dtype(size_or_dtype).itemsize
             return self.umi.read(addr, size, srcaddr).view(size_or_dtype)[0]
         else:
-            return self.umi.read(addr, size_or_dtype, srcaddr)
+            return self.umi.read(addr, size_or_dtype, srcaddr, max_size)
 
     def atomic(self, addr, data, opcode, srcaddr=0):
         """
