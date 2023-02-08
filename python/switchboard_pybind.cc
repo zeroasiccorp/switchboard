@@ -332,6 +332,14 @@ class PyUmi {
             }
         }
 
+        bool rx_active() {
+            return m_rx.is_active();
+        }
+
+        bool tx_active() {
+            return m_tx.is_active();
+        }
+
         bool send(PyUmiPacket& py_packet, bool blocking=true) {
             // sends (or tries to send, if blocking=false) a single UMI transaction
             // if length of the data payload in the packet is greater than
@@ -557,6 +565,8 @@ PYBIND11_MODULE(_switchboard, m) {
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
         .def("init", &PyUmi::init)
+        .def("rx_active", &PyUmi::rx_active)
+        .def("tx_active", &PyUmi::tx_active)
         .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &PyUmi::recv, py::arg("blocking")=true)
         .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_size")=15)
