@@ -81,7 +81,7 @@ def main():
     while True:
         # receive data from SB queue and send it over TCP
         if (sbrx is not None) and tcp_tx_alive:
-            p = sbrx.recv()
+            p = sbrx.recv(blocking=False)
             if p is not None:
                 data = sb2bytes(p)
                 conn.setblocking(True)
