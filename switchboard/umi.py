@@ -15,12 +15,6 @@ class UmiTxRx:
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
 
-    def rx_active(self):
-        return self.umi.rx_active()
-
-    def tx_active(self):
-        return self.umi.tx_active()
-
     def send(self, p, blocking=True):
         """
         Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket object).

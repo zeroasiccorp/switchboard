@@ -32,5 +32,10 @@ setup (
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
     python_requires=">=3.7",
-    packages=find_packages()
+    packages=find_packages(),
+    entry_points = {
+        'console_scripts': [
+            'sbtcp=switchboard.sbtcp:main'
+        ]
+    }
 )

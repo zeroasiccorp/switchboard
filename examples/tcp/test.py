@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-# Simple example illustrating the Switchboard Python binding
+# Simple example illustrating switchboard bridging over TCP.
 # Copyright (C) 2023 Zero ASIC
 
 import sys
 import atexit
 import subprocess
 import numpy as np
-from pathlib import Path
 from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx
 
 def main():
@@ -63,11 +62,8 @@ def main():
         sys.exit(1)
 
 def start_tcp_bridge(mode, tx=None, rx=None, host=None, port=None, quiet=True):
-    this_dir = Path(__file__).resolve().parent
-    top_dir = this_dir.parent.parent
-
-    cmd = [sys.executable]
-    cmd += [top_dir / 'switchboard' / 'sb-tcp.py']
+    cmd = []
+    cmd += ['sbtcp']
     cmd += ['--mode', mode]
     if tx is not None:
         cmd += ['--tx', tx]
