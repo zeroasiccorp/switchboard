@@ -4,7 +4,7 @@
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 # the pybind module is built as _switchboard that is imported
 # into the module called "switchboard".  this will allow us
@@ -32,5 +32,10 @@ setup (
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
     python_requires=">=3.7",
-    packages=find_packages()
+    packages=find_packages(),
+    entry_points = {
+        'console_scripts': [
+            'sbtcp=switchboard.sbtcp:main'
+        ]
+    }
 )
