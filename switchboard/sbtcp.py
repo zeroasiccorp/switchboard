@@ -239,8 +239,8 @@ def get_parser():
         " sending and receiving packets.")
     parser.add_argument('--host', type=str, default="localhost", help="IP address or hostname"
         " used sending/receiving packets.")
-    parser.add_argument('-q', action='store_true', default="Quiet mode: doesn't print anything.")
-    parser.add_argument('--noyield', action='store_true', default="Reduces latency by keeping the"
+    parser.add_argument('-q', action='store_true', help="Quiet mode: doesn't print anything.")
+    parser.add_argument('--noyield', action='store_true', help="Reduces latency by keeping the"
         " CPU busy even when there is no packet activity, or when packets are blocked"
         " due to backpressure.")
 
