@@ -15,7 +15,7 @@ jobs:
          password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
           submodules: recursive
@@ -69,7 +69,7 @@ jobs:
          password: ${{ secrets.SGH_REPO_PAT }}
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.SGH_REPO_PAT }}
           submodules: recursive
