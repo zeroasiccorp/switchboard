@@ -58,11 +58,10 @@ module sb_rx_fpga #(
      */
 
     localparam [2:0] STATE_IDLE = 3'd0;
-    localparam [2:0] STATE_RD_TAIL = 3'd1;
-    localparam [2:0] STATE_RD_HEAD = 3'd2;
-    localparam [2:0] STATE_RD_PACKET = 3'd3;
-    localparam [2:0] STATE_WR_TAIL = 3'd4;
-    localparam [2:0] STATE_FAULT = 3'd5;
+    localparam [2:0] STATE_RD_HEAD = 3'd1;
+    localparam [2:0] STATE_RD_PACKET = 3'd2;
+    localparam [2:0] STATE_WR_TAIL = 3'd3;
+    localparam [2:0] STATE_FAULT = 3'd4;
 
     wire wvalid;
     reg [63:0] waddr;
@@ -86,17 +85,11 @@ module sb_rx_fpga #(
         case (state)
             STATE_IDLE: begin
                 if (!valid && en) begin
-                    state_next = STATE_RD_TAIL;
-                end
-            end
-
-            STATE_RD_TAIL: begin
-                if (rready && !en) begin
-                    state_next = STATE_IDLE;
-                end else if (rready && empty) begin
-                    state_next = STATE_RD_HEAD;
-                end else if (rready && !empty) begin
-                    state_next = STATE_RD_PACKET;
+                    if (!empty) begin
+                        state_next = STATE_RD_PACKET;
+                    end else begin
+                        state_next = STATE_RD_HEAD;
+                    end
                 end
             end
 
@@ -149,8 +142,12 @@ module sb_rx_fpga #(
     reg [31:0] tail = 32'd0;
     wire [31:0] head_next;
     wire [31:0] tail_next;
+    wire [31:0] tail_incr;
+
     assign head_next = (state == STATE_RD_HEAD && rready) ? rdata[31:0] : head;
-    assign tail_next = (state == STATE_RD_TAIL && rready) ? rdata[31:0] : tail;
+
+    assign tail_incr = (tail + 32'd1 == cfg_capacity) ? 32'd0 : (tail + 32'd1);
+    assign tail_next = (state == STATE_RD_PACKET && rready) ? tail_incr : tail;
 
     always @(posedge clk) begin
         if (reset) begin
@@ -164,9 +161,6 @@ module sb_rx_fpga #(
 
     // Use *_next signals here to speed up state machine transitions.
     assign empty = (head_next == tail_next);
-
-    wire [31:0] tail_incr;
-    assign tail_incr = (tail_next + 32'd1 == cfg_capacity) ? 32'd0 : (tail_next + 32'd1);
 
     // Addresses within queue
     wire [63:0] head_addr;
@@ -220,18 +214,14 @@ module sb_rx_fpga #(
         if (state == STATE_WR_TAIL) begin
             waddr = tail_addr;
             wstrb = 64'hff;
-            wdata = {480'd0, tail_incr};
+            wdata = {480'd0, tail};
         end
     end
-    assign rvalid = ((state == STATE_RD_HEAD) ||
-                     (state == STATE_RD_TAIL) ||
-                     (state == STATE_RD_PACKET));
+    assign rvalid = ((state == STATE_RD_HEAD) || (state == STATE_RD_PACKET));
     always @(*) begin
         raddr = 64'd0;
         if (state == STATE_RD_HEAD) begin
             raddr = head_addr;
-        end else if (state == STATE_RD_TAIL) begin
-            raddr = tail_addr;
         end else if (state == STATE_RD_PACKET) begin
             raddr = cfg_base_addr + PACKET_OFFSET + (tail * PACKET_SIZE);
         end
@@ -243,6 +233,7 @@ module sb_rx_fpga #(
 
     // This logic relies on maintaining invariant that valid != 1 when state ==
     // STATE_RD_PACKET
+    // assert((state == STATE_RD_PACKET && valid != 1) || state != STATE_RD_PACKET);
     always @(posedge clk) begin
         if (reset) begin
             valid <= 1'b0;
