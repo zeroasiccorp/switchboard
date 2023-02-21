@@ -233,7 +233,6 @@ module sb_rx_fpga #(
 
     // This logic relies on maintaining invariant that valid != 1 when state ==
     // STATE_RD_PACKET
-    // assert((state == STATE_RD_PACKET && valid != 1) || state != STATE_RD_PACKET);
     always @(posedge clk) begin
         if (reset) begin
             valid <= 1'b0;
