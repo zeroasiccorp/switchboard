@@ -10,16 +10,26 @@
 
 // generic formatting methods
 
-template <typename T> std::string umi_data_as_str(T& x) {
+template <typename T> std::string umi_data_as_str(T& x, ssize_t max_len=-1) {
     // get the data representation
     uint8_t* ptr = x.ptr();
     size_t len = x.len();
+
+    // if max_len is provided (non-negative), then it limits the amount
+    // of data printed out.  the main use case is setting max_len=1<<size,
+    // so that if the data buffer is larger than necessary, only valid
+    // data gets printed out.
+    if (max_len >= 0) {
+        len = std::min(len, (size_t)max_len);
+    }
 
     // create a formatted representation
     std::stringstream stream;
     stream << "[";
     for (size_t i=0; i<len; i++) {
-        stream << "0x" << std::hex << ptr[i];
+        // uint8_t needs to be cast to an integer to print correctly
+        // with std::hex: https://stackoverflow.com/a/23575509
+        stream << "0x" << std::hex << static_cast<int>(ptr[i]);
         if (i != (len-1)){
             stream << ", ";
         }
@@ -32,12 +42,26 @@ template <typename T> std::string umi_data_as_str(T& x) {
 
 template <typename T> std::string umi_transaction_as_str(T& x) {
     std::stringstream stream;
-    stream << "opcode: " << umi_opcode_to_str(x.opcode) << std::endl;
-    stream << "size: " << x.size << std::endl;
-    stream << "user: " << x.user << std::endl;
-    stream << "dstaddr: 0x" << std::hex << x.dstaddr << std::endl;
-    stream << "srcaddr: 0x" << std::hex << x.srcaddr << std::endl;
-    stream << "data: " << umi_data_as_str<T>(x);
+
+    stream << "opcode: " << umi_opcode_to_str(x.opcode);
+
+    stream << std::endl << "size: " << x.size;
+    stream << std::endl << "user: " << x.user;
+    stream << std::endl << "dstaddr: 0x" << std::hex << x.dstaddr;
+
+    // print out the source address, as long as this isn't a write,
+    // since a write doesn't have a source address
+    if (!is_umi_write(x.opcode)) {
+        stream << std::endl << "srcaddr: 0x" << std::hex << x.srcaddr;
+    }
+
+    // print out the data as long as this isn't a read request, since
+    // that doesn't have data
+    if (!is_umi_read_request(x.opcode)) {
+        stream << std::endl << "data: " << umi_data_as_str<T>(x, 1<<x.size);
+    }
+
+    // return the result, noting that it does not contain a final newline
     return stream.str();
 }
 
