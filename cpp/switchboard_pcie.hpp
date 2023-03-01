@@ -15,6 +15,9 @@
 #include "pagemap.h"
 #include "pciedev.h"
 
+#undef D
+#define D(x)
+
 #define REG_ID                0x000
 #define REG_CAP               0x004
 
@@ -68,9 +71,9 @@ class SB_pcie {
 
             // TODO Validate the ID and version regs.
             r = dev_read32(REG_ID);
-            printf("SB pcie ID=%x\n", r);
+            D(printf("SB pcie ID=%x\n", r));
             r = dev_read32(REG_CAP);
-            printf("SB pcie CAP=%x\n", r);
+            D(printf("SB pcie CAP=%x\n", r));
 
             // Reset the device.
             dev_write32(qoffset + REG_RESET, 0x1);
@@ -79,10 +82,10 @@ class SB_pcie {
 
             dev_write32(qoffset + REG_QUEUE_ADDRESS_LO, m_addr);
             dev_write32(qoffset + REG_QUEUE_ADDRESS_HI, m_addr >> 32);
-            printf("SB QUEUE_ADDR=%lx\n", m_addr);
+            D(printf("SB QUEUE_ADDR=%lx\n", m_addr));
 
             dev_write32(qoffset + REG_QUEUE_CAPACITY, capacity);
-            printf("SB CAPACITY=%d\n", capacity);
+            D(printf("SB CAPACITY=%d\n", capacity));
 
             dev_write32_strong(qoffset + REG_ENABLE, 0x1);
             return true;
