@@ -19,6 +19,8 @@
 #define D(x)
 
 #define REG_ID                0x000
+#define REG_ID_FPGA           0x1234
+
 #define REG_CAP               0x004
 
 #define REG_ENABLE            0x100
@@ -72,6 +74,10 @@ class SB_pcie {
             // TODO Validate the ID and version regs.
             r = dev_read32(REG_ID);
             D(printf("SB pcie ID=%x\n", r));
+            if (r >> 16 != REG_ID_FPGA) {
+                return false;
+            }
+
             r = dev_read32(REG_CAP);
             D(printf("SB pcie CAP=%x\n", r));
 
