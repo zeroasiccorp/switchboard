@@ -182,7 +182,9 @@ struct PySbTxPcie {
     void init(std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
         if ((uri != "") && (bdf != "")) {
             m_tx = std::unique_ptr<SBTX_pcie>(new SBTX_pcie(idx));
-            m_tx->init(uri, bdf, bar_num);
+            if (!m_tx->init(uri, bdf, bar_num)) {
+                throw std::runtime_error("Unable to initialize PCIe TX Queue.");
+            }
         }
     }
 
@@ -198,7 +200,9 @@ struct PySbRxPcie {
     void init(std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
         if ((uri != "") && (bdf != "")) {
             m_rx = std::unique_ptr<SBRX_pcie>(new SBRX_pcie(idx));
-            m_rx->init(uri, bdf, bar_num);
+            if (!m_rx->init(uri, bdf, bar_num)) {
+                throw std::runtime_error("Unable to initialize PCIe RX Queue.");
+            }
         }
     }
 
