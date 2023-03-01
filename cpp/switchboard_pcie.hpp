@@ -64,6 +64,7 @@ class SB_pcie {
         virtual void deinit_host(void) {
             if (m_map) {
                 pcie_bar_unmap(m_map, PCIE_BAR_MAP_SIZE);
+                m_map = NULL;
             }
         }
 
