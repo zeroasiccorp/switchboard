@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <thread>
 #include <vector>
+#include <stdexcept>
 
 #include "spsc_queue.h"
 
@@ -54,19 +55,28 @@ class SB_base {
         }
 
         int mlock(void) {
-            assert(m_active);
+            check_active();
             assert(m_q);
             return spsc_mlock(m_q);
         }
 
         int get_capacity(void) {
+            check_active();
             return m_q->capacity;
         }
 
         void *get_shm_handle(void) {
+            check_active();
             return m_q->shm;
         }
     protected:
+
+        void check_active(void) {
+            if (!m_active) {
+                throw std::runtime_error("Using an uninitialized SB queue!");
+            }
+        }
+
         bool m_auto_deinit;
         bool m_active;
         spsc_queue *m_q;
@@ -77,6 +87,7 @@ class SBTX : public SB_base {
         SBTX () {}
 
         bool send(sb_packet& p) {
+            check_active();
             return spsc_send(m_q, &p, sizeof p);
         }
 
@@ -87,6 +98,7 @@ class SBTX : public SB_base {
         }
 
         bool all_read() {
+            check_active();
             return spsc_size(m_q) == 0;
         }
 };
@@ -96,10 +108,12 @@ class SBRX : public SB_base {
         SBRX () {}
 
         bool recv(sb_packet& p) {
+            check_active();
             return spsc_recv(m_q, &p, sizeof p);
         }
 
         bool recv() {
+            check_active();
             sb_packet dummy_p;
             return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
         }
@@ -111,6 +125,7 @@ class SBRX : public SB_base {
         }
 
         bool recv_peek(sb_packet& p) {
+            check_active();
             return spsc_recv_peek(m_q, &p, sizeof p);
         }
 };
