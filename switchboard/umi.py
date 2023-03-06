@@ -34,7 +34,7 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, max_size=15):
+    def write(self, addr, data, max_size=15, progressbar=False):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
@@ -54,13 +54,13 @@ class UmiTxRx:
         """
 
         if isinstance(data, np.ndarray):
-            self.umi.write(addr, data.view(np.uint8))
+            self.umi.write(addr, data.view(np.uint8), max_size, progressbar)
         elif isinstance(data, np.integer):
             # copy=False should be safe here, because the data will be
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             write_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            self.umi.write(addr, write_data, max_size)
+            self.umi.write(addr, write_data, max_size, progressbar)
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 
