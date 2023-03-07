@@ -182,7 +182,9 @@ struct PySbTxPcie {
     void init(std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
         if ((uri != "") && (bdf != "")) {
             m_tx = std::unique_ptr<SBTX_pcie>(new SBTX_pcie(idx));
-            m_tx->init(uri, bdf, bar_num);
+            if (!m_tx->init(uri, bdf, bar_num)) {
+                throw std::runtime_error("Unable to initialize PCIe TX Queue.");
+            }
         }
     }
 
@@ -198,7 +200,9 @@ struct PySbRxPcie {
     void init(std::string uri="", int idx=0, int bar_num=0, std::string bdf="") {
         if ((uri != "") && (bdf != "")) {
             m_rx = std::unique_ptr<SBRX_pcie>(new SBRX_pcie(idx));
-            m_rx->init(uri, bdf, bar_num);
+            if (!m_rx->init(uri, bdf, bar_num)) {
+                throw std::runtime_error("Unable to initialize PCIe RX Queue.");
+            }
         }
     }
 
@@ -313,6 +317,25 @@ class PySbRx {
         SBRX m_rx;
 };
 
+// Functions to show a progress bar.
+
+static void progressbar_show(uint64_t progress, uint64_t total) {
+    unsigned int progress_percent = progress * 100 / total;
+    // Cap it to 50 chars for smaller terminals.
+    unsigned int count = progress_percent / 2;
+
+    putchar('\r');
+    printf("%d%%\t", progress_percent);
+    while (count--) {
+        putchar('#');
+    }
+    fflush(stdout);
+}
+
+static inline void progressbar_done(void) {
+    putchar('\n');
+}
+
 // PyUmi: Higher-level than PySbTx and PySbRx, this class works with two SB queues,
 // one TX and one RX, to issue write requests and read requests according to the UMI
 // specification.
@@ -356,7 +379,7 @@ class PyUmi {
             }
         }
 
-        void write(uint64_t addr, py::array_t<uint8_t> data, uint32_t max_size=15) {
+        void write(uint64_t addr, py::array_t<uint8_t> data, uint32_t max_size=15, bool progressbar=false) {
             // write data to the given address.  data can be of any length,
             // including greater than the length of a header packet and
             // values that are not powers of two.  this function is blocking.
@@ -390,6 +413,14 @@ class PyUmi {
                 num -= (1<<size);
                 addr += (1<<size);
                 ptr += (1<<size);
+
+                if (progressbar) {
+                    uint64_t progress = info.size - num;
+                    progressbar_show(progress, info.size);
+                }
+            }
+            if (progressbar) {
+                progressbar_done();
             }
         }
 
@@ -559,7 +590,7 @@ PYBIND11_MODULE(_switchboard, m) {
         .def("init", &PyUmi::init)
         .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &PyUmi::recv, py::arg("blocking")=true)
-        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_size")=15)
+        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_size")=15, py::arg("progressbar")=false)
         .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0, py::arg("max_size")=15)
         .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);
 

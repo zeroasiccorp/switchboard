@@ -14,6 +14,12 @@ static void usage(const char *progname) {
 	printf("%s: BDF BAR-num offset\n\n", progname);
 }
 
+static void bad_queue(const char *name) {
+	assert(name);
+	printf("Unable to initialize PCIe %s-queue!\n", name);
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char* argv[]) {
 	const char *bdf;
 	int bar_num;
@@ -30,8 +36,12 @@ int main(int argc, char* argv[]) {
 	bdf = argv[1];
 	bar_num = 0;
 
-	tx.init("queue-tx", bdf, bar_num);
-	rx.init("queue-rx", bdf, bar_num);
+	if (!tx.init("queue-tx", bdf, bar_num)) {
+		bad_queue("tx");
+	}
+	if (!rx.init("queue-rx", bdf, bar_num)) {
+		bad_queue("rx");
+	}
 
 	for (i = 0; i < 1024; i++) {
 		sb_packet p = {0};

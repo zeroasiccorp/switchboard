@@ -15,7 +15,12 @@
 #include "pagemap.h"
 #include "pciedev.h"
 
+#undef D
+#define D(x)
+
 #define REG_ID                0x000
+#define REG_ID_FPGA           0x1234
+
 #define REG_CAP               0x004
 
 #define REG_ENABLE            0x100
@@ -29,6 +34,9 @@
 
 // Map enough space to configure 256 queues + global config.
 #define PCIE_BAR_MAP_SIZE (REG_QUEUE_ADDR_SIZE * 256 + REG_ENABLE)
+
+// Max nr of retries when resetting or disabling queue's.
+#define MAX_RETRY 3
 
 template<typename T>
 static inline void sb_pcie_deinit(T *s) {
@@ -59,36 +67,51 @@ class SB_pcie {
         virtual void deinit_host(void) {
             if (m_map) {
                 pcie_bar_unmap(m_map, PCIE_BAR_MAP_SIZE);
+                m_map = NULL;
             }
         }
 
         bool init_dev(int capacity) {
             int qoffset = m_queue_id * REG_QUEUE_ADDR_SIZE;
+            int reset_retry = 0;
             uint32_t r;
 
             // TODO Validate the ID and version regs.
             r = dev_read32(REG_ID);
-            printf("SB pcie ID=%x\n", r);
+            D(printf("SB pcie ID=%x\n", r));
+            if (r >> 16 != REG_ID_FPGA) {
+                printf("%s: Incompatible REG_ID=%x\n", __func__, r);
+                return false;
+            }
+
             r = dev_read32(REG_CAP);
-            printf("SB pcie CAP=%x\n", r);
+            D(printf("SB pcie CAP=%x\n", r));
 
             // Reset the device.
             dev_write32(qoffset + REG_RESET, 0x1);
             // TODO: timeout/yield?
-            while (dev_read32(qoffset + REG_STATUS) != 0x1);
+            D(printf("Read reset state\n"));
+            while (dev_read32(qoffset + REG_STATUS) != 0x1) {
+                if (reset_retry++ >= MAX_RETRY) {
+                    return false;
+                }
+                usleep(100 * 1000);
+            }
 
             dev_write32(qoffset + REG_QUEUE_ADDRESS_LO, m_addr);
             dev_write32(qoffset + REG_QUEUE_ADDRESS_HI, m_addr >> 32);
-            printf("SB QUEUE_ADDR=%lx\n", m_addr);
+            D(printf("SB QUEUE_ADDR=%lx\n", m_addr));
 
             dev_write32(qoffset + REG_QUEUE_CAPACITY, capacity);
-            printf("SB CAPACITY=%d\n", capacity);
+            D(printf("SB CAPACITY=%d\n", capacity));
 
             dev_write32_strong(qoffset + REG_ENABLE, 0x1);
             return true;
         }
 
         void deinit_dev() {
+            int disable_retry = 0;
+
             if (!m_map) {
                 return;
             }
@@ -98,7 +121,12 @@ class SB_pcie {
             // queue shared memory, otherwise FPGA may read from/write to memory
             // that gets reallocated to another process.
             dev_write32_strong(qoffset + REG_ENABLE, 0x0);
-            while (dev_read32(qoffset + REG_STATUS) != 0x1);
+            while (dev_read32(qoffset + REG_STATUS) != 0x1) {
+                if (disable_retry++ >= MAX_RETRY) {
+                    return;
+                }
+                usleep(100 * 1000);
+            }
         }
 
         virtual uint32_t dev_read32(uint64_t offset)

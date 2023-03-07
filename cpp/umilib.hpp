@@ -13,6 +13,7 @@ enum UMI_CMD {
     UMI_WRITE_SIGNAL    = 0x05,
     UMI_WRITE_STREAM    = 0x07,
     UMI_WRITE_ACK       = 0x09,
+    UMI_WRITE_MULTICAST = 0x0B,
     UMI_READ_REQUEST    = 0x02,
     UMI_ATOMIC_ADD      = 0x04,
     UMI_ATOMIC_AND      = 0x14,
@@ -27,6 +28,10 @@ enum UMI_CMD {
 };
 
 typedef uint32_t umi_packet[8];
+
+static inline bool is_umi_invalid(uint32_t opcode) {
+    return (opcode == UMI_INVALID);
+}
 
 static inline bool is_umi_read_request(uint32_t opcode) {
     return (opcode == UMI_READ_REQUEST);
@@ -52,13 +57,20 @@ static inline bool is_umi_write_ack(uint32_t opcode) {
     return (opcode & 0b00001111) == UMI_WRITE_ACK;
 }
 
+static inline bool is_umi_write_multicast(uint32_t opcode) {
+    return (opcode & 0b00001111) == UMI_WRITE_MULTICAST;
+}
+
+static inline bool is_umi_write(uint32_t opcode) {
+    return ((opcode & 0b1) == 0b1) && ((opcode >> 1) & 0b111) <= 5;
+}
+
 static inline bool is_umi_atomic(uint32_t opcode) {
     return ((opcode & 0xf) == UMI_ATOMIC);
 }
 
 static inline bool is_umi_reserved(uint32_t opcode) {
     return (
-        ((opcode & 0b1111) == 0b1011) |
         ((opcode & 0b1111) == 0b1101) |
         ((opcode & 0b1111) == 0b1111) |
         ((opcode & 0b1111) == 0b0110) |
@@ -192,6 +204,8 @@ static inline std::string umi_opcode_to_str(uint32_t opcode) {
         return "WRITE-STREAM";
     } else if (is_umi_write_ack(opcode)) {
         return "WRITE-ACK";
+    } else if (is_umi_write_multicast(opcode)) {
+        return "WRITE-MULTICAST";
     } else if (opcode == UMI_READ_REQUEST) {
         return "READ-REQUEST";
     } else if (opcode == UMI_ATOMIC_ADD) {
