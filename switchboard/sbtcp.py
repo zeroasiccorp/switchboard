@@ -175,7 +175,7 @@ def run_client(sbrx, sbtx, host, port, quiet=False, should_yield=True):
     # communicate with the server
     run_tcp_bridge(sbrx=sbrx, sbtx=sbtx, conn=conn, should_yield=should_yield)
 
-def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True):
+def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True, run_once=False):
     """
     Accepts client connections in a loop until Ctrl-C is pressed.
     """
@@ -197,6 +197,8 @@ def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True):
 
         # communicate with that client
         run_tcp_bridge(sbrx=sbrx, sbtx=sbtx, conn=conn, should_yield=should_yield)
+        if (run_once):
+            break
 
 def main():
     # parse command-line arguments
@@ -222,7 +224,7 @@ def main():
 
     if args.mode == 'server':
         run_server(sbrx=sbrx, sbtx=sbtx, host=args.host, port=args.port,
-            quiet=args.q, should_yield=(not args.noyield))
+            quiet=args.q, should_yield=(not args.noyield), run_once=args.run_once)
     elif args.mode == 'client':
         run_client(sbrx=sbrx, sbtx=sbtx, host=args.host, port=args.port,
             quiet=args.q, should_yield=(not args.noyield))
@@ -262,6 +264,8 @@ def get_parser():
     parser.add_argument('--noyield', action='store_true', help="Reduces latency by keeping the"
         " CPU busy even when there is no packet activity, or when packets are blocked"
         " due to backpressure.")
+    parser.add_argument('--run-once', action='store_true',
+        help="Process only one connection in server mode, then exit.")
 
     return parser
 
