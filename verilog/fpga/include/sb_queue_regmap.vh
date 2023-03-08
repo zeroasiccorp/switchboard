@@ -1,6 +1,7 @@
 // System regs
 localparam [31:0] ID_VERSION_REG = 32'h0000_0000; // ro
 localparam [31:0] CAPABILITY_REG = 32'h0000_0004; // ro
+localparam [31:0] CLK_DIVIDE_REG = 32'h0000_0008; // rw
 
 // Per-queue regs
 localparam [31:0] ENABLE_REG = 32'h0000_0100; // rw
