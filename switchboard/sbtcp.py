@@ -19,6 +19,23 @@ from switchboard import PySbRx, PySbTx, PySbPacket
 
 SB_PACKET_SIZE_BYTES = 40
 
+def conn_closed(conn):
+    """
+    Check if connection is closed by peeking into the read buffer.
+    """
+    try:
+        buf = conn.recv(1, socket.MSG_PEEK | socket.MSG_DONTWAIT)
+        if len(buf) == 0:
+            # Read of zero means connection was closed.
+            return True
+    except socket.error as e:
+        if e.errno != errno.EAGAIN and e.errno != errno.EWOULDBLOCK:
+            # Some other error, re-raise since this was not expected.
+            raise e
+
+    # Connection seems to be alive.
+    return False
+
 def run_tcp_bridge(sbrx, sbtx, conn, should_yield=True):
     """
     Sends packets received from PySbRx "sbrx" to TCP connection "conn",
@@ -80,6 +97,8 @@ def run_tcp_bridge(sbrx, sbtx, conn, should_yield=True):
                         break
                     else:
                         tcp_data_to_send = tcp_data_to_send[n:]
+            if conn_closed(conn):
+                break
         else:
             # there is no channel for receiving SB packets
             sb2tcp_votes_to_yield = True
