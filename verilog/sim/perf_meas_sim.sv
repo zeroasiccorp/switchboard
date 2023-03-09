@@ -14,7 +14,7 @@ module perf_meas_sim #(
         `define SB_END_FUNC endtask
     `else
         `define SB_EXT_FUNC(x) ``x``
-        `define SB_START_FUNC function void
+        `define SB_START_FUNC function automatic void
         `define SB_END_FUNC endfunction
 
         import "DPI-C" function void pi_time_taken(output real t);
@@ -25,9 +25,11 @@ module perf_meas_sim #(
     real sim_rate;
     integer cycles_per_meas=default_cycles_per_meas;
     integer total_clock_cycles=0;
+    string sim_name;
 
-    `SB_START_FUNC init(input integer n);
+    `SB_START_FUNC init(input integer n, input string name="");
         cycles_per_meas = n;
+        sim_name = name;
         /* verilator lint_off IGNOREDRETURN */
         `SB_EXT_FUNC(pi_time_taken)(t);
         /* verilator lint_on IGNOREDRETURN */
@@ -46,6 +48,9 @@ module perf_meas_sim #(
             /* verilator lint_off IGNOREDRETURN */
             `SB_EXT_FUNC(pi_time_taken)(t);
             /* verilator lint_on IGNOREDRETURN */
+            if (sim_name != "") begin
+                $write("%s: ", sim_name);
+            end
             sim_rate = (1.0*total_clock_cycles)/t;
             if (sim_rate < 1.0e3) begin
                 $display("Simulation rate: %0.3f Hz", sim_rate);
