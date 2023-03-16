@@ -14,8 +14,7 @@ Note that topologies are not constrained to be in a grid, and there is no specif
 
 The method for adding a Switchboard port depends on the language that a HW model is implemented in.  For RTL-based models, SB ports are instantiated as Verilog models, whereas for C++ and Python-based models, these ports are instantiated as objects.  In all cases, however, communication happens through shared-memory queues, where an SB output port is driving packets into the queue, and an SB input port is reading from that queue.  This standardization is what allows any two kinds of models to talk to each other.
 
-A shared-memory SPSC queue is an appealing common interface because it is one of the fastest interprocess communication techniques, with latencies on the order of hundreds of nanoseconds; no system calls are required to transmit and receive data.  At the same time, this type of queue is straightforward to implement for FPGA platforms, with queue read and write operations only requiring a handful of memory transactions.<img width="311" alt="image" src="https://user-images.githubusercontent.com/19254098/225486360-4cd25c98-1627-4e46-b24b-d8160c495e4a.png">
-
+A shared-memory SPSC queue is an appealing common interface because it is one of the fastest interprocess communication techniques, with latencies on the order of hundreds of nanoseconds; no system calls are required to transmit and receive data.  At the same time, this type of queue is straightforward to implement for FPGA platforms, with queue read and write operations only requiring a handful of memory transactions.
 
 ## Installation
 
