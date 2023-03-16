@@ -2,19 +2,20 @@
 
 [![Actions Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/regression.yml/badge.svg?branch=main)](https://github.com/zeroasiccorp/switchboard/actions)
 
-Switchboard is a framework for packet communication between distinct hardware models, such as RTL simulations, RTL implemented on FPGAs, and fast SW models.  This makes it possible to simulate large hardware systems in a distributed fashion, using whatever models are available for the different components.
+Switchboard (SB) is a framework for communication between distinct hardware models, such as RTL simulations, RTL implemented on FPGAs, and fast SW models.  This makes it possible to simulate large hardware systems in a distributed fashion, using whatever models are available for the different components.
 
 In such a simulation, each hardware model has one or more SB ports.  Each is unidirectional: it may act as an input or an output, but not both.  In addition, each SB connection is single-producer, single-consumer (SPSC): an output port may not drive more than one input port, and an input port may not be driven by more than one output port.
 
 Here's an example of what a Switchboard connection topology might look like:
 
-...
+<img width="318" alt="image" src="https://user-images.githubusercontent.com/19254098/225485548-ff127b2e-d959-46c0-af1d-2c4bbe3f119d.png">
 
-Note that topologies are not constrained to be in a grid, and there is no specific number of Switchboard ports that must be on a given model.  Our project [griddle](https://github.com/zeroasiccorp/griddle) is a layer that sits above Switchboard, providing a grid-specific abstraction.
+Note that topologies are not constrained to be in a grid, and there is no specific number of Switchboard ports that must be on a given model.
 
 The method for adding a Switchboard port depends on the language that a HW model is implemented in.  For RTL-based models, SB ports are instantiated as Verilog models, whereas for C++ and Python-based models, these ports are instantiated as objects.  In all cases, however, communication happens through shared-memory queues, where an SB output port is driving packets into the queue, and an SB input port is reading from that queue.  This standardization is what allows any two kinds of models to talk to each other.
 
-A shared-memory SPSC queue is an appealing common interface because it is one of the fastest interprocess communication techniques, with latencies on the order of hundreds of nanoseconds; no system calls are required to transmit and receive data.  At the same time, this type of queue is straightforward to implement for FPGA platforms, with queue read and write operations only requiring a handful of memory transactions.
+A shared-memory SPSC queue is an appealing common interface because it is one of the fastest interprocess communication techniques, with latencies on the order of hundreds of nanoseconds; no system calls are required to transmit and receive data.  At the same time, this type of queue is straightforward to implement for FPGA platforms, with queue read and write operations only requiring a handful of memory transactions.<img width="311" alt="image" src="https://user-images.githubusercontent.com/19254098/225486360-4cd25c98-1627-4e46-b24b-d8160c495e4a.png">
+
 
 ## Installation
 
@@ -38,6 +39,8 @@ This will install `pybind11` if necessary and build a Python binding to the unde
 ## Example
 
 Various examples demonstrating the features of Switchboard are in the `examples` folder.  A good starting point is the `python` example, where a Python script sends packets to and receives packets from a Verilator RTL simulation.  The configuration is simple: there is a small RTL simulation that accepts an SB packet, adds one to its value, and transmits the result on its SB output port.  On the other side, a Python script sends an SB packet to the simulation, and checks that the packet it gets back has been incremented.
+
+<img width="311" alt="image" src="https://user-images.githubusercontent.com/19254098/225485672-1793521d-a9db-4c18-ad61-c22a605f8720.png">
 
 To run this example, you'll need `verilator` (`sudo apt install verilator` for Ubuntu, `brew install verilator` for macOS).  You can then run the example by changing directory to `examples/python` and then typing `make`.  That should produce output like the following:
 
@@ -126,10 +129,10 @@ The two other parts, `destination` and `flags`, control how the packet is routed
 
 For example, consider using Switchboard to build a simple topology in which packets can be sent from one HW block to one of two other blocks.  One could indicate which block should receive the packet using the `destination` field, with a router transmitting the packet to the right one.
 
-...
+<img width="291" alt="image" src="https://user-images.githubusercontent.com/19254098/225485726-60ce5539-f282-4ceb-8e33-6cb2b7220ffd.png">
 
 The `last` indicator (part of the `flags` bit vector) indicates whether there is more to come as part of a transaction.  The rule is that a transmission cannot be interrupted as long as as `last` is zero.  As an example, consider the system below, where Block A and Block B are both sending SB packets to the same port on Block C, using a router to multiplex between the two.  Following the rule of unbroken transmissions, if the router starts sending a sequence of packets from Block A to Block C, it cannot switch to sending packets from Block B to Block C until it gets a packet from Block A that hast `last` set to one.  It is legal to have `last=1` set in all packets, meaning that packets can be interspersed at any time.
 
-...
+<img width="253" alt="image" src="https://user-images.githubusercontent.com/19254098/225485752-59cd02f3-6877-4cbd-960c-823276d8a815.png">
 
 The purpose of `last` is two-fold.  For one, it simplifies the process of transmitting "burstable" protocols such as UMI through Switchboard.  It also provides opportunities for performance optimization.  For example, if a long sequence of SB packets is being sent over TCP, the TCP bridge knows it can wait to fill up its transmission buffer as long as `last=0`.  Without the `last` bit, the bridge would have to send each packet one at a time (or wait a predefined time for more packets), since any given packet may be the last one.
