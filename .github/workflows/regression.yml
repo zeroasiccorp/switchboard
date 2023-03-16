@@ -2,7 +2,12 @@
 # see https://github.com/nektos/act
 
 name: Regression
-on: [workflow_dispatch, pull_request]
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   verilator:
