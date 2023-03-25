@@ -20,6 +20,8 @@ module sb_fpga_queues #(
     output wire [NUM_TX_QUEUES-1:0] tx_ready,
     input wire [NUM_TX_QUEUES-1:0] tx_valid,
 
+    output wire [31:0] cfg_clk_divide,
+
     // AXI manager interface for memory access
     output wire [15:0] m_axi_awid,
     output wire [63:0] m_axi_awaddr,
@@ -245,6 +247,7 @@ module sb_fpga_queues #(
         .cfg_reset(cfg_reset),
         .cfg_base_addr(cfg_base_addr),
         .cfg_capacity(cfg_capacity),
+        .cfg_clk_divide(cfg_clk_divide),
 
         .s_axil_awaddr(s_axil_awaddr),
         .s_axil_awvalid(s_axil_awvalid),

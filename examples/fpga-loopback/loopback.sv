@@ -97,6 +97,9 @@ module loopback (
         .tx_ready(sb_tx_ready),
         .tx_valid(sb_tx_valid),
 
+        // Unimplemented by this top-level
+        .cfg_clk_divide(),
+
         .*
     );
 

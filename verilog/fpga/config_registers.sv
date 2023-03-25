@@ -28,7 +28,8 @@ module config_registers #(
     output reg [NUM_QUEUES-1:0] cfg_enable = {NUM_QUEUES{1'd0}},
     output reg [NUM_QUEUES-1:0] cfg_reset = {NUM_QUEUES{1'd0}},
     output reg [NUM_QUEUES*64-1:0] cfg_base_addr,
-    output reg [NUM_QUEUES*32-1:0] cfg_capacity = {NUM_QUEUES{32'd2}}
+    output reg [NUM_QUEUES*32-1:0] cfg_capacity = {NUM_QUEUES{32'd2}},
+    output reg [31:0] cfg_clk_divide = 32'd0
 );
 
     `include "sb_queue_regmap.vh"
@@ -146,6 +147,13 @@ module config_registers #(
     );
 
     // TODO: implement wstrb
+
+    always @(posedge clk) begin
+        if (reg_wr_en && reg_wr_addr == CLK_DIVIDE_REG) begin
+            cfg_clk_divide <= reg_wr_data;
+        end
+    end
+
     genvar i;
     generate
         for (i = 0; i < NUM_QUEUES; i++) begin
@@ -179,6 +187,8 @@ module config_registers #(
                 reg_rd_data = ID_VERSION;
             end else if (reg_rd_addr == CAPABILITY_REG) begin
                 reg_rd_data = 32'h0;
+            end else if (reg_rd_addr == CLK_DIVIDE_REG) begin
+                reg_rd_data = cfg_clk_divide;
             end else begin
                 integer i;
                 for (i = 0; i < NUM_QUEUES; i = i + 1) begin

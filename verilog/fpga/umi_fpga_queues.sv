@@ -14,6 +14,8 @@ module umi_fpga_queues #(
     output wire [NUM_TX_QUEUES-1:0] tx_ready,
     input wire [NUM_TX_QUEUES-1:0] tx_valid,
 
+    output wire [31:0] cfg_clk_divide,
+
     // AXI manager interface for memory access
     output wire [15:0] m_axi_awid,
     output wire [63:0] m_axi_awaddr,

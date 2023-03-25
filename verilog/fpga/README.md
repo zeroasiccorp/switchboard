@@ -22,6 +22,7 @@ accessed over an AXI-Lite interface.
 |-------------|-----------------|
 | `0x00`       | Version/ID. Currently returns 0x1234_0000. (Read-only) |
 | `0x04`       | Capability. Currently returns all zeros. (Read-only) |
+| `0x08`       | Clock divider. Used to program a clock divider that may be implemented at a design top-level. The effective clock speed becomes the value set in this register plus 1 (e.g. a value of 0 means no change in speed, a value of 2 means run at one third the speed). |
 
 ### Per-queue
 
