@@ -22,6 +22,7 @@
 #define REG_ID_FPGA           0x1234
 
 #define REG_CAP               0x004
+#define REG_CLK_DIV           0x008
 
 #define REG_ENABLE            0x100
 #define REG_RESET             0x104
