@@ -16,13 +16,13 @@ jobs:
     container:
       image: ghcr.io/zeroasiccorp/sbtest:0.0.5
       credentials:
-         username: ${{ github.actor }}
-         password: ${{ secrets.SGH_REPO_PAT }}
+         username: ${{ secrets.ZA_ACTOR }}
+         password: ${{ secrets.ZA_TOKEN }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.SGH_REPO_PAT }}
+          token: ${{ secrets.ZA_TOKEN }}
           submodules: recursive
 
       - name: Install Switchboard Python package
@@ -70,13 +70,13 @@ jobs:
     container:
       image: ghcr.io/zeroasiccorp/sbtest:0.0.5
       credentials:
-         username: ${{ github.actor }}
-         password: ${{ secrets.SGH_REPO_PAT }}
+         username: ${{ secrets.ZA_ACTOR }}
+         password: ${{ secrets.ZA_TOKEN }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.SGH_REPO_PAT }}
+          token: ${{ secrets.ZA_TOKEN }}
           submodules: recursive
 
       - name: Run FPGA loopback simulation
