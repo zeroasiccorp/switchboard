@@ -1,5 +1,13 @@
 `default_nettype none
 
+`ifndef VERSION_MAJOR
+`define VERSION_MAJOR 0
+`endif
+
+`ifndef VERSION_MINOR
+`define VERSION_MINOR 0
+`endif
+
 module config_registers #(
    parameter NUM_QUEUES = 2
 ) (
@@ -34,7 +42,7 @@ module config_registers #(
 
     `include "sb_queue_regmap.vh"
 
-    localparam [31:0] ID_VERSION = 32'h1234_0000;
+    localparam [31:0] ID_VERSION = {16'h1234, 7'd`VERSION_MAJOR, 9'd`VERSION_MINOR};
     localparam [31:0] UNIMPLEMENTED_REG_VALUE = 32'hffff_ffff;
 
     wire axil_awvalid_q;
