@@ -4,9 +4,12 @@
 #include <memory>
 #include <sstream>
 #include <iostream>
+#include <functional>
 
 #include "switchboard.hpp"
 #include "umilib.hpp"
+
+typedef std::function<void(sb_packet packet, bool header)> PacketPrinter;
 
 // generic formatting methods
 
@@ -148,7 +151,8 @@ struct UmiTransaction {
 // higher-level functions for UMI transactions
 
 template <typename T> static inline bool umisb_send(
-    T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL) {
+    T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL,
+    PacketPrinter printer=NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
     // if length of the data payload in the packet is greater than
@@ -191,6 +195,8 @@ template <typename T> static inline bool umisb_send(
             }
         }
     }
+    if (printer != NULL)
+        printer(p, true);
 
     // update indices
     nbytes -= flit_size;
@@ -208,6 +214,8 @@ template <typename T> static inline bool umisb_send(
                 loop();
             }
         }
+        if (printer != NULL)
+            printer(p, false);
 
         // update indices
         nbytes -= flit_size;
@@ -216,10 +224,10 @@ template <typename T> static inline bool umisb_send(
 
     // if we reach this point, we succeeded in sending the packet
     return true;
-} 
+}
 
 template <typename T> static inline bool umisb_recv(
-    T& x, SBRX& rx, bool blocking=true, void (*loop)(void)=NULL) {
+    T& x, SBRX& rx, bool blocking=true, void (*loop)(void)=NULL, PacketPrinter printer=NULL) {
 
     // if the receive side isn't active, there is nothing to receive
     if (!rx.is_active()) {
@@ -247,6 +255,9 @@ template <typename T> static inline bool umisb_recv(
     // parse the packet (but don't copy out the data, since we don't yet
     // know how much space to allocate to hold it)
     umi_unpack((uint32_t*)p.data, x.opcode, x.size, x.user, x.dstaddr, x.srcaddr, NULL, 0);
+
+    if (printer != NULL)
+        printer(p, true);
 
     // determine how many bytes are in the payload
 
@@ -283,11 +294,13 @@ template <typename T> static inline bool umisb_recv(
                 loop();
             }
         }
+        if (printer != NULL)
+            printer(p, false);
 
         // calculate how many bytes will be in this flit
 
         flit_size = std::min(nbytes, 32);
-        
+
         // unpack data from the flit
 
         umi_unpack_burst((uint32_t*)p.data, ptr, flit_size);
