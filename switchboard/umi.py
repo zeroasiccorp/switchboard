@@ -8,10 +8,11 @@ from _switchboard import PyUmi, UmiCmd
 # than have everything in C++, because it was easier to provide
 # flexibility with numpy types
 
+
 class UmiTxRx:
     def __init__(self, tx_uri="", rx_uri=""):
         self.umi = PyUmi(tx_uri, rx_uri)
-    
+
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
 
@@ -68,7 +69,7 @@ class UmiTxRx:
         """
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
-        
+
         The value can be a plain integer or a numpy integer type.  If it's a
         plain integer, then dtype must be specified, indicating a particular
         numpy integer type (e.g., np.uint16).  This is so that the size of the
@@ -92,8 +93,8 @@ class UmiTxRx:
 
         # set the mask to all ones if it is None
         if mask is None:
-            nbits = (np.dtype(value.dtype).itemsize*8)
-            mask = (1<<nbits) - 1
+            nbits = (np.dtype(value.dtype).itemsize * 8)
+            mask = (1 << nbits) - 1
 
         # convert mask to a numpy datatype if it is not already
         if not isinstance(mask, np.integer):

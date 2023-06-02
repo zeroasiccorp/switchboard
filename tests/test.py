@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import platform
 import atexit
 import subprocess
 import argparse
@@ -12,6 +11,7 @@ from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
 TOP_DIR = THIS_DIR.parent
 SHMEM_DIR = THIS_DIR
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -38,7 +38,7 @@ def main():
 
     # rx queue numbers
     rx = [None, None]
-    
+
     if args.test in {'hello', 'bandwidth'}:
         rx[1] = next(queue_counter)
     elif args.test in {'latency'}:
@@ -47,7 +47,7 @@ def main():
     else:
         raise Exception(f'Unknown test: {args.test}')
 
-    # split ports based on communication mode     
+    # split ports based on communication mode
     tx = [None, None]
     if args.mode == 'queue':
         tx[0] = rx[1]
@@ -76,7 +76,7 @@ def main():
 
         # start client
         start_bridge(is_server=False, rx_port=tx[1], tx_port=rx[1], verbose=args.verbose)
-    
+
     # run the specific test of interest
     if args.test == 'hello':
         hello = THIS_DIR / 'hello.out'
@@ -91,13 +91,16 @@ def main():
     elif args.test == 'latency':
         latency = THIS_DIR / 'latency.out'
         run_cmd(latency, 'second', rx[0], tx[0], args.iterations, verbose=args.verbose)
-        p = run_cmd(latency, 'first', rx[1], tx[1], args.iterations, auto_exit=False, verbose=args.verbose)
+        p = run_cmd(latency, 'first', rx[1], tx[1], args.iterations,
+            auto_exit=False, verbose=args.verbose)
         p.wait()
     else:
         raise Exception(f'Unknown test: {args.test}')
 
+
 def start_bridge(is_server=False, rx_port=None, tx_port=None,
     tcp_addr='127.0.0.1', tcp_port=7777, verbose=False):
+
     # set defaults
     if rx_port is None:
         rx_port = -1
@@ -112,6 +115,7 @@ def start_bridge(is_server=False, rx_port=None, tx_port=None,
     args += [tcp_port]
 
     return run_cmd(TOP_DIR / 'cpp' / 'tcp-bridge', *args, auto_exit=True, verbose=verbose)
+
 
 def run_cmd(path, *args, auto_exit=True, verbose=False):
     cmd = []
@@ -128,6 +132,7 @@ def run_cmd(path, *args, auto_exit=True, verbose=False):
         atexit.register(p.terminate)
 
     return p
+
 
 if __name__ == '__main__':
     main()

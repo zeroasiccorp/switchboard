@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 import os
-import platform
 import atexit
 import subprocess
-import argparse
 import time
 
 from pathlib import Path
@@ -13,10 +11,8 @@ THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
 SHMEM_DIR = EXAMPLE_DIR
 
-def main():
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
 
+def main():
     # clean up old queues if present
     for port in [5555, 5556]:
         filename = str(SHMEM_DIR / f'queue-{port}')
@@ -35,6 +31,7 @@ def main():
     client.wait()
     chip.wait()
 
+
 def start_chip():
     cmd = []
     cmd += ['vvp']
@@ -50,6 +47,7 @@ def start_chip():
 
     return p
 
+
 def start_client():
     cmd = []
     cmd += [EXAMPLE_DIR / 'cpp' / 'client']
@@ -60,6 +58,7 @@ def start_client():
     atexit.register(p.terminate)
 
     return p
+
 
 if __name__ == '__main__':
     main()

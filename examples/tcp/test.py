@@ -9,6 +9,7 @@ import subprocess
 import numpy as np
 from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx
 
+
 def main():
     # clean up old queues if present
     for q in ['queue-5555', 'queue-5556']:
@@ -30,7 +31,7 @@ def main():
     txp = PySbPacket(
         destination=123456789,
         flags=1,
-        data=np.array([i&0xff for i in range(32)], dtype=np.uint8)
+        data=np.array([(i & 0xff) for i in range(32)], dtype=np.uint8)
     )
 
     # send the packet
@@ -48,7 +49,7 @@ def main():
     print(rxp)
     print()
 
-    # check that the received data 
+    # check that the received data
 
     success = (rxp.data == txp.data).all()
 
@@ -60,6 +61,7 @@ def main():
     else:
         print("FAIL")
         sys.exit(1)
+
 
 def start_tcp_bridge(mode, tx=None, rx=None, host=None, port=None, quiet=True):
     cmd = []
@@ -83,6 +85,7 @@ def start_tcp_bridge(mode, tx=None, rx=None, host=None, port=None, quiet=True):
     atexit.register(p.terminate)
 
     return p
+
 
 if __name__ == '__main__':
     main()

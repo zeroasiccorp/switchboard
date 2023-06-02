@@ -2,7 +2,6 @@
 
 import os
 import time
-import platform
 import atexit
 import subprocess
 import argparse
@@ -17,8 +16,10 @@ TOP_DIR = EXAMPLE_DIR.parent.parent
 # figure out where shared memory queues are located
 SHMEM_DIR = EXAMPLE_DIR
 
+
 def rc2id(r, c):
     return ((r & 0xf) << 8) | (c & 0xf)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -88,16 +89,16 @@ def main():
 
     # start router (note the flipped connections)
     start_router(
-        rx = all_tx,
-        tx = all_rx,
-        route = routing_table,
+        rx=all_tx,
+        tx=all_rx,
+        route=routing_table,
         verbose=args.verbose
     )
 
     # start chips and client
     for row in range(args.rows):
         for col in range(args.cols):
-            if (row==0) and (col==0):
+            if (row == 0) and (col == 0):
                 # client goes here
                 continue
             else:
@@ -114,8 +115,8 @@ def main():
         cols=args.cols,
         rx_port=rx_connections[0][0],
         tx_port=tx_connections[0][0],
-        bin = Path(args.binfile).resolve(),
-        params = args.params,
+        bin=Path(args.binfile).resolve(),
+        params=args.params,
         verbose=args.verbose
     )
 
@@ -126,13 +127,14 @@ def main():
     if args.extra_time is not None:
         time.sleep(args.extra_time)
 
+
 def start_chip(rx_port, tx_port, yield_every=None, vcd=False, verbose=False):
     cmd = []
     cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
     cmd += [f'+rx_port={rx_port}']
     cmd += [f'+tx_port={tx_port}']
     if vcd:
-        cmd += [f'+vcd']
+        cmd += ['+vcd']
     if yield_every is not None:
         cmd += [f'+yield_every={yield_every}']
     cmd = [str(elem) for elem in cmd]
@@ -149,6 +151,7 @@ def start_chip(rx_port, tx_port, yield_every=None, vcd=False, verbose=False):
 
     atexit.register(p.terminate)
 
+
 def start_router(rx, tx, route, verbose=False):
     cmd = []
     cmd += [TOP_DIR / 'cpp' / 'router']
@@ -161,8 +164,9 @@ def start_router(rx, tx, route, verbose=False):
         print(' '.join(cmd))
 
     p = subprocess.Popen(cmd)
-    
+
     atexit.register(p.terminate)
+
 
 def start_client(rows, cols, rx_port, tx_port, bin, params=None, verbose=False):
     cmd = []
@@ -177,6 +181,7 @@ def start_client(rows, cols, rx_port, tx_port, bin, params=None, verbose=False):
 
     p = subprocess.Popen(cmd)
     return p
+
 
 if __name__ == '__main__':
     main()

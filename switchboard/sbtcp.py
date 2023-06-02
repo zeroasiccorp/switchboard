@@ -19,6 +19,7 @@ from switchboard import PySbRx, PySbTx, PySbPacket
 
 SB_PACKET_SIZE_BYTES = 40
 
+
 def conn_closed(conn):
     """
     Check if connection is closed by peeking into the read buffer.
@@ -35,6 +36,7 @@ def conn_closed(conn):
 
     # Connection seems to be alive.
     return False
+
 
 def run_tcp_bridge(sbrx, sbtx, conn, should_yield=True):
     """
@@ -152,6 +154,7 @@ def run_tcp_bridge(sbrx, sbtx, conn, should_yield=True):
         if sb2tcp_votes_to_yield and tcp2sb_votes_to_yield and should_yield:
             time.sleep(0)
 
+
 def run_client(sbrx, sbtx, host, port, quiet=False, should_yield=True):
     """
     Connect to a server, retrying until a connection is made.
@@ -175,6 +178,7 @@ def run_client(sbrx, sbtx, host, port, quiet=False, should_yield=True):
     # communicate with the server
     run_tcp_bridge(sbrx=sbrx, sbtx=sbtx, conn=conn, should_yield=should_yield)
 
+
 def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True, run_once=False):
     """
     Accepts client connections in a loop until Ctrl-C is pressed.
@@ -182,7 +186,8 @@ def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True, run_once=
 
     # create the server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # allow port to be reused immediately
+    server_socket.setsockopt(socket.SOL_SOCKET,
+        socket.SO_REUSEADDR, 1)  # allow port to be reused immediately
     server_socket.bind((host, port))
     server_socket.listen()
 
@@ -199,6 +204,7 @@ def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True, run_once=
         run_tcp_bridge(sbrx=sbrx, sbtx=sbtx, conn=conn, should_yield=should_yield)
         if (run_once):
             break
+
 
 def main():
     # parse command-line arguments
@@ -231,6 +237,7 @@ def main():
     else:
         raise ValueError(f"Invalid mode: {args.mode}")
 
+
 def sb2bytes(p):
     # construct a bytes object from a Switchboard packet
     arr = np.concatenate((
@@ -239,10 +246,12 @@ def sb2bytes(p):
     ))
     return arr.tobytes()
 
+
 def bytes2sb(b):
     # construct a Switchboard packet from a bytes object
     arr = np.frombuffer(b, dtype=np.uint32)
     return PySbPacket(arr[0], arr[1], arr[2:].view(np.uint8))
+
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -268,6 +277,7 @@ def get_parser():
         help="Process only one connection in server mode, then exit.")
 
     return parser
+
 
 if __name__ == "__main__":
     main()
