@@ -1,0 +1,23 @@
+# Configuration for the Verible lint tool
+# Based on https://github.com/lowRISC/ibex/blob/master/vendor/lowrisc_ip/lint/tools/veriblelint/lowrisc-styleguide.rules.verible_lint
+
+# allow localparams to be written in all caps with underscores,
+# in addition to using camelcase
+parameter-name-style=localparam_style:CamelCase|ALL_CAPS
+
+# don't require generate blocks to have a label
+-generate-label
+
+# may want to revisit this at some point, but most parameters we're
+# using are untyped, so this would be a major change
+-explicit-parameter-storage-type
+
+# allow "always @*", since "always_comb" is not part of plain Verilog
+-always-comb
+
+# for now, don't require explicit static/automatic declaration on
+# functions (not sure if this is even part of plain verilog)
+-explicit-function-lifetime
+
+# for now, allow $random
+-invalid-system-task-function
