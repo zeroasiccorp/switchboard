@@ -10,6 +10,7 @@ import numpy as np
 from pathlib import Path
 from switchboard import UmiTxRx, PySbTx, PySbPacket, delete_queue
 
+
 def main():
     # clean up old queues if present
     for q in ["queue-5555", "queue-5556", "queue-5557"]:
@@ -51,6 +52,7 @@ def main():
         print('FAIL')
         sys.exit(1)
 
+
 def start_chip(trace=True):
     this_dir = Path(__file__).resolve().parent
     example_dir = this_dir.parent
@@ -66,6 +68,7 @@ def start_chip(trace=True):
     atexit.register(p.terminate)
 
     return p
+
 
 if __name__ == '__main__':
     main()

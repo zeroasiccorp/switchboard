@@ -1,0 +1,37 @@
+# modified from https://github.com/siliconcompiler/siliconcompiler/blob/main/.github/workflows/lint.yml
+
+name: Lint
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint_python:
+    name: Lint Python Code
+
+    strategy:
+        fail-fast: false
+        matrix:
+          version:
+            - {python: "3.10", os: "ubuntu-latest"}
+
+    runs-on: ${{ matrix.version.os }}
+
+    steps:
+        - name: Check out Git repository
+          uses: actions/checkout@v3
+
+        - name: Set up Python ${{ matrix.version.python }}
+          uses: actions/setup-python@v3
+          with:
+            python-version: ${{ matrix.version.python }}
+
+        - name: Install Requirements
+          run: |
+            python3 -m pip install flake8
+
+        - name: Lint with Flake8
+          run: flake8 --statistics .

@@ -22,7 +22,7 @@ ext_modules = [
 # provides a convenient way for moving data between C++
 # and Python
 
-setup (
+setup(
     name="switchboard",
     version=__version__,
     author="ZeroASIC",
@@ -33,7 +33,7 @@ setup (
     zip_safe=False,
     python_requires=">=3.7",
     packages=find_packages(),
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'sbtcp=switchboard.sbtcp:main'
         ]

@@ -1,0 +1,6 @@
+[flake8]
+extend-exclude = deps,build
+max-line-length = 100
+ignore =
+    E128,
+    E125
