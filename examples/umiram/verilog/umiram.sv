@@ -37,7 +37,7 @@ module umiram #(
 
     assign rx_opcode = umi_rx_packet[7:0];
     assign rx_cmd_read = (rx_opcode == READ_REQUEST) ? 1'b1 : 1'b0;
-    assign rx_cmd_write = (rx_opcode == WRITE_POSTED) ? 1'b1 : 1'b0;    
+    assign rx_cmd_write = (rx_opcode == WRITE_POSTED) ? 1'b1 : 1'b0;
 
     // form outgoing packet (which can only be a read response)
 

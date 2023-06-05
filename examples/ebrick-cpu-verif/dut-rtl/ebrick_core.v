@@ -131,7 +131,7 @@ module ebrick_core
 
     wire cpu_axi_bready;
     wire cpu_axi_rready;
-    
+
     picorv32_axi #(
         .ENABLE_MUL(1),
         .ENABLE_DIV(1),
@@ -177,7 +177,7 @@ module ebrick_core
     // during reset, acknowledge receipt of read data and write responses,
     // so that a transaction isn't "stuck" the next time the processor wakes up
 
-    assign mem_axi_rready = nreset ? cpu_axi_rready : mem_axi_rvalid;    
+    assign mem_axi_rready = nreset ? cpu_axi_rready : mem_axi_rvalid;
     assign mem_axi_bready = nreset ? cpu_axi_bready : mem_axi_bvalid;
 
     // AXI <-> UMI bridge

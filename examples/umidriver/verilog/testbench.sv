@@ -36,7 +36,7 @@ module testbench (
 		end
 	endgenerate
 
-	string rx_port;	
+	string rx_port;
 	string tx_port;
 
 	initial begin
@@ -44,7 +44,7 @@ module testbench (
 		
 		if (!$value$plusargs("rx_port=%s", rx_port)) begin
 			rx_port = "queue-5555";
-		end		
+		end
 		
 		if (!$value$plusargs("tx_port=%s", tx_port)) begin
 			tx_port = "queue-5556";

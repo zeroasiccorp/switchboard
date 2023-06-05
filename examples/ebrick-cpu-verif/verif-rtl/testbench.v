@@ -98,7 +98,7 @@ module testbench #(
 
     wire [31:0] gpio_in;
     wire [31:0] gpio_out;
-    
+
     assign gpio_in = {31'b0, error_fatal};
     assign nreset = gpio_out[0];
 
@@ -113,7 +113,7 @@ module testbench #(
         // GPIO interface
         .gpio_in(gpio_in),
         .gpio_out(gpio_out),
-        
+
         // inbound UMI packet
         .umi_in_valid(umi_tb_in_valid),
         .umi_in_packet(umi_tb_in_packet),
@@ -142,7 +142,7 @@ module testbench #(
     );
 
     // umi_tb
- 
+
     umi_rx_sim umi_tb_rx (
         .clk(clk),
         .packet(umi_tb_in_packet),
@@ -165,7 +165,7 @@ module testbench #(
 		umi1_tx.init("queue-5556");
         umi_tb_rx.init("queue-5557");
         umi_tb_tx.init("queue-5558");
-		/* verilator lint_on IGNOREDRETURN */        
+		/* verilator lint_on IGNOREDRETURN */
     end
 
     // check for a fatal error
