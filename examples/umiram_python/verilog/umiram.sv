@@ -2,13 +2,13 @@ module umiram #(
     parameter integer ADDR_WIDTH=8,
     parameter integer DATA_WIDTH=32
 ) (
-	input clk,
-	input [255:0] umi_rx_packet,
-	input umi_rx_valid,
-	output reg umi_rx_ready=1'b0,
-	output [255:0] umi_tx_packet,
-	output reg umi_tx_valid=1'b0,
-	input umi_tx_ready
+    input clk,
+    input [255:0] umi_rx_packet,
+    input umi_rx_valid,
+    output reg umi_rx_ready=1'b0,
+    output [255:0] umi_tx_packet,
+    output reg umi_tx_valid=1'b0,
+    input umi_tx_ready
 );
 
     `include "umi_messages.vh"
@@ -22,12 +22,12 @@ module umiram #(
     wire [63:0] rx_srcaddr;
     wire [255:0] rx_data;
 
-	umi_unpack umi_unpack_i (
-    	.packet(umi_rx_packet),
+    umi_unpack umi_unpack_i (
+        .packet(umi_rx_packet),
         .data(rx_data),
         .srcaddr(rx_srcaddr),
         .dstaddr(rx_dstaddr),
-		
+
         // unused outputs
         .write(),
         .command(),
@@ -48,17 +48,17 @@ module umiram #(
     localparam [3:0] UMI_SIZE = $clog2(DATA_WIDTH/8);
     /* verilator lint_on WIDTH */
 
-	umi_pack umi_pack_i (
-		.write(WRITE_RESPONSE[0]),
+    umi_pack umi_pack_i (
+        .write(WRITE_RESPONSE[0]),
         .command(WRITE_RESPONSE[7:1]),
-		.size(UMI_SIZE),
-		.options(20'd0),
-		.burst(1'b0),
-		.dstaddr(tx_dstaddr),
-		.srcaddr(64'd0),
-		.data(tx_data),
-		.packet(umi_tx_packet)
-	);
+        .size(UMI_SIZE),
+        .options(20'd0),
+        .burst(1'b0),
+        .dstaddr(tx_dstaddr),
+        .srcaddr(64'd0),
+        .data(tx_data),
+        .packet(umi_tx_packet)
+    );
 
     // main logic
 

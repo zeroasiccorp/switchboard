@@ -155,7 +155,8 @@ module axi_umi_bridge #(
 
             // deal with transmitting packets
             if (!umi_out_valid) begin
-                if (axi_awvalid && (!axi_awready) && axi_wvalid && (!axi_wready) && (!axi_bvalid)) begin
+                if (axi_awvalid && (!axi_awready) && axi_wvalid
+                    && (!axi_wready) && (!axi_bvalid)) begin
                     // first see if there is data to be written (takes priority over read)
                     // this can happen if the address and data are valid, as long as we're
                     // not still trying to send the write response
@@ -187,12 +188,13 @@ module axi_umi_bridge #(
             if (umi_in_valid) begin
                 // check that the packet makes sense
                 if (!umi_read_in_progress) begin
-                    $display("ERROR: received read response, but not waiting for a read to complete.");
+                    $display({"ERROR: received read response,",
+                        " but not waiting for a read to complete."});
                     $stop;
                 end
                 if (umi_in_dstaddr != expected_read_addr) begin
-                    $display("ERROR: read response sent to the wrong address: got 0x%016x, expected 0x%016x",
-                        umi_in_dstaddr, expected_read_addr);
+                    $display({"ERROR: read response sent to the wrong address:",
+                        " got 0x%016x, expected 0x%016x"}, umi_in_dstaddr, expected_read_addr);
                     $stop;
                 end
                 if (umi_in_opcode != WRITE_RESPONSE) begin

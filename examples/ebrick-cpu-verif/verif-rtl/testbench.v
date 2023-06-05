@@ -160,12 +160,12 @@ module testbench #(
     // initialization
 
     initial begin
-		/* verilator lint_off IGNOREDRETURN */
-		umi1_rx.init("queue-5555");
-		umi1_tx.init("queue-5556");
+        /* verilator lint_off IGNOREDRETURN */
+        umi1_rx.init("queue-5555");
+        umi1_tx.init("queue-5556");
         umi_tb_rx.init("queue-5557");
         umi_tb_tx.init("queue-5558");
-		/* verilator lint_on IGNOREDRETURN */
+        /* verilator lint_on IGNOREDRETURN */
     end
 
     // check for a fatal error
