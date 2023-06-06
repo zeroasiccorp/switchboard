@@ -22,7 +22,7 @@ module sb_tx_sim #(
         `define SB_START_FUNC task
         `define SB_END_FUNC endtask
     `else
-        `define SB_EXT_FUNC(x) ``x``
+        `define SB_EXT_FUNC(x) x
         `define SB_START_FUNC function void
         `define SB_END_FUNC endfunction
 

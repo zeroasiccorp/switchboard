@@ -13,25 +13,63 @@ jobs:
     name: Lint Python Code
 
     strategy:
-        fail-fast: false
-        matrix:
-          version:
-            - {python: "3.10", os: "ubuntu-latest"}
+      fail-fast: false
+      matrix:
+        version:
+          - {python: "3.10", os: "ubuntu-latest"}
 
     runs-on: ${{ matrix.version.os }}
 
+    timeout-minutes: 5
+
     steps:
-        - name: Check out Git repository
-          uses: actions/checkout@v3
+      - name: Check out Git repository
+        uses: actions/checkout@v3
 
-        - name: Set up Python ${{ matrix.version.python }}
-          uses: actions/setup-python@v3
-          with:
-            python-version: ${{ matrix.version.python }}
+      - name: Set up Python ${{ matrix.version.python }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.version.python }}
 
-        - name: Install Requirements
-          run: |
-            python3 -m pip install flake8
+      - name: Install Requirements
+        run: python3 -m pip install flake8
 
-        - name: Lint with Flake8
-          run: flake8 --statistics .
+      - name: Lint with Flake8
+        run: flake8 --statistics .
+
+  lint_verilog:
+    name: Lint Verilog Code
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Set up Verible
+        run: |
+          apt-get update && apt-get install -y wget
+          wget https://github.com/chipsalliance/verible/releases/download/v0.0-3303-gd87f2420/verible-v0.0-3303-gd87f2420-linux-static-x86_64.tar.gz
+          tar xzf verible-v*.tar.gz
+          rm verible-v*.tar.gz
+          mv verible-v* verible
+
+      - name: Lint with Verible
+        run: |
+          find . \( \
+            -name "*.v" \
+            -or -name "*.sv" \
+            -or -name "*.vh" \
+            -or -name "*.svh" \
+          \) -not \( \
+            -path "./deps/*" \
+            -or -path "./examples/deps/*" \
+            -or -name "axil_interconnect_wrap_1x2.v" \
+            -or -name "picorv32.v" \
+          \) > files.txt
+          cat files.txt
+          ./verible/bin/verible-verilog-lint \
+            --rules_config verible_lint.txt \
+            `cat files.txt`

@@ -17,7 +17,7 @@ module sb_jtag_rbb_sim (
         `define SB_END_FUNC endtask
         `define SB_VAR_BIT reg
     `else
-        `define SB_EXT_FUNC(x) ``x``
+        `define SB_EXT_FUNC(x) x
         `define SB_START_FUNC function void
         `define SB_END_FUNC endfunction
         `define SB_VAR_BIT var bit

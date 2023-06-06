@@ -64,6 +64,13 @@ module axi_writer #(
                     state_next = STATE_IDLE;
                 end
             end
+
+            default: begin
+                // would only get here if state contains "X"
+                // or "Z" bits.  this might be a bit more
+                // conservative than necessary...
+                state_next = 2'bxx;
+            end
         endcase
     end
 

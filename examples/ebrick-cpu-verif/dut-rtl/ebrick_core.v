@@ -43,35 +43,35 @@ module ebrick_core
     parameter AW     = 64         // address width
     )
    (// ebrick controls (per brick)
-    input 		 clk, // main clock signal
-    input 		 nreset,// async active low reset
-    input 		 go,// 1=start/boot core
-    input [W*H-1:0] 	 sysclk, // 2nd systemclk (fpga/iosystem)
-    input [1:0] 	 chipletmode,//00=150um,01=45um,10=10um,11=um
-    input [1:0] 	 chipdir, // brick direction
-    input [IDW-1:0] 	 chipid, // unique brick id "whoami
-    input 		 testmode,
+    input        clk, // main clock signal
+    input        nreset,// async active low reset
+    input        go,// 1=start/boot core
+    input [W*H-1:0]      sysclk, // 2nd systemclk (fpga/iosystem)
+    input [1:0]      chipletmode,//00=150um,01=45um,10=10um,11=um
+    input [1:0]      chipdir, // brick direction
+    input [IDW-1:0]      chipid, // unique brick id "whoami
+    input        testmode,
     // core status
-    output 		 error_fatal, // shut down now!
-    output 		 initdone, // 1 = core is fully initialized
+    output       error_fatal, // shut down now!
+    output       initdone, // 1 = core is fully initialized
     // scan interface
-    input 		 test_se,
-    input 		 test_si,
-    output 		 test_so,
+    input        test_se,
+    input        test_si,
+    output       test_so,
     // control interface
-    input [W*H-1:0] 	 umi0_in_valid,
-    input [W*H*UW-1:0] 	 umi0_in_packet,
-    output [W*H-1:0] 	 umi0_in_ready,
-    output [W*H-1:0] 	 umi0_out_valid,
+    input [W*H-1:0]      umi0_in_valid,
+    input [W*H*UW-1:0]   umi0_in_packet,
+    output [W*H-1:0]     umi0_in_ready,
+    output [W*H-1:0]     umi0_out_valid,
     output [W*H*UW-1:0]  umi0_out_packet,
-    input [W*H-1:0] 	 umi0_out_ready,
+    input [W*H-1:0]      umi0_out_ready,
     // data interface
-    input [W*H-1:0] 	 umi1_in_valid,
-    input [W*H*UW-1:0] 	 umi1_in_packet,
-    output [W*H-1:0] 	 umi1_in_ready,
-    output [W*H-1:0] 	 umi1_out_valid,
+    input [W*H-1:0]      umi1_in_valid,
+    input [W*H*UW-1:0]   umi1_in_packet,
+    output [W*H-1:0]     umi1_in_ready,
+    output [W*H-1:0]     umi1_out_valid,
     output [W*H*UW-1:0]  umi1_out_packet,
-    input [W*H-1:0] 	 umi1_out_ready,
+    input [W*H-1:0]      umi1_out_ready,
     // 2D packaging interface
     output [NGPIO*W-1:0] no_dout,
     output [NGPIO*W-1:0] no_oe,
@@ -86,21 +86,21 @@ module ebrick_core
     output [NGPIO*H-1:0] we_oe,
     input [NGPIO*H-1:0]  we_din,
     // analog IO pass through (analog, digital, supply)
-    inout [NAIO*W-1:0] 	 no_aio,
-    inout [NAIO*W-1:0] 	 so_aio,
-    inout [NAIO*H-1:0] 	 ea_aio,
-    inout [NAIO*H-1:0] 	 we_aio,
+    inout [NAIO*W-1:0]   no_aio,
+    inout [NAIO*W-1:0]   so_aio,
+    inout [NAIO*H-1:0]   ea_aio,
+    inout [NAIO*H-1:0]   we_aio,
     // free form pass through signals
-    inout [NPT*W-1:0] 	 no_pt,
-    inout [NPT*W-1:0] 	 so_pt,
-    inout [NPT*H-1:0] 	 ea_pt,
-    inout [NPT*H-1:0] 	 we_pt,
+    inout [NPT*W-1:0]    no_pt,
+    inout [NPT*W-1:0]    so_pt,
+    inout [NPT*H-1:0]    ea_pt,
+    inout [NPT*H-1:0]    we_pt,
     // supplies
-    input 		 vss, // ground
-    input 		 vdd, //  main core supply
-    input 		 vddx, // extra supply
-    input [3:0] 	 vdda, // analog supply
-    input [3:0] 	 vddio // io supplies
+    input        vss, // ground
+    input        vdd, //  main core supply
+    input        vddx, // extra supply
+    input [3:0]      vdda, // analog supply
+    input [3:0]      vddio // io supplies
     );
 
     // AXI interface
@@ -131,7 +131,7 @@ module ebrick_core
 
     wire cpu_axi_bready;
     wire cpu_axi_rready;
-    
+
     picorv32_axi #(
         .ENABLE_MUL(1),
         .ENABLE_DIV(1),
@@ -177,7 +177,7 @@ module ebrick_core
     // during reset, acknowledge receipt of read data and write responses,
     // so that a transaction isn't "stuck" the next time the processor wakes up
 
-    assign mem_axi_rready = nreset ? cpu_axi_rready : mem_axi_rvalid;    
+    assign mem_axi_rready = nreset ? cpu_axi_rready : mem_axi_rvalid;
     assign mem_axi_bready = nreset ? cpu_axi_bready : mem_axi_bvalid;
 
     // AXI <-> UMI bridge

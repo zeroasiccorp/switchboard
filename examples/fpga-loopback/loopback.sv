@@ -67,19 +67,19 @@ module loopback (
     localparam NUM_TX_QUEUES = 1;
     localparam NUM_QUEUES = NUM_RX_QUEUES + NUM_TX_QUEUES;
 
-	// SB RX port
+    // SB RX port
     wire [255:0] sb_rx_data;
-	wire [31:0] sb_rx_dest;
-	wire sb_rx_last;
-	wire sb_rx_valid;
-	wire sb_rx_ready;
+    wire [31:0] sb_rx_dest;
+    wire sb_rx_last;
+    wire sb_rx_valid;
+    wire sb_rx_ready;
 
-	// SB TX port
-	wire [255:0] sb_tx_data;
-	wire [31:0] sb_tx_dest;
-	wire sb_tx_last;
-	wire sb_tx_valid;
-	wire sb_tx_ready;
+    // SB TX port
+    wire [255:0] sb_tx_data;
+    wire [31:0] sb_tx_dest;
+    wire sb_tx_last;
+    wire sb_tx_valid;
+    wire sb_tx_ready;
 
     sb_fpga_queues queues (
         .clk(clk),
@@ -103,18 +103,18 @@ module loopback (
         .*
     );
 
-	// custom modification of packet
-	genvar i;
-	generate
-		for (i=0; i<32; i=i+1) begin
-			assign sb_tx_data[(i*8) +: 8] = sb_rx_data[(i*8) +: 8] + 8'd1;
-		end
-	endgenerate
+    // custom modification of packet
+    genvar i;
+    generate
+        for (i=0; i<32; i=i+1) begin
+            assign sb_tx_data[(i*8) +: 8] = sb_rx_data[(i*8) +: 8] + 8'd1;
+        end
+    endgenerate
 
-	assign sb_tx_dest = sb_rx_dest;
-	assign sb_tx_last = sb_rx_last;
-	assign sb_tx_valid = sb_rx_valid;
-	assign sb_rx_ready = sb_tx_ready;
+    assign sb_tx_dest = sb_rx_dest;
+    assign sb_tx_last = sb_rx_last;
+    assign sb_tx_valid = sb_rx_valid;
+    assign sb_rx_ready = sb_tx_ready;
 
 endmodule
 

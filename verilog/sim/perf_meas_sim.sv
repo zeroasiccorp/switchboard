@@ -1,10 +1,13 @@
 `default_nettype none
 
 module perf_meas_sim #(
+    // TODO: look into changing the parameter style
+    // verilog_lint: waive-start parameter-name-style
     parameter integer default_cycles_per_meas=0,
     parameter real max_report_time=3.0,
     parameter real min_report_time=0.3,
     parameter integer search_factor=2
+    // verilog_lint: waive-stop parameter-name-style
 ) (
     input clk
 );
@@ -13,7 +16,7 @@ module perf_meas_sim #(
         `define SB_START_FUNC task
         `define SB_END_FUNC endtask
     `else
-        `define SB_EXT_FUNC(x) ``x``
+        `define SB_EXT_FUNC(x) x
         `define SB_START_FUNC function automatic void
         `define SB_END_FUNC endfunction
 
