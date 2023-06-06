@@ -27,7 +27,12 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
+          apt-get update
+          apt-get install tree
           pip3 install .
+          python3 -c "import switchboard; print(switchboard.__file__)"
+          stat `python3 -c "import os.path, switchboard; print(os.path.dirname(switchboard.__file__))"`
+          tree `python3 -c "import os.path, switchboard; print(os.path.dirname(switchboard.__file__))"`
 
       - name: Run Python binding test
         working-directory: examples/python
