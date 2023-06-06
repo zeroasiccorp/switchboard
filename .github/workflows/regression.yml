@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          pip3 install -e .
+          pip3 install .
 
       - name: Run Python binding test
         working-directory: examples/python
@@ -81,7 +81,7 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          pip3 install -e .
+          pip3 install .
 
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga-loopback

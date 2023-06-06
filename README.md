@@ -18,22 +18,22 @@ A shared-memory SPSC queue is an appealing common interface because it is one of
 
 ## Installation
 
-Clone the repository, change to its directory, and initialize its submodules:
+This package is directly installable with pip.  We recommended installation in a contained environment such as a virtual environment, conda environment, etc.
+
+```shell
+> pip install --upgrade pip
+> pip install git+ssh://git@github.com/zeroasiccorp/switchboard.git
+```
+
+If you're a switchboard developer, we recommend cloning the repo and installing it in-place (`-e`).  This will make it easier to contribute changes back to the git repo.
 
 ```shell
 > git clone https://github.com/zeroasiccorp/switchboard.git
 > cd switchboard
 > git submodule update --init --recursive
-```
-
-Then install the Switchboard Python package using `pip` (recommended to do this in a contained environment such as a virtual environment, conda environment, etc.)
-
-```shell
 > pip install --upgrade pip
 > pip install -e .
 ```
-
-This will install `pybind11` if necessary and build a Python binding to the underlying C++ library.
 
 ## Example
 
