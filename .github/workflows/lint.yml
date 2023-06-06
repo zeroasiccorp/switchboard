@@ -64,7 +64,7 @@ jobs:
             -or -name "*.vh" \
             -or -name "*.svh" \
           \) -not \( \
-            -path "./deps/*" \
+            -path "./switchboard/deps/*" \
             -or -path "./examples/deps/*" \
             -or -name "axil_interconnect_wrap_1x2.v" \
             -or -name "picorv32.v" \

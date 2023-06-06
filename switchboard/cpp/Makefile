@@ -1,4 +1,4 @@
-TOPDIR=..
+TOPDIR=../..
 include $(TOPDIR)/Rules.mk
 
 OBJS += umidriver.o

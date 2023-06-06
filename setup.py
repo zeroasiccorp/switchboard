@@ -14,7 +14,7 @@ ext_modules = [
     Pybind11Extension(
         "_switchboard",
         ["python/switchboard_pybind.cc"],
-        include_dirs=['cpp']
+        include_dirs=['switchboard/cpp']
     ),
 ]
 
@@ -35,7 +35,8 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'sbtcp=switchboard.sbtcp:main'
+            'sbtcp=switchboard.sbtcp:main',
+            'switchboard=switchboard.switchboard:main'
         ]
     }
 )

@@ -1,6 +1,9 @@
 include files.mk
 
-LDFLAGS = -pthread
+LDFLAGS := -pthread
+ifeq ($(UNAME_S),Darwin)
+	LDFLAGS := $(LDFLAGS) -undefined dynamic_lookup
+endif
 
 obj_dir/Vtestbench:
 	rm -rf obj_dir
@@ -10,7 +13,7 @@ obj_dir/Vtestbench:
 		-sv \
 		--top-module testbench \
 		-I../../deps/umi/umi/rtl \
-		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
+		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
 		-LDFLAGS "$(LDFLAGS)" \
 		config.vlt \
 		$^

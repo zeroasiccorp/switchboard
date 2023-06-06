@@ -3,7 +3,8 @@
 # Copyright (C) 2022 Zero ASIC. 
 #
 
-CPPFLAGS += -I$(TOPDIR)/cpp
+SBDIR := $(shell switchboard --path)
+CPPFLAGS += -I$(SBDIR)/cpp
 CXXFLAGS += -Wall -O3 -g
 CFLAGS += -Wall -O3 -g
 

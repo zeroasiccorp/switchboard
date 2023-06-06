@@ -9,6 +9,8 @@ import multiprocessing
 
 from pathlib import Path
 
+from switchboard import switchboard
+
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
 TOP_DIR = EXAMPLE_DIR.parent.parent
@@ -154,7 +156,7 @@ def start_chip(rx_port, tx_port, yield_every=None, vcd=False, verbose=False):
 
 def start_router(rx, tx, route, verbose=False):
     cmd = []
-    cmd += [TOP_DIR / 'cpp' / 'router']
+    cmd += [switchboard.path() / 'cpp' / 'router']
     cmd += ['--tx'] + tx
     cmd += ['--rx'] + rx
     cmd += ['--route'] + [f'{k}:{v}' for k, v in route.items()]

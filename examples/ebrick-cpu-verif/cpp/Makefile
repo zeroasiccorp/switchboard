@@ -6,11 +6,15 @@ TARGETS = driver
 
 all: $(TARGETS)
 
+driver: driver.o
+
 -include $(OBJS:.o=.d)
 CPPFLAGS += -MMD
 
-client: $(OBJS)
-	$(LINK.cc) $^ $(LDLIBS) -o $@
+SBDIR := $(shell switchboard --path)
+
+driver: driver.cc $(SBDIR)/cpp/switchboard.hpp
+	g++ -std=c++11 -I$(SBDIR)/cpp $< -o $@ $(CPP_LIBS)
 
 .PHONY: clean
 clean:

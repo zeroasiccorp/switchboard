@@ -11,7 +11,7 @@ obj_dir/Vtestbench:
 		--trace \
 		--top-module testbench \
 		-I../../deps/umi/umi/rtl \
-		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
+		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
 		-LDFLAGS "$(LDFLAGS)" \
 		config.vlt \
 		$^

@@ -1,10 +1,12 @@
+SBDIR := $(shell switchboard --path)
+
 .PHONY: hello
 hello: prereqs
 	./scripts/test.py
 
 .PHONY: prereqs
 prereqs:
-	make -C ../../cpp router	
+	make -C $(SBDIR)/cpp router	
 	make -C cpp client
 	make -C verilator obj_dir/Vtestbench
 

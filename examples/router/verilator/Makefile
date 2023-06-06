@@ -9,7 +9,7 @@ obj_dir/Vtestbench:
 		--exe \
 		-sv \
 		--top-module testbench \
-		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
+		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
 		-LDFLAGS "$(LDFLAGS)" \
 		$^
 	make -C obj_dir -f Vtestbench.mk Vtestbench

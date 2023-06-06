@@ -3,8 +3,8 @@
 
 `verilator_config
 
-lint_off -file "../../deps/verilog-axi/rtl/*"
+lint_off -file "*/deps/verilog-axi/rtl/*"
 
 // For some reason these are not caught by the blanket statement above
-lint_off -rule UNOPTFLAT -file "../../deps/verilog-axi/rtl/*"
-lint_off -rule INITIALDLY -file "../../deps/verilog-axi/rtl/*"
+lint_off -rule UNOPTFLAT -file "*/deps/verilog-axi/rtl/*"
+lint_off -rule INITIALDLY -file "*/deps/verilog-axi/rtl/*"
