@@ -7,7 +7,7 @@ SYSTEMC_LIBDIR ?= $(SYSTEMC)/lib-linux64
 VERILATOR ?= verilator
 VERILATOR_ROOT?=$(shell $(VERILATOR) --getenv VERILATOR_ROOT 2>/dev/null || echo -n /usr/share/verilator)
 
-EXDIR := ..
+EXDIR := $(abspath ..)
 SBDIR := $(shell switchboard --path)
 
 VOBJ_DIR=obj_dir
