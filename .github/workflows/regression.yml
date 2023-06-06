@@ -24,6 +24,7 @@ jobs:
         with:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: recursive
+          fetch-depth: 0
 
       - name: Install Switchboard Python package
         run: |
