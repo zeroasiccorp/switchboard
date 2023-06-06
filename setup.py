@@ -4,8 +4,6 @@
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-__version__ = "0.0.5"
-
 # the pybind module is built as _switchboard that is imported
 # into the module called "switchboard".  this will allow us
 # to implement some features in pure Python in the future
@@ -24,7 +22,6 @@ ext_modules = [
 
 setup(
     name="switchboard",
-    version=__version__,
     author="ZeroASIC",
     url="https://github.com/zeroasiccorp/switchboard",
     ext_modules=ext_modules,
