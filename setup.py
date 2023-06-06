@@ -28,6 +28,7 @@ setup(
     install_requires=['numpy'],
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
+    include_package_data=True,
     python_requires=">=3.7",
     packages=find_packages(),
     entry_points={
