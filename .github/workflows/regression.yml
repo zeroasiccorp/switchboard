@@ -24,17 +24,10 @@ jobs:
         with:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: recursive
-          fetch-depth: 0
 
       - name: Install Switchboard Python package
         run: |
-          apt-get update
-          apt-get install tree
-          pip3 install --upgrade pip
           pip3 install .
-          switchboard --path
-          stat `switchboard --path`
-          tree `switchboard --path`
 
       - name: Run Python binding test
         working-directory: examples/python

@@ -38,8 +38,5 @@ queue-*
 # Python cache files
 __pycache__
 
-# setuptools_scm generated file
-_version.py
-
 # act secrets
 .secrets
