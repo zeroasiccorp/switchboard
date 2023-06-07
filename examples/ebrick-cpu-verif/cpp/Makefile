@@ -6,8 +6,6 @@ TARGETS = driver
 
 all: $(TARGETS)
 
-driver: driver.o
-
 -include $(OBJS:.o=.d)
 CPPFLAGS += -MMD
 

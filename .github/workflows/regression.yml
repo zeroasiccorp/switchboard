@@ -57,6 +57,13 @@ jobs:
           cat out.log
           grep -Fxq "Hello World!" out.log
 
+      - name: Run ebrick-cpu-verif sim
+        working-directory: examples/ebrick-cpu-verif
+        run: |
+          make > out.log
+          cat out.log
+          grep -Fxq "Hello World!" out.log
+
       - name: Run torture tests
         working-directory: tests
         run: |
