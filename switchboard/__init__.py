@@ -7,9 +7,3 @@ from _switchboard import (PySbPacket, delete_queue, umi_opcode_to_str,  # noqa: 
     PySbTx, PySbRx, UmiCmd, PySbTxPcie, PySbRxPcie, PyUmiPacket)
 
 from .umi import UmiTxRx  # noqa: F401
-
-try:
-    from ._version import __version__
-except ImportError:
-    # This only exists in installations
-    __version__ = None
