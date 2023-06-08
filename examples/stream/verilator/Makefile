@@ -10,9 +10,9 @@ obj_dir/Vtestbench:
 		-sv \
 		--trace \
 		--top-module testbench \
-		-CFLAGS "-Wno-unknown-warning-option -I../../../../cpp" \
+		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
 		-LDFLAGS "$(LDFLAGS)" \
-		$(filter-out "../../../cpp/switchboard.hpp", $^)
+		$(filter-out "$(SBDIR)/cpp/switchboard.hpp", $^)
 	make -C obj_dir -f Vtestbench.mk Vtestbench
 
 .PHONY: clean

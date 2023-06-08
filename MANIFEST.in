@@ -1,0 +1,5 @@
+recursive-include switchboard/cpp *.h *.hh *.hpp *.c *.cc *.cpp Makefile
+recursive-include switchboard/dpi *.h *.hh *.hpp *.c *.cc *.cpp
+recursive-include switchboard/vpi *.h *.hh *.hpp *.c *.cc *.cpp
+recursive-include switchboard/deps/verilog-axi/rtl *.v *.sv *.vh *.svh
+recursive-include switchboard/verilog *.v *.sv *.vh *.svh

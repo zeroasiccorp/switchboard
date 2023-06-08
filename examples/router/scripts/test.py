@@ -6,6 +6,8 @@ import subprocess
 
 from pathlib import Path
 
+from switchboard import switchboard
+
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
 TOP_DIR = EXAMPLE_DIR.parent.parent
@@ -44,7 +46,7 @@ def start_chip():
 
 def start_router():
     cmd = []
-    cmd += [TOP_DIR / 'cpp' / 'router']
+    cmd += [switchboard.path() / 'cpp' / 'router']
     cmd += ['--tx', 5556, 5557]
     cmd += ['--rx', 5555, 5558]
     cmd += ['--route', '0:5556', '1:5557']

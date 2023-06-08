@@ -21,6 +21,7 @@ compile_flags.txt
 *.vvp
 *.out
 *.dSYM
+*.swp
 
 # other outputs
 *.log

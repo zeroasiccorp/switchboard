@@ -14,7 +14,7 @@ jobs:
     name: Verilator
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:0.0.5
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.7
       credentials:
          username: ${{ secrets.ZA_ACTOR }}
          password: ${{ secrets.ZA_TOKEN }}
@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          pip3 install -e .
+          pip3 install .
 
       - name: Run Python binding test
         working-directory: examples/python
@@ -57,6 +57,13 @@ jobs:
           cat out.log
           grep -Fxq "Hello World!" out.log
 
+      - name: Run ebrick-cpu-verif sim
+        working-directory: examples/ebrick-cpu-verif
+        run: |
+          make > out.log
+          cat out.log
+          grep -Fxq "Hello World!" out.log
+
       - name: Run torture tests
         working-directory: tests
         run: |
@@ -68,7 +75,7 @@ jobs:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:0.0.5
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.7
       credentials:
          username: ${{ secrets.ZA_ACTOR }}
          password: ${{ secrets.ZA_TOKEN }}
@@ -78,6 +85,10 @@ jobs:
         with:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: recursive
+
+      - name: Install Switchboard Python package
+        run: |
+          pip3 install .
 
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga-loopback

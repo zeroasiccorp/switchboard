@@ -7,6 +7,9 @@ SYSTEMC_LIBDIR ?= $(SYSTEMC)/lib-linux64
 VERILATOR ?= verilator
 VERILATOR_ROOT?=$(shell $(VERILATOR) --getenv VERILATOR_ROOT 2>/dev/null || echo -n /usr/share/verilator)
 
+EXDIR := $(abspath ..)
+SBDIR := $(shell switchboard --path)
+
 VOBJ_DIR=obj_dir
 
 VFLAGS += --exe
@@ -24,8 +27,8 @@ CXXFLAGS += -DVM_TRACE=1
 VENV=SYSTEMC_INCLUDE=$(SYSTEMC_INCLUDE) SYSTEMC_LIBDIR=$(SYSTEMC_LIBDIR)
 
 CPPFLAGS += -I. -I$(VERILATOR_ROOT)/include/
-CPPFLAGS += -I ../../deps/libsystemctlm-soc/ -I ../../deps/libsystemctlm-soc/tests/
-CPPFLAGS += -I ../../../cpp/
+CPPFLAGS += -I $(EXDIR)/deps/libsystemctlm-soc/ -I $(EXDIR)/deps/libsystemctlm-soc/tests/
+CPPFLAGS += -I $(SBDIR)/cpp/
 CPPFLAGS += -I $(SYSTEMC_INCLUDE)
 CPPFLAGS += -DVM_TRACE=1
 OPT_FAST ?= -O2 -fno-stack-protector -fno-var-tracking-assignments
@@ -36,13 +39,13 @@ export OPT_SLOW
 CXXFLAGS += -Wall -O3 -g -faligned-new
 LDFLAGS  += -L $(SYSTEMC_LIBDIR)
 
-SC_FILES_COMMON += ../deps/libsystemctlm-soc/trace/trace.cc
+SC_FILES_COMMON += $(EXDIR)/deps/libsystemctlm-soc/trace/trace.cc
 
 # To make the filenames match the top module
 # (and avoid additional args to verilator we use underscores instead
 # of hyphens.
 
-RTL_DIR = ../../verilog/fpga
+RTL_DIR = $(SBDIR)/verilog/fpga
 VFLAGS += -I$(RTL_DIR)/include/
 VFLAGS += --top-module loopback
 SC_FILES_loopback += loopback_tb.cc
@@ -54,21 +57,21 @@ SV_FILES_loopback += $(RTL_DIR)/sb_tx_fpga.sv
 SV_FILES_loopback += $(RTL_DIR)/memory_fault.sv
 SV_FILES_loopback += $(RTL_DIR)/sb_fpga_queues.sv
 SV_FILES_loopback += ./loopback.sv
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/arbiter.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_crossbar.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_crossbar_addr.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_crossbar_rd.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_crossbar_wr.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_register.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_register_rd.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axi_register_wr.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axil_reg_if.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axil_reg_if_rd.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axil_reg_if_wr.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axil_register.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axil_register_rd.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/axil_register_wr.v
-SV_FILES_loopback += ../../deps/verilog-axi/rtl/priority_encoder.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/arbiter.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_crossbar.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_crossbar_addr.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_crossbar_rd.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_crossbar_wr.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_register.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_register_rd.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axi_register_wr.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axil_reg_if.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axil_reg_if_rd.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axil_reg_if_wr.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axil_register.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axil_register_rd.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/axil_register_wr.v
+SV_FILES_loopback += $(SBDIR)/deps/verilog-axi/rtl/priority_encoder.v
 
 VLT_CONFIG_FILE = ./config.vlt
 ALL += $(VOBJ_DIR)/Vloopback.build
