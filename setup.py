@@ -2,9 +2,13 @@
 # Copyright (C) 2023 Zero ASIC
 
 from setuptools import setup, find_packages
-from pybind11.setup_helpers import Pybind11Extension, build_ext
+try:
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+except ImportError:
+    from setuptools import Extension as Pybind11Extension
+    from setuptools import build_ext
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 
 # the pybind module is built as _switchboard that is imported
 # into the module called "switchboard".  this will allow us
@@ -28,6 +32,7 @@ setup(
     author="ZeroASIC",
     url="https://github.com/zeroasiccorp/switchboard",
     ext_modules=ext_modules,
+    setup_requires=['pybind11~=2.6.1'],
     install_requires=['numpy'],
     cmdclass={"build_ext": build_ext},
     zip_safe=False,

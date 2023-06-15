@@ -1,9 +1,3 @@
 [submodule "switchboard/deps/verilog-axi"]
 	path = switchboard/deps/verilog-axi
 	url = git@github.com:alexforencich/verilog-axi.git
-[submodule "deps/umi"]
-	path = examples/deps/umi
-	url = git@github.com:zeroasiccorp/umi.git
-[submodule "examples/deps/libsystemctlm-soc"]
-	path = examples/deps/libsystemctlm-soc
-	url = git@github.com:Xilinx/libsystemctlm-soc.git
