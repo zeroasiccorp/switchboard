@@ -35,6 +35,8 @@ If you're a switchboard developer, we recommend cloning the repo and installing 
 > pip install -e .
 ```
 
+If you want to run the examples described below, please also run `./examples/get-deps.sh` to download the dependencies they use.
+
 ## Example
 
 Various examples demonstrating the features of Switchboard are in the `examples` folder.  A good starting point is the `python` example, where a Python script sends packets to and receives packets from a Verilator RTL simulation.  The configuration is simple: there is a small RTL simulation that accepts an SB packet, adds one to its value, and transmits the result on its SB output port.  On the other side, a Python script sends an SB packet to the simulation, and checks that the packet it gets back has been incremented.

@@ -29,6 +29,15 @@ jobs:
         run: |
           pip3 install .
 
+      - name: Add SSH key
+        uses: ./.github/actions/add-ssh-key
+        with:
+          ssh-key: ${{ secrets.ZA_SSH_KEY }}
+
+      - name: Get dependencies for examples
+        run: |
+          ./examples/get-deps.sh
+
       - name: Run Python binding test
         working-directory: examples/python
         run: |
@@ -89,6 +98,15 @@ jobs:
       - name: Install Switchboard Python package
         run: |
           pip3 install .
+
+      - name: Add SSH key
+        uses: ./.github/actions/add-ssh-key
+        with:
+          ssh-key: ${{ secrets.ZA_SSH_KEY }}
+
+      - name: Get dependencies for examples
+        run: |
+          ./examples/get-deps.sh
 
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga-loopback
