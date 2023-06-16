@@ -10,8 +10,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    extern void pi_sb_rx_init(int* id, const char* uri);
-    extern void pi_sb_tx_init(int* id, const char* uri);
+    extern void pi_sb_rx_init(int* id, const char* uri, int width);
+    extern void pi_sb_tx_init(int* id, const char* uri, int width);
     extern void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, int* success);
     extern void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast, int* success);
     extern void pi_time_taken(double* t);
@@ -21,18 +21,26 @@ extern "C" {
 
 static std::vector<std::unique_ptr<SBRX>> rxconn;
 static std::vector<std::unique_ptr<SBTX>> txconn;
+static std::vector<int> rxwidth;
+static std::vector<int> txwidth;
 
-void pi_sb_rx_init(int* id, const char* uri) {
+void pi_sb_rx_init(int* id, const char* uri, int width) {
     rxconn.push_back(std::unique_ptr<SBRX>(new SBRX()));
     rxconn.back()->init(uri);
+
+    // record the width of this connection
+    rxwidth.push_back(width);
 
     // assign the ID of this connection
     *id = rxconn.size() - 1;
 }
 
-void pi_sb_tx_init(int* id, const char* uri) {
+void pi_sb_tx_init(int* id, const char* uri, int width) {
     txconn.push_back(std::unique_ptr<SBTX>(new SBTX()));
     txconn.back()->init(uri);
+
+    // record the width of this connection
+    txwidth.push_back(width);
 
     // assign the ID of this connection
     *id = txconn.size() - 1;
@@ -45,7 +53,7 @@ void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, in
     // try to receive an inbound packet
     sb_packet p;
     if (rxconn[id]->recv(p)) {
-        memcpy(rdata, p.data, 32);
+        memcpy(rdata, p.data, rxwidth[id]);
         *rdest = p.destination;
         *rlast = p.last ? 1 : 0;
         *success = 1;
@@ -60,7 +68,7 @@ void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBi
 
     // form the outbound packet
     sb_packet p;
-    memcpy(p.data, sdata, 32);
+    memcpy(p.data, sdata, txwidth[id]);
     p.destination = *sdest;
     p.last = slast;
     
