@@ -12,7 +12,7 @@
 
 // packet type
 // TODO: make size runtime programmable
-#define SB_DATA_SIZE 32
+#define SB_DATA_SIZE 52
 struct sb_packet {
     uint32_t destination;
     union {
