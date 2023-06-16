@@ -2,6 +2,8 @@
 
 module testbench;
 
+    parameter integer DW=256;
+
     // clock
 
     reg clk;
@@ -14,7 +16,7 @@ module testbench;
 
     // SB RX port
 
-    wire [255:0] sb_rx_data;
+    wire [DW-1:0] sb_rx_data;
     wire [31:0] sb_rx_dest;
     wire sb_rx_last;
     wire sb_rx_valid;
@@ -22,13 +24,15 @@ module testbench;
 
     // SB TX port
 
-    wire [255:0] sb_tx_data;
+    wire [DW-1:0] sb_tx_data;
     wire [31:0] sb_tx_dest;
     wire sb_tx_last;
     wire sb_tx_valid;
     wire sb_tx_ready;
 
-    sb_rx_sim rx_i (
+    sb_rx_sim #(
+        .DW(DW)
+    ) rx_i (
         .clk(clk),
         .data(sb_rx_data),  // output
         .dest(sb_rx_dest),  // output
@@ -37,7 +41,9 @@ module testbench;
         .valid(sb_rx_valid)  // output
     );
 
-    sb_tx_sim tx_i (
+    sb_tx_sim #(
+        .DW(DW)
+    ) tx_i (
         .clk(clk),
         .data(sb_tx_data),  // input
         .dest(sb_tx_dest),  // input
@@ -50,7 +56,7 @@ module testbench;
 
     genvar i;
     generate
-        for (i=0; i<32; i=i+1) begin
+        for (i=0; i<(DW/8); i=i+1) begin
             assign sb_tx_data[(i*8) +: 8] = sb_rx_data[(i*8) +: 8] + 8'd1;
         end
     endgenerate
