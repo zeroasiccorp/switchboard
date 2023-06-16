@@ -29,13 +29,13 @@ def main():
 
     wr_addr = 0x12
     wr_data = np.uint32(0xbeefcafe)
-    umi.write(wr_addr, wr_data)
+    umi.write(wr_addr, wr_data, old=True)
     print(f"Wrote to 0x{wr_addr:02x}: 0x{wr_data:08x}")
 
     # read data from address 0x12
 
     rd_addr = wr_addr
-    rd_data = umi.read(rd_addr, np.uint32)
+    rd_data = umi.read(rd_addr, np.uint32, old=True)
     print(f"Read from 0x{rd_addr:02x}: 0x{rd_data:08x}")
 
     # stop simulation
