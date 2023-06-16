@@ -1,19 +1,26 @@
 `default_nettype none
 
 module umi_rx_sim #(
-    parameter integer VALID_MODE_DEFAULT=0
+    parameter integer VALID_MODE_DEFAULT=0,
+    parameter integer DW=256,
+    parameter integer AW=64,
+    parameter integer CW=32
 ) (
     input clk,
-    output [255:0] packet,
+    output [DW-1:0] data,
+    output [AW-1:0] srcaddr,
+    output [AW-1:0] dstaddr,
+    output [CW-1:0] cmd,
     input ready,
     output valid
 );
 
     sb_rx_sim #(
-        .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT)
+        .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
+        .DW(DW+AW+AW+CW)
     ) rx_i (
         .clk(clk),
-        .data(packet),
+        .data({data, srcaddr, dstaddr, cmd}),
         .dest(),
         .last(),
         .ready(ready),
