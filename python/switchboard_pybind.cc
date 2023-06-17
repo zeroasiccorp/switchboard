@@ -24,6 +24,7 @@
 #include "switchboard_pcie.hpp"
 #include "old_umilib.hpp"
 #include "old_umisb.hpp"
+#include "umilib.h"
 #include "umilib.hpp"
 #include "umisb.hpp"
 
@@ -73,9 +74,9 @@ struct PySbPacket {
 // setting the default value of the data argument to "None" apply.
 
 struct PyUmiPacket {
-    PyUmiPacket(uint32_t opcode=0, uint32_t size=0, uint32_t user=0, uint64_t dstaddr=0,
-        uint64_t srcaddr=0, std::optional<py::array_t<uint8_t>> data = std::nullopt) :
-        opcode(opcode), size(size), user(user), dstaddr(dstaddr), srcaddr(srcaddr) {
+    PyUmiPacket(uint32_t cmd=0, uint64_t dstaddr=0, uint64_t srcaddr=0,
+        std::optional<py::array_t<uint8_t>> data = std::nullopt) :
+        cmd(cmd), dstaddr(dstaddr), srcaddr(srcaddr) {
         if (data.has_value()) {
             this->data = data.value();
         } else {
@@ -88,10 +89,10 @@ struct PyUmiPacket {
     }
 
     void resize(size_t n) {
-        data = py::array_t<uint8_t>(n);
+        data.resize({n});
     }
 
-    size_t len(){
+    size_t nbytes(){
         py::buffer_info info = py::buffer(data).request();
         return info.size;
     }
@@ -101,9 +102,7 @@ struct PyUmiPacket {
         return (uint8_t*)info.ptr;        
     }
 
-    uint32_t opcode;
-    uint32_t size;
-    uint32_t user;
+    uint32_t cmd;
     uint64_t dstaddr;
     uint64_t srcaddr;
     py::array_t<uint8_t> data;
@@ -125,10 +124,10 @@ struct OldPyUmiPacket {
     }
 
     void resize(size_t n) {
-        data = py::array_t<uint8_t>(n);
+        data.resize({n});
     }
 
-    size_t len(){
+    size_t nbytes(){
         py::buffer_info info = py::buffer(data).request();
         return info.size;
     }
@@ -407,7 +406,7 @@ class PyUmiDevice {
         std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
             // try to receive a transaction
             std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(
-                new PyUmiPacket(0, 0, 0, 0, 0, py::array_t<uint8_t>(0)));
+                new PyUmiPacket(0, 0, 0, py::array_t<uint8_t>(0)));
             bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
 
             // if we got something, return it, otherwise return a null pointer
@@ -474,7 +473,7 @@ class PyUmiHost {
         std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
             // try to receive a transaction
             std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(
-                new PyUmiPacket(0, 0, 0, 0, 0, py::array_t<uint8_t>(0)));
+                new PyUmiPacket(0, 0, 0, py::array_t<uint8_t>(0)));
             bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
 
             // if we got something, return it, otherwise return a null pointer
@@ -537,8 +536,15 @@ class PyUmiHost {
                 size = std::min(size, (ssize_t)max_size);
 
                 // perform a write of this size
-                OldUmiTransaction x(OLD_UMI_WRITE_POSTED, size, 0, addr, 0, ptr, 1<<size);
-                old_umisb_send<OldUmiTransaction>(x, m_tx, true, &check_signals);
+                if (!old) {
+                    uint32_t eof = (num == (1<<size)) ? 1 : 0;
+                    uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, 0, 1<<size, 0, eof);
+                    UmiTransaction x(cmd, addr, 0, ptr, 1<<size);
+                    umisb_send<UmiTransaction>(x, m_tx, true, &check_signals);
+                } else {
+                    OldUmiTransaction x(OLD_UMI_WRITE_POSTED, size, 0, addr, 0, ptr, 1<<size);
+                    old_umisb_send<OldUmiTransaction>(x, m_tx, true, &check_signals);
+                }
 
                 // update indices
                 num -= (1<<size);
@@ -585,16 +591,29 @@ class PyUmiHost {
                 ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
                 size = std::min(size, (ssize_t)max_size);
 
-                // read request
-                OldUmiTransaction request(OLD_UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
-                old_umisb_send<OldUmiTransaction>(request, m_tx, true, &check_signals);
+                if (!old) {
+                    // read request
+                    OldUmiTransaction request(OLD_UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
+                    old_umisb_send<OldUmiTransaction>(request, m_tx, true, &check_signals);
 
-                // get response
-                OldUmiTransaction reply(0, 0, 0, 0, 0, ptr, 1<<size);
-                old_umisb_recv<OldUmiTransaction>(reply, m_rx, true, &check_signals);
+                    // get response
+                    OldUmiTransaction reply(0, 0, 0, 0, 0, ptr, 1<<size);
+                    old_umisb_recv<OldUmiTransaction>(reply, m_rx, true, &check_signals);
 
-                // check that the reply makes sense
-                old_umisb_check_reply<OldUmiTransaction>(request, reply);
+                    // check that the reply makes sense
+                    old_umisb_check_reply<OldUmiTransaction>(request, reply);
+                } else {
+                    // read request
+                    OldUmiTransaction request(OLD_UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
+                    old_umisb_send<OldUmiTransaction>(request, m_tx, true, &check_signals);
+
+                    // get response
+                    OldUmiTransaction reply(0, 0, 0, 0, 0, ptr, 1<<size);
+                    old_umisb_recv<OldUmiTransaction>(reply, m_rx, true, &check_signals);
+
+                    // check that the reply makes sense
+                    old_umisb_check_reply<OldUmiTransaction>(request, reply);
+                }
 
                 // update indices
                 num -= (1<<size);
@@ -612,7 +631,7 @@ class PyUmiHost {
             // create outbound packet
 
             OldPyUmiPacket request(opcode, 0, 0, addr, srcaddr, data);
-            size_t num = request.len();
+            size_t num = request.nbytes();
 
             if (num == 0) {
                 // nothing to read, so just return the empty array
@@ -633,22 +652,22 @@ class PyUmiHost {
                 throw std::runtime_error("Width of atomic operand must be a power of two number of bytes.");
             }
 
-            // send the request
+            if (!old) {
+                return NULL;
+            } else {
+                // send the request
+                old_umisb_send<OldPyUmiPacket>(request, m_tx, true, &check_signals);
 
-            old_umisb_send<OldPyUmiPacket>(request, m_tx, true, &check_signals);
+                // get the reply
+                OldPyUmiPacket reply;
+                old_umisb_recv<OldPyUmiPacket>(reply, m_rx, true, &check_signals);
 
-            // get the reply
+                // check that the reply makes sense
+                old_umisb_check_reply<OldPyUmiPacket>(request, reply);
 
-            OldPyUmiPacket reply;
-            old_umisb_recv<OldPyUmiPacket>(reply, m_rx, true, &check_signals);
-
-            // check that the reply makes sense
-
-            old_umisb_check_reply<OldPyUmiPacket>(request, reply);
-
-            // return the result of the operation
-
-            return reply.data;
+                // return the result of the operation
+                return reply.data;
+            }
         }
 
     private:

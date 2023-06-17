@@ -7,36 +7,52 @@
 #include <functional>
 
 #include "switchboard.hpp"
+#include "umilib.h"
 #include "umilib.hpp"
 
 typedef std::function<void(sb_packet packet, bool header)> PacketPrinter;
 
 // generic formatting methods
 
-template <typename T> std::string umi_data_as_str(T& x, ssize_t max_len=-1) {
+template <typename T> std::string umi_data_as_str(T& x) {
     // get the data representation
     uint8_t* ptr = x.ptr();
-    size_t len = x.len();
+    size_t nbytes = x.nbytes();
 
-    // if max_len is provided (non-negative), then it limits the amount
-    // of data printed out.  the main use case is setting max_len=1<<size,
-    // so that if the data buffer is larger than necessary, only valid
-    // data gets printed out.
-    if (max_len >= 0) {
-        len = std::min(len, (size_t)max_len);
-    }
+    uint32_t opcode = umi_opcode(x.cmd);
 
     // create a formatted representation
     std::stringstream stream;
     stream << "[";
-    for (size_t i=0; i<len; i++) {
-        // uint8_t needs to be cast to an integer to print correctly
-        // with std::hex: https://stackoverflow.com/a/23575509
-        stream << "0x" << std::hex << static_cast<int>(ptr[i]);
-        if (i != (len-1)){
-            stream << ", ";
+    if (has_umi_data(opcode)) {
+
+        uint32_t size = umi_size(x.cmd);
+        uint32_t len = umi_len(x.cmd)+1;
+
+        for (size_t i=0; i<len; i++) {
+            if ((i+1)*(1<<size) <= nbytes) {
+                if (size == 0) {
+                    // uint8_t needs to be cast to an integer to print correctly
+                    // with std::hex: https://stackoverflow.com/a/23575509
+                    stream << "0x" << std::hex << static_cast<int>(ptr[i]);
+                } else if (size == 1) {
+                    stream << "0x" << std::hex << ((uint16_t*)ptr)[i];
+                } else if (size == 2) {
+                    stream << "0x" << std::hex << ((uint32_t*)ptr)[i];
+                } else if (size == 3) {
+                    stream << "0x" << std::hex << ((uint64_t*)ptr)[i];
+                } else {
+                    stream << "X";
+                }
+            } else {
+                stream << "X";
+            }
+            if (i != (len-1)){
+                stream << ", ";
+            }
         }
     }
+
     stream << "]";
 
     // return the result
@@ -46,22 +62,23 @@ template <typename T> std::string umi_data_as_str(T& x, ssize_t max_len=-1) {
 template <typename T> std::string umi_transaction_as_str(T& x) {
     std::stringstream stream;
 
-    stream << "opcode: " << umi_opcode_to_str(x.opcode);
+    uint32_t opcode = umi_opcode(x.cmd);
 
-    stream << std::endl << "size: " << x.size;
-    stream << std::endl << "user: " << x.user;
+    stream << "opcode: " << umi_opcode_to_str(opcode);
+
     stream << std::endl << "dstaddr: 0x" << std::hex << x.dstaddr;
-
-    // print out the source address, as long as this isn't a write,
-    // since a write doesn't have a source address
-    if (!is_umi_write(x.opcode)) {
+    
+    // print out the source address if this is a request, as long
+    // as it isn't a posted write, since that doesn't have a source
+    // address.
+    if (is_umi_req(opcode) && (opcode != UMI_REQ_POSTED)) {
         stream << std::endl << "srcaddr: 0x" << std::hex << x.srcaddr;
     }
 
     // print out the data as long as this isn't a read request, since
     // that doesn't have data
-    if (!is_umi_read_request(x.opcode)) {
-        stream << std::endl << "data: " << umi_data_as_str<T>(x, 1<<x.size);
+    if (opcode != UMI_REQ_READ) {
+        stream << std::endl << "data: " << umi_data_as_str<T>(x);
     }
 
     // return the result, noting that it does not contain a final newline
@@ -70,22 +87,58 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
 
 // function for checking if requests and replies match up as expected
 
-template <typename T> void umisb_check_reply(T& request, T& reply) {
+template <typename T> void umisb_check_resp(T& req, T& resp) {
+    uint32_t req_opcode = umi_opcode(req.cmd);
+
+    if (!has_umi_resp(req_opcode)) {
+        return;
+    }
+
+    uint32_t req_size = umi_size(req.cmd);
+    uint32_t req_len = umi_len(req.cmd);
+
+    uint32_t resp_opcode = umi_opcode(resp.cmd);
+    uint32_t resp_size = umi_size(req.cmd);
+    uint32_t resp_len = umi_len(req.cmd);
+
+    uint32_t expected_opcode;
+    uint32_t expected_size = umi_size(req.cmd);    
+    uint32_t expected_len = umi_len(req.cmd);
+    uint64_t expected_dstaddr = req.dstaddr;
+
+    if (req_opcode == UMI_REQ_WRITE) {
+        expected_opcode = UMI_RESP_WRITE;
+    } else if (req_opcode == UMI_REQ_READ) {
+        expected_opcode = UMI_RESP_READ;
+    } else if (req_opcode == UMI_REQ_ATOMIC) {
+        expected_opcode = UMI_RESP_READ;  // TODO: is this right?
+    }
+
     // check that the response makes sense
-    if (!is_umi_write_response(reply.opcode)) {
-        std::cerr << "Warning: got " << umi_opcode_to_str(reply.opcode)
-            << " in response to " << umi_opcode_to_str(request.opcode)
-            << " (expected WRITE-RESPONSE)" << std::endl;
+
+    if (resp_opcode != expected_opcode) {
+        std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
+            << " in response to " << umi_opcode_to_str(req_opcode)
+            << " (expected " << umi_opcode_to_str(expected_opcode)
+            << ")" << std::endl;
     }
-    if (reply.size != request.size) {
-        std::cerr << "Warning: " << umi_opcode_to_str(request.opcode)
-            << " response size is " << std::to_string(reply.size)
-            << " (expected " << std::to_string(request.size) << ")" << std::endl;
+
+    if (resp_size != expected_size) {
+        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode)
+            << " response SIZE is " << std::to_string(resp_size)
+            << " (expected " << std::to_string(expected_size) << ")" << std::endl;
     }
-    if (reply.dstaddr != request.srcaddr) {
-        std::cerr <<  "Warning: dstaddr in " << umi_opcode_to_str(request.opcode)
-            << " response is " << std::to_string(reply.dstaddr)
-            << " (expected " << std::to_string(request.srcaddr) << ")" << std::endl;
+
+    if (resp_len != expected_len) {
+        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode)
+            << " response LEN is " << std::to_string(resp_len)
+            << " (expected " << std::to_string(expected_len) << ")" << std::endl;
+    }
+
+    if (resp.dstaddr != expected_dstaddr) {
+        std::cerr <<  "Warning: dstaddr in " << umi_opcode_to_str(resp_opcode)
+            << " response is " << std::to_string(resp.dstaddr)
+            << " (expected " << std::to_string(expected_dstaddr) << ")" << std::endl;
     }
 }
 
@@ -93,10 +146,9 @@ template <typename T> void umisb_check_reply(T& request, T& reply) {
 // multiple packets.
 
 struct UmiTransaction {
-    UmiTransaction(uint32_t opcode=0, uint32_t size=0, uint32_t user=0, uint64_t dstaddr=0,
-        uint64_t srcaddr=0, uint8_t* data=NULL, size_t nbytes=0) : opcode(opcode), size(size),
-        user(user), dstaddr(dstaddr), srcaddr(srcaddr), data(data), nbytes(nbytes),
-        allocated(false) {
+    UmiTransaction(uint32_t cmd=0, uint64_t dstaddr=0, uint64_t srcaddr=0,
+        uint8_t* data=NULL, size_t nbytes=0) : cmd(cmd), dstaddr(dstaddr),
+        srcaddr(srcaddr), data(data), m_nbytes(nbytes), m_allocated(false) {
 
         if ((data == NULL) && (nbytes > 0)) {
             resize(nbytes);
@@ -105,8 +157,8 @@ struct UmiTransaction {
     }
 
     ~UmiTransaction() {
-        if (allocated) {
-            delete[] data;
+        if (m_allocated) {
+            free(data);
         }
     }
 
@@ -116,43 +168,40 @@ struct UmiTransaction {
 
     void resize(size_t n) {
         // allocate new space if needed
-        if (n > nbytes) {
-            if (allocated) {
-                delete[] data;
-            }
-            data = new uint8_t[n];
-            allocated = true;
+        if (m_allocated) {
+            data = (uint8_t*)realloc(data, n);
+        } else {
+            data = (uint8_t*)malloc(n);
+            m_allocated = true;
         }
 
         // record the new size of the storage
-        nbytes = n;
+        m_nbytes = n;
     }
 
-    size_t len(){
-        return nbytes;
+    size_t nbytes(){
+        return m_nbytes;
     }
 
     uint8_t* ptr() {
         return data;
     }
 
-    uint32_t opcode;
-    uint32_t size;
-    uint32_t user;
+    uint32_t cmd;
     uint64_t dstaddr;
     uint64_t srcaddr;
     uint8_t* data;
 
     private:
-        size_t nbytes;
-        bool allocated;
+        size_t m_nbytes;
+        bool m_allocated;
 };
 
 // higher-level functions for UMI transactions
 
 template <typename T> static inline bool umisb_send(
     T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL,
-    PacketPrinter printer=NULL) {
+    PacketPrinter printer=NULL, uint32_t max_flit_bytes=32) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
     // if length of the data payload in the packet is greater than
@@ -164,17 +213,43 @@ template <typename T> static inline bool umisb_send(
         return false;
     }
 
-    // calculate the number of data bytes in the first packet
+    // calculate the number of words in UMI transaction object
 
-    int nbytes = x.len();
-    size_t flit_size = std::min(nbytes, 16);
+    uint32_t size = umi_size(x.cmd);
+    uint32_t data_len = x.nbytes() >> size;
 
-    // format into a UMI packet
+    // calculate the number of words to send as the minimum of
+    // the number of words specified in the command, and the number
+    // of words that are actually in the UMI transaction object
+
+    uint32_t len = std::min(umi_len(x.cmd)+1, data_len);
+
+    // calculate the number of words to send in the first (and
+    // possibly final) flit
+
+    size_t flit_len = std::min(len, max_flit_bytes>>size);
+
+    // format the first command
+
+    uint32_t cmd = x.cmd;
+
+    if (len > 0) {
+        set_umi_len(&cmd, flit_len-1);
+        set_umi_eom(&cmd, (flit_len == len) ? 1 : 0);
+    }
+
+    // load fields into an SB packet
 
     sb_packet p;
-    uint8_t* ptr = x.ptr();
-    umi_pack((uint32_t*)p.data, x.opcode, x.size, x.user, x.dstaddr,
-        x.srcaddr, ptr, flit_size);
+    umi_packet* up = (umi_packet*)p.data;
+
+    up->cmd = cmd;
+    up->dstaddr = x.dstaddr;
+    up->srcaddr = x.srcaddr;
+
+    if (flit_len > 0) {
+        memcpy(up->data, x.ptr(), flit_len*(1<<size));
+    }
 
     // try to send the packet once or multiple times depending
     // on the "blocking" argument
@@ -185,7 +260,7 @@ template <typename T> static inline bool umisb_send(
     }
 
     // if we reach this point, we're committed to send out the whole UMI
-    // transaction, which may span multiple packet
+    // transaction, which may span multiple packets
 
     // finish sending the header packet
     if (!header_sent) {
@@ -195,18 +270,31 @@ template <typename T> static inline bool umisb_send(
             }
         }
     }
-    if (printer != NULL)
+    if (printer != NULL) {
         printer(p, true);
+    }
 
     // update indices
-    nbytes -= flit_size;
-    ptr += flit_size;
+    len -= flit_len;
+    uint32_t bytes_moved = flit_len*(1<<size);
 
-    // send the remaining data in burst packets as necessary
-    while (nbytes > 0) {
-        // format the next burst packet
-        flit_size = std::min(nbytes, 32);
-        umi_pack_burst((uint32_t*)p.data, ptr, flit_size);
+    // send the remaining data in subsequent packets
+    while (len > 0) {
+        // determine how many words will be in this packet
+        flit_len = std::min(len, ((uint32_t)32)>>size);
+
+        // set the command for this packet
+        set_umi_len(&cmd, flit_len-1);
+        set_umi_eom(&cmd, (flit_len == len) ? 1 : 0);
+        up->cmd = cmd;
+
+        // set destination address for this packet
+        up->dstaddr = x.dstaddr + bytes_moved;
+
+        // copy in the data for this packet
+        if (flit_len > 0) {
+            memcpy(up->data, x.ptr() + bytes_moved, flit_len*(1<<size));
+        }
 
         // send the packet
         while (!tx.send(p)) {
@@ -214,12 +302,13 @@ template <typename T> static inline bool umisb_send(
                 loop();
             }
         }
-        if (printer != NULL)
+        if (printer != NULL) {
             printer(p, false);
+        }
 
         // update indices
-        nbytes -= flit_size;
-        ptr += flit_size;
+        len -= flit_len;
+        bytes_moved += flit_len*(1<<size);
     }
 
     // if we reach this point, we succeeded in sending the packet
@@ -234,7 +323,7 @@ template <typename T> static inline bool umisb_recv(
         return false;
     }
 
-    // get a resposne
+    // get a response
 
     sb_packet p;
 
@@ -252,41 +341,41 @@ template <typename T> static inline bool umisb_recv(
 
     // if we get to this point, there is valid data in "p"
 
-    // parse the packet (but don't copy out the data, since we don't yet
-    // know how much space to allocate to hold it)
-    umi_unpack((uint32_t*)p.data, x.opcode, x.size, x.user, x.dstaddr, x.srcaddr, NULL, 0);
+    umi_packet* up = (umi_packet*)p.data;
 
-    if (printer != NULL)
+    if (printer != NULL) {
         printer(p, true);
+    }
 
-    // determine how many bytes are in the payload
+    // read information from the packet
 
-    int nbytes = is_umi_read_request(x.opcode) ? 0 : (1<<x.size);
+    uint32_t opcode = umi_opcode(up->cmd);
+    uint32_t flit_len = (opcode == UMI_REQ_READ) ? 0 : (umi_len(up->cmd)+1);
+    uint32_t size = umi_size(up->cmd);
+    uint32_t eom = umi_eom(up->cmd);
+
+    x.cmd = up->cmd;
+    x.dstaddr = up->dstaddr;
+    x.srcaddr = up->srcaddr;
 
     // create an object to hold data to be returned to python
 
-    x.resize(nbytes);
-
-    // initialize indices
-
-    uint8_t* ptr = x.ptr();
-
-    // calculate how many bytes are in the first (and possibly only) flit
-
-    size_t flit_size = std::min(nbytes, 16);
+    x.resize(flit_len*(1<<size));
 
     // copy out the data from the header packet
 
-    copy_umi_data((uint32_t*)p.data, ptr, flit_size);
+    if (flit_len > 0) {
+        memcpy(x.ptr(), up->data, flit_len*(1<<size));
+    }
 
     // update indices
 
-    nbytes -= flit_size;
-    ptr += flit_size;
+    uint32_t bytes_moved = flit_len*(1<<size);
+    uint32_t len = flit_len;
 
     // receive more data if necessary
 
-    while (nbytes > 0) {
+    while (eom != 1) {
         // receive the next packet
 
         while (!rx.recv(p)) {
@@ -294,21 +383,30 @@ template <typename T> static inline bool umisb_recv(
                 loop();
             }
         }
-        if (printer != NULL)
+        if (printer != NULL) {
             printer(p, false);
+        }
 
-        // calculate how many bytes will be in this flit
+        // read information from the packet
 
-        flit_size = std::min(nbytes, 32);
+        flit_len = (opcode == UMI_REQ_READ) ? 0 : (umi_len(up->cmd)+1);
+        eom = umi_eom(up->cmd);
 
-        // unpack data from the flit
-
-        umi_unpack_burst((uint32_t*)p.data, ptr, flit_size);
+        if (flit_len > 0) {
+            x.resize(len + (flit_len*(1<<size)));
+            memcpy(x.ptr()+bytes_moved, up->data, flit_len*(1<<size));
+        }
 
         // update indices
 
-        nbytes -= flit_size;
-        ptr += flit_size;
+        bytes_moved += flit_len*(1<<size);
+        len += flit_len;
+    }
+
+    // indicate the total number of words in this transaction
+
+    if (opcode != UMI_REQ_READ) {
+        set_umi_len(x.cmd, len);
     }
 
     return true;
