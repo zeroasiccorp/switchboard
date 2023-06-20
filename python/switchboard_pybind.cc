@@ -378,76 +378,9 @@ static inline void progressbar_done(void) {
 // one TX and one RX, to issue write requests and read requests according to the UMI
 // specification.
 
-class PyUmiDevice {
+class PyUmi {
     public:
-        PyUmiDevice (std::string tx_uri="", std::string rx_uri="") {
-            init(tx_uri, rx_uri);
-        }
-
-        void init(std::string tx_uri, std::string rx_uri) {
-            if (tx_uri != "") {
-                m_tx.init(tx_uri.c_str());
-            }
-            if (rx_uri != "") {
-                m_rx.init(rx_uri.c_str());
-            }
-        }
-
-        bool send(PyUmiPacket& py_packet, bool blocking=true) {
-            // sends (or tries to send, if blocking=false) a single UMI transaction
-            // if length of the data payload in the packet is greater than
-            // what can be sent in a header packet, then a header packet is sent
-            // containing the beginning of the data, followed by the rest in
-            // subsequent burst packets.
-
-            return umisb_send<PyUmiPacket>(py_packet, m_tx, blocking, &check_signals);
-        } 
-
-        std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
-            // try to receive a transaction
-            std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(
-                new PyUmiPacket(0, 0, 0, py::array_t<uint8_t>(0)));
-            bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
-
-            // if we got something, return it, otherwise return a null pointer
-            if (success) {
-                return resp;
-            } else {
-                return nullptr;
-            }
-        }
-
-        bool old_send(OldPyUmiPacket& py_packet, bool blocking=true) {
-            // sends (or tries to send, if blocking=false) a single UMI transaction
-            // if length of the data payload in the packet is greater than
-            // what can be sent in a header packet, then a header packet is sent
-            // containing the beginning of the data, followed by the rest in
-            // subsequent burst packets.
-
-            return old_umisb_send<OldPyUmiPacket>(py_packet, m_tx, blocking, &check_signals);
-        } 
-
-        std::unique_ptr<OldPyUmiPacket> old_recv(bool blocking=true) {
-            // try to receive a transaction
-            std::unique_ptr<OldPyUmiPacket> resp = std::unique_ptr<OldPyUmiPacket>(
-                new OldPyUmiPacket(0, 0, 0, 0, 0, py::array_t<uint8_t>(0)));
-            bool success = old_umisb_recv<OldPyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
-
-            // if we got something, return it, otherwise return a null pointer
-            if (success) {
-                return resp;
-            } else {
-                return nullptr;
-            }
-        }
-    private:
-        SBTX m_tx;
-        SBRX m_rx;
-};
-
-class PyUmiHost {
-    public:
-        PyUmiHost (std::string tx_uri="", std::string rx_uri="") {
+        PyUmi (std::string tx_uri="", std::string rx_uri="") {
             init(tx_uri, rx_uri);
         }
 
@@ -760,24 +693,16 @@ PYBIND11_MODULE(_switchboard, m) {
         .def("init", &PySbRxPcie::init, py::arg("uri") = "", py::arg("idx") = 0,
             py::arg("bar_num") = 0, py::arg("bdf") = "");
 
-    py::class_<PyUmiHost>(m, "PyUmiHost")
+    py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
-        .def("init", &PyUmiHost::init)
-        .def("send", &PyUmiHost::send, py::arg("py_packet"), py::arg("blocking")=true)
-        .def("recv", &PyUmiHost::recv, py::arg("blocking")=true)
-        .def("old_send", &PyUmiHost::old_send, py::arg("py_packet"), py::arg("blocking")=true)
-        .def("old_recv", &PyUmiHost::old_recv, py::arg("blocking")=true)
-        .def("write", &PyUmiHost::write, py::arg("addr"), py::arg("data"), py::arg("max_size")=15, py::arg("progressbar")=false, py::arg("old")=true)
-        .def("read", &PyUmiHost::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0, py::arg("max_size")=15, py::arg("old")=true)
-        .def("atomic", &PyUmiHost::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0, py::arg("old")=true);
-
-    py::class_<PyUmiDevice>(m, "PyUmiDevice")
-        .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
-        .def("init", &PyUmiDevice::init)
-        .def("send", &PyUmiDevice::send, py::arg("py_packet"), py::arg("blocking")=true)
-        .def("recv", &PyUmiDevice::recv, py::arg("blocking")=true)
-        .def("old_send", &PyUmiDevice::old_send, py::arg("py_packet"), py::arg("blocking")=true)
-        .def("old_recv", &PyUmiDevice::old_recv, py::arg("blocking")=true);
+        .def("init", &PyUmi::init)
+        .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
+        .def("recv", &PyUmi::recv, py::arg("blocking")=true)
+        .def("old_send", &PyUmi::old_send, py::arg("py_packet"), py::arg("blocking")=true)
+        .def("old_recv", &PyUmi::old_recv, py::arg("blocking")=true)
+        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_size")=15, py::arg("progressbar")=false, py::arg("old")=true)
+        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("srcaddr")=0, py::arg("max_size")=15, py::arg("old")=true)
+        .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0, py::arg("old")=true);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str, "Returns a string representation of a UMI opcode");
 

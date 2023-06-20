@@ -2,16 +2,16 @@
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
-from _switchboard import PyUmiHost, PyUmiDevice, UmiCmd
+from _switchboard import PyUmi, UmiCmd
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
 # flexibility with numpy types
 
 
-class UmiHost:
+class UmiTxRx:
     def __init__(self, tx_uri="", rx_uri=""):
-        self.umi = PyUmiHost(tx_uri, rx_uri)
+        self.umi = PyUmi(tx_uri, rx_uri)
 
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
@@ -110,7 +110,7 @@ class UmiHost:
                 raise TypeError("Must provide mask as a numpy integer type, or specify dtype.")
 
         # write, then read repeatedly until the value written is observed
-        self.write(addr, value)
+        self.write(addr, value, old=old)
         rdval = self.read(addr, value.dtype, srcaddr=srcaddr, old=old)
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr, old=old)
@@ -181,36 +181,3 @@ class UmiHost:
         else:
             raise TypeError("The data provided to atomic should be of a numpy integer type"
                 " so that the transaction size can be determined")
-
-
-class UmiDevice:
-    def __init__(self, tx_uri="", rx_uri=""):
-        self.umi = PyUmiDevice(tx_uri, rx_uri)
-
-    def init_queues(self, tx_uri="", rx_uri=""):
-        self.umi.init(tx_uri, rx_uri)
-
-    def send(self, p, blocking=True, old=False):
-        """
-        Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket object).
-        The "data" field of the packet can contain more data than fits in a single
-        UMI packet, in which case the beginning of the data will be sent in a header
-        packet, and the rest will be sent as burst packets.
-        """
-
-        if not old:
-            return self.umi.send(p, blocking)
-        else:
-            return self.umi.old_send(p, blocking)
-
-    def recv(self, blocking=True, old=False):
-        """
-        Wait for and return a UMI packet (PyUmiPacket object) if blocking=True,
-        otherwise return a UMI packet if one can be read immediately, and
-        None otherwise.
-        """
-
-        if not old:
-            return self.umi.recv(blocking)
-        else:
-            return self.umi.old_recv(blocking)

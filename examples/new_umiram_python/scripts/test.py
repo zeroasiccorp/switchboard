@@ -8,7 +8,7 @@ import atexit
 import subprocess
 import numpy as np
 from pathlib import Path
-from switchboard import UmiHost, PySbTx, PySbPacket, delete_queue
+from switchboard import UmiTxRx, PySbTx, PySbPacket, delete_queue
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = UmiHost("queue-5555", "queue-5556")
+    umi = UmiTxRx("queue-5555", "queue-5556")
     stop = PySbTx("queue-5557")
 
     # write 0xbeefcafe to address 0x12

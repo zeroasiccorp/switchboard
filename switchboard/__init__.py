@@ -8,4 +8,4 @@ from _switchboard import (PySbPacket, delete_queue, umi_opcode_to_str,  # noqa: 
 
 from _switchboard import old_umi_opcode_to_str, OldUmiCmd, OldPyUmiPacket  # noqa: F401
 
-from .umi import UmiHost, UmiDevice  # noqa: F401
+from .umi import UmiTxRx  # noqa: F401
