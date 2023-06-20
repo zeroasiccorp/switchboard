@@ -2,11 +2,11 @@ SBDIR := $(shell switchboard --path)
 
 .PHONY: umidriver
 umidriver: prereqs
-	$(SBDIR)/cpp/umidriver --sim verilator/obj_dir/Vtestbench --txfile in.memh --rxfile expect.memh
+	$(SBDIR)/cpp/old_umidriver --sim verilator/obj_dir/Vtestbench --txfile in.memh --rxfile expect.memh
 
 .PHONY: prereqs
 prereqs:
-	make -C $(SBDIR)/cpp umidriver
+	make -C $(SBDIR)/cpp old_umidriver
 	make -C verilator obj_dir/Vtestbench
 
 .PHONY: clean

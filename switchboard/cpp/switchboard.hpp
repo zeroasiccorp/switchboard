@@ -138,7 +138,15 @@ static inline void delete_shared_queue(std::string name) {
     delete_shared_queue(name.c_str());
 }
 
-static inline std::string sb_packet_to_str(sb_packet p) {
+static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes=-1) {
+    // determine how many bytes to print
+    size_t max_idx;
+    if (nbytes < 0) {
+        max_idx = sizeof(p.data);
+    } else {
+        max_idx = nbytes;
+    }
+
     // used for convenient formatting with sprintf
     char buf[128];
 
@@ -151,10 +159,10 @@ static inline std::string sb_packet_to_str(sb_packet p) {
     retval += buf;
 
     // format data
-    for (size_t i=0; i<sizeof(p.data); i++) {
+    for (size_t i=0; i<max_idx; i++) {
         sprintf(buf, "%02x", p.data[i]);
         retval += buf;
-        if (i != (sizeof(p.data)-1)) {
+        if (i != (max_idx-1)) {
             retval += ", ";
         }
     }

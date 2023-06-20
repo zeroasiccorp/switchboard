@@ -13,14 +13,14 @@ module testbench (
     wire umi_tx_valid;
     wire umi_tx_ready;
 
-    umi_rx_sim rx_i (
+    old_umi_rx_sim rx_i (
         .clk(clk),
         .packet(umi_rx_packet), // output
         .ready(umi_rx_ready), // input
         .valid(umi_rx_valid) // output
     );
 
-    umi_tx_sim tx_i (
+    old_umi_tx_sim tx_i (
         .clk(clk),
         .packet(umi_tx_packet), // input
         .ready(umi_tx_ready), // output
@@ -28,7 +28,7 @@ module testbench (
     );
 
     wire stop_valid;
-    umi_rx_sim stop_i (
+    old_umi_rx_sim stop_i (
         .clk(clk),
         .packet(),
         .ready(1'b1),

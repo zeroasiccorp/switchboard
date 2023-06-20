@@ -3,7 +3,7 @@
 #include <fstream>
 
 #include "switchboard.hpp"
-#include "umilib.hpp"
+#include "old_umilib.hpp"
 
 SBRX rx;
 SBTX tx;
@@ -34,7 +34,7 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
 
     // form the UMI packet
     sb_packet p;
-    umi_pack((uint32_t*)p.data, UMI_WRITE_POSTED, 2, 0, dstaddr, 0, (uint8_t*)(&data), 4);
+    old_umi_pack((uint32_t*)p.data, OLD_UMI_WRITE_POSTED, 2, 0, dstaddr, 0, (uint8_t*)(&data), 4);
     p.destination = ((row & 0xf) << 8) | (col & 0xf);
     p.last = true;
 
@@ -51,7 +51,7 @@ void dut_recv(uint32_t& data, uint32_t& addr){
     uint32_t opcode, size, user;
     uint64_t dstaddr, srcaddr;
     uint32_t data_arr[4];
-    umi_unpack((uint32_t*)p.data, opcode, size, user, dstaddr, srcaddr, (uint8_t*)data_arr, 16);
+    old_umi_unpack((uint32_t*)p.data, opcode, size, user, dstaddr, srcaddr, (uint8_t*)data_arr, 16);
 
     // only the lowest 32 bits of data and address are used
     data = data_arr[0];

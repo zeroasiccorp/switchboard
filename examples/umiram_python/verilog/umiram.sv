@@ -21,17 +21,18 @@ module umiram #(
     wire [63:0] rx_dstaddr;
     wire [63:0] rx_srcaddr;
     wire [255:0] rx_data;
+    wire [3:0] rx_size;
 
     umi_unpack umi_unpack_i (
         .packet(umi_rx_packet),
         .data(rx_data),
         .srcaddr(rx_srcaddr),
         .dstaddr(rx_dstaddr),
+        .size(rx_size),
 
         // unused outputs
         .write(),
         .command(),
-        .size(),
         .options()
     );
 
@@ -43,15 +44,12 @@ module umiram #(
 
     reg [63:0] tx_dstaddr;
     reg [255:0] tx_data;
-
-    /* verilator lint_off WIDTH */
-    localparam [3:0] UMI_SIZE = $clog2(DATA_WIDTH/8);
-    /* verilator lint_on WIDTH */
+    reg [3:0] tx_size;
 
     umi_pack umi_pack_i (
         .write(WRITE_RESPONSE[0]),
         .command(WRITE_RESPONSE[7:1]),
-        .size(UMI_SIZE),
+        .size(tx_size),
         .options(20'd0),
         .burst(1'b0),
         .dstaddr(tx_dstaddr),
@@ -75,6 +73,7 @@ module umiram #(
             end else if (rx_cmd_read && !umi_tx_valid) begin
                 tx_data <= {{(256-DATA_WIDTH){1'b0}}, mem[rx_dstaddr[(ADDR_WIDTH-1):0]]};
                 tx_dstaddr <= rx_srcaddr;
+                tx_size <= rx_size;
                 umi_tx_valid <= 1'b1;
                 umi_rx_ready <= 1'b1;
             end

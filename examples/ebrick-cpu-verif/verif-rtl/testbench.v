@@ -127,14 +127,14 @@ module testbench #(
 
     // umi1
 
-    umi_rx_sim umi1_rx (
+    old_umi_rx_sim umi1_rx (
         .clk(clk),
         .packet(umi1_in_packet),
         .ready(umi1_in_ready),
         .valid(umi1_in_valid)
     );
 
-    umi_tx_sim umi1_tx (
+    old_umi_tx_sim umi1_tx (
         .clk(clk),
         .packet(umi1_out_packet),
         .ready(umi1_out_ready),
@@ -143,14 +143,14 @@ module testbench #(
 
     // umi_tb
 
-    umi_rx_sim umi_tb_rx (
+    old_umi_rx_sim umi_tb_rx (
         .clk(clk),
         .packet(umi_tb_in_packet),
         .ready(umi_tb_in_ready),
         .valid(umi_tb_in_valid)
     );
 
-    umi_tx_sim umi_tb_tx (
+    old_umi_tx_sim umi_tb_tx (
         .clk(clk),
         .packet(umi_tb_out_packet),
         .ready(umi_tb_out_ready),

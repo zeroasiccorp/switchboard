@@ -17,7 +17,9 @@ module testbench (
     wire sb_tx_valid;
     wire sb_tx_ready;
 
-    sb_rx_sim rx_i (
+    sb_rx_sim #(
+        .DW(256)
+    ) rx_i (
         .clk(clk),
         .data(sb_rx_data),  // output
         .dest(sb_rx_dest),  // output
@@ -26,7 +28,9 @@ module testbench (
         .valid(sb_rx_valid)  // output
     );
 
-    sb_tx_sim tx_i (
+    sb_tx_sim #(
+        .DW(256)
+    ) tx_i (
         .clk(clk),
         .data(sb_tx_data),  // input
         .dest(sb_tx_dest),  // input

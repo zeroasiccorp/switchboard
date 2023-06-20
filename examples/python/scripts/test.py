@@ -44,6 +44,7 @@ def main():
     # receive packet
 
     rxp = rx.recv()  # note: blocking by default, can disable with blocking=False
+    rxp.data = rxp.data[:32]
 
     print("*** RX packet ***")
     print(rxp)
@@ -51,7 +52,7 @@ def main():
 
     # check that the received data
 
-    success = (rxp.data[:32] == (txp.data[:32] + 1)).all()
+    success = (rxp.data == (txp.data + 1)).all()
 
     # stop simulation
 
