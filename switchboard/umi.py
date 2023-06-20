@@ -2,7 +2,7 @@
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
-from _switchboard import PyUmi, UmiCmd
+from _switchboard import PyUmi, OldPyUmi, UmiCmd, OldUmiCmd
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
@@ -10,13 +10,18 @@ from _switchboard import PyUmi, UmiCmd
 
 
 class UmiTxRx:
-    def __init__(self, tx_uri="", rx_uri=""):
-        self.umi = PyUmi(tx_uri, rx_uri)
+    def __init__(self, tx_uri="", rx_uri="", old=False):
+        self.old = old
+
+        if old:
+            self.umi = OldPyUmi(tx_uri, rx_uri)
+        else:
+            self.umi = PyUmi(tx_uri, rx_uri)
 
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
 
-    def send(self, p, blocking=True, old=False):
+    def send(self, p, blocking=True):
         """
         Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket object).
         The "data" field of the packet can contain more data than fits in a single
@@ -24,24 +29,18 @@ class UmiTxRx:
         packet, and the rest will be sent as burst packets.
         """
 
-        if not old:
-            return self.umi.send(p, blocking)
-        else:
-            return self.umi.old_send(p, blocking)
+        return self.umi.send(p, blocking)
 
-    def recv(self, blocking=True, old=False):
+    def recv(self, blocking=True):
         """
         Wait for and return a UMI packet (PyUmiPacket object) if blocking=True,
         otherwise return a UMI packet if one can be read immediately, and
         None otherwise.
         """
 
-        if not old:
-            return self.umi.recv(blocking)
-        else:
-            return self.umi.old_recv(blocking)
+        return self.umi.recv(blocking)
 
-    def write(self, addr, data, max_size=15, progressbar=False, old=False):
+    def write(self, addr, data, max_size=None, progressbar=False):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
@@ -60,18 +59,28 @@ class UmiTxRx:
         is possible.
         """
 
+        # set defaults
+
+        if max_size is None:
+            if self.old:
+                max_size = 15
+            else:
+                max_size = 8
+
+        # perform write
+
         if isinstance(data, np.ndarray):
-            self.umi.write(addr, data.view(np.uint8), max_size, progressbar, old)
+            self.umi.write(addr, data.view(np.uint8), max_size, progressbar)
         elif isinstance(data, np.integer):
             # copy=False should be safe here, because the data will be
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             write_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            self.umi.write(addr, write_data, max_size, progressbar, old)
+            self.umi.write(addr, write_data, max_size, progressbar)
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 
-    def write_readback(self, addr, value, mask=None, srcaddr=0, dtype=None, old=False):
+    def write_readback(self, addr, value, mask=None, srcaddr=0, dtype=None):
         """
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
@@ -110,12 +119,12 @@ class UmiTxRx:
                 raise TypeError("Must provide mask as a numpy integer type, or specify dtype.")
 
         # write, then read repeatedly until the value written is observed
-        self.write(addr, value, old=old)
-        rdval = self.read(addr, value.dtype, srcaddr=srcaddr, old=old)
+        self.write(addr, value)
+        rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
         while ((rdval & mask) != (value & mask)):
-            rdval = self.read(addr, value.dtype, srcaddr=srcaddr, old=old)
+            rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, size_or_dtype, srcaddr=0, max_size=15, old=False):
+    def read(self, addr, size_or_dtype, srcaddr=0, max_size=None):
         """
         Reads from the provided 64-bit address.  The "size_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
@@ -142,13 +151,21 @@ class UmiTxRx:
         is possible.
         """
 
+        # set defaults
+
+        if max_size is None:
+            if self.old:
+                max_size = 15
+            else:
+                max_size = 8
+
         if isinstance(size_or_dtype, (type, np.dtype)):
             size = np.dtype(size_or_dtype).itemsize
-            return self.umi.read(addr, size, srcaddr, max_size, old).view(size_or_dtype)[0]
+            return self.umi.read(addr, size, srcaddr, max_size).view(size_or_dtype)[0]
         else:
             return self.umi.read(addr, size_or_dtype, srcaddr, max_size)
 
-    def atomic(self, addr, data, opcode, srcaddr=0, old=False):
+    def atomic(self, addr, data, opcode, srcaddr=0):
         """
         Applies an atomic operation to the provided 64-bit address.  "data" must
         be a numpy integer type (e.g., np.uint64), so that the size of the atomic
@@ -167,9 +184,18 @@ class UmiTxRx:
 
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
-            if opcode not in UmiCmd:
+            # figure out what set of opcodes to use
+            if self.old:
+                opcode_enum = OldUmiCmd
+            else:
+                opcode_enum = UmiCmd
+
+            # make sure that the string provided is in that opcode
+            if opcode not in opcode_enum:
                 raise ValueError(f'The provided opcode "{opcode}" does not appear to be valid.')
-            opcode = UmiCmd[opcode]
+
+            # perform the conversion from string to enum
+            opcode = opcode_enum[opcode]
 
         # format the data for sending
         if isinstance(data, np.integer):
@@ -177,7 +203,7 @@ class UmiTxRx:
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            return self.umi.atomic(addr, atomic_data, opcode, srcaddr, old).view(data.dtype)[0]
+            return self.umi.atomic(addr, atomic_data, opcode, srcaddr).view(data.dtype)[0]
         else:
             raise TypeError("The data provided to atomic should be of a numpy integer type"
                 " so that the transaction size can be determined")

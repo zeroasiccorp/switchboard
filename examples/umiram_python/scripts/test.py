@@ -22,20 +22,20 @@ def main():
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = UmiTxRx("queue-5555", "queue-5556")
+    umi = UmiTxRx("queue-5555", "queue-5556", old=True)
     stop = PySbTx("queue-5557")
 
     # write 0xbeefcafe to address 0x12
 
     wr_addr = 0x12
     wr_data = np.uint32(0xbeefcafe)
-    umi.write(wr_addr, wr_data, old=True)
+    umi.write(wr_addr, wr_data)
     print(f"Wrote to 0x{wr_addr:02x}: 0x{wr_data:08x}")
 
     # read data from address 0x12
 
     rd_addr = wr_addr
-    rd_data = umi.read(rd_addr, np.uint32, old=True)
+    rd_data = umi.read(rd_addr, np.uint32)
     print(f"Read from 0x{rd_addr:02x}: 0x{rd_data:08x}")
 
     # stop simulation
