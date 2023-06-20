@@ -76,7 +76,7 @@ module umiram #(
     always @(posedge clk) begin
         // handle receiver
         if (udev_req_valid && udev_req_ready) begin
-            udev_req_ready <= 1'b0;           
+            udev_req_ready <= 1'b0;
         end else if (udev_req_valid) begin
             if (req_cmd_posted) begin
                 mem[udev_req_dstaddr[(ADDR_WIDTH-1):0]] <= udev_req_data[(DATA_WIDTH-1):0];
@@ -88,7 +88,8 @@ module umiram #(
                 udev_req_ready <= 1'b1;
                 resp_opcode <= UMI_RESP_WRITE;
             end else if (req_cmd_read && !udev_resp_valid) begin
-                udev_resp_data <= {{(DW-DATA_WIDTH){1'b0}}, mem[udev_req_dstaddr[(ADDR_WIDTH-1):0]]};
+                udev_resp_data <= {{(DW-DATA_WIDTH){1'b0}},
+                    mem[udev_req_dstaddr[(ADDR_WIDTH-1):0]]};
                 udev_resp_dstaddr <= udev_req_srcaddr;
                 udev_resp_valid <= 1'b1;
                 udev_req_ready <= 1'b1;

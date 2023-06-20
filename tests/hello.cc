@@ -1,5 +1,7 @@
 #include "switchboard.hpp"
 
+#define NBYTES 32
+
 // example usage
 
 int main(int argc, char* argv[]) {
@@ -39,7 +41,7 @@ int main(int argc, char* argv[]) {
         sb_packet p;
         p.destination = 0xbeefcafe;
         p.last = true;
-        for (int i=0; i<32; i++) {
+        for (int i=0; i<NBYTES; i++) {
             p.data[i] = 0;
             for (int j=0; j<2; j++) {
                 p.data[i] <<= 4;
@@ -58,7 +60,7 @@ int main(int argc, char* argv[]) {
         rx.recv_blocking(p);
 
         // print packet
-        printf("%s\n", sb_packet_to_str(p).c_str());
+        printf("%s\n", sb_packet_to_str(p, NBYTES).c_str());
     }
 
     return 0;

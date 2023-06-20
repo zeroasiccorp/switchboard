@@ -29,7 +29,8 @@ module sb_rx_sim #(
         `define SB_END_FUNC endfunction
         `define SB_VAR_BIT var bit
 
-        import "DPI-C" function void pi_sb_rx_init(output int id, input string uri, input int width);
+        import "DPI-C" function void pi_sb_rx_init(output int id,
+            input string uri, input int width);
         import "DPI-C" function void pi_sb_recv(input int id, output bit [DW-1:0] rdata,
             output bit [31:0] rdest, output bit rlast, output int success);
     `endif

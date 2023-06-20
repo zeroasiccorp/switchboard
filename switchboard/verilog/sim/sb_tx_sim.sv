@@ -27,7 +27,8 @@ module sb_tx_sim #(
         `define SB_START_FUNC function void
         `define SB_END_FUNC endfunction
 
-        import "DPI-C" function void pi_sb_tx_init (output int id, input string uri, input int width);
+        import "DPI-C" function void pi_sb_tx_init (output int id,
+            input string uri, input int width);
         import "DPI-C" function void pi_sb_send (input int id, input bit [DW-1:0] sdata,
             input bit [31:0] sdest, input bit slast, output int success);
     `endif
