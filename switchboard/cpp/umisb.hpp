@@ -104,7 +104,7 @@ template <typename T> void umisb_check_resp(T& req, T& resp) {
     uint32_t expected_opcode;
     uint32_t expected_size = umi_size(req.cmd);    
     uint32_t expected_len = umi_len(req.cmd);
-    uint64_t expected_dstaddr = req.dstaddr;
+    uint64_t expected_dstaddr = req.srcaddr;
 
     if (req_opcode == UMI_REQ_WRITE) {
         expected_opcode = UMI_RESP_WRITE;

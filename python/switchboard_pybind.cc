@@ -562,7 +562,7 @@ class PyUmiHost {
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0,
-            uint32_t max_size=15, bool old=false) {
+            uint32_t max_size=8, bool old=false) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
@@ -593,15 +593,16 @@ class PyUmiHost {
 
                 if (!old) {
                     // read request
-                    OldUmiTransaction request(OLD_UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
-                    old_umisb_send<OldUmiTransaction>(request, m_tx, true, &check_signals);
+                    uint32_t cmd = umi_pack(UMI_REQ_READ, 0, 0, (1<<size)-1, 1, 1);
+                    UmiTransaction request(cmd, addr, srcaddr, NULL, 1<<size);
+                    umisb_send<UmiTransaction>(request, m_tx, true, &check_signals);
 
                     // get response
-                    OldUmiTransaction reply(0, 0, 0, 0, 0, ptr, 1<<size);
-                    old_umisb_recv<OldUmiTransaction>(reply, m_rx, true, &check_signals);
+                    UmiTransaction resp(0, 0, 0, ptr, 1<<size);
+                    umisb_recv<UmiTransaction>(resp, m_rx, true, &check_signals);
 
                     // check that the reply makes sense
-                    old_umisb_check_reply<OldUmiTransaction>(request, reply);
+                    umisb_check_resp<UmiTransaction>(request, resp);
                 } else {
                     // read request
                     OldUmiTransaction request(OLD_UMI_READ_REQUEST, size, 0, addr, srcaddr, NULL, 0);
