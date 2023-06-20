@@ -65,7 +65,7 @@ static inline bool has_umi_data(uint32_t opcode) {
         (opcode == UMI_REQ_POSTED) |
         (opcode == UMI_REQ_RDMA) |
         (opcode == UMI_REQ_ATOMIC) |
-        (opcode == UMI_RESP_READ) |
+        (opcode == UMI_RESP_READ)
     );
 }
 

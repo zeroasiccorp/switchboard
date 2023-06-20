@@ -406,7 +406,7 @@ template <typename T> static inline bool umisb_recv(
     // indicate the total number of words in this transaction
 
     if (opcode != UMI_REQ_READ) {
-        set_umi_len(x.cmd, len);
+        set_umi_len(&x.cmd, len);
     }
 
     return true;

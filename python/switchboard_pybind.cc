@@ -626,35 +626,48 @@ class PyUmiHost {
 
         py::array_t<uint8_t> atomic(uint64_t addr, py::array_t<uint8_t> data,
             uint32_t opcode, uint64_t srcaddr=0, bool old=true) {
-            // apply an atomic operation at addr with input data
+            // input validation
 
-            // create outbound packet
-
-            OldPyUmiPacket request(opcode, 0, 0, addr, srcaddr, data);
-            size_t num = request.nbytes();
+            uint32_t num = data.nbytes();
 
             if (num == 0) {
                 // nothing to read, so just return the empty array
                 return py::array_t<uint8_t>(0);
             }
 
-            // if we get to this point, there is a transaction of non-zero size
+            uint32_t size = highest_bit(num);
 
-            // calculate the size of the transaction
-
-            request.size = highest_bit(num); 
-
-            if (request.size > 4) {
-                throw std::runtime_error("Atomic operand must be 16 bytes or fewer to fit in a header packet.");
+            if (size > 4) {
+                throw std::runtime_error("Atomic operand must be 16 bytes or fewer.");
             }
 
-            if (num != (1<<request.size)) {
+            if (num != (1<<size)) {
                 throw std::runtime_error("Width of atomic operand must be a power of two number of bytes.");
             }
 
             if (!old) {
-                return NULL;
+                // format the request
+                uint32_t cmd = umi_pack(UMI_REQ_ATOMIC, opcode, size, 0, 1, 1);
+                PyUmiPacket request(cmd, addr, srcaddr, data);
+
+                // send the request
+                umisb_send<PyUmiPacket>(request, m_tx, true, &check_signals);
+
+                // get the response
+                PyUmiPacket resp;
+                umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals);
+
+                // check that the response makes sense
+                umisb_check_resp<PyUmiPacket>(request, resp);
+
+                // return the result of the operation
+                return resp.data;
             } else {
+                // format the request
+                // translate new opcode to old opcode
+                OldPyUmiPacket request((opcode << 4) | 0x4, 0, 0, addr, srcaddr, data);
+                request.size = size;
+
                 // send the request
                 old_umisb_send<OldPyUmiPacket>(request, m_tx, true, &check_signals);
 
@@ -701,14 +714,12 @@ PYBIND11_MODULE(_switchboard, m) {
         .def_readwrite("data", &PySbPacket::data);
 
     py::class_<PyUmiPacket>(m, "PyUmiPacket")
-        .def(py::init<uint32_t, uint32_t, uint32_t, uint64_t, uint64_t,
-            std::optional<py::array_t<uint8_t>>>(), py::arg("opcode") = 0,
-            py::arg("size") = 0, py::arg("user") = 0, py::arg("dstaddr") = 0,
+        .def(py::init<uint32_t, uint64_t, uint64_t,
+            std::optional<py::array_t<uint8_t>>>(),
+            py::arg("cmd") = 0, py::arg("dstaddr") = 0,
             py::arg("srcaddr") = 0, py::arg("data") = py::none())
         .def("__str__", &PyUmiPacket::toString)
-        .def_readwrite("opcode", &PyUmiPacket::opcode)
-        .def_readwrite("size", &PyUmiPacket::size)
-        .def_readwrite("user", &PyUmiPacket::user)
+        .def_readwrite("cmd", &PyUmiPacket::cmd)
         .def_readwrite("dstaddr", &PyUmiPacket::dstaddr)
         .def_readwrite("srcaddr", &PyUmiPacket::srcaddr)
         .def_readwrite("data", &PyUmiPacket::data);
@@ -775,22 +786,31 @@ PYBIND11_MODULE(_switchboard, m) {
 
     py::enum_<UMI_CMD>(m, "UmiCmd")
         .value("UMI_INVALID", UMI_INVALID)
-        .value("UMI_WRITE_POSTED", UMI_WRITE_POSTED)
-        .value("UMI_WRITE_RESPONSE", UMI_WRITE_RESPONSE)
-        .value("UMI_WRITE_SIGNAL", UMI_WRITE_SIGNAL)
-        .value("UMI_WRITE_STREAM", UMI_WRITE_STREAM)
-        .value("UMI_WRITE_ACK", UMI_WRITE_ACK)
-        .value("UMI_READ_REQUEST", UMI_READ_REQUEST)
-        .value("UMI_ATOMIC_ADD", UMI_ATOMIC_ADD)
-        .value("UMI_ATOMIC_AND", UMI_ATOMIC_AND)
-        .value("UMI_ATOMIC_OR", UMI_ATOMIC_OR)
-        .value("UMI_ATOMIC_XOR", UMI_ATOMIC_XOR)
-        .value("UMI_ATOMIC_MAX", UMI_ATOMIC_MAX)
-        .value("UMI_ATOMIC_MIN", UMI_ATOMIC_MIN)
-        .value("UMI_ATOMIC_MAXU", UMI_ATOMIC_MAXU)
-        .value("UMI_ATOMIC_MINU", UMI_ATOMIC_MINU)
-        .value("UMI_ATOMIC_SWAP", UMI_ATOMIC_SWAP)
-        .value("UMI_ATOMIC", UMI_ATOMIC)
+        .value("UMI_REQ_READ", UMI_REQ_READ)
+        .value("UMI_REQ_WRITE", UMI_REQ_WRITE)
+        .value("UMI_REQ_POSTED", UMI_REQ_POSTED)
+        .value("UMI_REQ_RDMA", UMI_REQ_RDMA)
+        .value("UMI_REQ_ATOMIC", UMI_REQ_ATOMIC)
+        .value("UMI_REQ_USER0", UMI_REQ_USER0)
+        .value("UMI_REQ_FUTURE0", UMI_REQ_FUTURE0)
+        .value("UMI_REQ_ERROR", UMI_REQ_ERROR)
+        .value("UMI_REQ_LINK", UMI_REQ_LINK)
+        .value("UMI_RESP_READ", UMI_RESP_READ)
+        .value("UMI_RESP_WRITE", UMI_RESP_WRITE)
+        .value("UMI_RESP_USER0", UMI_RESP_USER0)
+        .value("UMI_RESP_USER1", UMI_RESP_USER1)
+        .value("UMI_RESP_FUTURE0", UMI_RESP_FUTURE0)
+        .value("UMI_RESP_FUTURE1", UMI_RESP_FUTURE1)
+        .value("UMI_RESP_LINK", UMI_RESP_LINK)
+        .value("UMI_REQ_ATOMICADD", UMI_REQ_ATOMICADD)
+        .value("UMI_REQ_ATOMICAND", UMI_REQ_ATOMICAND)
+        .value("UMI_REQ_ATOMICOR", UMI_REQ_ATOMICOR)
+        .value("UMI_REQ_ATOMICXOR", UMI_REQ_ATOMICXOR)
+        .value("UMI_REQ_ATOMICMAX", UMI_REQ_ATOMICMAX)
+        .value("UMI_REQ_ATOMICMIN", UMI_REQ_ATOMICMIN)
+        .value("UMI_REQ_ATOMICMAXU", UMI_REQ_ATOMICMAXU)
+        .value("UMI_REQ_ATOMICMINU", UMI_REQ_ATOMICMINU)
+        .value("UMI_REQ_ATOMICSWAP", UMI_REQ_ATOMICSWAP)
         .export_values();
 
     py::enum_<OLD_UMI_CMD>(m, "OldUmiCmd")

@@ -16,7 +16,7 @@ typedef std::function<void(sb_packet packet, bool header)> PacketPrinter;
 template <typename T> std::string old_umi_data_as_str(T& x, ssize_t max_len=-1) {
     // get the data representation
     uint8_t* ptr = x.ptr();
-    size_t len = x.len();
+    size_t len = x.nbytes();
 
     // if max_len is provided (non-negative), then it limits the amount
     // of data printed out.  the main use case is setting max_len=1<<size,
@@ -95,7 +95,7 @@ template <typename T> void old_umisb_check_reply(T& request, T& reply) {
 struct OldUmiTransaction {
     OldUmiTransaction(uint32_t opcode=0, uint32_t size=0, uint32_t user=0, uint64_t dstaddr=0,
         uint64_t srcaddr=0, uint8_t* data=NULL, size_t nbytes=0) : opcode(opcode), size(size),
-        user(user), dstaddr(dstaddr), srcaddr(srcaddr), data(data), nbytes(nbytes),
+        user(user), dstaddr(dstaddr), srcaddr(srcaddr), data(data), m_nbytes(nbytes),
         allocated(false) {
 
         if ((data == NULL) && (nbytes > 0)) {
@@ -116,7 +116,7 @@ struct OldUmiTransaction {
 
     void resize(size_t n) {
         // allocate new space if needed
-        if (n > nbytes) {
+        if (n > m_nbytes) {
             if (allocated) {
                 delete[] data;
             }
@@ -125,11 +125,11 @@ struct OldUmiTransaction {
         }
 
         // record the new size of the storage
-        nbytes = n;
+        m_nbytes = n;
     }
 
-    size_t len(){
-        return nbytes;
+    size_t nbytes(){
+        return m_nbytes;
     }
 
     uint8_t* ptr() {
@@ -144,7 +144,7 @@ struct OldUmiTransaction {
     uint8_t* data;
 
     private:
-        size_t nbytes;
+        size_t m_nbytes;
         bool allocated;
 };
 
@@ -166,7 +166,7 @@ template <typename T> static inline bool old_umisb_send(
 
     // calculate the number of data bytes in the first packet
 
-    int nbytes = x.len();
+    int nbytes = x.nbytes();
     size_t flit_size = std::min(nbytes, 16);
 
     // format into a UMI packet
