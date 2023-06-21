@@ -42,17 +42,6 @@ module testbench (
         .valid(udev_resp_valid)
     );
 
-    wire stop_valid;
-    umi_rx_sim stop_i (
-        .clk(clk),
-        .data(),
-        .srcaddr(),
-        .dstaddr(),
-        .cmd(),
-        .ready(1'b1),
-        .valid(stop_valid)
-    );
-
     // instantiate module with UMI ports
 
     umiram ram_i (
@@ -66,20 +55,15 @@ module testbench (
         /* verilator lint_off IGNOREDRETURN */
         rx_i.init("queue-5555");
         tx_i.init("queue-5556");
-        stop_i.init("queue-5557");
         /* verilator lint_on IGNOREDRETURN */
     end
 
     // VCD
-    initial begin
-        $dumpfile("testbench.vcd");
-        $dumpvars(0, testbench);
-    end
 
-    // $finish
-    always @(posedge clk) begin
-        if (stop_valid) begin
-            $finish;
+    initial begin
+        if ($test$plusargs("trace")) begin
+            $dumpfile("testbench.vcd");
+            $dumpvars(0, testbench);
         end
     end
 

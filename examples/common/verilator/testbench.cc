@@ -1,3 +1,6 @@
+// For Ctrl-C handling
+#include <signal.h>
+
 // For std::unique_ptr
 #include <memory>
 
@@ -9,6 +12,13 @@
 
 // Legacy function required only so linking works on Cygwin and MSVC++
 double sc_time_stamp() { return 0; }
+
+// ref: https://stackoverflow.com/a/4217052
+static volatile int got_sigint = 0;
+
+void sigint_handler(int unused) {
+    got_sigint = 1;
+}
 
 int main(int argc, char** argv, char** env) {
     // Prevent unused variable warnings
@@ -36,7 +46,11 @@ int main(int argc, char** argv, char** env) {
     top->clk = 0;
     top->eval();
 
-    while (!contextp->gotFinish()) {
+    // Set up Ctrl-C handler
+    signal(SIGINT, sigint_handler);
+
+    // Main loop
+    while (!(contextp->gotFinish() || got_sigint)) {
         // Historical note, before Verilator 4.200 Verilated::gotFinish()
         // was used above in place of contextp->gotFinish().
         // Most of the contextp-> calls can use Verilated:: calls instead;
