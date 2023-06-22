@@ -5,11 +5,11 @@ obj_dir/Vtestbench: timescale.sv \
 	$(SBDIR)/verilog/sim/perf_meas_sim.sv \
 	$(SBDIR)/verilog/sim/sb_rx_sim.sv \
 	$(SBDIR)/verilog/sim/sb_tx_sim.sv \
-	$(SBDIR)/verilog/sim/umi_rx_sim.sv \
-	$(SBDIR)/verilog/sim/umi_tx_sim.sv \
-	$(EXDIR)/deps/umi/umi/rtl/umi_decode.v \
-	$(EXDIR)/deps/umi/umi/rtl/umi_pack.v \
-	$(EXDIR)/deps/umi/umi/rtl/umi_unpack.v \
+	$(SBDIR)/verilog/sim/old_umi_rx_sim.sv \
+	$(SBDIR)/verilog/sim/old_umi_tx_sim.sv \
+	$(EXDIR)/deps/old-umi/umi/rtl/umi_decode.v \
+	$(EXDIR)/deps/old-umi/umi/rtl/umi_pack.v \
+	$(EXDIR)/deps/old-umi/umi/rtl/umi_unpack.v \
 	../verilog/axi_to_umi.v \
 	../verilog/umi_to_axi.v \
 	../verilog/picorv32.v \

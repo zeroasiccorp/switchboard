@@ -7,3 +7,6 @@
 [submodule "examples/deps/libsystemctlm-soc"]
 	path = examples/deps/libsystemctlm-soc
 	url = git@github.com:Xilinx/libsystemctlm-soc.git
+[submodule "examples/deps/old-umi"]
+	path = examples/deps/old-umi
+	url = git@github.com:zeroasiccorp/umi.git

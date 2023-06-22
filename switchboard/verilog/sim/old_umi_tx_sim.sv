@@ -1,28 +1,25 @@
 `default_nettype none
 
-module umi_rx_sim #(
-    parameter integer VALID_MODE_DEFAULT=0,
-    parameter integer DW=256,
-    parameter integer AW=64,
-    parameter integer CW=32
+module old_umi_tx_sim #(
+    parameter integer READY_MODE_DEFAULT=0,
+    parameter integer DW=256
 ) (
     input clk,
-    output [DW-1:0] data,
-    output [AW-1:0] srcaddr,
-    output [AW-1:0] dstaddr,
-    output [CW-1:0] cmd,
-    input ready,
-    output valid
+    input [DW-1:0] packet,
+    output ready,
+    input valid
 );
 
-    sb_rx_sim #(
-        .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(DW+AW+AW+CW)
-    ) rx_i (
+    // TODO: support burst mode (through "last")
+
+    sb_tx_sim #(
+        .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
+        .DW(DW)
+    ) tx_i (
         .clk(clk),
-        .data({data, srcaddr, dstaddr, cmd}),
-        .dest(),
-        .last(),
+        .data(packet),
+        .dest({16'h0000, packet[255:240]}),
+        .last(1'b1),
         .ready(ready),
         .valid(valid)
     );
@@ -39,13 +36,13 @@ module umi_rx_sim #(
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init(uri);
+        tx_i.init(uri);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 
-    `SB_START_FUNC set_valid_mode(input integer value);
+    `SB_START_FUNC set_ready_mode(input integer value);
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.set_valid_mode(value);
+        tx_i.set_ready_mode(value);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 

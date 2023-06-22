@@ -8,10 +8,11 @@
 `default_nettype none
 
 module sb_rx_sim #(
-    parameter integer VALID_MODE_DEFAULT = 0
+    parameter integer VALID_MODE_DEFAULT=0,
+    parameter integer DW=416
 ) (
     input clk,
-    output reg [255:0] data=256'b0,
+    output reg [DW-1:0] data='b0,
     output reg [31:0] dest=32'b0,
     output reg last=1'b0,
     input ready,
@@ -28,8 +29,9 @@ module sb_rx_sim #(
         `define SB_END_FUNC endfunction
         `define SB_VAR_BIT var bit
 
-        import "DPI-C" function void pi_sb_rx_init(output int id, input string uri);
-        import "DPI-C" function void pi_sb_recv(input int id, output bit [255:0] rdata,
+        import "DPI-C" function void pi_sb_rx_init(output int id,
+            input string uri, input int width);
+        import "DPI-C" function void pi_sb_recv(input int id, output bit [DW-1:0] rdata,
             output bit [31:0] rdest, output bit rlast, output int success);
     `endif
 
@@ -39,18 +41,18 @@ module sb_rx_sim #(
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
-        `SB_EXT_FUNC(pi_sb_rx_init)(id, uri);
+        `SB_EXT_FUNC(pi_sb_rx_init)(id, uri, DW/8);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 
     integer success = 0;
 
-    `SB_VAR_BIT [255:0] rdata;
+    `SB_VAR_BIT [DW-1:0] rdata;
     `SB_VAR_BIT [31:0] rdest;
     `SB_VAR_BIT rlast;
 
     initial begin
-        rdata = 256'b0;
+        rdata = 'b0;
         rdest = 32'b0;
         rlast = 1'b0;
     end

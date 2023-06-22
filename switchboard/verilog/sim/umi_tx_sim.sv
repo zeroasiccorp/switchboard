@@ -1,10 +1,16 @@
 `default_nettype none
 
 module umi_tx_sim #(
-    parameter integer READY_MODE_DEFAULT=0
+    parameter integer READY_MODE_DEFAULT=0,
+    parameter integer DW=256,
+    parameter integer AW=64,
+    parameter integer CW=32
 ) (
     input clk,
-    input [255:0] packet,
+    input [DW-1:0] data,
+    input [AW-1:0] srcaddr,
+    input [AW-1:0] dstaddr,
+    input [CW-1:0] cmd,
     output ready,
     input valid
 );
@@ -12,11 +18,12 @@ module umi_tx_sim #(
     // TODO: support burst mode (through "last")
 
     sb_tx_sim #(
-        .READY_MODE_DEFAULT(READY_MODE_DEFAULT)
+        .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
+        .DW(DW+AW+AW+CW)
     ) tx_i (
         .clk(clk),
-        .data(packet),
-        .dest({16'h0000, packet[255:240]}),
+        .data({data, srcaddr, dstaddr, cmd}),
+        .dest({16'h0000, dstaddr[55:40]}),
         .last(1'b1),
         .ready(ready),
         .valid(valid)

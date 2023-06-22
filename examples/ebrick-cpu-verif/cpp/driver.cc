@@ -7,7 +7,7 @@
 #include <sys/wait.h>
 
 #include "switchboard.hpp"
-#include "umilib.hpp"
+#include "old_umilib.hpp"
 
 SBRX rx1, rx_tb;
 SBTX tx1, tx_tb;
@@ -31,7 +31,7 @@ void init() {
 bool gpio_write(const uint32_t data) {
     // form the UMI packet
     sb_packet p;
-    umi_pack((uint32_t*)p.data, UMI_WRITE_POSTED, 2, 0, 0, 0, (uint8_t*)(&data), 4);
+    old_umi_pack((uint32_t*)p.data, OLD_UMI_WRITE_POSTED, 2, 0, 0, 0, (uint8_t*)(&data), 4);
 
     // send the packet
     return tx_tb.send(p);
@@ -97,11 +97,11 @@ int main(int argc, char* argv[]) {
             uint32_t opcode, size, user;
             uint64_t dstaddr, srcaddr;
             uint32_t data_arr[4];
-            umi_unpack((uint32_t*)p.data, opcode, size, user,
+            old_umi_unpack((uint32_t*)p.data, opcode, size, user,
                 dstaddr, srcaddr, (uint8_t*)data_arr, 16);
 
             // handle the packet
-            if (opcode == UMI_WRITE_POSTED) {
+            if (opcode == OLD_UMI_WRITE_POSTED) {
                 // ACK
                 rx1.recv();
 
@@ -121,10 +121,10 @@ int main(int argc, char* argv[]) {
                 } else {
                     sram[dstaddr>>2] = data_arr[0];
                 }
-            } else if (opcode == UMI_READ_REQUEST) {
+            } else if (opcode == OLD_UMI_READ_REQUEST) {
                 // try to send a read response
                 sb_packet resp;
-                umi_pack((uint32_t*)resp.data, UMI_WRITE_RESPONSE, 2, 0, srcaddr, 0,
+                old_umi_pack((uint32_t*)resp.data, OLD_UMI_WRITE_RESPONSE, 2, 0, srcaddr, 0,
                     (uint8_t*)(&sram[dstaddr>>2]), 4);
                 if (tx1.send(resp)) {
                     // ACK if the response was sent successfully

@@ -2,7 +2,7 @@
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
-from _switchboard import PyUmi, UmiCmd
+from _switchboard import PyUmi, OldPyUmi, UmiCmd, OldUmiCmd
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
@@ -10,8 +10,13 @@ from _switchboard import PyUmi, UmiCmd
 
 
 class UmiTxRx:
-    def __init__(self, tx_uri="", rx_uri=""):
-        self.umi = PyUmi(tx_uri, rx_uri)
+    def __init__(self, tx_uri="", rx_uri="", old=False):
+        self.old = old
+
+        if old:
+            self.umi = OldPyUmi(tx_uri, rx_uri)
+        else:
+            self.umi = PyUmi(tx_uri, rx_uri)
 
     def init_queues(self, tx_uri="", rx_uri=""):
         self.umi.init(tx_uri, rx_uri)
@@ -35,7 +40,7 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, max_size=15, progressbar=False):
+    def write(self, addr, data, max_size=None, progressbar=False):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
@@ -53,6 +58,16 @@ class UmiTxRx:
         of "max_size" represents the large single-transaction UMI write that
         is possible.
         """
+
+        # set defaults
+
+        if max_size is None:
+            if self.old:
+                max_size = 15
+            else:
+                max_size = 8
+
+        # perform write
 
         if isinstance(data, np.ndarray):
             self.umi.write(addr, data.view(np.uint8), max_size, progressbar)
@@ -109,7 +124,7 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, size_or_dtype, srcaddr=0, max_size=15):
+    def read(self, addr, size_or_dtype, srcaddr=0, max_size=None):
         """
         Reads from the provided 64-bit address.  The "size_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
@@ -136,9 +151,17 @@ class UmiTxRx:
         is possible.
         """
 
+        # set defaults
+
+        if max_size is None:
+            if self.old:
+                max_size = 15
+            else:
+                max_size = 8
+
         if isinstance(size_or_dtype, (type, np.dtype)):
             size = np.dtype(size_or_dtype).itemsize
-            return self.umi.read(addr, size, srcaddr).view(size_or_dtype)[0]
+            return self.umi.read(addr, size, srcaddr, max_size).view(size_or_dtype)[0]
         else:
             return self.umi.read(addr, size_or_dtype, srcaddr, max_size)
 
@@ -161,9 +184,18 @@ class UmiTxRx:
 
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
-            if opcode not in UmiCmd:
+            # figure out what set of opcodes to use
+            if self.old:
+                opcode_enum = OldUmiCmd
+            else:
+                opcode_enum = UmiCmd
+
+            # make sure that the string provided is in that opcode
+            if opcode not in opcode_enum:
                 raise ValueError(f'The provided opcode "{opcode}" does not appear to be valid.')
-            opcode = UmiCmd[opcode]
+
+            # perform the conversion from string to enum
+            opcode = opcode_enum[opcode]
 
         # format the data for sending
         if isinstance(data, np.integer):

@@ -38,7 +38,7 @@ module testbench (
         .umi_ready_tx(umi_ready_tx)
     );
 
-    umi_rx_sim rx_i (
+    old_umi_rx_sim rx_i (
         .clk(clk),
         .ready(umi_ready_rx),
         .packet(umi_packet_rx),
@@ -46,7 +46,7 @@ module testbench (
     );
 
 
-    umi_tx_sim tx_i (
+    old_umi_tx_sim tx_i (
         .clk(clk),
         .ready(umi_ready_tx),
         .packet(umi_packet_tx),

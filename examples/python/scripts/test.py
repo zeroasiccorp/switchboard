@@ -44,6 +44,7 @@ def main():
     # receive packet
 
     rxp = rx.recv()  # note: blocking by default, can disable with blocking=False
+    rxp.data = rxp.data[:32]
 
     print("*** RX packet ***")
     print(rxp)

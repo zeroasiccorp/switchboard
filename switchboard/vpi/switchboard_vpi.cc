@@ -8,6 +8,8 @@
 
 static std::vector<std::unique_ptr<SBRX>> rxconn;
 static std::vector<std::unique_ptr<SBTX>> txconn;
+static std::vector<int> rxwidth;
+static std::vector<int> txwidth;
 static std::chrono::steady_clock::time_point start_time;
 
 PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
@@ -20,7 +22,7 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i=0; i<2; i++) {
+        for (size_t i=0; i<3; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -37,6 +39,18 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
     // initialize the connection
     rxconn.push_back(std::unique_ptr<SBRX>(new SBRX()));
     rxconn.back()->init(uri);
+
+    // get width
+    int width;
+    {
+        t_vpi_value argval;
+	    argval.format = vpiIntVal;
+        vpi_get_value(argh[2], &argval);
+        width = argval.value.integer;
+    }
+
+    // remember width
+    rxwidth.push_back(width);
 
     // assign the ID of this connection
     {
@@ -63,7 +77,7 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i=0; i<2; i++) {
+        for (size_t i=0; i<3; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -80,6 +94,18 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
     // initialize the connection
     txconn.push_back(std::unique_ptr<SBTX>(new SBTX()));
     txconn.back()->init(uri);
+
+    // get width
+    int width;
+    {
+        t_vpi_value argval;
+	    argval.format = vpiIntVal;
+        vpi_get_value(argh[2], &argval);
+        width = argval.value.integer;
+    }
+
+    // remember width
+    txwidth.push_back(width);
 
     // assign the ID of this connection
     {
@@ -131,9 +157,10 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
 
         // store data
         argval.format = vpiVectorVal;
-        s_vpi_vecval vecval[8];
+        s_vpi_vecval vecval[SB_DATA_SIZE/4];
         argval.value.vector = vecval;
-        for (int i=0; i<8; i++) {
+        int nwords = rxwidth[id]/4;
+        for (int i=0; i<nwords; i++) {
             argval.value.vector[i].aval = *((uint32_t*)(&p.data[i*4]));
             argval.value.vector[i].bval = 0;
         }
@@ -200,7 +227,8 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
         // store data
         argval.format = vpiVectorVal;
         vpi_get_value(argh[1], &argval);
-        for (int i=0; i<8; i++) {
+        int nwords = txwidth[id]/4;
+        for (int i=0; i<nwords; i++) {
             *((uint32_t*)(&p.data[i*4])) = argval.value.vector[i].aval;
         }
 

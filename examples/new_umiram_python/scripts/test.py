@@ -22,7 +22,7 @@ def main():
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = UmiTxRx("queue-5555", "queue-5556", old=True)
+    umi = UmiTxRx("queue-5555", "queue-5556")
     stop = PySbTx("queue-5557")
 
     # write 0xbeefcafe to address 0x12

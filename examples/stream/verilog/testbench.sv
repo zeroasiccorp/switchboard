@@ -18,6 +18,7 @@ module testbench (
     wire sb_tx_ready;
 
     sb_rx_sim #(
+        .DW(256),
         .VALID_MODE_DEFAULT(0)
     ) rx_i (
         .clk(clk),
@@ -29,6 +30,7 @@ module testbench (
     );
 
     sb_tx_sim #(
+        .DW(256),
         .READY_MODE_DEFAULT(0)
     ) tx_i (
         .clk(clk),

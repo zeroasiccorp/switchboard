@@ -8,10 +8,11 @@
 `default_nettype none
 
 module sb_tx_sim #(
-    parameter integer READY_MODE_DEFAULT = 0
+    parameter integer READY_MODE_DEFAULT=0,
+    parameter integer DW=416
 ) (
     input clk,
-    input [255:0] data,
+    input [DW-1:0] data,
     input [31:0] dest,
     input last,
     output reg ready=1'b0,
@@ -26,8 +27,9 @@ module sb_tx_sim #(
         `define SB_START_FUNC function void
         `define SB_END_FUNC endfunction
 
-        import "DPI-C" function void pi_sb_tx_init (output int id, input string uri);
-        import "DPI-C" function void pi_sb_send (input int id, input bit [255:0] sdata,
+        import "DPI-C" function void pi_sb_tx_init (output int id,
+            input string uri, input int width);
+        import "DPI-C" function void pi_sb_send (input int id, input bit [DW-1:0] sdata,
             input bit [31:0] sdest, input bit slast, output int success);
     `endif
 
@@ -37,14 +39,14 @@ module sb_tx_sim #(
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
-        `SB_EXT_FUNC(pi_sb_tx_init)(id, uri);
+        `SB_EXT_FUNC(pi_sb_tx_init)(id, uri, DW/8);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 
     integer success = 0;
     reg pending = 1'b0;
 
-    reg [255:0] sdata = 256'b0;
+    reg [DW-1:0] sdata = 'b0;
     reg [31:0] sdest = 32'b0;
     reg slast = 1'b0;
 
