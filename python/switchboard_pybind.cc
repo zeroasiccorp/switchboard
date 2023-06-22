@@ -439,30 +439,12 @@ class PyUmi {
 
             uint8_t* ptr = (uint8_t*)info.ptr;
 
-            while (num > 0) {
-                // determine the largest aligned transaction that is possible
-                ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
-                size = std::min(size, (ssize_t)max_size);
+            // determine the largest aligned transaction that is possible
+            ssize_t size = highest_bit(num);
 
-                // perform a write of this size
-                uint32_t eof = (num == (1<<size)) ? 1 : 0;
-                uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, 0, 1<<size, 0, eof);
-                UmiTransaction x(cmd, addr, 0, ptr, 1<<size);
-                umisb_send<UmiTransaction>(x, m_tx, true, &check_signals);
-
-                // update indices
-                num -= (1<<size);
-                addr += (1<<size);
-                ptr += (1<<size);
-
-                if (progressbar) {
-                    uint64_t progress = info.size - num;
-                    progressbar_show(progress, info.size);
-                }
-            }
-            if (progressbar) {
-                progressbar_done();
-            }
+            uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, size, 0, 1, 1);
+            UmiTransaction x(cmd, addr, 0, ptr, 1<<size);
+            umisb_send<UmiTransaction>(x, m_tx, true, &check_signals);
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0,
@@ -490,28 +472,18 @@ class PyUmi {
             py::buffer_info info = py::buffer(result).request();
             uint8_t* ptr = (uint8_t*)info.ptr;
 
-            while (num > 0) {
-                // determine the largest aligned transaction that is possible
-                ssize_t size = std::min(highest_bit(num), lowest_bit(addr));
-                size = std::min(size, (ssize_t)max_size);
+            ssize_t size = highest_bit(num);
 
-                // read request
-                uint32_t cmd = umi_pack(UMI_REQ_READ, 0, 0, (1<<size)-1, 1, 1);
-                UmiTransaction request(cmd, addr, srcaddr, NULL, 1<<size);
-                umisb_send<UmiTransaction>(request, m_tx, true, &check_signals);
+            uint32_t cmd = umi_pack(UMI_REQ_READ, 0, size, 0, 1, 1);
+            UmiTransaction request(cmd, addr, srcaddr, NULL, 1<<size);
+            umisb_send<UmiTransaction>(request, m_tx, true, &check_signals);
 
-                // get response
-                UmiTransaction resp(0, 0, 0, ptr, 1<<size);
-                umisb_recv<UmiTransaction>(resp, m_rx, true, &check_signals);
+            // get response
+            UmiTransaction resp(0, 0, 0, ptr, 1<<size);
+            umisb_recv<UmiTransaction>(resp, m_rx, true, &check_signals);
 
-                // check that the reply makes sense
-                umisb_check_resp<UmiTransaction>(request, resp);
-
-                // update indices
-                num -= (1<<size);
-                addr += (1<<size);
-                ptr += (1<<size);
-            }
+            // check that the reply makes sense
+            umisb_check_resp<UmiTransaction>(request, resp);
 
             return result;
         }

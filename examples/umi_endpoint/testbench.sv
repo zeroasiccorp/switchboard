@@ -42,12 +42,43 @@ module testbench (
         .valid(udev_resp_valid)
     );
 
-    // instantiate module with UMI ports
+    wire nreset;
+    wire [AW-1:0] loc_addr;
+    wire          loc_write;
+    wire          loc_read;
+    wire [7:0]    loc_opcode;
+    wire [2:0]    loc_size;
+    wire [7:0]    loc_len;
+    wire [DW-1:0] loc_wrdata;
+    wire [DW-1:0] loc_rddata;
+    wire          loc_ready;
 
-    umiram ram_i (
+    assign loc_ready = nreset;
+
+    umi_endpoint umi_endpoint_i (
         .*
     );
 
+    reg [7:0] nreset_vec = 8'h00;
+    always @(posedge clk) begin
+        nreset_vec <= {nreset_vec[6:0], 1'b1};
+    end
+
+    assign nreset = nreset_vec[7];
+
+    // memory backing
+
+    reg [63:0] mem [256];
+
+    assign loc_rddata = {192'd0, mem[loc_addr[7:0]]};
+
+    always @(posedge clk or negedge nreset) begin
+        if (!nreset) begin
+            // do nothing
+        end else if (loc_write) begin
+            mem[loc_addr[7:0]] <= loc_wrdata[63:0];
+        end
+    end
 
     // Initialize UMI
 
@@ -62,10 +93,14 @@ module testbench (
 
     initial begin
         if ($test$plusargs("trace")) begin
-            $dumpfile("testbench.vcd");
+            $dumpfile("testbench.fst");
             $dumpvars(0, testbench);
         end
     end
+
+    // auto-stop
+
+    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule
 

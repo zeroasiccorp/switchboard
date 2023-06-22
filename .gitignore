@@ -28,6 +28,8 @@ compile_flags.txt
 *.egg-info
 *.doit*
 *.vcd
+*.fst
+*.fst.hier
 results.xml
 obj_dir
 .pytest_cache
