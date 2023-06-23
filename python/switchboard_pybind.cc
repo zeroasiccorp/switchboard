@@ -417,7 +417,7 @@ class PyUmi {
             }
         }
 
-        void write(uint64_t addr, py::array_t<uint8_t> data, uint32_t max_size=8,
+        void write(uint64_t addr, py::array_t<uint8_t> data, uint32_t max_size=7,
             bool progressbar=false) {
             // write data to the given address.  data can be of any length,
             // including greater than the length of a header packet and
@@ -448,7 +448,7 @@ class PyUmi {
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0,
-            uint32_t max_size=8) {
+            uint32_t max_size=7) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
@@ -622,7 +622,7 @@ class OldPyUmi {
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0,
-            uint32_t max_size=8) {
+            uint32_t max_size=15) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values

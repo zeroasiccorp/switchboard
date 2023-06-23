@@ -65,7 +65,7 @@ class UmiTxRx:
             if self.old:
                 max_size = 15
             else:
-                max_size = 8
+                max_size = 7
 
         # perform write
 
@@ -157,7 +157,7 @@ class UmiTxRx:
             if self.old:
                 max_size = 15
             else:
-                max_size = 8
+                max_size = 7
 
         if isinstance(size_or_dtype, (type, np.dtype)):
             size = np.dtype(size_or_dtype).itemsize
