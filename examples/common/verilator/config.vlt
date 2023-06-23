@@ -1,2 +1,4 @@
 `verilator_config
 lint_off -file "*umi/umi/rtl/*"
+lint_off -file "*lambdalib/ramlib/*"
+lint_off -file "*lambdalib/stdlib/*"
