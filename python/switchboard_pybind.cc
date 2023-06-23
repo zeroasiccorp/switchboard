@@ -622,7 +622,7 @@ class OldPyUmi {
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t num, uint64_t srcaddr=0,
-            uint32_t max_size=15) {
+            uint32_t max_size=8) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
