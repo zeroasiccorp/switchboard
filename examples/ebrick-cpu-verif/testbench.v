@@ -161,10 +161,10 @@ module testbench #(
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        umi1_rx.init("queue-5555");
-        umi1_tx.init("queue-5556");
-        umi_tb_rx.init("queue-5557");
-        umi_tb_tx.init("queue-5558");
+        umi1_rx.init("umi1_rx.q");
+        umi1_tx.init("umi1_tx.q");
+        umi_tb_rx.init("umi_tb_rx.q");
+        umi_tb_tx.init("umi_tb_tx.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 
@@ -176,6 +176,10 @@ module testbench #(
             $stop;
         end
     end
+
+    // auto-stop
+
+    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule // testbench
 

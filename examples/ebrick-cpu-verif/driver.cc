@@ -16,16 +16,16 @@ uint32_t sram[32768] = {0};
 
 void init() {
     // clear old queues
-    delete_shared_queue("queue-5555");
-    delete_shared_queue("queue-5556");
-    delete_shared_queue("queue-5557");
-    delete_shared_queue("queue-5558");
+    delete_shared_queue("umi1_rx.q");
+    delete_shared_queue("umi1_tx.q");
+    delete_shared_queue("umi_tb_rx.q");
+    delete_shared_queue("umi_tb_tx.q");
 
     // initialize queues
-    tx1.init("queue-5555");
-    rx1.init("queue-5556");
-    tx_tb.init("queue-5557");
-    rx_tb.init("queue-5558");
+    tx1.init("umi1_rx.q");
+    rx1.init("umi1_tx.q");
+    tx_tb.init("umi_tb_rx.q");
+    rx_tb.init("umi_tb_tx.q");
 }
 
 bool gpio_write(const uint32_t data) {

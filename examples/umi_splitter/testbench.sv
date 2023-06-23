@@ -30,7 +30,7 @@ module testbench (
     wire [AW-1:0] umi_req_out_dstaddr;
     wire [AW-1:0] umi_req_out_srcaddr;
     wire [DW-1:0] umi_req_out_data;
-    wire	      umi_req_out_ready;
+    wire          umi_req_out_ready;
 
     umi_splitter umi_splitter_i (
         .*
