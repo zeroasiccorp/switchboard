@@ -2,5 +2,7 @@
 extend-exclude = switchboard/deps,examples/deps,build
 max-line-length = 100
 ignore =
+    E125,
+    E129,
     E128,
-    E125
+    W503

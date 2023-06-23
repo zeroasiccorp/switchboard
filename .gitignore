@@ -36,6 +36,7 @@ obj_dir
 
 # queues
 queue-*
+*.q
 
 # Python cache files
 __pycache__
