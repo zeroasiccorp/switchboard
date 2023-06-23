@@ -6,7 +6,7 @@ test: obj_dir/Vtestbench
 	./test.py
 
 obj_dir/Vtestbench: \
-	umiram.sv \
+	../common/verilog/umiram.sv \
 	testbench.sv \
 	$(SBDIR)/dpi/switchboard_dpi.cc \
 	$(EXDIR)/common/verilator/testbench.cc
