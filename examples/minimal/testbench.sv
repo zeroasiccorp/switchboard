@@ -1,6 +1,22 @@
 module testbench (
-    input clk
+    `ifndef __ICARUS__
+        input clk
+    `endif
 );
+    // clock
+
+    `ifdef __ICARUS__
+
+        reg clk;
+        always begin
+            clk = 1'b0;
+            #5;
+            clk = 1'b1;
+            #5;
+        end
+
+    `endif
+
     // SB RX port
 
     wire [255:0] sb_rx_data;
@@ -57,15 +73,15 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("queue-5555");
-        tx_i.init("queue-5556");
+        rx_i.init("rx.q");
+        tx_i.init("tx.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 
     // VCD
 
     initial begin
-        $dumpfile("testbench.vcd");
+        $dumpfile("testbench.fst");
         $dumpvars(0, testbench);
     end
 
@@ -76,5 +92,9 @@ module testbench (
             $finish;
         end
     end
+
+    // auto-stop
+
+    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule
