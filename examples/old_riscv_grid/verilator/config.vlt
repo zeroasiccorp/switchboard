@@ -1,4 +1,0 @@
-`verilator_config
-lint_off -file "*verilog-axi/rtl/*.v"
-lint_off -rule PINMISSING -file "*umi/umi/rtl/umi_pack.v"
-lint_off -rule IMPLICIT -file "*umi/umi/rtl/umi_decode.v"

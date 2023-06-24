@@ -6,7 +6,7 @@
 from .util import binary_run
 
 
-def verilator_run(bin, plusargs=None, stop_timeout=10):
+def verilator_run(bin, plusargs=None, **kwargs):
     args = []
 
     if plusargs is not None:
@@ -14,8 +14,8 @@ def verilator_run(bin, plusargs=None, stop_timeout=10):
         for plusarg in plusargs:
             if isinstance(plusarg, (list, tuple)):
                 assert len(plusarg) == 2, 'only lists/tuples of length 2 allowed'
-                args += [f'+{plusarg[0]}+{plusarg[1]}']
+                args += [f'+{plusarg[0]}={plusarg[1]}']
             else:
                 args += [f'+{plusarg}']
 
-    return binary_run(bin=bin, args=args, stop_timeout=stop_timeout, use_sigint=True)
+    return binary_run(bin=bin, args=args, **kwargs)

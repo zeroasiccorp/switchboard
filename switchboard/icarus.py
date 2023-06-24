@@ -8,7 +8,7 @@ from pathlib import Path
 from .util import binary_run
 
 
-def icarus_run(vvp, modules=None, extra_args=None, stop_timeout=10):
+def icarus_run(vvp, modules=None, extra_args=None, **kwargs):
     args = []
 
     args += ['-n']
@@ -25,4 +25,4 @@ def icarus_run(vvp, modules=None, extra_args=None, stop_timeout=10):
         assert isinstance(modules, list), 'extra_args must be a list'
         args += extra_args
 
-    return binary_run(bin='vvp', args=args, stop_timeout=stop_timeout, use_sigint=True)
+    return binary_run(bin='vvp', args=args, **kwargs)

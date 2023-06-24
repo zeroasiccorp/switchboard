@@ -4,9 +4,12 @@
 import atexit
 import signal
 import subprocess
+import shlex
 
 
-def binary_run(bin, args=None, stop_timeout=10, use_sigint=False):
+def binary_run(bin, args=None, stop_timeout=10, use_sigint=False,
+    quiet=False, print_command=False):
+
     cmd = []
 
     cmd += [bin]
@@ -16,10 +19,15 @@ def binary_run(bin, args=None, stop_timeout=10, use_sigint=False):
         cmd += args
 
     cmd = [str(elem) for elem in cmd]
+    if print_command:
+        print(' '.join([shlex.quote(elem) for elem in cmd]))
 
-    print(' '.join(cmd))
+    kwargs = {}
+    if quiet:
+        kwargs['stdout'] = subprocess.DEVNULL
+        kwargs['stderr'] = subprocess.DEVNULL
 
-    p = subprocess.Popen(cmd)
+    p = subprocess.Popen(cmd, **kwargs)
 
     def stop_bin(p=p, stop_timeout=stop_timeout, use_sigint=use_sigint):
         poll = p.poll()

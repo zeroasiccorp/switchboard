@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 
-import os
 import time
-import atexit
-import subprocess
 import argparse
 import multiprocessing
 
 from pathlib import Path
 
-from switchboard import switchboard
+from switchboard import switchboard, delete_queue, verilator_run, binary_run
 
 THIS_DIR = Path(__file__).resolve().parent
 EXAMPLE_DIR = THIS_DIR.parent
@@ -76,11 +73,7 @@ def main():
     # clean up old queues if present
 
     for port in all_rx + all_tx:
-        filename = str(SHMEM_DIR / f'queue-{port}')
-        try:
-            os.remove(filename)
-        except OSError:
-            pass
+        delete_queue(f'queue-{port}')
 
     # build the routing tables
 
@@ -131,58 +124,39 @@ def main():
 
 
 def start_chip(rx_port, tx_port, yield_every=None, vcd=False, verbose=False):
-    cmd = []
-    cmd += [EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench']
-    cmd += [f'+rx_port={rx_port}']
-    cmd += [f'+tx_port={tx_port}']
+    plusargs = []
+    plusargs += [('rx_port', rx_port)]
+    plusargs += [('tx_port', tx_port)]
     if vcd:
-        cmd += ['+vcd']
+        plusargs += ['vcd']
     if yield_every is not None:
-        cmd += [f'+yield_every={yield_every}']
-    cmd = [str(elem) for elem in cmd]
+        plusargs += [('yield_every', yield_every)]
 
-    if verbose:
-        print(' '.join(cmd))
+    bin = EXAMPLE_DIR / 'verilator' / 'obj_dir' / 'Vtestbench'
 
-    kwargs = {}
-    if not verbose:
-        kwargs['stdout'] = subprocess.DEVNULL
-        kwargs['stderr'] = subprocess.DEVNULL
-
-    p = subprocess.Popen(cmd, **kwargs)
-
-    atexit.register(p.terminate)
+    return verilator_run(bin=bin, plusargs=plusargs, quiet=not verbose)
 
 
 def start_router(rx, tx, route, verbose=False):
-    cmd = []
-    cmd += [switchboard.path() / 'cpp' / 'router']
-    cmd += ['--tx'] + tx
-    cmd += ['--rx'] + rx
-    cmd += ['--route'] + [f'{k}:{v}' for k, v in route.items()]
-    cmd = [str(elem) for elem in cmd]
+    bin = switchboard.path() / 'cpp' / 'router'
 
-    if verbose:
-        print(' '.join(cmd))
+    args = []
+    args += ['--tx'] + tx
+    args += ['--rx'] + rx
+    args += ['--route'] + [f'{k}:{v}' for k, v in route.items()]
 
-    p = subprocess.Popen(cmd)
-
-    atexit.register(p.terminate)
+    return binary_run(bin=bin, args=args)
 
 
 def start_client(rows, cols, rx_port, tx_port, bin, params=None, verbose=False):
-    cmd = []
-    cmd += [EXAMPLE_DIR / 'cpp' / 'client']
-    cmd += [rows, cols, rx_port, tx_port, bin]
+    client = EXAMPLE_DIR / 'cpp' / 'client'
+
+    args = []
+    args += [rows, cols, rx_port, tx_port, bin]
     if params is not None:
-        cmd += params
-    cmd = [str(elem) for elem in cmd]
+        args += params
 
-    if verbose:
-        print(' '.join(cmd))
-
-    p = subprocess.Popen(cmd)
-    return p
+    return binary_run(bin=client, args=args)
 
 
 if __name__ == '__main__':
