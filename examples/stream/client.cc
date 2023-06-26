@@ -10,8 +10,8 @@ int main() {
 
     // initialize connections
 
-    tx.init("queue-5555");
-    rx.init("queue-5556");
+    tx.init("rx.q");
+    rx.init("tx.q");
 
     // initialize the packet
     sb_packet txp;
