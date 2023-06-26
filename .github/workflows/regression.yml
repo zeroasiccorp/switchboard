@@ -27,42 +27,11 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          pip3 install .
+          pip3 install .[test]
 
-      - name: Run Python binding test
-        working-directory: examples/python
-        run: |
-          make > out.log
-          cat out.log
-          grep -Fxq "PASS!" out.log
-
-      - name: Run Python binding test (UMI)
-        working-directory: examples/umiram_python
-        run: |
-          make > out.log
-          cat out.log
-          grep -Fxq "PASS!" out.log
-
-      - name: Run Icarus simulation
-        working-directory: examples/minimal-icarus
-        run: |
-          make > out.log
-          cat out.log
-          grep -Fxq "PASS!" out.log
-
-      - name: Run Verilator simulation
-        working-directory: examples/riscv-grid
-        run: |
-          make hello > out.log
-          cat out.log
-          grep -Fxq "Hello World!" out.log
-
-      - name: Run ebrick-cpu-verif sim
-        working-directory: examples/ebrick-cpu-verif
-        run: |
-          make > out.log
-          cat out.log
-          grep -Fxq "Hello World!" out.log
+      - name: Run pytest
+        working-directory: examples
+        run: pytest --durations=0 -s
 
       - name: Run torture tests
         working-directory: tests
