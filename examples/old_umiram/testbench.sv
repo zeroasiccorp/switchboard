@@ -46,22 +46,16 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("queue-5555");
-        tx_i.init("queue-5556");
-        stop_i.init("queue-5557");
+        rx_i.init("rx.q");
+        tx_i.init("tx.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 
     // VCD
     initial begin
-        $dumpfile("testbench.vcd");
-        $dumpvars(0, testbench);
-    end
-
-    // $finish
-    always @(posedge clk) begin
-        if (stop_valid) begin
-            $finish;
+        if ($test$plusargs("trace")) begin
+            $dumpfile("testbench.fst");
+            $dumpvars(0, testbench);
         end
     end
 

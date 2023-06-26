@@ -21,15 +21,11 @@ void print_packet_details(const uint32_t* p) {
 int main() {
     // initialize tx connection
     SBTX tx;
-    tx.init("queue-5555");
+    tx.init("rx.q");
 
     // initialize rx connection
     SBRX rx;
-    rx.init("queue-5556");
-
-    // initialize tx connection
-    SBTX stop;
-    stop.init("queue-5557");
+    rx.init("tx.q");
 
     // packet structure used for sending/receiving
     sb_packet p;
@@ -53,9 +49,6 @@ int main() {
     rx.recv_blocking(p);
     printf("RX packet: %s\n", old_umi_packet_to_str((uint32_t*)p.data).c_str());
     print_packet_details((uint32_t*)p.data);
-
-    // stop simulation
-    stop.send_blocking(p);
 
     return 0;
 }
