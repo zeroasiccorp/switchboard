@@ -32,12 +32,8 @@ switchboard_vpi.o: $(SBDIR)/vpi/switchboard_vpi.cc $(SBDIR)/cpp/switchboard.hpp
 switchboard_vpi.vpi: switchboard_vpi.o
 	g++ -o $@ `iverilog-vpi --ldflags` $< -pthread `iverilog-vpi --ldlibs`
 
-testbench.vvp: \
-	$(SBDIR)/verilog/sim/auto_stop_sim.sv \
-	$(SBDIR)/verilog/sim/sb_rx_sim.sv \
-	$(SBDIR)/verilog/sim/sb_tx_sim.sv \
-	testbench.sv
-	iverilog -g2012 -s testbench -o testbench.vvp $^
+testbench.vvp: testbench.sv
+	iverilog -y$(SBDIR)/verilog/sim -Y.sv -g2012 -s testbench -o testbench.vvp $^
 
 .PHONY: clean
 clean:
