@@ -50,5 +50,17 @@ int main() {
     printf("RX packet: %s\n", old_umi_packet_to_str((uint32_t*)p.data).c_str());
     print_packet_details((uint32_t*)p.data);
 
+    // check the response
+    uint32_t opcode, size, user;
+    uint64_t dstaddr, srcaddr;
+    uint32_t data_arr[4];
+
+    old_umi_unpack((uint32_t*)p.data, opcode, size, user,
+        dstaddr, srcaddr, (uint8_t*)data_arr, 16);
+
+    assert(data_arr[0] == 0xBEEFCAFE);
+
+    // test has passed if we get this far
+    printf("PASS!\n");
     return 0;
 }
