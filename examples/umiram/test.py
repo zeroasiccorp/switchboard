@@ -4,22 +4,36 @@
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
-from switchboard import UmiTxRx, delete_queue, verilator_run
+from pathlib import Path
+from argparse import ArgumentParser
+from switchboard import UmiTxRx, delete_queue, verilator_run, binary_run
+
+THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(tx="queue-5555", rx="queue-5556"):
+def main(mode='python', rxq="rx.q", txq="tx.q"):
     # clean up old queues if present
-    for q in [tx, rx]:
+    for q in [rxq, txq]:
         delete_queue(q)
 
     # launch the simulation
     verilator_run('obj_dir/Vtestbench', plusargs=['trace'])
 
+    if mode == 'python':
+        python_intf(rxq=rxq, txq=txq)
+    elif mode == 'cpp':
+        client = binary_run(THIS_DIR / 'client')
+        client.wait()
+    else:
+        raise ValueError(f'Invalid mode: {mode}')
+
+
+def python_intf(rxq, txq):
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = UmiTxRx(tx, rx)
+    umi = UmiTxRx(rxq, txq)
 
     print("### WRITES ###")
 
@@ -69,4 +83,8 @@ def main(tx="queue-5555", rx="queue-5556"):
 
 
 if __name__ == '__main__':
-    main()
+    parser = ArgumentParser()
+    parser.add_argument('--mode', default='python')
+    args = parser.parse_args()
+
+    main(mode=args.mode)

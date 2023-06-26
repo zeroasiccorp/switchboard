@@ -85,8 +85,8 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("queue-5555");
-        tx_i.init("queue-5556");
+        rx_i.init("rx.q");
+        tx_i.init("tx.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 

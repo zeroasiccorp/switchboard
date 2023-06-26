@@ -25,6 +25,8 @@ def main(mode='python', rxq='rx.q', txq='tx.q'):
     elif mode == 'cpp':
         client = binary_run(THIS_DIR / 'client')
         client.wait()
+    else:
+        raise ValueError(f'Invalid mode: {mode}')
 
 
 def python_intf(rxq, txq):

@@ -7,9 +7,9 @@ import numpy as np
 from switchboard import UmiTxRx, delete_queue, verilator_run
 
 
-def main(tx="queue-5555", rx="queue-5556"):
+def main(rxq="rx.q", txq="tx.q"):
     # clean up old queues if present
-    for q in [tx, rx]:
+    for q in [rxq, txq]:
         delete_queue(q)
 
     # launch the simulation
@@ -19,7 +19,7 @@ def main(tx="queue-5555", rx="queue-5556"):
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = UmiTxRx(tx, rx)
+    umi = UmiTxRx(rxq, txq)
 
     print("### MINIMAL EXAMPLE ###")
 

@@ -1,9 +1,13 @@
 EXDIR := $(abspath ..)
 SBDIR := $(shell switchboard --path)
 
-.PHONY: test
-test: obj_dir/Vtestbench
-	./test.py
+.PHONY: python
+python: obj_dir/Vtestbench
+	./test.py --mode python
+
+.PHONY: cpp
+cpp: obj_dir/Vtestbench client
+	./test.py --mode cpp
 
 obj_dir/Vtestbench: \
 	../common/verilog/umiram.sv \
@@ -22,8 +26,12 @@ obj_dir/Vtestbench: \
 		-LDFLAGS "-pthread" \
 		$(EXDIR)/common/verilator/config.vlt $^
 
+client: client.cc $(SBDIR)/cpp/switchboard.hpp
+	g++ -std=c++11 -I$(SBDIR)/cpp $< -o $@
+
 .PHONY: clean
 clean:
-	rm -f queue-*
-	rm -f *.vcd *.fst *.fst.hier
+	rm -f client
 	rm -rf obj_dir
+	rm -f queue-* *.q
+	rm -f *.vcd *.fst *.fst.hier
