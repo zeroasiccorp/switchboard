@@ -8,17 +8,17 @@ import numpy as np
 from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, verilator_run
 
 
-def main(rxq='rx.q', txq='tx.q'):
+def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q'):
     # clean up old queues if present
-    for q in [rxq, txq]:
+    for q in [client2rtl, rtl2client]:
         delete_queue(q)
 
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    tx = PySbTx(rxq)
-    rx = PySbRx(txq)
+    tx = PySbTx(client2rtl)
+    rx = PySbRx(rtl2client)
 
     # start chip simulation
     chip = verilator_run('obj_dir/Vtestbench', plusargs=['trace'])

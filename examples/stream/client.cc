@@ -10,8 +10,8 @@ int main() {
 
     // initialize connections
 
-    tx.init("rx.q");
-    rx.init("tx.q");
+    tx.init("client2rtl.q");
+    rx.init("rtl2client.q");
 
     // initialize the packet
     sb_packet txp;

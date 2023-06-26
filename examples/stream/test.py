@@ -8,9 +8,9 @@ from switchboard import delete_queue, verilator_run, binary_run
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(rxq='rx.q', txq='tx.q'):
+def main():
     # clean up old queues if present
-    for q in [rxq, txq]:
+    for q in ['client2rtl.q', 'rtl2client.q']:
         delete_queue(q)
 
     # start client and chip

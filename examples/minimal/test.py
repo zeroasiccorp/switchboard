@@ -9,9 +9,9 @@ from switchboard import delete_queue, binary_run, verilator_run, icarus_run
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(mode="verilator", rx="rx.q", tx="tx.q"):
+def main(mode="verilator"):
     # clean up old queues if present
-    for q in [rx, tx]:
+    for q in ["client2rtl.q", "rtl2client.q"]:
         delete_queue(q)
 
     # start client and chip
