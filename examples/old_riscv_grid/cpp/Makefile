@@ -1,18 +1,9 @@
-TOPDIR=../../..
-include $(TOPDIR)/Rules.mk
+SBDIR := $(shell switchboard --path)
 
-OBJS += client.o
-TARGETS = client
-
-all: $(TARGETS)
-
--include $(OBJS:.o=.d)
-CPPFLAGS += -MMD
-
-client: $(OBJS)
-	$(LINK.cc) $^ $(LDLIBS) -o $@
+client: client.cc $(SBDIR)/cpp/switchboard.hpp
+	g++ -std=c++11 -I$(SBDIR)/cpp $< -o $@
 
 .PHONY: clean
 clean:
-	rm -f $(OBJS)
-	rm -f $(TARGETS)
+	rm -f client
+	rm -f *.o *.d

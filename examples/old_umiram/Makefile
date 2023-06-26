@@ -23,7 +23,7 @@ obj_dir/Vtestbench: \
 		-y $(EXDIR)/deps/old-umi/umi/rtl \
 		-I$(EXDIR)/deps/old-umi/umi/rtl \
 		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
-		-LDFLAGS "$(LDFLAGS)" \
+		-LDFLAGS "-pthread" \
 		$(EXDIR)/common/verilator/config.vlt \
 		$^
 
