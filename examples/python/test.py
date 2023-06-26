@@ -4,27 +4,24 @@
 # Copyright (C) 2023 Zero ASIC
 
 import sys
-import atexit
-import subprocess
 import numpy as np
-from pathlib import Path
-from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx
+from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, verilator_run
 
 
-def main():
+def main(rxq='rx.q', txq='tx.q'):
     # clean up old queues if present
-    for q in ['queue-5555', 'queue-5556']:
+    for q in [rxq, txq]:
         delete_queue(q)
 
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    tx = PySbTx("queue-5555")
-    rx = PySbRx("queue-5556")
+    tx = PySbTx(rxq)
+    rx = PySbRx(txq)
 
     # start chip simulation
-    chip = start_chip()
+    chip = verilator_run('obj_dir/Vtestbench', plusargs=['trace'])
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
@@ -67,22 +64,6 @@ def main():
     else:
         print("FAIL")
         sys.exit(1)
-
-
-def start_chip():
-    this_dir = Path(__file__).resolve().parent
-    example_dir = this_dir.parent
-
-    cmd = []
-    cmd += [example_dir / 'verilator' / 'obj_dir' / 'Vtestbench']
-    cmd += ['+trace']
-    cmd = [str(elem) for elem in cmd]
-
-    p = subprocess.Popen(cmd)
-
-    atexit.register(p.terminate)
-
-    return p
 
 
 if __name__ == '__main__':

@@ -4,27 +4,25 @@
 # Copyright (C) 2023 Zero ASIC
 
 import sys
-import atexit
-import subprocess
 import numpy as np
-from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx
+from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, binary_run
 
 
-def main():
+def main(rxq='rx.q', txq='tx.q'):
     # clean up old queues if present
-    for q in ['queue-5555', 'queue-5556']:
+    for q in [rxq, txq]:
         delete_queue(q)
 
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    tx = PySbTx("queue-5555")
-    rx = PySbRx("queue-5556")
+    tx = PySbTx(rxq)
+    rx = PySbRx(txq)
 
     # start TCP bridges
-    start_tcp_bridge(mode='server', rx="queue-5555")
-    start_tcp_bridge(mode='client', tx="queue-5556")
+    start_tcp_bridge(mode='server', rx=rxq)
+    start_tcp_bridge(mode='client', tx=txq)
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
@@ -65,27 +63,20 @@ def main():
 
 
 def start_tcp_bridge(mode, tx=None, rx=None, host=None, port=None, quiet=True):
-    cmd = []
-    cmd += ['sbtcp']
-    cmd += ['--mode', mode]
+    args = []
+    args += ['--mode', mode]
     if tx is not None:
-        cmd += ['--tx', tx]
+        args += ['--tx', tx]
     if rx is not None:
-        cmd += ['--rx', rx]
+        args += ['--rx', rx]
     if host is not None:
-        cmd += ['--host', host]
+        args += ['--host', host]
     if port is not None:
-        cmd += ['--port', port]
+        args += ['--port', port]
     if quiet:
-        cmd += ['-q']
-    cmd = [str(elem) for elem in cmd]
-    print(cmd)
+        args += ['-q']
 
-    p = subprocess.Popen(cmd)
-
-    atexit.register(p.terminate)
-
-    return p
+    return binary_run(bin='sbtcp', args=args)
 
 
 if __name__ == '__main__':
