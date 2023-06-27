@@ -60,7 +60,7 @@ jobs:
           pip3 install .
 
       - name: Run FPGA loopback simulation
-        working-directory: examples/fpga-loopback
+        working-directory: examples/fpga_loopback
         run: |
           make test > out.log
           cat out.log
