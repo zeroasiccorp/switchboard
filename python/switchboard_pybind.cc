@@ -426,6 +426,12 @@ class PyUmi {
             // get access to the data
             py::buffer_info info = py::buffer(data).request();
 
+            // make sure that max_bytes is set appropriately
+            if (max_bytes < info.itemsize) {
+                throw std::runtime_error(
+                    "max_bytes must be greater than or equal to the word size in bytes.");
+            }
+
             // if there is nothing to write, return
             uint32_t total_len = info.size;
             if (total_len <= 0) {
@@ -467,6 +473,12 @@ class PyUmi {
             // that are not powers of two.  the optional "srcaddr" argument is
             // the source address to which responses should be sent.  this
             // function is blocking.
+
+            // make sure that max_bytes is set appropriately
+            if (max_bytes < bytes_per_elem) {
+                throw std::runtime_error(
+                    "max_bytes must be greater than or equal to bytes_per_elem.");
+            }
 
             // create a buffer to hold the result
             py::array result;

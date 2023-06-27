@@ -131,8 +131,7 @@ class UmiTxRx:
 
         If num_or_dtype is a plain integer, the value returned by this function
         will be a numpy array of type "dtype".  On the other hand, if num_or_dtype
-        is a numpy datatype, the value returned will be a scalar of with
-        that datatype.
+        is a numpy datatype, the value returned will be a scalar of that datatype.
 
         srcaddr is the UMI source address used for the read transaction.  This
         is sometimes needed to make sure that reads get routed to the right place.

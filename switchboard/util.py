@@ -15,7 +15,8 @@ def binary_run(bin, args=None, stop_timeout=10, use_sigint=False,
     cmd += [bin]
 
     if args is not None:
-        assert isinstance(args, list), 'args must be a list'
+        if not isinstance(args, list):
+            raise TypeError('args must be a list')
         cmd += args
 
     cmd = [str(elem) for elem in cmd]

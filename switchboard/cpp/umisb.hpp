@@ -166,7 +166,7 @@ struct UmiTransaction {
         return umi_transaction_as_str<UmiTransaction>(*this);
     }
 
-    void resize(size_t n) {        
+    void resize(size_t n) {
         // allocate new space if needed
         if (n > m_nbytes) {
             if (m_allocated) {
@@ -203,7 +203,7 @@ struct UmiTransaction {
 
 template <typename T> static inline bool umisb_send(
     T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL,
-    PacketPrinter printer=NULL, uint32_t max_flit_bytes=32) {
+    PacketPrinter printer=NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
     // if length of the data payload in the packet is greater than
@@ -230,6 +230,14 @@ template <typename T> static inline bool umisb_send(
         uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
         uint32_t nbytes = (len+1)<<size;
+        if (nbytes > sizeof(up->data)) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
+        }
+        if (nbytes > x.nbytes()) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the number of data bytes in the UMI transaction.");
+        }
         memcpy(up->data, x.ptr(), nbytes);
     }
 
@@ -304,6 +312,10 @@ template <typename T> static inline bool umisb_recv(
         uint32_t size = umi_size(x.cmd);
         uint32_t nbytes = (len+1)<<size;
         x.resize(nbytes);
+        if (nbytes > sizeof(up->data)) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
+        }
         memcpy(x.ptr(), up->data, nbytes);
     }
 

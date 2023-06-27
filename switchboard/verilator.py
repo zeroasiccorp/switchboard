@@ -10,10 +10,12 @@ def verilator_run(bin, plusargs=None, **kwargs):
     args = []
 
     if plusargs is not None:
-        assert isinstance(plusargs, list), 'plusargs must be a list'
+        if not isinstance(plusargs, list):
+            raise TypeError('plusargs must be a list')
         for plusarg in plusargs:
             if isinstance(plusarg, (list, tuple)):
-                assert len(plusarg) == 2, 'only lists/tuples of length 2 allowed'
+                if len(plusarg) != 2:
+                    raise ValueError('Only lists/tuples of length 2 allowed')
                 args += [f'+{plusarg[0]}={plusarg[1]}']
             else:
                 args += [f'+{plusarg}']
