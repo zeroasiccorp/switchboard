@@ -44,8 +44,7 @@ def python_intf(client2rtl, rtl2client):
 
     # 2 bytes
     wrbuf = np.array([0xB0BACAFE], np.uint32).view(np.uint16)
-    for i in range(2):
-        umi.write(0x20 + (2 * i), wrbuf[i])
+    umi.write(0x20, wrbuf)
 
     # 4 bytes
     umi.write(0x30, np.uint32(0xDEADBEEF))
@@ -56,17 +55,13 @@ def python_intf(client2rtl, rtl2client):
     print("### READS ###")
 
     # 1 byte
-    rdbuf = np.empty((4,), dtype=np.uint8)
-    for i in range(4):
-        rdbuf[i] = umi.read(0x10 + i, np.uint8)
+    rdbuf = umi.read(0x10, 4, np.uint8)
     val32 = rdbuf.view(np.uint32)[0]
     print(f"Read: 0x{val32:08x}")
     assert val32 == 0xBAADF00D
 
     # 2 bytes
-    rdbuf = np.empty((2,), dtype=np.uint16)
-    for i in range(2):
-        rdbuf[i] = umi.read(0x20 + (2 * i), np.uint16)
+    rdbuf = umi.read(0x20, 2, np.uint16)
     val32 = rdbuf.view(np.uint32)[0]
     print(f"Read: 0x{val32:08x}")
     assert val32 == 0xB0BACAFE

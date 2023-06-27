@@ -227,8 +227,10 @@ template <typename T> static inline bool umisb_send(
     uint32_t opcode = umi_opcode(x.cmd);
 
     if (opcode != UMI_REQ_READ) {
+        uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
-        memcpy(up->data, x.ptr(), 1<<size);
+        uint32_t nbytes = (len+1)<<size;
+        memcpy(up->data, x.ptr(), nbytes);
     }
 
     bool header_sent = tx.send(p);
@@ -298,9 +300,11 @@ template <typename T> static inline bool umisb_recv(
     uint32_t opcode = umi_opcode(up->cmd);
 
     if (opcode != UMI_REQ_READ) {
-        uint32_t size = umi_size(up->cmd);
-        x.resize(1<<size);
-        memcpy(x.ptr(), up->data, 1<<size);
+        uint32_t len = umi_len(x.cmd);
+        uint32_t size = umi_size(x.cmd);
+        uint32_t nbytes = (len+1)<<size;
+        x.resize(nbytes);
+        memcpy(x.ptr(), up->data, nbytes);
     }
 
     return true;

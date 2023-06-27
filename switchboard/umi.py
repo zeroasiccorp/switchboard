@@ -40,45 +40,44 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, max_size=None, progressbar=False):
+    def write(self, addr, data, max_bytes=None, progressbar=False):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
 
-        The "max_size" argument (optional) indicates the maximum UMI size that
-        can be used for any individual UMI transaction; the number of bytes in
-        a UMI transaction is equal to 2**size.
+        The "max_bytes" argument (optional) indicates the maximum number of bytes
+        that can be used for any individual UMI transaction, in bytes.
 
-        The "data" input may contain more bytes than 2**max_size, in which case
-        the write will automatically be split into multiple transactions.  In
-        fact, this might happen anyway if the number of bytes to be written is
-        not a power or two, or is not aligned.
+        The "data" input may contain more than "max_bytes", in which case
+        the write will automatically be split into multiple transactions.
 
-        Currently, the UMI size field is four bits wide, so the default value
-        of "max_size" represents the large single-transaction UMI write that
-        is possible.
+        Currently, the data payload size used by switchboard is 32 bytes,
+        which is reflected in the default value of "max_bytes".
         """
 
         # set defaults
 
-        if max_size is None:
+        if max_bytes is None:
             if self.old:
-                max_size = 15
+                max_bytes = (1 << 15)
             else:
-                max_size = 7
+                max_bytes = 32
+
+        # format the data to be written
+
+        if isinstance(data, np.ndarray):
+            write_data = data
+        elif isinstance(data, np.integer):
+            write_data = np.array(data, ndmin=1, copy=False)
+        else:
+            raise TypeError(f"Unknown data type: {type(data)}")
+
+        if self.old:
+            write_data = write_data.view(np.uint8)
 
         # perform write
 
-        if isinstance(data, np.ndarray):
-            self.umi.write(addr, data.view(np.uint8), max_size, progressbar)
-        elif isinstance(data, np.integer):
-            # copy=False should be safe here, because the data will be
-            # copied over to the queue; the original data will never
-            # be read again or modified from the C++ side
-            write_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            self.umi.write(addr, write_data, max_size, progressbar)
-        else:
-            raise TypeError(f"Unknown data type: {type(data)}")
+        self.umi.write(addr, write_data, max_bytes, progressbar)
 
     def write_readback(self, addr, value, mask=None, srcaddr=0, dtype=None):
         """
@@ -124,46 +123,46 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, size_or_dtype, srcaddr=0, max_size=None):
+    def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=0, max_bytes=None):
         """
-        Reads from the provided 64-bit address.  The "size_or_dtype" argument can be
+        Reads from the provided 64-bit address.  The "num_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
         a numpy integer datatype (e.g., np.uint32).
 
-        If size_or_dtype is a plain integer, the value returned by this function
-        will be a numpy array of np.uint8 (an array of bytes).  If not, this
-        function will return a numpy integer value of the given dtype.
+        If num_or_dtype is a plain integer, the value returned by this function
+        will be a numpy array of type "dtype".  On the other hand, if num_or_dtype
+        is a numpy datatype, the value returned will be a scalar of with
+        that datatype.
 
         srcaddr is the UMI source address used for the read transaction.  This
         is sometimes needed to make sure that reads get routed to the right place.
 
-        The "max_size" argument (optional) indicates the maximum UMI size that
-        can be used for any individual UMI transaction; the number of bytes in
-        a UMI transaction is equal to 2**size.
+        The "max_bytes" argument (optional) indicates the maximum number of bytes
+        that can be used for any individual UMI transaction.
 
-        The number of bytes to be read may be larger than 2**max_size, in which
-        case the read will automatically be split into multiple transactions.  In
-        fact, this might happen anyway if the number of bytes to be read is
-        not a power or two, or is not aligned.
+        The number of bytes to be read may be larger than max_bytes, in which
+        case the read will automatically be split into multiple transactions.
 
-        Currently, the UMI size field is four bits wide, so the default value
-        of "max_size" represents the large single-transaction UMI read that
-        is possible.
+        Currently, the data payload size used by switchboard is 32 bytes,
+        which is reflected in the default value of "max_bytes".
         """
 
         # set defaults
 
-        if max_size is None:
+        if max_bytes is None:
             if self.old:
-                max_size = 15
+                max_bytes = (1 << 15)
             else:
-                max_size = 7
+                max_bytes = 32
 
-        if isinstance(size_or_dtype, (type, np.dtype)):
-            size = np.dtype(size_or_dtype).itemsize
-            return self.umi.read(addr, size, srcaddr, max_size).view(size_or_dtype)[0]
+        if isinstance(num_or_dtype, (type, np.dtype)):
+            len = 1
+            size = np.dtype(num_or_dtype).itemsize
+            return self.umi.read(addr, len, size, srcaddr, max_bytes).view(num_or_dtype)[0]
         else:
-            return self.umi.read(addr, size_or_dtype, srcaddr, max_size)
+            len = num_or_dtype
+            size = np.dtype(dtype).itemsize
+            return self.umi.read(addr, len, size, srcaddr, max_bytes)
 
     def atomic(self, addr, data, opcode, srcaddr=0):
         """
