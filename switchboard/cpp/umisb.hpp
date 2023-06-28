@@ -168,11 +168,13 @@ struct UmiTransaction {
 
     void resize(size_t n) {
         // allocate new space if needed
-        if (m_allocated) {
-            data = (uint8_t*)realloc(data, n);
-        } else {
-            data = (uint8_t*)malloc(n);
-            m_allocated = true;
+        if (n > m_nbytes) {
+            if (m_allocated) {
+                data = (uint8_t*)realloc(data, n);
+            } else {
+                data = (uint8_t*)malloc(n);
+                m_allocated = true;
+            }
         }
 
         // record the new size of the storage
@@ -201,7 +203,7 @@ struct UmiTransaction {
 
 template <typename T> static inline bool umisb_send(
     T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL,
-    PacketPrinter printer=NULL, uint32_t max_flit_bytes=32) {
+    PacketPrinter printer=NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
     // if length of the data payload in the packet is greater than
@@ -213,46 +215,31 @@ template <typename T> static inline bool umisb_send(
         return false;
     }
 
-    // calculate the number of words in UMI transaction object
-
-    uint32_t size = umi_size(x.cmd);
-    uint32_t data_len = x.nbytes() >> size;
-
-    // calculate the number of words to send as the minimum of
-    // the number of words specified in the command, and the number
-    // of words that are actually in the UMI transaction object
-
-    uint32_t len = std::min(umi_len(x.cmd)+1, data_len);
-
-    // calculate the number of words to send in the first (and
-    // possibly final) flit
-
-    size_t flit_len = std::min(len, max_flit_bytes>>size);
-
-    // format the first command
-
-    uint32_t cmd = x.cmd;
-
-    if (len > 0) {
-        set_umi_len(&cmd, flit_len-1);
-        set_umi_eom(&cmd, (flit_len == len) ? 1 : 0);
-    }
-
     // load fields into an SB packet
 
     sb_packet p;
     umi_packet* up = (umi_packet*)p.data;
 
-    up->cmd = cmd;
+    up->cmd = x.cmd;
     up->dstaddr = x.dstaddr;
     up->srcaddr = x.srcaddr;
 
-    if (flit_len > 0) {
-        memcpy(up->data, x.ptr(), flit_len*(1<<size));
-    }
+    uint32_t opcode = umi_opcode(x.cmd);
 
-    // try to send the packet once or multiple times depending
-    // on the "blocking" argument
+    if (opcode != UMI_REQ_READ) {
+        uint32_t len = umi_len(x.cmd);
+        uint32_t size = umi_size(x.cmd);
+        uint32_t nbytes = (len+1)<<size;
+        if (nbytes > sizeof(up->data)) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
+        }
+        if (nbytes > x.nbytes()) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the number of data bytes in the UMI transaction.");
+        }
+        memcpy(up->data, x.ptr(), nbytes);
+    }
 
     bool header_sent = tx.send(p);
     if ((!blocking) && (!header_sent)) {
@@ -270,45 +257,10 @@ template <typename T> static inline bool umisb_send(
             }
         }
     }
+
+    // print out the packet sent if desired
     if (printer != NULL) {
         printer(p, true);
-    }
-
-    // update indices
-    len -= flit_len;
-    uint32_t bytes_moved = flit_len*(1<<size);
-
-    // send the remaining data in subsequent packets
-    while (len > 0) {
-        // determine how many words will be in this packet
-        flit_len = std::min(len, ((uint32_t)32)>>size);
-
-        // set the command for this packet
-        set_umi_len(&cmd, flit_len-1);
-        set_umi_eom(&cmd, (flit_len == len) ? 1 : 0);
-        up->cmd = cmd;
-
-        // set destination address for this packet
-        up->dstaddr = x.dstaddr + bytes_moved;
-
-        // copy in the data for this packet
-        if (flit_len > 0) {
-            memcpy(up->data, x.ptr() + bytes_moved, flit_len*(1<<size));
-        }
-
-        // send the packet
-        while (!tx.send(p)) {
-            if (loop) {
-                loop();
-            }
-        }
-        if (printer != NULL) {
-            printer(p, false);
-        }
-
-        // update indices
-        len -= flit_len;
-        bytes_moved += flit_len*(1<<size);
     }
 
     // if we reach this point, we succeeded in sending the packet
@@ -349,64 +301,22 @@ template <typename T> static inline bool umisb_recv(
 
     // read information from the packet
 
-    uint32_t opcode = umi_opcode(up->cmd);
-    uint32_t flit_len = (opcode == UMI_REQ_READ) ? 0 : (umi_len(up->cmd)+1);
-    uint32_t size = umi_size(up->cmd);
-    uint32_t eom = umi_eom(up->cmd);
-
     x.cmd = up->cmd;
     x.dstaddr = up->dstaddr;
     x.srcaddr = up->srcaddr;
 
-    // create an object to hold data to be returned to python
-
-    x.resize(flit_len*(1<<size));
-
-    // copy out the data from the header packet
-
-    if (flit_len > 0) {
-        memcpy(x.ptr(), up->data, flit_len*(1<<size));
-    }
-
-    // update indices
-
-    uint32_t bytes_moved = flit_len*(1<<size);
-    uint32_t len = flit_len;
-
-    // receive more data if necessary
-
-    while (eom != 1) {
-        // receive the next packet
-
-        while (!rx.recv(p)) {
-            if (loop) {
-                loop();
-            }
-        }
-        if (printer != NULL) {
-            printer(p, false);
-        }
-
-        // read information from the packet
-
-        flit_len = (opcode == UMI_REQ_READ) ? 0 : (umi_len(up->cmd)+1);
-        eom = umi_eom(up->cmd);
-
-        if (flit_len > 0) {
-            x.resize(len + (flit_len*(1<<size)));
-            memcpy(x.ptr()+bytes_moved, up->data, flit_len*(1<<size));
-        }
-
-        // update indices
-
-        bytes_moved += flit_len*(1<<size);
-        len += flit_len;
-    }
-
-    // indicate the total number of words in this transaction
+    uint32_t opcode = umi_opcode(up->cmd);
 
     if (opcode != UMI_REQ_READ) {
-        set_umi_len(&x.cmd, len);
+        uint32_t len = umi_len(x.cmd);
+        uint32_t size = umi_size(x.cmd);
+        uint32_t nbytes = (len+1)<<size;
+        x.resize(nbytes);
+        if (nbytes > sizeof(up->data)) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
+        }
+        memcpy(x.ptr(), up->data, nbytes);
     }
 
     return true;

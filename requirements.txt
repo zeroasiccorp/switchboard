@@ -1,0 +1,16 @@
+# Adapted from requirements.txt in https://github.com/siliconcompiler/siliconcompiler
+
+# Pip3 requirements file. To install Python library dependencies, run:
+# > pip3 install -r requirements.txt
+
+# To make this file a single source of truth for managing package dependencies,
+# this file is parsed by setup.py. The dependencies in the following block are
+# configured as install requirements, and dependencies listed after #:<tag>
+# lines are added as extras under a group called "<tag>".
+
+numpy
+
+# Testing dependencies
+#:test
+pytest >=7,<8
+pytest-timeout

@@ -12,15 +12,17 @@ obj_dir/Vtestbench: \
 
 	rm -rf obj_dir
 
-	verilator --cc --exe -sv --build --trace \
+	verilator --cc --exe -sv --trace-fst --build \
 		--top-module testbench \
 		-y $(SBDIR)/verilog/sim \
+		-y $(EXDIR)/deps/umi/umi/rtl \
+		-I$(EXDIR)/deps/umi/umi/rtl \
 		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
 		-LDFLAGS "-pthread" \
-		$^
+		$(EXDIR)/common/verilator/config.vlt $^
 
 .PHONY: clean
 clean:
-	rm -rf obj_dir
 	rm -f queue-* *.q
 	rm -f *.vcd *.fst *.fst.hier
+	rm -rf obj_dir

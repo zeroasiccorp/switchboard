@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
 
-# Simple example illustrating switchboard bridging over TCP.
+# Simple example illustrating the Switchboard Python binding
 # Copyright (C) 2023 Zero ASIC
 
 import sys
 import numpy as np
-from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, binary_run
+from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, verilator_run
 
 
-def main(rxq='rx.q', txq='tx.q'):
+def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q'):
     # clean up old queues if present
-    for q in [rxq, txq]:
+    for q in [client2rtl, rtl2client]:
         delete_queue(q)
 
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    tx = PySbTx(rxq)
-    rx = PySbRx(txq)
+    tx = PySbTx(client2rtl)
+    rx = PySbRx(rtl2client)
 
-    # start TCP bridges
-    start_tcp_bridge(mode='server', rx=rxq)
-    start_tcp_bridge(mode='client', tx=txq)
+    # start chip simulation
+    chip = verilator_run('obj_dir/Vtestbench', plusargs=['trace'])
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
@@ -50,7 +49,12 @@ def main(rxq='rx.q', txq='tx.q'):
 
     # check that the received data
 
-    success = (rxp.data == txp.data).all()
+    success = (rxp.data == (txp.data + 1)).all()
+
+    # stop simulation
+
+    tx.send(PySbPacket(data=np.array([0xff for _ in range(32)], dtype=np.uint8)))
+    chip.wait()
 
     # declare test as having passed for regression testing purposes
 
@@ -60,23 +64,6 @@ def main(rxq='rx.q', txq='tx.q'):
     else:
         print("FAIL")
         sys.exit(1)
-
-
-def start_tcp_bridge(mode, tx=None, rx=None, host=None, port=None, quiet=True):
-    args = []
-    args += ['--mode', mode]
-    if tx is not None:
-        args += ['--tx', tx]
-    if rx is not None:
-        args += ['--rx', rx]
-    if host is not None:
-        args += ['--host', host]
-    if port is not None:
-        args += ['--port', port]
-    if quiet:
-        args += ['-q']
-
-    return binary_run(bin='sbtcp', args=args)
 
 
 if __name__ == '__main__':

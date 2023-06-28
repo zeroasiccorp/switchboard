@@ -21,3 +21,6 @@ parameter-name-style=localparam_style:CamelCase|ALL_CAPS
 
 # for now, allow $random
 -invalid-system-task-function
+
+# allow $test$plusargs
+-plusarg-assignment

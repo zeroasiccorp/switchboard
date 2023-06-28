@@ -1,2 +1,0 @@
-`verilator_config
-lint_off -file "*umi/umi/rtl/*"

@@ -10,3 +10,6 @@
 [submodule "examples/deps/old-umi"]
 	path = examples/deps/old-umi
 	url = git@github.com:zeroasiccorp/umi.git
+[submodule "examples/deps/lambdalib"]
+	path = examples/deps/lambdalib
+	url = git@github.com:siliconcompiler/lambdalib.git

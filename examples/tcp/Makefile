@@ -4,4 +4,4 @@ test:
 
 .PHONY: clean
 clean:
-	rm -f queue-*
+	rm -f queue-* *.q

@@ -2,8 +2,11 @@ EXDIR := $(abspath ..)
 SBDIR := $(shell switchboard --path)
 
 .PHONY: test
-test: obj_dir/Vtestbench
-	./test.py
+test: $(SBDIR)/cpp/old_umidriver obj_dir/Vtestbench
+	$(SBDIR)/cpp/old_umidriver --sim obj_dir/Vtestbench --txfile in.memh --rxfile expect.memh
+
+$(SBDIR)/cpp/old_umidriver:
+	make -C $(SBDIR)/cpp old_umidriver
 
 obj_dir/Vtestbench: \
 	testbench.sv \
@@ -12,7 +15,7 @@ obj_dir/Vtestbench: \
 
 	rm -rf obj_dir
 
-	verilator --cc --exe -sv --build --trace \
+	verilator --cc --exe -sv --build \
 		--top-module testbench \
 		-y $(SBDIR)/verilog/sim \
 		-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp" \
@@ -22,5 +25,5 @@ obj_dir/Vtestbench: \
 .PHONY: clean
 clean:
 	rm -rf obj_dir
+	rm -f $(SBDIR)/cpp/old_umidriver
 	rm -f queue-* *.q
-	rm -f *.vcd *.fst *.fst.hier
