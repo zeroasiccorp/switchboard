@@ -105,7 +105,7 @@ When you type `make`, two actions take place: first, a Verilator simulator is bu
 * `-LDFLAGS "-pthread"`
     * Also needed by `$(SBDIR)/dpi/switchboard_dpi.cc`
 
-You may also notice that `test.py` can be invoked with either `make cpp`, which demonstrates switchboard's C++ interface.  That interface will be the subject of a future tutorial.
+You may also notice that `test.py` can be invoked with `make cpp`, which demonstrates switchboard's C++ interface.  That interface will be the subject of a future tutorial.
 
 
 ## test.py
@@ -132,7 +132,7 @@ The numpy data type determines the `SIZE` for the UMI transaction (e.g., `0` for
 
 The interface for `read()` is `read(addr, num_or_dtype, [dtype])`, where
 * `addr` is a 64-bit UMI address
-* `num_or_dtype` is either a integer or a numpy data type.
+* `num_or_dtype` is either an integer or a numpy data type.
 * `dtype` is an optional argument that only comes into play if `num_or_dtype` is an integer.  It defaults to `np.uint8`
 
 If `num_or_dtype` is an integer, it means the number of words that should be read starting at `addr`.  The optional argument `dtype` specifies the word size.  For example, `read(0x10, 4)` means "read four bytes starting at 0x10", and `read(0x20, 2, np.uint16)` means "read two uint16s starting at address 0x20".  The result returned will be a numpy array with data type `dtype`.
