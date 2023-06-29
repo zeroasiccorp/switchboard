@@ -22,7 +22,7 @@ A Verilator simulation is built using `testbench` as the top level.  When it run
 
 In the Python script `test.py`, a UMI driver is instantiated that sends packets to `client2rtl.q` and receives them from `rtl2client.q`.  `write()` and `read()` methods provided by the driver allow numpy arrays and scalars to be written to and read from the DUT, with each operation mapping to one or more UMI operations with automatically calculated `SIZE` and `LEN` parameters.
 
-add graphics here
+<img width="561" alt="image" src="https://github.com/zeroasiccorp/switchboard/assets/19254098/4330f9fb-5313-48c0-9d05-4ff315269477">
 
 These operations are automated in this example with a Makefile.  If you haven't already, `cd` into this folder, and then run `make`.  You should see the following output, after the Verilator build completes:
 
@@ -63,6 +63,8 @@ umi_tx_sim tx_i (
     .valid(udev_resp_valid)
 );
 ```
+
+Although only one TX and one RX end cap are used in this example, switchboard supports instantiating multiple end caps of each type in a single simulation.
 
 Another important part of `testbench.sv` are the lines where these end caps are assigned switchboard queue names:
 
