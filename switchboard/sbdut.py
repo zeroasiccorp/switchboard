@@ -3,6 +3,7 @@ from .switchboard import path as sb_path
 import siliconcompiler
 from siliconcompiler.tools.verilator import compile
 
+
 class SbDut(siliconcompiler.Chip):
     """Class inheriting from the SiliconCompiler Chip class that can be used for building a
     Switchboard-based testbench.
