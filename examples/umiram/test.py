@@ -6,9 +6,34 @@
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, delete_queue, verilator_run, binary_run
+from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, binary_run
 
 THIS_DIR = Path(__file__).resolve().parent
+
+
+def build_testbench():
+    dut = SbDut('testbench')
+
+    EX_DIR = Path('..')
+
+    # Set up inputs
+    dut.input('testbench.sv')
+    dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
+    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
+    for option in ['ydir', 'idir']:
+        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
+
+    # Verilator configuration
+    vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
+    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
+
+    # Settings
+    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+
+    # Build simulator
+    dut.run()
+
+    return dut.find_result('vexe', step='compile')
 
 
 def main(mode='python', client2rtl="client2rtl.q", rtl2client="rtl2client.q"):
@@ -16,8 +41,10 @@ def main(mode='python', client2rtl="client2rtl.q", rtl2client="rtl2client.q"):
     for q in [client2rtl, rtl2client]:
         delete_queue(q)
 
+    verilator_bin = build_testbench()
+
     # launch the simulation
-    verilator_run('obj_dir/Vtestbench', plusargs=['trace'])
+    verilator_run(verilator_bin, plusargs=['trace'])
 
     if mode == 'python':
         python_intf(client2rtl=client2rtl, rtl2client=rtl2client)
