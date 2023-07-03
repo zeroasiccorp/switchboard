@@ -41,7 +41,7 @@ def build_testbench():
     chip.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
 
     # Generic settings
-    chip.set('option', 'trace', True) # enable VCD (TODO: FST option)
+    chip.set('option', 'trace', True)  # enable VCD (TODO: FST option)
     chip.set('option', 'mode', 'sim')
 
     # Set up flow that runs Verilator compile
