@@ -12,3 +12,4 @@ from .umi import UmiTxRx
 from .util import binary_run
 from .verilator import verilator_run
 from .icarus import icarus_run
+from .sbdut import SbDut

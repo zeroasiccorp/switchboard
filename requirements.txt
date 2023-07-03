@@ -9,9 +9,9 @@
 # lines are added as extras under a group called "<tag>".
 
 numpy
+siliconcompiler~=0.12.3
 
 # Testing dependencies
 #:test
 pytest >=7,<8
 pytest-timeout
-siliconcompiler==0.12.3
