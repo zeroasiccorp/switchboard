@@ -6,53 +6,34 @@
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import switchboard, UmiTxRx, delete_queue, verilator_run, binary_run
-from siliconcompiler import Chip
-from siliconcompiler.tools.verilator import compile
+from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, binary_run
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
 def build_testbench():
-    chip = Chip('testbench')
+    dut = SbDut('testbench')
 
-    SB_DIR = switchboard.path()
     EX_DIR = Path('..')
 
     # Set up inputs
-    chip.input('testbench.sv')
-    chip.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
-    chip.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
-    chip.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
-
-    chip.add('option', 'ydir', SB_DIR / 'verilog' / 'sim')
-    chip.add('option', 'ydir', EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
-    chip.add('option', 'idir', EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
+    dut.input('testbench.sv')
+    dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
+    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
+    for option in ['ydir', 'idir']:
+        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
 
     # Verilator configuration
-    c_flags = ['-Wno-unknown-warning-option']
-    c_includes = [SB_DIR / 'cpp']
-    ld_flags = ['-pthread']
     vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
+    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
 
-    chip.set('tool', 'verilator', 'task', 'compile', 'var', 'cflags', c_flags)
-    chip.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', c_includes)
-    chip.set('tool', 'verilator', 'task', 'compile', 'var', 'ldflags', ld_flags)
-    chip.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
+    # Settings
+    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
 
-    # Generic settings
-    chip.set('option', 'trace', True)  # enable VCD (TODO: FST option)
-    chip.set('option', 'mode', 'sim')
+    # Build simulator
+    dut.run()
 
-    # Set up flow that runs Verilator compile
-    # TODO: this will be built into SC
-    chip.set('option', 'flow', 'simflow')
-    chip.node('simflow', 'compile', compile)
-
-    # Run and entire result
-    chip.run()
-
-    return chip.find_result('vexe', step='compile')
+    return dut.find_result('vexe', step='compile')
 
 
 def main(mode='python', client2rtl="client2rtl.q", rtl2client="rtl2client.q"):

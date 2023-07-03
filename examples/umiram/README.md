@@ -14,12 +14,6 @@ If you haven't already cloned this repo and installed the switchboard Python pac
 > pip install -e .
 ```
 
-This particular tutorial also has a dependency on SiliconCompiler, which can be installed via `pip`:
-
-```shell
-> pip install siliconcompiler==0.12.3
-```
-
 ## Structure
 
 The RTL structure of this example is a Verilog module, `testbench` (`testbench.sv`), that instantiates UMI memory, `umiram` (`../common/verilog/umiram.sv`).  Within `testbench`, the UMI `udev_req` and `udev_resp` ports of `umiram` are terminated using the `umi_rx_sim` and `umi_tx_sim` modules provided by switchboard.
@@ -30,10 +24,10 @@ In the Python script `test.py`, a UMI driver is instantiated that sends packets 
 
 <img width="473" alt="image" src="https://github.com/zeroasiccorp/switchboard/assets/19254098/88a388a9-77af-411d-b645-b2c35e39f662">
 
-These operations are automated in this example with a Makefile.  If you haven't already, `cd` into this folder, and then run `make`.  You should see the following output, after the Verilator build completes:
+These operations are automated by the Python script.  If you haven't already, `cd` into this folder, and then execute `test.py`.  You should see the following output, after the Verilator build completes:
 
 ```text
-$ make
+$ ./test.py
 ...
 ### WRITES ###
 ### READS ###
@@ -100,20 +94,7 @@ This is a Python script that builds the Verilator simulator, launches it, and in
 
 ### Simulator build
 
-The Verilator simulator is built using SiliconCompiler.  The logic for performing the build is found in `build_testbench()`.  It follows the conventional SC build script structure of instantiating a `Chip` object, configuring it with inputs, build options, and a flow, and executing `chip.run()`.  There are a few switchboard-specific lines:
-
-* `SB_DIR = switchboard.path()`
-    * Creates a variable pointing to the installation directory of switchboard as a `pathlib.Path`.  For convenience, this is provided by the `switchboard` Python library.  You can try running `switchboard --path` at the command line to verify its behavior.
-* `chip.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')`
-    * Under the hood, switchboard uses DPI to implement `umi_rx_sim` and `umi_tx_sim` (VPI is used for Icarus Verilog).
-    * This file needs to be added as an input so that Verilator knows where to find the DPI implementation.
-* `chip.add('option', 'ydir', SB_DIR / 'verilog' / 'sim')`
-    * Lets Verilator know about the folder containing `umi_rx_sim` and `umi_tx_sim`, so that you can use them in `testbench.sv` without having to include them explicitly in the source file list.
-* `c_flags = ['-Wno-unknown-warning-option']` / `c_includes = [SB_DIR / 'cpp']`
-    * Tells Verilator to use these options when compiling the simulator.  The include directory is needed because `SB_DIR/dpi/switchboard_dpi.cc` includes a file from that path.
-    * `-Wno-unknown-warning-option` is a convenience for macOS users, and is likely not switchboard-specific.
-* `ld_flags = ['-pthread']`
-    * Also needed by `SB_DIR/dpi/switchboard_dpi.cc`
+The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `umi_rx_sim` and `umi_tx_sim` modules in your testbench.  Besides instantiating an `SbDut` rather than a `Chip`, `build_testbench()` follows the conventional SC build script structure of instantiating the object, configuring it with inputs, build options, and a flow, and executing `dut.run()`.
 
 ### Simulator interaction
 
