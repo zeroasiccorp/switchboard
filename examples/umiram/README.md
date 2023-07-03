@@ -14,6 +14,12 @@ If you haven't already cloned this repo and installed the switchboard Python pac
 > pip install -e .
 ```
 
+This particular tutorial also has a dependency on SiliconCompiler, which can be installed via `pip`:
+
+```shell
+> pip install siliconcompiler==0.12.3
+```
+
 ## Structure
 
 The RTL structure of this example is a Verilog module, `testbench` (`testbench.sv`), that instantiates UMI memory, `umiram` (`../common/verilog/umiram.sv`).  Within `testbench`, the UMI `udev_req` and `udev_resp` ports of `umiram` are terminated using the `umi_rx_sim` and `umi_tx_sim` modules provided by switchboard.
@@ -88,29 +94,30 @@ In looking through `testbench.sv`, you may haved noticed that `umi_rx_sim` has a
     * `1` means to assert `ready` as much as possible, so if `valid` is held high, `ready` will remain asserted as long as more packets can be pushed into the switchboard queue (i.e., as long as the SW driver isn't backpressuring)
     * `2` means to flip a coin on each cycle to determine if `ready` will be asserted in that cycle (provided that there is room in the switchboard queue)
 
-## Makefile
-
-When you type `make`, two actions take place: first, a Verilator simulator is built, resulting in the binary `obj_dir/Vtestbench`, and second, the Python script `test.py` is run.  Building the Verilator simulator requires a few switchboard-specific lines:
-
-* `SBDIR := $(shell switchboard --path)`
-    * Creates a variable pointing to the installation directory of switchboard.  For convenience, this is provided by the `switchboard` command, which was installed when you pip-installed this repo.  You can try running `switchboard --path` at the command line to verify its behavior.
-* `$(SBDIR)/dpi/switchboard_dpi.cc`
-    * Under the hood, switchboard uses DPI to implement `umi_rx_sim` and `umi_tx_sim` (VPI is used for Icarus Verilog).
-    * This file needs to be added to the source file list for Verilator so that it knows where to find the DPI implementation.
-* `-y $(SBDIR)/verilog/sim`
-    * Lets Verilator know about the folder containing `umi_rx_sim` and `umi_tx_sim`, so that you can use them in `testbench.sv` without having to include them explicitly in the source file list.
-* `-CFLAGS "-Wno-unknown-warning-option -I$(SBDIR)/cpp"`
-    * Tells Verilator to use these options when compiling the simulator.  `-I$(SBDIR)/cpp` is needed because `$(SBDIR)/dpi/switchboard_dpi.cc` includes a file from that path.
-    * `-Wno-unknown-warning-option` is a convenience for macOS users, and is likely not switchboard-specific.
-* `-LDFLAGS "-pthread"`
-    * Also needed by `$(SBDIR)/dpi/switchboard_dpi.cc`
-
-You may also notice that `test.py` can be invoked with `make cpp`, which demonstrates switchboard's C++ interface.  That interface will be the subject of a future tutorial.
-
-
 ## test.py
 
-This is the Python script that interacts with a running RTL simulation of `umiram`.  The basic steps to do this are to (1) create a `UmiTxRx` object that points at the switchboard queues used by the DUT, and (2) call the object's `write()` and `read()` to interact with the DUT via UMI.
+This is a Python script that builds the Verilator simulator, launches it, and interacts with the running RTL simulation of `umiram`.
+
+### Simulator build
+
+The Verilator simulator is built using SiliconCompiler.  The logic for performing the build is found in `build_testbench()`.  It follows the conventional SC build script structure of instantiating a `Chip` object, configuring it with inputs, build options, and a flow, and executing `chip.run()`.  There are a few switchboard-specific lines:
+
+* `SB_DIR = switchboard.path()`
+    * Creates a variable pointing to the installation directory of switchboard as a `pathlib.Path`.  For convenience, this is provided by the `switchboard` Python library.  You can try running `switchboard --path` at the command line to verify its behavior.
+* `chip.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')`
+    * Under the hood, switchboard uses DPI to implement `umi_rx_sim` and `umi_tx_sim` (VPI is used for Icarus Verilog).
+    * This file needs to be added as an input so that Verilator knows where to find the DPI implementation.
+* `chip.add('option', 'ydir', SB_DIR / 'verilog' / 'sim')`
+    * Lets Verilator know about the folder containing `umi_rx_sim` and `umi_tx_sim`, so that you can use them in `testbench.sv` without having to include them explicitly in the source file list.
+* `c_flags = ['-Wno-unknown-warning-option']` / `c_includes = [SB_DIR / 'cpp']`
+    * Tells Verilator to use these options when compiling the simulator.  The include directory is needed because `SB_DIR/dpi/switchboard_dpi.cc` includes a file from that path.
+    * `-Wno-unknown-warning-option` is a convenience for macOS users, and is likely not switchboard-specific.
+* `ld_flags = ['-pthread']`
+    * Also needed by `SB_DIR/dpi/switchboard_dpi.cc`
+
+### Simulator interaction
+
+The basic steps to interact with a simulator are to (1) create a `UmiTxRx` object that points at the switchboard queues used by the DUT, and (2) call the object's `write()` and `read()` to interact with the DUT via UMI.
 
 The `UmiTxRx` constructor accepts two arguments `tx_uri` and `rx_uri`.  Hence, when we write
 
@@ -120,7 +127,7 @@ umi = UmiTxRx(client2rtl, rtl2client)
 
 this means, "send UMI packets to the queue called `client2rtl`, and receive UMI packets from the queue called `rtl2client`".  This matches up well with the way that these queues were defined in `testbench.sv`, since the DUT is expecting to receive UMI packets from `client2rtl` and send them to `rtl2client`.
 
-### write()
+#### write()
 
 The interface of the `write()` command is `write(addr, data)`, where
 * `addr` is a 64-bit UMI address
@@ -128,7 +135,7 @@ The interface of the `write()` command is `write(addr, data)`, where
 
 The numpy data type determines the `SIZE` for the UMI transaction (e.g., `0` for `np.uint8`, `1` for `np.uint16`, etc.).  The `LEN` for a UMI transaction is `0` for a scalar, and `len(data)-1` for an array.  If `data` is more than 32B (the data bus width provided by `umi_tx_sim` and `umi_rx_sim`), multiple UMI transactions will automatically be generated within the `write()` command.  This means that you are generally free to write arbitrary binary blobs, without having to worry about bus widths.
 
-### read()
+#### read()
 
 The interface for `read()` is `read(addr, num_or_dtype, [dtype])`, where
 * `addr` is a 64-bit UMI address
@@ -141,11 +148,11 @@ As with the `write()` command, switchboard will automatically calculate `LEN` an
 
 If `num_or_dtype` is a data type, then a single word of that data type will be read and returned as a scalar.  For example, `read(0x30, np.uint32)` means "read a uint32 from address 0x30".
 
-### Other commands
+#### Other commands
 
 The `UmiTxRx` object provides other methods for interaction over UMI, such as `atomic()`.  This will be covered in a future tutorial.
 
-### delete_queue()
+#### delete_queue()
 
 You may have noticed the lines
 
@@ -155,3 +162,7 @@ for q in [client2rtl, rtl2client]:
 ```
 
 near the top of `test.py`.  switchboard queues are not automatically deleted, so it's important to make sure that any old queues are cleared out before launching a new simulation.  Sometimes it is convenient to auto-delete queues as part of the teardown process for a verification environment.
+
+## Makefile
+
+The `Makefile` is a simple convenience wrapper over the Python script.  You may also notice that `test.py` can be invoked with `make cpp`, which demonstrates switchboard's C++ interface.  That interface will be the subject of a future tutorial.
