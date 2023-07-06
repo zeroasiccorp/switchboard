@@ -8,8 +8,11 @@
 `define VERSION_MINOR 0
 `endif
 
+`define CHIPLET_BASE(i) (PER_CHIPLET_BASE + i * PER_CHIPLET_OFFSET)
+
 module config_registers #(
-   parameter NUM_QUEUES = 2
+    parameter NUM_CHIPLETS = 2,
+    parameter NUM_QUEUES = 2
 ) (
     input wire clk,
     input wire nreset,
@@ -37,7 +40,9 @@ module config_registers #(
     output reg [NUM_QUEUES-1:0] cfg_reset = {NUM_QUEUES{1'd0}},
     output reg [NUM_QUEUES*64-1:0] cfg_base_addr,
     output reg [NUM_QUEUES*32-1:0] cfg_capacity = {NUM_QUEUES{32'd2}},
-    output reg [31:0] cfg_clk_divide = 32'd0
+    output reg [31:0] cfg_clk_divide = 32'd0,
+    output reg [8*NUM_CHIPLETS-1:0] cfg_chip_row,
+    output reg [8*NUM_CHIPLETS-1:0] cfg_chip_col
 );
 
     `include "sb_queue_regmap.vh"
@@ -164,6 +169,15 @@ module config_registers #(
 
     genvar i;
     generate
+        for (i = 0; i < NUM_CHIPLETS; i++) begin
+            always @(posedge clk) begin
+                if (reg_wr_en && reg_wr_addr == `CHIPLET_BASE(i) + ROW_COL_REG) begin
+                    cfg_chip_row[8*i+:8] <= reg_wr_data[7:0];
+                    cfg_chip_col[8*i+:8] <= reg_wr_data[15:8];
+                end
+            end
+        end
+
         for (i = 0; i < NUM_QUEUES; i++) begin
             always @(posedge clk) begin
                 if (cfg_reset[i]) begin
@@ -199,6 +213,13 @@ module config_registers #(
                 reg_rd_data = cfg_clk_divide;
             end else begin
                 integer i;
+
+                for (i = 0; i < NUM_CHIPLETS; i = i + 1) begin
+                    if (reg_rd_addr == `CHIPLET_BASE(i) + ROW_COL_REG) begin
+                        reg_rd_data = {16'd0, cfg_chip_col[8*i+:8], cfg_chip_row[8*i+:8]};
+                    end
+                end
+
                 for (i = 0; i < NUM_QUEUES; i = i + 1) begin
                     if (reg_rd_addr == BASE_ADDR_LO_REG + i * REG_OFFSET) begin
                         reg_rd_data = cfg_base_addr[i*64+:32];

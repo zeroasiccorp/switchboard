@@ -1,6 +1,7 @@
 module umi_fpga_queues #(
     parameter NUM_RX_QUEUES = 1,
-    parameter NUM_TX_QUEUES = 1
+    parameter NUM_TX_QUEUES = 1,
+    parameter NUM_CHIPLETS = 1
 ) (
     input wire clk,
     input wire nreset,
@@ -15,6 +16,8 @@ module umi_fpga_queues #(
     input wire [NUM_TX_QUEUES-1:0] tx_valid,
 
     output wire [31:0] cfg_clk_divide,
+    output wire [8*NUM_CHIPLETS-1:0] cfg_chip_row,
+    output wire [8*NUM_CHIPLETS-1:0] cfg_chip_col,
 
     // AXI manager interface for memory access
     output wire [15:0] m_axi_awid,
@@ -84,7 +87,8 @@ module umi_fpga_queues #(
 
     sb_fpga_queues #(
         .NUM_RX_QUEUES(NUM_RX_QUEUES),
-        .NUM_TX_QUEUES(NUM_TX_QUEUES)
+        .NUM_TX_QUEUES(NUM_TX_QUEUES),
+        .NUM_CHIPLETS(NUM_CHIPLETS)
     ) sb_fpga_queues_i (
         .clk(clk),
         .nreset(nreset),
