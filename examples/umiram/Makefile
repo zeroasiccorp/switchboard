@@ -14,6 +14,6 @@ client: client.cc $(SBDIR)/cpp/switchboard.hpp
 .PHONY: clean
 clean:
 	rm -f client
-	rm -rf build
+	rm -rf build obj_dir
 	rm -f queue-* *.q
 	rm -f *.vcd *.fst *.fst.hier

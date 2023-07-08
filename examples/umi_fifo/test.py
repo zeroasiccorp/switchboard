@@ -4,17 +4,21 @@
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
+from pathlib import Path
 from random import random, randint
-from switchboard import UmiTxRx, PyUmiPacket, delete_queue, verilator_run
+from switchboard import UmiTxRx, PyUmiPacket, delete_queue, verilator_run, SbDut
 
 
 def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', n=3):
+    # build the simulator
+    verilator_bin = build_testbench()
+
     # clean up old queues if present
     for q in [client2rtl, rtl2client]:
         delete_queue(q)
 
     # launch the simulation
-    verilator_run('obj_dir/Vtestbench', plusargs=['trace'])
+    verilator_run(verilator_bin, plusargs=['trace'])
 
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
@@ -56,6 +60,32 @@ def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', n=3):
         assert txp.dstaddr == rxp.dstaddr
         assert txp.srcaddr == rxp.srcaddr
         assert txp.data == rxp.data
+
+
+def build_testbench():
+    dut = SbDut('testbench')
+
+    EX_DIR = Path('..')
+
+    # Set up inputs
+    dut.input('testbench.sv')
+    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
+    for option in ['ydir', 'idir']:
+        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
+        dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'ramlib' / 'rtl')
+        dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
+
+    # Verilator configuration
+    vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
+    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
+
+    # Settings
+    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+
+    # Build simulator
+    dut.run()
+
+    return dut.find_result('vexe', step='compile')
 
 
 if __name__ == '__main__':

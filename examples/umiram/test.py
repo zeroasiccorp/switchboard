@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Example illustrating how UMI packets handled in the Switchboard Python binding
+# umiram testing example
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
@@ -37,11 +37,12 @@ def build_testbench():
 
 
 def main(mode='python', client2rtl="client2rtl.q", rtl2client="rtl2client.q"):
+    # build the simulator
+    verilator_bin = build_testbench()
+
     # clean up old queues if present
     for q in [client2rtl, rtl2client]:
         delete_queue(q)
-
-    verilator_bin = build_testbench()
 
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
@@ -79,6 +80,10 @@ def python_intf(client2rtl, rtl2client):
     # 8 bytes
     umi.write(0x40, np.uint64(0xBAADD00DCAFEFACE))
 
+    # 64 bytes
+    wrbuf = np.arange(64, dtype=np.uint8)
+    umi.write(0x50, wrbuf)
+
     print("### READS ###")
 
     # 1 byte
@@ -102,6 +107,11 @@ def python_intf(client2rtl, rtl2client):
     val64 = umi.read(0x40, np.uint64)
     print(f"Read: 0x{val64:016x}")
     assert val64 == 0xBAADD00DCAFEFACE
+
+    # 64 bytes
+    rdbuf = umi.read(0x50, 64)
+    print("Read: {" + ", ".join([f"0x{elem:02x}" for elem in rdbuf]) + "}")
+    assert (rdbuf == np.arange(64, dtype=np.uint8)).all()
 
 
 if __name__ == '__main__':

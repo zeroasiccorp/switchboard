@@ -75,6 +75,11 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
         stream << std::endl << "srcaddr: 0x" << std::hex << x.srcaddr;
     }
 
+    stream << std::endl << "size: " << umi_size(x.cmd);
+    stream << std::endl << "len: " << umi_len(x.cmd);
+    stream << std::endl << "eom: " << umi_eom(x.cmd);
+    stream << std::endl << "eof: " << umi_eof(x.cmd);
+
     // print out the data as long as this isn't a read request, since
     // that doesn't have data
     if (opcode != UMI_REQ_READ) {
@@ -87,58 +92,37 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
 
 // function for checking if requests and replies match up as expected
 
-template <typename T> void umisb_check_resp(T& req, T& resp) {
-    uint32_t req_opcode = umi_opcode(req.cmd);
-
-    if (!has_umi_resp(req_opcode)) {
-        return;
-    }
-
-    uint32_t req_size = umi_size(req.cmd);
-    uint32_t req_len = umi_len(req.cmd);
+template <typename T> void umisb_check_resp(T& resp, uint32_t opcode,
+    uint32_t size, uint32_t to_ack, uint64_t expected_addr) {
 
     uint32_t resp_opcode = umi_opcode(resp.cmd);
-    uint32_t resp_size = umi_size(req.cmd);
-    uint32_t resp_len = umi_len(req.cmd);
-
-    uint32_t expected_opcode;
-    uint32_t expected_size = umi_size(req.cmd);    
-    uint32_t expected_len = umi_len(req.cmd);
-    uint64_t expected_dstaddr = req.srcaddr;
-
-    if (req_opcode == UMI_REQ_WRITE) {
-        expected_opcode = UMI_RESP_WRITE;
-    } else if (req_opcode == UMI_REQ_READ) {
-        expected_opcode = UMI_RESP_READ;
-    } else if (req_opcode == UMI_REQ_ATOMIC) {
-        expected_opcode = UMI_RESP_READ;  // TODO: is this right?
-    }
+    uint32_t resp_size = umi_size(resp.cmd);
+    uint32_t resp_len = umi_len(resp.cmd);
 
     // check that the response makes sense
 
-    if (resp_opcode != expected_opcode) {
+    if (resp_opcode != opcode) {
         std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
-            << " in response to " << umi_opcode_to_str(req_opcode)
-            << " (expected " << umi_opcode_to_str(expected_opcode)
+            << " (expected " << umi_opcode_to_str(opcode)
             << ")" << std::endl;
     }
 
-    if (resp_size != expected_size) {
+    if (resp_size != size) {
         std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode)
             << " response SIZE is " << std::to_string(resp_size)
-            << " (expected " << std::to_string(expected_size) << ")" << std::endl;
+            << " (expected " << std::to_string(size) << ")" << std::endl;
     }
 
-    if (resp_len != expected_len) {
+    if ((resp_len + 1) > to_ack) {
         std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode)
             << " response LEN is " << std::to_string(resp_len)
-            << " (expected " << std::to_string(expected_len) << ")" << std::endl;
+            << " (expected no more than " << std::to_string(to_ack-1) << ")" << std::endl;
     }
 
-    if (resp.dstaddr != expected_dstaddr) {
+    if (resp.dstaddr != expected_addr) {
         std::cerr <<  "Warning: dstaddr in " << umi_opcode_to_str(resp_opcode)
             << " response is " << std::to_string(resp.dstaddr)
-            << " (expected " << std::to_string(expected_dstaddr) << ")" << std::endl;
+            << " (expected " << std::to_string(expected_addr) << ")" << std::endl;
     }
 }
 
@@ -226,7 +210,9 @@ template <typename T> static inline bool umisb_send(
 
     uint32_t opcode = umi_opcode(x.cmd);
 
-    if (opcode != UMI_REQ_READ) {
+    if ((opcode == UMI_REQ_READ) || (opcode == UMI_RESP_WRITE)) {
+        // do nothing, since there isn't data to copy
+    } else {
         uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
         uint32_t nbytes = (len+1)<<size;
@@ -307,7 +293,9 @@ template <typename T> static inline bool umisb_recv(
 
     uint32_t opcode = umi_opcode(up->cmd);
 
-    if (opcode != UMI_REQ_READ) {
+    if ((opcode == UMI_REQ_READ) || (opcode == UMI_RESP_WRITE)) {
+        // do nothing, since there isn't data to copy
+    } else {
         uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
         uint32_t nbytes = (len+1)<<size;

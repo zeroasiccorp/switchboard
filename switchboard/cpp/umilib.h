@@ -107,53 +107,23 @@ static inline void set_umi_bits(uint32_t* cmd, uint32_t bits,
     *cmd = *cmd | (((bits & mask) << offset));
 }
 
-static inline uint32_t umi_opcode(uint32_t cmd) {
-    return get_umi_bits(cmd, 0, 5);
+#define DECL_UMI_FIELD(FIELD, OFFSET, WIDTH) \
+static inline uint32_t umi_##FIELD(uint32_t cmd) { \
+    return get_umi_bits(cmd, OFFSET, WIDTH); \
+} \
+static inline void set_umi_##FIELD(uint32_t* cmd, uint32_t FIELD) { \
+    set_umi_bits(cmd, FIELD, OFFSET, WIDTH); \
 }
 
-static inline void set_umi_opcode(uint32_t* cmd, uint32_t opcode) {
-    set_umi_bits(cmd, opcode, 0, 5);
-}
-
-static inline uint32_t umi_size(uint32_t cmd) {
-    return get_umi_bits(cmd, 5, 3);
-}
-
-static inline void set_umi_size(uint32_t* cmd, uint32_t size) {
-    set_umi_bits(cmd, size, 5, 3);
-}
-
-static inline uint32_t umi_len(uint32_t cmd) {
-    return get_umi_bits(cmd, 8, 8);
-}
-
-static inline void set_umi_len(uint32_t* cmd, uint32_t len) {
-    set_umi_bits(cmd, len, 8, 8);
-}
-
-static inline uint32_t umi_atype(uint32_t cmd) {
-    return get_umi_bits(cmd, 8, 8);
-}
-
-static inline void set_umi_atype(uint32_t* cmd, uint32_t atype) {
-    set_umi_bits(cmd, atype, 8, 8);
-}
-
-static inline uint32_t umi_eom(uint32_t cmd) {
-    return get_umi_bits(cmd, 22, 1);
-}
-
-static inline void set_umi_eom(uint32_t* cmd, uint32_t eom) {
-    set_umi_bits(cmd, eom, 22, 1);
-}
-
-static inline uint32_t umi_eof(uint32_t cmd) {
-    return get_umi_bits(cmd, 23, 1);
-}
-
-static inline void set_umi_eof(uint32_t* cmd, uint32_t eof) {
-    set_umi_bits(cmd, eof, 23, 1);
-}
+DECL_UMI_FIELD(opcode, 0, 5)
+DECL_UMI_FIELD(size, 5, 3)
+DECL_UMI_FIELD(len, 8, 8)
+DECL_UMI_FIELD(atype, 8, 8)
+DECL_UMI_FIELD(qos, 16, 4)
+DECL_UMI_FIELD(prot, 20, 2)
+DECL_UMI_FIELD(eom, 22, 1)
+DECL_UMI_FIELD(eof, 23, 1)
+DECL_UMI_FIELD(ex, 24, 1)
 
 static inline bool umi_packets_match(umi_packet* a, umi_packet* b) {
     return (memcmp(a, b, 52) == 0);

@@ -7,18 +7,21 @@ import sys
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, delete_queue, verilator_run, binary_run
+from switchboard import UmiTxRx, delete_queue, verilator_run, binary_run, SbDut
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
 def main(mode='python', rxq='rx.q', txq='tx.q'):
+    # build the simulator
+    verilator_bin = build_testbench()
+
     # clean up old queues if present
     for q in [rxq, txq]:
         delete_queue(q)
 
     # start simulation
-    verilator_run('obj_dir/Vtestbench', plusargs=['trace'])
+    verilator_run(verilator_bin, plusargs=['trace'])
 
     if mode == 'python':
         python_intf(rxq=rxq, txq=txq)
@@ -57,6 +60,31 @@ def python_intf(rxq, txq):
     else:
         print('FAIL')
         sys.exit(1)
+
+
+def build_testbench():
+    dut = SbDut('testbench')
+
+    EX_DIR = Path('..')
+
+    # Set up inputs
+    dut.input('testbench.sv')
+    dut.input(EX_DIR / 'common' / 'old-verilog' / 'umiram.sv')
+    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
+    for option in ['ydir', 'idir']:
+        dut.add('option', option, EX_DIR / 'deps' / 'old-umi' / 'umi' / 'rtl')
+
+    # Verilator configuration
+    vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
+    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
+
+    # Settings
+    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+
+    # Build simulator
+    dut.run()
+
+    return dut.find_result('vexe', step='compile')
 
 
 if __name__ == '__main__':

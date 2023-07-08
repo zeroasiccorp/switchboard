@@ -22,7 +22,11 @@ module testbench (
     wire [AW-1:0] udev_resp_srcaddr;
     wire [DW-1:0] udev_resp_data;
 
-    umi_rx_sim rx_i (
+    wire nreset;
+
+    umi_rx_sim #(
+        .VALID_MODE_DEFAULT(1)
+    ) rx_i (
         .clk(clk),
         .data(udev_req_data),
         .srcaddr(udev_req_srcaddr),
@@ -32,7 +36,9 @@ module testbench (
         .valid(udev_req_valid)
     );
 
-    umi_tx_sim tx_i (
+    umi_tx_sim #(
+        .READY_MODE_DEFAULT(1)
+    ) tx_i (
         .clk(clk),
         .data(udev_resp_data),
         .srcaddr(udev_resp_srcaddr),
@@ -42,21 +48,35 @@ module testbench (
         .valid(udev_resp_valid)
     );
 
-    wire nreset;
-    wire [AW-1:0] loc_addr;
-    wire          loc_write;
-    wire          loc_read;
-    wire [7:0]    loc_opcode;
-    wire [2:0]    loc_size;
-    wire [7:0]    loc_len;
-    wire [DW-1:0] loc_wrdata;
-    wire [DW-1:0] loc_rddata;
-    wire          loc_ready;
-
-    assign loc_ready = nreset;
-
-    umi_endpoint umi_endpoint_i (
-        .*
+    umi_fifo_flex #(
+        .IDW(256),
+        .ODW(64)
+    ) umi_fifo_flex_i (
+        .bypass(1'b0),
+        .chaosmode(1'b0),
+        .fifo_full(),
+        .fifo_empty(),
+        // Input UMI
+        .umi_in_clk(clk),
+        .umi_in_nreset(nreset),
+        .umi_in_valid(udev_req_valid),
+        .umi_in_cmd(udev_req_cmd),
+        .umi_in_dstaddr(udev_req_dstaddr),
+        .umi_in_srcaddr(udev_req_srcaddr),
+        .umi_in_data(udev_req_data),
+        .umi_in_ready(udev_req_ready),
+        // Output UMI
+        .umi_out_clk(clk),
+        .umi_out_nreset(nreset),
+        .umi_out_valid(udev_resp_valid),
+        .umi_out_cmd(udev_resp_cmd),
+        .umi_out_dstaddr(udev_resp_dstaddr),
+        .umi_out_srcaddr(udev_resp_srcaddr),
+        .umi_out_data(udev_resp_data[63:0]),
+        .umi_out_ready(udev_resp_ready),
+        // Supplies
+        .vdd(1'b1),
+        .vss(1'b0)
     );
 
     reg [7:0] nreset_vec = 8'h00;
@@ -65,20 +85,6 @@ module testbench (
     end
 
     assign nreset = nreset_vec[7];
-
-    // memory backing
-
-    reg [63:0] mem [256];
-
-    assign loc_rddata = {192'd0, mem[loc_addr[7:0]]};
-
-    always @(posedge clk or negedge nreset) begin
-        if (!nreset) begin
-            // do nothing
-        end else if (loc_write) begin
-            mem[loc_addr[7:0]] <= loc_wrdata[63:0];
-        end
-    end
 
     // Initialize UMI
 

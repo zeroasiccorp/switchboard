@@ -5,7 +5,8 @@
 #include "umilib.h"
 
 static inline uint32_t umi_pack(uint32_t opcode, uint32_t atype, uint32_t size,
-    uint32_t len, uint32_t eom, uint32_t eof) {
+    uint32_t len, uint32_t eom, uint32_t eof, uint32_t qos=0, uint32_t prot=0,
+    uint32_t ex=0) {
 
     uint32_t cmd = 0;
 
@@ -16,21 +17,47 @@ static inline uint32_t umi_pack(uint32_t opcode, uint32_t atype, uint32_t size,
     } else {
         set_umi_atype(&cmd, atype);
     }
+    set_umi_qos(&cmd, qos);
+    set_umi_prot(&cmd, prot);
     set_umi_eom(&cmd, eom);
     set_umi_eof(&cmd, eof);
+    set_umi_ex(&cmd, ex);
 
     return cmd;
 }
 
 static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
-    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof) {
+    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos,
+    uint32_t& prot, uint32_t& ex) {
 
     opcode = umi_opcode(cmd);
-    atype = umi_atype(cmd);
     size = umi_size(cmd);
     len = umi_len(cmd);
+    atype = umi_atype(cmd);
+    qos = umi_qos(cmd);
+    prot = umi_prot(cmd);
     eom = umi_eom(cmd);
     eof = umi_eof(cmd);
+    ex = umi_ex(cmd);
+}
+
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
+    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof) {
+    uint32_t qos, prot, ex;
+    umi_unpack(cmd, opcode, atype, size, len, eom, eof, qos, prot, ex);
+}
+
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
+    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos) {
+    uint32_t prot, ex;
+    umi_unpack(cmd, opcode, atype, size, len, eom, eof, qos, prot, ex);
+}
+
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
+    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos,
+    uint32_t& prot) {
+    uint32_t ex;
+    umi_unpack(cmd, opcode, atype, size, len, eom, eof, qos, prot, ex);
 }
 
 static inline std::string umi_opcode_to_str(uint32_t cmd) {

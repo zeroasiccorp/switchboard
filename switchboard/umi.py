@@ -40,7 +40,8 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, max_bytes=None, progressbar=False):
+    def write(self, addr, data, srcaddr=0, max_bytes=None,
+        posted=False, qos=0, prot=0, progressbar=False):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
@@ -76,8 +77,11 @@ class UmiTxRx:
             write_data = write_data.view(np.uint8)
 
         # perform write
-
-        self.umi.write(addr, write_data, max_bytes, progressbar)
+        if self.old:
+            self.umi.write(addr, write_data, max_bytes, progressbar)
+        else:
+            self.umi.write(addr, write_data, srcaddr, max_bytes,
+                posted, qos, prot, progressbar)
 
     def write_readback(self, addr, value, mask=None, srcaddr=0, dtype=None):
         """
@@ -123,7 +127,8 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=0, max_bytes=None):
+    def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=0,
+        max_bytes=None, qos=0, prot=0):
         """
         Reads from the provided 64-bit address.  The "num_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
@@ -157,13 +162,22 @@ class UmiTxRx:
         if isinstance(num_or_dtype, (type, np.dtype)):
             len = 1
             size = np.dtype(num_or_dtype).itemsize
-            return self.umi.read(addr, len, size, srcaddr, max_bytes).view(num_or_dtype)[0]
         else:
             len = num_or_dtype
             size = np.dtype(dtype).itemsize
-            return self.umi.read(addr, len, size, srcaddr, max_bytes)
 
-    def atomic(self, addr, data, opcode, srcaddr=0):
+        extra_args = []
+        if not self.old:
+            extra_args += [qos, prot]
+
+        result = self.umi.read(addr, len, size, srcaddr, max_bytes, *extra_args)
+
+        if isinstance(num_or_dtype, (type, np.dtype)):
+            return result.view(num_or_dtype)[0]
+        else:
+            return result
+
+    def atomic(self, addr, data, opcode, srcaddr=0, qos=0, prot=0):
         """
         Applies an atomic operation to the provided 64-bit address.  "data" must
         be a numpy integer type (e.g., np.uint64), so that the size of the atomic
@@ -195,13 +209,18 @@ class UmiTxRx:
             # perform the conversion from string to enum
             opcode = opcode_enum[opcode]
 
+        extra_args = []
+        if not self.old:
+            extra_args += [qos, prot]
+
         # format the data for sending
         if isinstance(data, np.integer):
             # copy=False should be safe here, because the data will be
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            return self.umi.atomic(addr, atomic_data, opcode, srcaddr).view(data.dtype)[0]
+            result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, *extra_args)
+            return result.view(data.dtype)[0]
         else:
             raise TypeError("The data provided to atomic should be of a numpy integer type"
                 " so that the transaction size can be determined")
