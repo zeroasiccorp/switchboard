@@ -3,13 +3,77 @@
 # Example illustrating how UMI packets are handled in the Switchboard Python binding
 # Copyright (C) 2023 Zero ASIC
 
+import random
 import numpy as np
 from pathlib import Path
+from argparse import ArgumentParser
 from switchboard import (SbDut, UmiTxRx, PyUmiPacket, delete_queue,
     verilator_run, umi_pack, UmiCmd)
 
 
-def build_testbench():
+DTYPES = [np.uint8, np.uint16, np.uint32, np.uint64]
+
+
+def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
+    # build simulator
+    verilator_bin = build_testbench(fast=fast)
+
+    # clean up old queues if present
+    for q in [client2rtl, rtl2client]:
+        delete_queue(q)
+
+    # launch the simulation
+    verilator_run(verilator_bin, plusargs=['trace'])
+
+    # instantiate TX and RX queues
+    umi = UmiTxRx(client2rtl, rtl2client)
+
+    # randomly write data
+
+    q = []
+    partial = None
+    num_sent = 0
+    num_recv = 0
+
+    while (num_sent < n) or (num_recv < n):
+        # send data
+        if num_sent < n:
+            size = random.randint(0, 3)
+            len_ = random.randint(0, (32 >> size) - 1)
+            dtype = DTYPES[size]
+            iinfo = np.iinfo(dtype)
+            cmd = umi_pack(opcode=UmiCmd.UMI_REQ_WRITE, size=size, len=len_)
+            data = np.random.randint(iinfo.min, iinfo.max, size=(len_ + 1,), dtype=dtype)
+            dstaddr = random.randint(0, (1 << 64) - 1)
+            srcaddr = random.randint(0, (1 << 64) - 1)
+            txp = PyUmiPacket(cmd=cmd, dstaddr=dstaddr, srcaddr=srcaddr, data=data)
+            if umi.send(txp, blocking=False):
+                print('*** SENT ***')
+                print(txp)
+                q.append(data)
+                num_sent += 1
+
+        # receive data
+        if (num_recv < n):
+            rxp = umi.recv(blocking=False)
+            if rxp is not None:
+                print("*** RECEIVED ***")
+                print(rxp)
+
+                if partial is None:
+                    partial = rxp.data.view(DTYPES[(rxp.cmd >> 5) & 0b111])
+                else:
+                    partial = np.concatenate(
+                        (partial, rxp.data.view(DTYPES[(rxp.cmd >> 5) & 0b111])))
+
+                if (len(q) > 0) and (len(q[0]) == len(partial)):
+                    assert (q[0] == partial).all(), "Data mismatch"
+                    q.pop(0)
+                    partial = None
+                    num_recv += 1
+
+
+def build_testbench(fast=False):
     dut = SbDut('testbench')
 
     EX_DIR = Path('..')
@@ -30,97 +94,23 @@ def build_testbench():
     # Settings
     dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
 
-    # Build simulator
-    dut.run()
+    result = None
+
+    if fast:
+        result = dut.find_result('vexe', step='compile')
+
+    if result is None:
+        dut.run()
 
     return dut.find_result('vexe', step='compile')
 
 
-def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3):
-    # clean up old queues if present
-    for q in [client2rtl, rtl2client]:
-        delete_queue(q)
-
-    # build simulator
-    verilator_bin = build_testbench()
-
-    # launch the simulation
-    verilator_run(verilator_bin, plusargs=['trace'])
-
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
-    umi = UmiTxRx(client2rtl, rtl2client)
-
-    offset = 0
-    runs = 3
-    txp = None
-    rx_count = 0
-    num_sent = 0
-    next_expected = 1
-
-    while num_sent<runs:
-        if txp is None:
-            atype = 0
-            size = 3
-            len_ = 1
-            eom = 1
-            eof = 1
-            cmd = umi_pack(UmiCmd.UMI_REQ_WRITE, atype, size, len_, eom, eof)
-            dstaddr = 0
-            srcaddr = 0
-            data = np.array([1+offset, 2+offset], dtype=np.uint64)
-            offset += 2
-            txp = PyUmiPacket(cmd, dstaddr, srcaddr, data)
-        if umi.send(txp, blocking=False):
-            txp = None
-            num_sent += 1
-
-        rxp = umi.recv(blocking=False)
-        if rxp is not None:
-            print(rxp)
-            assert rxp.data.view(np.uint64)[0] == next_expected
-            next_expected += 1
-            rx_count += 1
-
-    while rx_count < 2*runs:
-        rxp = umi.recv()
-        print(rxp)
-        assert rxp.data.view(np.uint64)[0] == next_expected
-        next_expected += 1
-        rx_count += 1
-
-    # atype = 0
-    # size = 3
-    # len_ = 1
-    # eom = 1
-    # eof = 1
-    # cmd = umi_pack(UmiCmd.UMI_REQ_READ, atype, size, len_, eom, eof)
-    # dstaddr = 0
-    # srcaddr = 0
-    # data = None
-    # p = PyUmiPacket(cmd, dstaddr, srcaddr, data)
-    # umi.send(p)
-
-    # for _ in range(2):
-    #     print(umi.recv())
-
-    # atype = 0
-    # size = 3
-    # len_ = 1
-    # eom = 1
-    # eof = 1
-    # cmd = umi_pack(UmiCmd.UMI_RESP_WRITE, atype, size, len_, eom, eof)
-    # dstaddr = 0
-    # srcaddr = 0
-    # data = None
-    # p = PyUmiPacket(cmd, dstaddr, srcaddr, data)
-    # umi.send(p)
-
-    # for _ in range(2):
-    #     print(umi.recv())
-
-
 if __name__ == '__main__':
-    main()
+    parser = ArgumentParser()
+    parser.add_argument('-n', type=int, default=3, help='Number of'
+        ' transactions to send into the FIFO during the test.')
+    parser.add_argument('--fast', action='store_true', help='Do not build'
+        ' the simulator binary if it has already been built.')
+    args = parser.parse_args()
+
+    main(n=args.n, fast=args.fast)

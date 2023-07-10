@@ -4,7 +4,7 @@
 # for now, though, all of the functionality is implemented in C++
 
 from _switchboard import (PySbPacket, delete_queue, umi_opcode_to_str,
-    PySbTx, PySbRx, UmiCmd, PySbTxPcie, PySbRxPcie, PyUmiPacket)
+    PySbTx, PySbRx, UmiCmd, PySbTxPcie, PySbRxPcie, PyUmiPacket, umi_pack)
 
 from _switchboard import old_umi_opcode_to_str, OldUmiCmd, OldPyUmiPacket
 

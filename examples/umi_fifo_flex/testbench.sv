@@ -25,7 +25,7 @@ module testbench (
     wire nreset;
 
     umi_rx_sim #(
-        .VALID_MODE_DEFAULT(1)
+        .VALID_MODE_DEFAULT(2)
     ) rx_i (
         .clk(clk),
         .data(udev_req_data),
@@ -37,7 +37,7 @@ module testbench (
     );
 
     umi_tx_sim #(
-        .READY_MODE_DEFAULT(1)
+        .READY_MODE_DEFAULT(2)
     ) tx_i (
         .clk(clk),
         .data(udev_resp_data),

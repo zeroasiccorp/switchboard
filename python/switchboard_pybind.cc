@@ -931,7 +931,10 @@ PYBIND11_MODULE(_switchboard, m) {
 
     m.def("delete_queue", &delete_queue, "Deletes an old queue.");
 
-    //m.def("umi_pack", &umi_pack, "Returns a UMI command with the given parameters.");
+    m.def("umi_pack", &umi_pack, "Returns a UMI command with the given parameters.",
+        py::arg("opcode")=0, py::arg("atype")=0, py::arg("size")=0, py::arg("len")=0,
+        py::arg("eom")=1, py::arg("eof")=1, py::arg("qos")=0, py::arg("prot")=0,
+        py::arg("ex")=0);
 
     py::enum_<UMI_CMD>(m, "UmiCmd")
         .value("UMI_INVALID", UMI_INVALID)
