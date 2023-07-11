@@ -5,7 +5,8 @@
 
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, random_umi_packet, delete_queue, verilator_run, SbDut, UmiCmd
+from switchboard import (UmiTxRx, random_umi_packet, delete_queue,
+    verilator_run, SbDut, UmiCmd, umi_opcode)
 
 
 def main(in_="in.q", out0="out0.q", out1="out1.q", n=3, fast=False):
@@ -38,7 +39,7 @@ def main(in_="in.q", out0="out0.q", out1="out1.q", n=3, fast=False):
             if umi_in.send(txp, blocking=False):
                 print('* IN *')
                 print(str(txp))
-                if (txp.cmd & 0xf) == UmiCmd.UMI_RESP_READ:
+                if umi_opcode(txp.cmd) == UmiCmd.UMI_RESP_READ:
                     tx_resp_list.append(txp)
                 else:
                     tx_req_list.append(txp)

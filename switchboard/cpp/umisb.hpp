@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <functional>
+#include <stdexcept>
 
 #include "switchboard.hpp"
 #include "umilib.h"
@@ -132,12 +133,21 @@ template <typename T> void umisb_check_resp(T& resp, uint32_t opcode,
 struct UmiTransaction {
     UmiTransaction(uint32_t cmd=0, uint64_t dstaddr=0, uint64_t srcaddr=0,
         uint8_t* data=NULL, size_t nbytes=0) : cmd(cmd), dstaddr(dstaddr),
-        srcaddr(srcaddr), data(data), m_nbytes(nbytes), m_allocated(false) {
+        srcaddr(srcaddr) {
 
-        if ((data == NULL) && (nbytes > 0)) {
-            resize(0, nbytes);
+        m_storage = false;
+        m_allocated = false;
+        m_nbytes = 0;
+
+        if (data != NULL) {
+            this->data = data;
+            m_storage = true;
+            m_nbytes = nbytes;
+        } else if (nbytes > 0) {
+            allocate(0, nbytes - 1);
+        } else {
+            this->data = NULL;
         }
-
     }
 
     ~UmiTransaction() {
@@ -150,19 +160,32 @@ struct UmiTransaction {
         return umi_transaction_as_str<UmiTransaction>(*this);
     }
 
-    void resize(size_t size, size_t len) {
-        // calculate the number of bytes
-        size_t nbytes = (len + 1) << size;
+    void allocate(size_t size, size_t len) {
+        // check that we can perform this operation
 
-        // delete old data if already allocated
-        if (m_allocated) {
-            delete[] data;
+        if (m_storage) {
+            throw std::runtime_error("There is already storage for this UMI transaction, no need to allocate.");
         }
 
-        // allocate new data
+        if (m_allocated) {
+            throw std::runtime_error("Memory has already been allocated for this UMI transaction.");
+        }
+
+        // allocate the memory
+
+        size_t nbytes = (len+1)<<size;
         data = (uint8_t*)malloc(nbytes);
+
+        // indicate that storage is now available for this transaction,
+        // and that we allocated memory to make it available 
+
+        m_storage = true;
         m_allocated = true;
         m_nbytes = nbytes;
+    }
+
+    bool storage() {
+        return m_storage;
     }
 
     size_t nbytes(){
@@ -181,6 +204,7 @@ struct UmiTransaction {
     private:
         size_t m_nbytes;
         bool m_allocated;
+        bool m_storage;
 };
 
 // higher-level functions for UMI transactions
@@ -209,17 +233,20 @@ template <typename T> static inline bool umisb_send(
     if ((opcode == UMI_REQ_READ) || (opcode == UMI_RESP_WRITE)) {
         // do nothing, since there isn't data to copy
     } else {
-        uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
-        uint32_t nbytes = (len+1)<<size;
+        uint32_t len = umi_len(x.cmd);
+        size_t nbytes = (len+1)<<size;
+
         if (nbytes > sizeof(up->data)) {
             throw std::runtime_error(
-                "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
+                "(len+1)<<size cannot exceed the data size of a umi_packet.");
         }
+
         if (nbytes > x.nbytes()) {
             throw std::runtime_error(
-                "(len+1)<<size cannot exceed the number of data bytes in the UMI transaction.");
+                "(len+1)<<size cannot exceed the data size of a UmiTransaction.");
         }
+
         memcpy(up->data, x.ptr(), nbytes);
     }
 
@@ -292,14 +319,26 @@ template <typename T> static inline bool umisb_recv(
     if ((opcode == UMI_REQ_READ) || (opcode == UMI_RESP_WRITE)) {
         // do nothing, since there isn't data to copy
     } else {
-        uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
-        x.resize(size, len);
-        if (x.nbytes() > sizeof(up->data)) {
-            throw std::runtime_error(
-                "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
+        uint32_t len = umi_len(x.cmd);
+
+        if (!x.storage()) {
+            x.allocate(size, len);
         }
-        memcpy(x.ptr(), up->data, x.nbytes());
+
+        size_t nbytes = (len+1)<<size;
+
+        if (nbytes > sizeof(up->data)) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the data size of a umi_packet.");
+        }
+
+        if (nbytes > x.nbytes()) {
+            throw std::runtime_error(
+                "(len+1)<<size cannot exceed the data size of a UmiTransaction.");
+        }
+
+        memcpy(x.ptr(), up->data, nbytes);
     }
 
     return true;

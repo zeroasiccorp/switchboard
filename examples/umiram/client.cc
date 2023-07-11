@@ -24,7 +24,7 @@ int main() {
     {
         UmiTransaction x;
         uint32_t value = 0xBEEFCAFE;
-        x.resize(2, 0);
+        x.allocate(2, 0);
         memcpy(x.data, &value, sizeof(value));
         x.cmd = umi_pack(UMI_REQ_POSTED, 0, 2, 0, 1, 1);
         x.dstaddr = 0x10;
