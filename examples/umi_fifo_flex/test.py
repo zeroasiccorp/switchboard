@@ -3,15 +3,10 @@
 # Example illustrating how UMI packets are handled in the Switchboard Python binding
 # Copyright (C) 2023 Zero ASIC
 
-import random
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import (SbDut, UmiTxRx, PyUmiPacket, delete_queue,
-    verilator_run, umi_pack, UmiCmd)
-
-
-DTYPES = [np.uint8, np.uint16, np.uint32, np.uint64]
+from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, random_umi_packet
 
 
 def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
@@ -38,33 +33,24 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
     while (num_sent < n) or (num_recv < n):
         # send data
         if num_sent < n:
-            size = random.randint(0, 3)
-            len_ = random.randint(0, (32 >> size) - 1)
-            dtype = DTYPES[size]
-            iinfo = np.iinfo(dtype)
-            cmd = umi_pack(opcode=UmiCmd.UMI_REQ_WRITE, size=size, len=len_)
-            data = np.random.randint(iinfo.min, iinfo.max, size=(len_ + 1,), dtype=dtype)
-            dstaddr = random.randint(0, (1 << 64) - 1)
-            srcaddr = random.randint(0, (1 << 64) - 1)
-            txp = PyUmiPacket(cmd=cmd, dstaddr=dstaddr, srcaddr=srcaddr, data=data)
+            txp = random_umi_packet()
             if umi.send(txp, blocking=False):
                 print('*** SENT ***')
                 print(txp)
-                q.append(data)
+                q.append(txp.data)
                 num_sent += 1
 
         # receive data
-        if (num_recv < n):
+        if num_recv < n:
             rxp = umi.recv(blocking=False)
             if rxp is not None:
                 print("*** RECEIVED ***")
                 print(rxp)
 
                 if partial is None:
-                    partial = rxp.data.view(DTYPES[(rxp.cmd >> 5) & 0b111])
+                    partial = rxp.data
                 else:
-                    partial = np.concatenate(
-                        (partial, rxp.data.view(DTYPES[(rxp.cmd >> 5) & 0b111])))
+                    partial = np.concatenate((partial, rxp.data))
 
                 if (len(q) > 0) and (len(q[0]) == len(partial)):
                     assert (q[0] == partial).all(), "Data mismatch"

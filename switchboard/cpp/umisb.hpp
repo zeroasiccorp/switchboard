@@ -135,7 +135,7 @@ struct UmiTransaction {
         srcaddr(srcaddr), data(data), m_nbytes(nbytes), m_allocated(false) {
 
         if ((data == NULL) && (nbytes > 0)) {
-            resize(nbytes);
+            resize(0, nbytes);
         }
 
     }
@@ -150,19 +150,19 @@ struct UmiTransaction {
         return umi_transaction_as_str<UmiTransaction>(*this);
     }
 
-    void resize(size_t n) {
-        // allocate new space if needed
-        if (n > m_nbytes) {
-            if (m_allocated) {
-                data = (uint8_t*)realloc(data, n);
-            } else {
-                data = (uint8_t*)malloc(n);
-                m_allocated = true;
-            }
+    void resize(size_t size, size_t len) {
+        // calculate the number of bytes
+        size_t nbytes = (len + 1) << size;
+
+        // delete old data if already allocated
+        if (m_allocated) {
+            delete[] data;
         }
 
-        // record the new size of the storage
-        m_nbytes = n;
+        // allocate new data
+        data = (uint8_t*)malloc(nbytes);
+        m_allocated = true;
+        m_nbytes = nbytes;
     }
 
     size_t nbytes(){
@@ -190,10 +190,6 @@ template <typename T> static inline bool umisb_send(
     PacketPrinter printer=NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
-    // if length of the data payload in the packet is greater than
-    // what can be sent in a header packet, then a header packet is sent
-    // containing the beginning of the data, followed by the rest in
-    // subsequent burst packets.
 
     if (!tx.is_active()) {
         return false;
@@ -298,13 +294,12 @@ template <typename T> static inline bool umisb_recv(
     } else {
         uint32_t len = umi_len(x.cmd);
         uint32_t size = umi_size(x.cmd);
-        uint32_t nbytes = (len+1)<<size;
-        x.resize(nbytes);
-        if (nbytes > sizeof(up->data)) {
+        x.resize(size, len);
+        if (x.nbytes() > sizeof(up->data)) {
             throw std::runtime_error(
                 "(len+1)<<size cannot exceed the data payload size of a UMI packet.");
         }
-        memcpy(x.ptr(), up->data, nbytes);
+        memcpy(x.ptr(), up->data, x.nbytes());
     }
 
     return true;

@@ -69,18 +69,39 @@ struct PySbPacket {
     py::array_t<uint8_t> data;
  };
 
+// functions for allocating and accessing the pointer to pybind arrays
+
+py::array alloc_pybind_array(int num, size_t bytes_per_elem=1) {
+    if (bytes_per_elem == 1) {
+        return py::array_t<uint8_t>(num);
+    } else if (bytes_per_elem == 2) {
+        return py::array_t<uint16_t>(num);
+    } else if (bytes_per_elem == 4) {
+        return py::array_t<uint32_t>(num);
+    } else if (bytes_per_elem == 8) {
+        return py::array_t<uint64_t>(num);
+    } else {
+        throw std::runtime_error("Unsupported value for bytes_per_elem.");
+    }
+}
+
+uint8_t* get_pybind_array_ptr(py::array arr) {
+    py::buffer_info info = py::buffer(arr).request();
+    return (uint8_t*)info.ptr;
+}
+
 // As with PySbPacket, PyUmiPacket makes the contents of umi_packet
 // accessible in a pybind-friendly manner.  The same comments about
 // setting the default value of the data argument to "None" apply.
 
 struct PyUmiPacket {
     PyUmiPacket(uint32_t cmd=0, uint64_t dstaddr=0, uint64_t srcaddr=0,
-        std::optional<py::array> data = std::nullopt) :
+        std::optional<py::array> data = std::nullopt, size_t nbytes=0) :
         cmd(cmd), dstaddr(dstaddr), srcaddr(srcaddr) {
         if (data.has_value()) {
             this->data = data.value();
         } else {
-            this->data = py::array_t<uint8_t>(SB_DATA_SIZE);
+            this->data = py::array_t<uint8_t>(nbytes);
         }
     }
 
@@ -88,21 +109,13 @@ struct PyUmiPacket {
         return umi_transaction_as_str<PyUmiPacket>(*this);
     }
 
-    void resize(size_t n) {
-        if (n > nbytes()) {
-            // TODO: review this
-            py::buffer_info info = py::buffer(data).request();
-            size_t new_size = n / info.itemsize;
-            if (n % info.itemsize != 0){
-                new_size++;
-            }
-            data.resize({new_size});
-        }
+    void resize(size_t size, size_t len) {
+        data = alloc_pybind_array((len + 1), (1 << size));
     }
 
     size_t nbytes(){
         py::buffer_info info = py::buffer(data).request();
-        return info.itemsize*info.size;
+        return info.itemsize * info.size;
     }
 
     uint8_t* ptr() {
@@ -202,17 +215,6 @@ size_t lowest_bit (size_t x) {
         }
         return retval;
     }
-}
-
-// functions for allocating and accessing the pointer to pybind arrays
-
-py::array_t<uint8_t> alloc_pybind_array(int n) {
-    return py::array_t<uint8_t>(n);
-}
-
-uint8_t* get_pybind_array_ptr(py::array_t<uint8_t> arr) {
-    py::buffer_info info = py::buffer(arr).request();
-    return (uint8_t*)info.ptr;
 }
 
 // PySbTxPcie / PySbRxPcie: these objects must be created to initialize Switchboard
@@ -520,18 +522,7 @@ class PyUmi {
             }
 
             // create a buffer to hold the result
-            py::array result;
-            if (bytes_per_elem == 1) {
-                result = py::array_t<uint8_t>(num);
-            } else if (bytes_per_elem == 2) {
-                result = py::array_t<uint16_t>(num);
-            } else if (bytes_per_elem == 4) {
-                result = py::array_t<uint32_t>(num);
-            } else if (bytes_per_elem == 8) {
-                result = py::array_t<uint64_t>(num);
-            } else {
-                throw std::runtime_error("Unsupported value for bytes_per_elem.");
-            }
+            py::array result = alloc_pybind_array(num, bytes_per_elem);
 
             if (num == 0) {
                 // nothing to read, so just return the empty array

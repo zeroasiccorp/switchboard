@@ -8,7 +8,7 @@ from _switchboard import (PySbPacket, delete_queue, umi_opcode_to_str,
 
 from _switchboard import old_umi_opcode_to_str, OldUmiCmd, OldPyUmiPacket
 
-from .umi import UmiTxRx
+from .umi import UmiTxRx, random_umi_packet
 from .util import binary_run
 from .verilator import verilator_run
 from .icarus import icarus_run
