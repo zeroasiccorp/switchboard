@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-# umiram testing example
+# Example illustrating how to interact with a simple model of UMI memory (umiram)
+# Both C++ and Python-based interactions are shown, however Switchboard can be
+# used entirely from Python (and we generally recommend doing this.)
+
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np

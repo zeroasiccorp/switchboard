@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Example illustrating how UMI packets are handled in the Switchboard Python binding
+# Example illustrating how to interact with the umi_fifo_flex module
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# umi_splitter testing example
+# Example illustrating how to interact with the umi_splitter module
 # Copyright (C) 2023 Zero ASIC
 
 from pathlib import Path

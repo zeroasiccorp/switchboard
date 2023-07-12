@@ -6,12 +6,13 @@
 import sys
 import numpy as np
 from pathlib import Path
+from argparse import ArgumentParser
 from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, verilator_run, SbDut
 
 
-def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q'):
+def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', fast=False):
     # build the simulator
-    verilator_bin = build_testbench()
+    verilator_bin = build_testbench(fast=fast)
 
     # clean up old queues if present
     for q in [client2rtl, rtl2client]:
@@ -70,7 +71,7 @@ def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q'):
         sys.exit(1)
 
 
-def build_testbench():
+def build_testbench(fast=False):
     dut = SbDut('testbench')
 
     EX_DIR = Path('..')
@@ -82,11 +83,21 @@ def build_testbench():
     # Settings
     dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
 
-    # Build simulator
-    dut.run()
+    result = None
+
+    if fast:
+        result = dut.find_result('vexe', step='compile')
+
+    if result is None:
+        dut.run()
 
     return dut.find_result('vexe', step='compile')
 
 
 if __name__ == '__main__':
-    main()
+    parser = ArgumentParser()
+    parser.add_argument('--fast', action='store_true', help='Do not build'
+        ' the simulator binary if it has already been built.')
+    args = parser.parse_args()
+
+    main(fast=args.fast)

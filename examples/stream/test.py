@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Example demonstrating a sequence of Switchboard packets
+# Copyright (C) 2023 Zero ASIC
+
 import time
 
 from pathlib import Path
