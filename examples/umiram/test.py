@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-# Example illustrating how UMI packets handled in the Switchboard Python binding
+# Example illustrating how to interact with a simple model of UMI memory (umiram)
+# Both C++ and Python-based interactions are shown, however Switchboard can be
+# used entirely from Python (and we generally recommend doing this.)
+
 # Copyright (C) 2023 Zero ASIC
 
 import numpy as np
@@ -9,50 +12,6 @@ from argparse import ArgumentParser
 from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, binary_run
 
 THIS_DIR = Path(__file__).resolve().parent
-
-
-def build_testbench():
-    dut = SbDut('testbench')
-
-    EX_DIR = Path('..')
-
-    # Set up inputs
-    dut.input('testbench.sv')
-    dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
-    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
-    for option in ['ydir', 'idir']:
-        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
-
-    # Verilator configuration
-    vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
-    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
-
-    # Settings
-    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
-
-    # Build simulator
-    dut.run()
-
-    return dut.find_result('vexe', step='compile')
-
-
-def main(mode='python', client2rtl="client2rtl.q", rtl2client="rtl2client.q"):
-    # clean up old queues if present
-    for q in [client2rtl, rtl2client]:
-        delete_queue(q)
-
-    verilator_bin = build_testbench()
-
-    # launch the simulation
-    verilator_run(verilator_bin, plusargs=['trace'])
-
-    if mode == 'python':
-        python_intf(client2rtl=client2rtl, rtl2client=rtl2client)
-    elif mode == 'cpp':
-        client = binary_run(THIS_DIR / 'client')
-        client.wait()
-    else:
-        raise ValueError(f'Invalid mode: {mode}')
 
 
 def python_intf(client2rtl, rtl2client):
@@ -65,12 +24,12 @@ def python_intf(client2rtl, rtl2client):
     print("### WRITES ###")
 
     # 1 byte
-    wrbuf = np.array([0xBAADF00D], np.uint32).view(np.uint8)
+    wrbuf = np.array([0x0D, 0xF0, 0xAD, 0xBA], np.uint8)
     for i in range(4):
         umi.write(0x10 + i, wrbuf[i])
 
     # 2 bytes
-    wrbuf = np.array([0xB0BACAFE], np.uint32).view(np.uint16)
+    wrbuf = np.array([0xCAFE, 0xB0BA], np.uint16)
     umi.write(0x20, wrbuf)
 
     # 4 bytes
@@ -78,6 +37,10 @@ def python_intf(client2rtl, rtl2client):
 
     # 8 bytes
     umi.write(0x40, np.uint64(0xBAADD00DCAFEFACE))
+
+    # 64 bytes
+    wrbuf = np.arange(64, dtype=np.uint8)
+    umi.write(0x50, wrbuf)
 
     print("### READS ###")
 
@@ -103,10 +66,67 @@ def python_intf(client2rtl, rtl2client):
     print(f"Read: 0x{val64:016x}")
     assert val64 == 0xBAADD00DCAFEFACE
 
+    # 64 bytes
+    rdbuf = umi.read(0x50, 64)
+    print("Read: {" + ", ".join([f"0x{elem:02x}" for elem in rdbuf]) + "}")
+    assert (rdbuf == np.arange(64, dtype=np.uint8)).all()
+
+
+def build_testbench(fast=False):
+    dut = SbDut('testbench')
+
+    EX_DIR = Path('..')
+
+    # Set up inputs
+    dut.input('testbench.sv')
+    dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
+    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
+    for option in ['ydir', 'idir']:
+        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
+
+    # Verilator configuration
+    vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
+    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
+
+    # Settings
+    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+
+    result = None
+
+    if fast:
+        result = dut.find_result('vexe', step='compile')
+
+    if result is None:
+        dut.run()
+
+    return dut.find_result('vexe', step='compile')
+
+
+def main(mode='python', client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
+    # build the simulator
+    verilator_bin = build_testbench(fast=fast)
+
+    # clean up old queues if present
+    for q in [client2rtl, rtl2client]:
+        delete_queue(q)
+
+    # launch the simulation
+    verilator_run(verilator_bin, plusargs=['trace'])
+
+    if mode == 'python':
+        python_intf(client2rtl=client2rtl, rtl2client=rtl2client)
+    elif mode == 'cpp':
+        client = binary_run(THIS_DIR / 'client')
+        client.wait()
+    else:
+        raise ValueError(f'Invalid mode: {mode}')
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--mode', default='python')
+    parser.add_argument('--fast', action='store_true', help='Do not build'
+        ' the simulator binary if it has already been built.')
     args = parser.parse_args()
 
-    main(mode=args.mode)
+    main(mode=args.mode, fast=args.fast)

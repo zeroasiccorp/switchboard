@@ -69,18 +69,44 @@ struct PySbPacket {
     py::array_t<uint8_t> data;
  };
 
+// functions for allocating and accessing the pointer to pybind arrays
+
+py::array alloc_pybind_array(int num, size_t bytes_per_elem=1) {
+    if (bytes_per_elem == 1) {
+        return py::array_t<uint8_t>(num);
+    } else if (bytes_per_elem == 2) {
+        return py::array_t<uint16_t>(num);
+    } else if (bytes_per_elem == 4) {
+        return py::array_t<uint32_t>(num);
+    } else if (bytes_per_elem == 8) {
+        return py::array_t<uint64_t>(num);
+    } else {
+        throw std::runtime_error("Unsupported value for bytes_per_elem.");
+    }
+}
+
+uint8_t* get_pybind_array_ptr(py::array arr) {
+    py::buffer_info info = py::buffer(arr).request();
+    return (uint8_t*)info.ptr;
+}
+
 // As with PySbPacket, PyUmiPacket makes the contents of umi_packet
 // accessible in a pybind-friendly manner.  The same comments about
 // setting the default value of the data argument to "None" apply.
 
 struct PyUmiPacket {
     PyUmiPacket(uint32_t cmd=0, uint64_t dstaddr=0, uint64_t srcaddr=0,
-        std::optional<py::array_t<uint8_t>> data = std::nullopt) :
+        std::optional<py::array> data = std::nullopt, size_t nbytes=0) :
         cmd(cmd), dstaddr(dstaddr), srcaddr(srcaddr) {
+
+        m_allocated = false;
+        m_storage = false;
+
         if (data.has_value()) {
             this->data = data.value();
-        } else {
-            this->data = py::array_t<uint8_t>(SB_DATA_SIZE);
+            m_storage = true;
+        } else if (nbytes > 0) {
+            allocate(0, nbytes - 1);
         }
     }
 
@@ -88,13 +114,35 @@ struct PyUmiPacket {
         return umi_transaction_as_str<PyUmiPacket>(*this);
     }
 
-    void resize(size_t n) {
-        data.resize({n});
+    void allocate(size_t size, size_t len) {
+        // check that we can perform this operation
+
+        if (m_storage) {
+            throw std::runtime_error("There is already storage for this UMI transaction, no need to allocate.");
+        }
+
+        if (m_allocated) {
+            throw std::runtime_error("Memory has already been allocated for this UMI transaction.");
+        }
+
+        // allocate the memory
+
+        data = alloc_pybind_array((len + 1), (1 << size));
+
+        // indicate that storage is now available for this transaction,
+        // and that we allocated memory to make it available 
+
+        m_storage = true;
+        m_allocated = true;        
+    }
+
+    bool storage() {
+        return m_storage;
     }
 
     size_t nbytes(){
         py::buffer_info info = py::buffer(data).request();
-        return info.size;
+        return info.itemsize * info.size;
     }
 
     uint8_t* ptr() {
@@ -105,7 +153,11 @@ struct PyUmiPacket {
     uint32_t cmd;
     uint64_t dstaddr;
     uint64_t srcaddr;
-    py::array_t<uint8_t> data;
+    py::array data;
+
+    private:
+        bool m_allocated;
+        bool m_storage;
 };
 
 struct OldPyUmiPacket {
@@ -194,17 +246,6 @@ size_t lowest_bit (size_t x) {
         }
         return retval;
     }
-}
-
-// functions for allocating and accessing the pointer to pybind arrays
-
-py::array_t<uint8_t> alloc_pybind_array(int n) {
-    return py::array_t<uint8_t>(n);
-}
-
-uint8_t* get_pybind_array_ptr(py::array_t<uint8_t> arr) {
-    py::buffer_info info = py::buffer(arr).request();
-    return (uint8_t*)info.ptr;
 }
 
 // PySbTxPcie / PySbRxPcie: these objects must be created to initialize Switchboard
@@ -405,8 +446,7 @@ class PyUmi {
 
         std::unique_ptr<PyUmiPacket> recv(bool blocking=true) {
             // try to receive a transaction
-            std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(
-                new PyUmiPacket(0, 0, 0, py::array_t<uint8_t>(0)));
+            std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(new PyUmiPacket());
             bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
 
             // if we got something, return it, otherwise return a null pointer
@@ -417,8 +457,10 @@ class PyUmi {
             }
         }
 
-        void write(uint64_t addr, py::array data, uint32_t max_bytes=32,
-            bool progressbar=false) {
+        void write(uint64_t addr, py::array data, uint64_t srcaddr=0,
+            uint32_t max_bytes=32, bool posted=false, uint32_t qos=0,
+            uint32_t prot=0, bool progressbar=false) {
+
             // write data to the given address.  data can be of any length,
             // including greater than the length of a header packet and
             // values that are not powers of two.  this function is blocking.
@@ -438,12 +480,19 @@ class PyUmi {
                 return;
             }
 
+            // fields only used if expecting a write response
+            uint32_t to_ack = total_len;
+            uint64_t expected_addr = srcaddr;
+
             // otherwise get the data pointer and decompose the data into
             // power-of-two chunks, with the size of each chunk being the
             // largest that is possible while remaining aligned, and
             // without exceeding the number of remaining bytes.
 
             uint8_t* ptr = (uint8_t*)info.ptr;
+
+            // determine the opcode to use
+            uint32_t opcode = posted ? UMI_REQ_POSTED : UMI_REQ_WRITE;
 
             // determine the size of individual items
             uint32_t size = highest_bit(info.itemsize);
@@ -452,21 +501,43 @@ class PyUmi {
             uint32_t max_len = max_bytes / info.itemsize;
 
             // send all of the data
-            while (total_len > 0) {
-                uint32_t len = std::min(total_len, max_len);
-                uint32_t eom = (len == total_len) ? 1 : 0;
-                uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, size, len-1, eom, 1);
-                UmiTransaction x(cmd, addr, 0, ptr, len<<size);
-                umisb_send<UmiTransaction>(x, m_tx, true, &check_signals);
-                // update pointers
-                total_len -= len;
-                ptr += len<<size;
-                addr += len<<size;
+            while ((total_len > 0) || ((!posted) && (to_ack > 0))) {
+                if (total_len > 0) {
+                    // try to send a write request
+                    uint32_t len = std::min(total_len, max_len);
+                    uint32_t eom = (len == total_len) ? 1 : 0;
+                    uint32_t cmd = umi_pack(opcode, 0, size, len-1, eom, 1, qos, prot);
+                    UmiTransaction req(cmd, addr, srcaddr, ptr, len<<size);
+                    if (umisb_send<UmiTransaction>(req, m_tx, false)) {
+                        // update pointers
+                        total_len -= len;
+                        ptr += len<<size;
+                        addr += len<<size;
+                        srcaddr += len<<size;
+                    }
+                }
+
+                if ((!posted) && (to_ack > 0)) {
+                    UmiTransaction resp(0, 0, 0, NULL, 0);
+                    if (umisb_recv<UmiTransaction>(resp, m_rx, false)) {
+                        // check that the response makes sense
+                        umisb_check_resp(resp, UMI_RESP_WRITE, size,
+                            to_ack, expected_addr);
+
+                        // update ack status
+                        to_ack -= (umi_len(resp.cmd) + 1);
+                        expected_addr += (umi_len(resp.cmd) + 1) << umi_size(resp.cmd);
+                    }
+                }
+
+                // make sure there aren't outside signals trying to interrupt
+                check_signals();
             }
         }
 
         py::array read(uint64_t addr, uint32_t num, size_t bytes_per_elem,
-            uint64_t srcaddr=0, uint32_t max_bytes=32) {
+            uint64_t srcaddr=0, uint32_t max_bytes=32, uint32_t qos=0,
+            uint32_t prot=0) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
@@ -481,18 +552,7 @@ class PyUmi {
             }
 
             // create a buffer to hold the result
-            py::array result;
-            if (bytes_per_elem == 1) {
-                result = py::array_t<uint8_t>(num);
-            } else if (bytes_per_elem == 2) {
-                result = py::array_t<uint16_t>(num);
-            } else if (bytes_per_elem == 4) {
-                result = py::array_t<uint32_t>(num);
-            } else if (bytes_per_elem == 8) {
-                result = py::array_t<uint64_t>(num);
-            } else {
-                throw std::runtime_error("Unsupported value for bytes_per_elem.");
-            }
+            py::array result = alloc_pybind_array(num, bytes_per_elem);
 
             if (num == 0) {
                 // nothing to read, so just return the empty array
@@ -513,32 +573,50 @@ class PyUmi {
             // determine the maximum length of an individual packet
             uint32_t max_len = max_bytes / bytes_per_elem;
 
-            while (num > 0) {
-                // send read request
-                uint32_t len = std::min(num, max_len);
-                uint32_t eom = (len == num) ? 1 : 0;
-                uint32_t cmd = umi_pack(UMI_REQ_READ, 0, size, len-1, eom, 1);
-                UmiTransaction request(cmd, addr, srcaddr, NULL, 0);
-                umisb_send<UmiTransaction>(request, m_tx, true, &check_signals);
+            // used to keep track of responses
+            uint32_t to_recv = num;
+            uint64_t expected_addr = srcaddr;
 
-                // get read response
-                UmiTransaction resp(0, 0, 0, ptr, len<<size);
-                umisb_recv<UmiTransaction>(resp, m_rx, true, &check_signals);
+            while ((num > 0) || (to_recv > 0)) {
+                if (num > 0) {
+                    // send read request
+                    uint32_t len = std::min(num, max_len);
+                    uint32_t eom = (len == num) ? 1 : 0;
+                    uint32_t cmd = umi_pack(UMI_REQ_READ, 0, size, len-1, eom, 1, qos, prot);
+                    UmiTransaction request(cmd, addr, srcaddr);
+                    if (umisb_send<UmiTransaction>(request, m_tx, false)) {
+                        // update pointers
+                        num -= len;
+                        addr += len<<size;
+                        srcaddr += len<<size;
+                    }
+                }
 
-                // check that the reply makes sense
-                umisb_check_resp<UmiTransaction>(request, resp);
+                if (to_recv > 0) {
+                    // get read response
+                    uint32_t max_resp_bytes = to_recv << size;
+                    UmiTransaction resp(0, 0, 0, ptr, max_resp_bytes);
+                    if (umisb_recv<UmiTransaction>(resp, m_rx, false)) {
+                        // check that the reply makes sense
+                        umisb_check_resp<UmiTransaction>(resp, UMI_RESP_READ,
+                            size, to_recv, expected_addr);
 
-                // update pointers
-                num -= len;
-                ptr += len<<size;
-                addr += len<<size;
+                        // update pointers
+                        ptr += (umi_len(resp.cmd) + 1) << umi_size(resp.cmd);
+                        expected_addr += (umi_len(resp.cmd) + 1) << umi_size(resp.cmd);
+                        to_recv -= (umi_len(resp.cmd) + 1);
+                    }
+                }
+
+                // make sure there aren't outside signals trying to interrupt
+                check_signals();
             }
 
             return result;
         }
 
         py::array_t<uint8_t> atomic(uint64_t addr, py::array_t<uint8_t> data,
-            uint32_t opcode, uint64_t srcaddr=0) {
+            uint32_t opcode, uint64_t srcaddr=0, uint32_t qos=0, uint32_t prot=0) {
             // input validation
 
             uint32_t num = data.nbytes();
@@ -550,8 +628,8 @@ class PyUmi {
 
             uint32_t size = highest_bit(num);
 
-            if (size > 4) {
-                throw std::runtime_error("Atomic operand must be 16 bytes or fewer.");
+            if (size > 3) {
+                throw std::runtime_error("Atomic operand must be 8 bytes or fewer.");
             }
 
             if (num != (1<<size)) {
@@ -559,7 +637,7 @@ class PyUmi {
             }
 
             // format the request
-            uint32_t cmd = umi_pack(UMI_REQ_ATOMIC, opcode, size, 0, 1, 1);
+            uint32_t cmd = umi_pack(UMI_REQ_ATOMIC, opcode, size, 0, 1, 1, qos, prot);
             PyUmiPacket request(cmd, addr, srcaddr, data);
 
             // send the request
@@ -570,7 +648,8 @@ class PyUmi {
             umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals);
 
             // check that the response makes sense
-            umisb_check_resp<PyUmiPacket>(request, resp);
+            // TODO: replace with the atomic response opcode
+            umisb_check_resp(resp, UMI_RESP_READ, size, 0, srcaddr);
 
             // return the result of the operation
             return resp.data;
@@ -799,7 +878,7 @@ PYBIND11_MODULE(_switchboard, m) {
 
     py::class_<PyUmiPacket>(m, "PyUmiPacket")
         .def(py::init<uint32_t, uint64_t, uint64_t,
-            std::optional<py::array_t<uint8_t>>>(),
+            std::optional<py::array>>(),
             py::arg("cmd") = 0, py::arg("dstaddr") = 0,
             py::arg("srcaddr") = 0, py::arg("data") = py::none())
         .def("__str__", &PyUmiPacket::toString)
@@ -848,9 +927,15 @@ PYBIND11_MODULE(_switchboard, m) {
         .def("init", &PyUmi::init)
         .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &PyUmi::recv, py::arg("blocking")=true)
-        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_bytes")=32, py::arg("progressbar")=false)
-        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem")=1, py::arg("srcaddr")=0, py::arg("max_size")=15)
-        .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);
+        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"),
+            py::arg("srcaddr")=0, py::arg("max_bytes")=32, py::arg("posted")=false,
+            py::arg("qos")=0, py::arg("prot")=0, py::arg("progressbar")=false)
+        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"),
+            py::arg("bytes_per_elem")=1, py::arg("srcaddr")=0,
+            py::arg("max_bytes")=32, py::arg("qos")=0, py::arg("prot")=0)
+        .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"),
+            py::arg("opcode"), py::arg("srcaddr")=0, py::arg("qos")=0,
+            py::arg("prot")=0);
 
     py::class_<OldPyUmi>(m, "OldPyUmi")
         .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
@@ -866,6 +951,21 @@ PYBIND11_MODULE(_switchboard, m) {
     m.def("old_umi_opcode_to_str", &old_umi_opcode_to_str, "Returns a string representation of a UMI opcode");
 
     m.def("delete_queue", &delete_queue, "Deletes an old queue.");
+
+    m.def("umi_pack", &umi_pack, "Returns a UMI command with the given parameters.",
+        py::arg("opcode")=0, py::arg("atype")=0, py::arg("size")=0, py::arg("len")=0,
+        py::arg("eom")=1, py::arg("eof")=1, py::arg("qos")=0, py::arg("prot")=0,
+        py::arg("ex")=0);
+
+    m.def("umi_opcode", &umi_opcode);
+    m.def("umi_size", &umi_size);
+    m.def("umi_len", &umi_len);
+    m.def("umi_atype", &umi_atype);
+    m.def("umi_qos", &umi_qos);
+    m.def("umi_prot", &umi_prot);
+    m.def("umi_eom", &umi_eom);
+    m.def("umi_eof", &umi_eof);
+    m.def("umi_ex", &umi_ex);
 
     py::enum_<UMI_CMD>(m, "UmiCmd")
         .value("UMI_INVALID", UMI_INVALID)

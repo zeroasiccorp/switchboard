@@ -27,6 +27,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['tcp', 'PASS!', None],
     ['umi_endpoint', None, None],
     ['umi_fifo', None, None],
+    ['umi_fifo_flex', None, None],
     ['umi_splitter', None, None]
 ])
 def test_make(path, expected, target):

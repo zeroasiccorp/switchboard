@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
-# Example illustrating how to interact with the umi_fifo module
+# Example illustrating how to interact with the umi_fifo_flex module
 # Copyright (C) 2023 Zero ASIC
 
+import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, random_umi_packet, delete_queue, verilator_run, SbDut
+from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, random_umi_packet
 
 
-def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', n=3, fast=False):
-    # build the simulator
+def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
+    # build simulator
     verilator_bin = build_testbench(fast=fast)
 
     # clean up old queues if present
@@ -19,37 +20,43 @@ def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', n=3, fast=False):
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
 
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
+    # instantiate TX and RX queues
     umi = UmiTxRx(client2rtl, rtl2client)
 
-    tx_list = []
-    rx_list = []
+    # randomly write data
 
-    while (len(tx_list) < n) or (len(rx_list) < n):
-        if len(tx_list) < n:
+    q = []
+    partial = None
+    num_sent = 0
+    num_recv = 0
+
+    while (num_sent < n) or (num_recv < n):
+        # send data
+        if num_sent < n:
             txp = random_umi_packet()
             if umi.send(txp, blocking=False):
-                print('* TX *')
-                print(str(txp))
-                tx_list.append(txp)
+                print('*** SENT ***')
+                print(txp)
+                q.append(txp.data)
+                num_sent += 1
 
-        if len(rx_list) < n:
+        # receive data
+        if num_recv < n:
             rxp = umi.recv(blocking=False)
             if rxp is not None:
-                print('* RX *')
-                print(str(rxp))
-                rx_list.append(rxp)
+                print("*** RECEIVED ***")
+                print(rxp)
 
-    assert len(tx_list) == len(rx_list)
+                if partial is None:
+                    partial = rxp.data
+                else:
+                    partial = np.concatenate((partial, rxp.data))
 
-    for txp, rxp in zip(tx_list, rx_list):
-        assert txp.cmd == rxp.cmd
-        assert txp.dstaddr == rxp.dstaddr
-        assert txp.srcaddr == rxp.srcaddr
-        assert (txp.data == rxp.data).all()
+                if (len(q) > 0) and (len(q[0]) == len(partial)):
+                    assert (q[0] == partial).all(), "Data mismatch"
+                    q.pop(0)
+                    partial = None
+                    num_recv += 1
 
 
 def build_testbench(fast=False):
@@ -59,6 +66,7 @@ def build_testbench(fast=False):
 
     # Set up inputs
     dut.input('testbench.sv')
+    dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
     dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')

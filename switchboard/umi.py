@@ -1,8 +1,10 @@
 # Python interface for UMI reads, writes, and atomic operations
 # Copyright (C) 2023 Zero ASIC
 
+import random
 import numpy as np
-from _switchboard import PyUmi, OldPyUmi, UmiCmd, OldUmiCmd
+from typing import Iterable
+from _switchboard import PyUmi, PyUmiPacket, umi_pack, UmiCmd, OldPyUmi, OldUmiCmd
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
@@ -40,7 +42,8 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, max_bytes=None, progressbar=False):
+    def write(self, addr, data, srcaddr=0, max_bytes=None,
+        posted=False, qos=0, prot=0, progressbar=False):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of np.uint8's.
@@ -76,8 +79,11 @@ class UmiTxRx:
             write_data = write_data.view(np.uint8)
 
         # perform write
-
-        self.umi.write(addr, write_data, max_bytes, progressbar)
+        if self.old:
+            self.umi.write(addr, write_data, max_bytes, progressbar)
+        else:
+            self.umi.write(addr, write_data, srcaddr, max_bytes,
+                posted, qos, prot, progressbar)
 
     def write_readback(self, addr, value, mask=None, srcaddr=0, dtype=None):
         """
@@ -123,7 +129,8 @@ class UmiTxRx:
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
 
-    def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=0, max_bytes=None):
+    def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=0,
+        max_bytes=None, qos=0, prot=0):
         """
         Reads from the provided 64-bit address.  The "num_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or
@@ -157,13 +164,22 @@ class UmiTxRx:
         if isinstance(num_or_dtype, (type, np.dtype)):
             len = 1
             size = np.dtype(num_or_dtype).itemsize
-            return self.umi.read(addr, len, size, srcaddr, max_bytes).view(num_or_dtype)[0]
         else:
             len = num_or_dtype
             size = np.dtype(dtype).itemsize
-            return self.umi.read(addr, len, size, srcaddr, max_bytes)
 
-    def atomic(self, addr, data, opcode, srcaddr=0):
+        extra_args = []
+        if not self.old:
+            extra_args += [qos, prot]
+
+        result = self.umi.read(addr, len, size, srcaddr, max_bytes, *extra_args)
+
+        if isinstance(num_or_dtype, (type, np.dtype)):
+            return result.view(num_or_dtype)[0]
+        else:
+            return result
+
+    def atomic(self, addr, data, opcode, srcaddr=0, qos=0, prot=0):
         """
         Applies an atomic operation to the provided 64-bit address.  "data" must
         be a numpy integer type (e.g., np.uint64), so that the size of the atomic
@@ -195,13 +211,140 @@ class UmiTxRx:
             # perform the conversion from string to enum
             opcode = opcode_enum[opcode]
 
+        extra_args = []
+        if not self.old:
+            extra_args += [qos, prot]
+
         # format the data for sending
         if isinstance(data, np.integer):
             # copy=False should be safe here, because the data will be
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            return self.umi.atomic(addr, atomic_data, opcode, srcaddr).view(data.dtype)[0]
+            result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, *extra_args)
+            return result.view(data.dtype)[0]
         else:
             raise TypeError("The data provided to atomic should be of a numpy integer type"
                 " so that the transaction size can be determined")
+
+
+def size2dtype(size):
+    dtypes = [np.uint8, np.uint16, np.uint32, np.uint64]
+    if size < len(dtypes):
+        return dtypes[size]
+    else:
+        raise ValueError(f'Unsupported size: {size}')
+
+
+def dtype2size(dtype):
+    if dtype == np.uint8:
+        return 0
+    elif dtype == np.uint16:
+        return 1
+    elif dtype == np.uint32:
+        return 2
+    elif dtype == np.uint64:
+        return 3
+    else:
+        raise ValueError(f'Unsupported dtype: {dtype}')
+
+
+def random_int_value(name, value, min, max):
+    # determine the length of the transaction
+
+    if value is None:
+        value = random.randint(min, max)
+    elif isinstance(value, Iterable):
+        value = random.choice(value)
+
+    # validate result
+
+    if int(value) != value:
+        raise ValueError(f'{name} is not an integer: {value}')
+
+    value = int(value)
+
+    if not ((min <= value) and (value <= max)):
+        raise ValueError(f'unsupported {name}: {value}')
+
+    # return result
+
+    return value
+
+
+def random_umi_packet(opcode=UmiCmd.UMI_REQ_WRITE, len=None, size=None,
+    dstaddr=None, srcaddr=None, data=None, qos=0, prot=0, ex=0,
+    atype=0, eom=1, eof=1):
+
+    # TODO: make these parameters flexible, or more centrally-defined
+
+    MAX_SUMI_BYTES = 32
+    MAX_SUMI_SIZE = 3
+    AW = 64
+
+    # determine the opcode
+
+    if opcode is None:
+        opcode = random.choice([
+            UmiCmd.UMI_REQ_WRITE,
+            UmiCmd.UMI_REQ_POSTED,
+            UmiCmd.UMI_REQ_READ,
+            UmiCmd.UMI_RESP_WRITE,
+            UmiCmd.UMI_RESP_READ
+        ])
+    elif isinstance(opcode, Iterable):
+        opcode = random.choice(opcode)
+
+    # determine the size of the transaction
+
+    if (size is None) and (data is not None):
+        size = dtype2size(data.dtype)
+
+    size = random_int_value('size', size, 0, MAX_SUMI_SIZE)
+
+    # determine the length of the transaction
+
+    if (len is None) and (data is not None):
+        len = data.size - 1
+
+    len = random_int_value('len', len, 0, (MAX_SUMI_BYTES >> size) - 1)
+
+    # generate other fields
+
+    atype = random_int_value('atype', atype, 0x00, 0xff)
+    qos = random_int_value('qos', qos, 0b0000, 0b1111)
+    prot = random_int_value('prot', prot, 0b00, 0b11)
+    eom = random_int_value('eom', eom, 0b0, 0b1)
+    eof = random_int_value('eof', eof, 0b0, 0b1)
+    ex = random_int_value('ex', ex, 0b0, 0b1)
+
+    # construct the command field
+
+    cmd = umi_pack(opcode, atype, size, len, eom, eof, qos, prot, ex)
+
+    # generate destination address
+
+    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1)
+    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1)
+
+    # generate data if needed
+
+    if opcode in [
+        UmiCmd.UMI_REQ_WRITE,
+        UmiCmd.UMI_REQ_POSTED,
+        UmiCmd.UMI_RESP_READ,
+        UmiCmd.UMI_REQ_ATOMIC
+    ]:
+        if data is None:
+            dtype = size2dtype(size)
+            iinfo = np.iinfo(dtype)
+            if opcode != UmiCmd.UMI_REQ_ATOMIC:
+                nelem = len + 1
+            else:
+                nelem = 1
+            data = np.random.randint(iinfo.min, iinfo.max - 1,
+                size=nelem, dtype=dtype)
+
+    # return the packet
+
+    return PyUmiPacket(cmd=cmd, dstaddr=dstaddr, srcaddr=srcaddr, data=data)
