@@ -227,7 +227,8 @@ int main(int argc, char* argv[]) {
 
                 if (umisb_recv(new_req_txn, *new_req_rx[i], false)) {
                     uint32_t opcode = umi_opcode(new_req_txn.cmd);
-                    if (opcode == UMI_REQ_POSTED) {
+                    if ((opcode == UMI_REQ_WRITE) || (opcode == UMI_REQ_POSTED)) {
+
                         // issue old posted write(s).  this may need to be broken
                         // up into multiple writes if not a power of two
                         if (old_tx[i]->is_active()) {
@@ -239,6 +240,8 @@ int main(int argc, char* argv[]) {
                             while (nreq > 0) {
                                 int nbytes = 1 << pow2;
                                 if ((nreq >> pow2) & 1) {
+                                    // even if the opcode is UMI_REQ_WRITE, use an old posted
+                                    // write, since old UMI HW did not implement ack'd writes
                                     OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2,
                                         0, dstaddr, srcaddr, ptr, nbytes);
                                     
@@ -248,6 +251,16 @@ int main(int argc, char* argv[]) {
                                     srcaddr += nbytes;
                                 }
                                 pow2++;
+                            }
+                            // send back a write response if needed
+                            // note the swapped srcaddr and dstaddr
+                            uint32_t cmd = umi_pack(UMI_RESP_WRITE, 0, umi_size(new_req_txn.cmd),
+                                umi_len(new_req_txn.cmd), 1, 1);
+                            UmiTransaction umi_resp_txn(cmd, new_req_txn.srcaddr, new_req_txn.dstaddr);
+                            if (new_resp_tx[i]->is_active()) {
+                                umisb_send(umi_resp_txn, *new_resp_tx[i]);
+                            } else {
+                                throw std::runtime_error("new_resp_tx is not active");
                             }
                         } else {
                             throw std::runtime_error("old_tx is not active");

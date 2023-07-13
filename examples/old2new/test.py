@@ -45,7 +45,7 @@ def main(client2adapter="client2adapter.q", adapter2client="adapter2client.q",
 
     wr_addr = 0x12
     wr_data = np.uint32(0xbeefcafe)
-    umi.write(wr_addr, wr_data, posted=True)
+    umi.write(wr_addr, wr_data)
     print(f"Wrote to 0x{wr_addr:02x}: 0x{wr_data:08x}")
 
     # read data from address 0x12
