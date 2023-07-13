@@ -233,18 +233,19 @@ int main(int argc, char* argv[]) {
                             uint64_t dstaddr = new_req_txn.dstaddr;
                             uint64_t srcaddr = new_req_txn.srcaddr;
                             uint8_t* ptr = new_req_txn.ptr();
-                            int i;
+                            int pow2 = 0;
                             while (nreq > 0) {
-                                int nbytes = 1 << i;
-                                if (((nreq >> i) & 1) == 1) {
-                                    OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, i, 0,
-                                        dstaddr, srcaddr, ptr, nbytes);
+                                int nbytes = 1 << pow2;
+                                if ((nreq >> pow2) & 1) {
+                                    OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2,
+                                        0, dstaddr, srcaddr, ptr, nbytes);
+                                    
                                     old_umisb_send(old_req_txn, *old_tx[i]);
                                     nreq -= nbytes;
                                     dstaddr += nbytes;
                                     srcaddr += nbytes;
                                 }
-                                i++;
+                                pow2++;
                             }
                         } else {
                             throw std::runtime_error("old_tx is not active");
@@ -264,21 +265,21 @@ int main(int argc, char* argv[]) {
                             uint64_t new_dstaddr = new_req_txn.dstaddr;
                             uint64_t new_srcaddr = new_req_txn.srcaddr;
                             uint8_t* ptr = new_req_txn.ptr();
-                            int i;
+                            int pow2 = 0;
                             while ((old_nreq > 0) || (old_nresp > 0)) {
                                 if (old_nreq > 0) {
-                                    int nbytes = 1 << i;
-                                    if (((old_nreq >> i) & 1) == 1) {
+                                    int nbytes = 1 << pow2;
+                                    if ((old_nreq >> pow2) & 1) {
                                         // issue an old read request
-                                        OldUmiTransaction old_req_txn(OLD_UMI_READ_REQUEST, i, 0,
-                                            old_dstaddr, old_srcaddr);
+                                        OldUmiTransaction old_req_txn(OLD_UMI_READ_REQUEST, pow2,
+                                            0, old_dstaddr, old_srcaddr);
                                         if (old_umisb_send(old_req_txn, *old_tx[i], false)) {
                                             old_nreq -= nbytes;
                                             old_dstaddr += nbytes;
                                             old_srcaddr += nbytes;
                                         }
                                     }
-                                    i++;
+                                    pow2++;
                                 }
                                 if (old_nresp > 0) {
                                     // get old read response
@@ -294,8 +295,8 @@ int main(int argc, char* argv[]) {
                                 int nbytes = std::min(new_nresp, 32);
                                 uint32_t eom = (nbytes == new_nresp) ? 1 : 0;
                                 uint32_t cmd = umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd),
-                                    nbytes-1, eom, 1, 0);
-                                UmiTransaction new_resp_txn(cmd, new_dstaddr, new_srcaddr, data, nbytes);
+                                    (nbytes >> umi_size(new_req_txn.cmd)) - 1, eom, 1, 0);
+                                UmiTransaction new_resp_txn(cmd, new_srcaddr, new_dstaddr, data, nbytes);
                                 umisb_send(new_resp_txn, *new_resp_tx[i]);
                                 new_nresp -= nbytes;
                                 new_dstaddr += nbytes;

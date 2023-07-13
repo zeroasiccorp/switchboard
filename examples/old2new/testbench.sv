@@ -46,8 +46,8 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("client2rtl.q");
-        tx_i.init("rtl2client.q");
+        rx_i.init("adapter2rtl.q");
+        tx_i.init("rtl2adapter.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 
