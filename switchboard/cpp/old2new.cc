@@ -125,8 +125,9 @@ int main(int argc, char* argv[]) {
                         if (new_req_tx[i]->is_active() && new_resp_rx[i]->is_active() &&
                             old_tx[i]->is_active()) {
                             // create response object
+                            // note the swapped srcaddr and dstaddr fields
                             OldUmiTransaction old_resp_txn(OLD_UMI_WRITE_POSTED, old_req_txn.size,
-                                old_req_txn.user, old_req_txn.dstaddr, old_req_txn.srcaddr);
+                                old_req_txn.user, old_req_txn.srcaddr, old_req_txn.dstaddr);
                             old_resp_txn.resize(1 << old_req_txn.size);
 
                             // issue new UMI read(s)
@@ -180,8 +181,9 @@ int main(int argc, char* argv[]) {
                             umisb_recv(new_resp_txn, *new_resp_rx[i]);
 
                             // put result in an old transaction
+                            // note the swapped dstaddr and srcaddr
                             OldUmiTransaction old_resp_txn(OLD_UMI_WRITE_POSTED, old_req_txn.size,
-                                old_req_txn.user, old_req_txn.dstaddr, old_req_txn.srcaddr,
+                                old_req_txn.user, old_req_txn.srcaddr, old_req_txn.dstaddr,
                                 new_resp_txn.ptr(), new_resp_txn.nbytes());
 
                             // send that back via old_umisb_send
@@ -296,6 +298,7 @@ int main(int argc, char* argv[]) {
                                 uint32_t eom = (nbytes == new_nresp) ? 1 : 0;
                                 uint32_t cmd = umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd),
                                     (nbytes >> umi_size(new_req_txn.cmd)) - 1, eom, 1, 0);
+                                // note the swapped srcaddr and dstaddr
                                 UmiTransaction new_resp_txn(cmd, new_srcaddr, new_dstaddr, data, nbytes);
                                 umisb_send(new_resp_txn, *new_resp_tx[i]);
                                 new_nresp -= nbytes;
@@ -323,10 +326,11 @@ int main(int argc, char* argv[]) {
                             old_umisb_recv(old_resp_txn, *old_rx[i]);
 
                             // send as a new UMI atomic response
+                            // note the swapped dstaddr and srcaddr
                             // TODO what is the right opcode to use?
                             uint32_t cmd = umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd), 0, 1, 1);
-                            UmiTransaction new_resp_txn(cmd, new_req_txn.dstaddr,
-                                new_req_txn.srcaddr, old_resp_txn.ptr(), old_resp_txn.nbytes());
+                            UmiTransaction new_resp_txn(cmd, new_req_txn.srcaddr,
+                                new_req_txn.dstaddr, old_resp_txn.ptr(), old_resp_txn.nbytes());
                         } else {
                             throw std::runtime_error("old_tx, old_rx, and/or new_resp_tx is not active.");
                         }

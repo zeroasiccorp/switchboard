@@ -17,7 +17,7 @@ def old2new_build(bin=None):
     assert result.returncode == 0
 
 
-def old2new_run(connections=None, bin=None):
+def old2new_run(connections=None, verbose=False, should_yield=False, bin=None):
     # set defaults
 
     if connections is None:
@@ -45,5 +45,11 @@ def old2new_run(connections=None, bin=None):
 
         # trailing colon is important
         args.append(f'{old_rx}:{old_tx}:{new_req_rx}:{new_req_tx}:{new_resp_rx}:{new_resp_tx}:')
+
+    if verbose:
+        args.append('-v')
+
+    if should_yield:
+        args.append('--should-yield')
 
     return binary_run(bin=bin, args=args)
