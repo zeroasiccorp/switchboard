@@ -15,9 +15,6 @@ module umiram #(
 
     // interpret incoming packet
 
-    wire [7:0] rx_opcode;
-    wire rx_cmd_read;
-    wire rx_cmd_write;
     wire [63:0] rx_dstaddr;
     wire [63:0] rx_srcaddr;
     wire [255:0] rx_data;
@@ -36,19 +33,30 @@ module umiram #(
         .options()
     );
 
+    wire [7:0] rx_opcode;
     assign rx_opcode = umi_rx_packet[7:0];
+
+    wire rx_cmd_read;
     assign rx_cmd_read = (rx_opcode == READ_REQUEST) ? 1'b1 : 1'b0;
+
+    wire rx_cmd_write;
     assign rx_cmd_write = (rx_opcode == WRITE_POSTED) ? 1'b1 : 1'b0;
 
     // form outgoing packet (which can only be a read response)
+
+    wire tx_write;
+    wire [6:0] tx_command;
 
     reg [63:0] tx_dstaddr;
     reg [255:0] tx_data;
     reg [3:0] tx_size;
 
+    assign tx_write = WRITE_RESPONSE[0];
+    assign tx_command = WRITE_RESPONSE[7:1];
+
     umi_pack umi_pack_i (
-        .write(WRITE_RESPONSE[0]),
-        .command(WRITE_RESPONSE[7:1]),
+        .write(tx_write),
+        .command(tx_command),
         .size(tx_size),
         .options(20'd0),
         .burst(1'b0),
@@ -60,7 +68,12 @@ module umiram #(
 
     // main logic
 
-    reg [(DATA_WIDTH-1):0] mem[2**ADDR_WIDTH];
+    reg [((2**ADDR_WIDTH)*8-1):0] mem;
+
+    wire [15:0] nbytes;
+    assign nbytes = 16'd1<<{12'd0, rx_size};
+
+    integer i;
 
     always @(posedge clk) begin
         // handle receiver
@@ -68,10 +81,14 @@ module umiram #(
             umi_rx_ready <= 1'b0;
         end else if (umi_rx_valid) begin
             if (rx_cmd_write) begin
-                mem[rx_dstaddr[(ADDR_WIDTH-1):0]] <= rx_data[(DATA_WIDTH-1):0];
+                for (i=0; i<nbytes; i=i+1) begin
+                    mem[(i+rx_dstaddr)*8 +: 8] <= rx_data[i*8 +: 8];
+                end
                 umi_rx_ready <= 1'b1;
             end else if (rx_cmd_read && !umi_tx_valid) begin
-                tx_data <= {{(256-DATA_WIDTH){1'b0}}, mem[rx_dstaddr[(ADDR_WIDTH-1):0]]};
+                for (i=0; i<nbytes; i=i+1) begin
+                    tx_data[i*8 +: 8] <= mem[(i+rx_dstaddr)*8 +: 8];
+                end
                 tx_dstaddr <= rx_srcaddr;
                 tx_size <= rx_size;
                 umi_tx_valid <= 1'b1;

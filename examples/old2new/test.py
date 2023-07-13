@@ -41,19 +41,55 @@ def main(client2adapter="client2adapter.q", adapter2client="adapter2client.q",
 
     umi = UmiTxRx(client2adapter, adapter2client)
 
-    # write 0xbeefcafe to address 0x12
+    print("### WRITES ###")
 
-    wr_addr = 0x12
-    wr_data = np.uint32(0xbeefcafe)
-    umi.write(wr_addr, wr_data)
-    print(f"Wrote to 0x{wr_addr:02x}: 0x{wr_data:08x}")
+    # 1 byte
+    wrbuf = np.array([0x0D, 0xF0, 0xAD, 0xBA], np.uint8)
+    for i in range(4):
+        umi.write(0x10 + i, wrbuf[i])
 
-    # read data from address 0x12
+    # 2 bytes
+    wrbuf = np.array([0xCAFE, 0xB0BA], np.uint16)
+    umi.write(0x20, wrbuf)
 
-    rd_addr = wr_addr
-    rd_data = umi.read(rd_addr, np.uint32)
-    print(f"Read from 0x{rd_addr:02x}: 0x{rd_data:08x}")
-    assert rd_data == 0xbeefcafe
+    # 4 bytes
+    umi.write(0x30, np.uint32(0xDEADBEEF))
+
+    # 8 bytes
+    umi.write(0x40, np.uint64(0xBAADD00DCAFEFACE))
+
+    # 64 bytes
+    wrbuf = np.arange(64, dtype=np.uint8)
+    umi.write(0x50, wrbuf, max_bytes=16)
+
+    print("### READS ###")
+
+    # 1 byte
+    rdbuf = umi.read(0x10, 4, np.uint8)
+    val32 = rdbuf.view(np.uint32)[0]
+    print(f"Read: 0x{val32:08x}")
+    assert val32 == 0xBAADF00D
+
+    # 2 bytes
+    rdbuf = umi.read(0x20, 2, np.uint16)
+    val32 = rdbuf.view(np.uint32)[0]
+    print(f"Read: 0x{val32:08x}")
+    assert val32 == 0xB0BACAFE
+
+    # 4 bytes
+    val32 = umi.read(0x30, np.uint32)
+    print(f"Read: 0x{val32:08x}")
+    assert val32 == 0xDEADBEEF
+
+    # 8 bytes
+    val64 = umi.read(0x40, np.uint64)
+    print(f"Read: 0x{val64:016x}")
+    assert val64 == 0xBAADD00DCAFEFACE
+
+    # 64 bytes
+    rdbuf = umi.read(0x50, 64, max_bytes=16)
+    print("Read: {" + ", ".join([f"0x{elem:02x}" for elem in rdbuf]) + "}")
+    assert (rdbuf == np.arange(64, dtype=np.uint8)).all()
 
 
 def build_testbench(fast=False):

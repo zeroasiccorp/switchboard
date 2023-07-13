@@ -753,7 +753,7 @@ class OldPyUmi {
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t len, size_t bytes_per_elem,
-            uint64_t srcaddr=0, uint32_t max_size=15) {
+            uint64_t srcaddr=0, uint32_t max_bytes=32768) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
@@ -761,8 +761,10 @@ class OldPyUmi {
             // the source address to which responses should be sent.  this
             // function is blocking.
 
-            // calculate the number of bytes to be read
+            // calculate the maximum size
+            uint32_t max_size = highest_bit(max_bytes);
 
+            // calculate the number of bytes to be read
             size_t num = len * bytes_per_elem;
 
             // create a buffer to hold the result
@@ -943,7 +945,7 @@ PYBIND11_MODULE(_switchboard, m) {
         .def("send", &OldPyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &OldPyUmi::recv, py::arg("blocking")=true)
         .def("write", &OldPyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_bytes")=32768, py::arg("progressbar")=false)
-        .def("read", &OldPyUmi::read, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem")=1, py::arg("srcaddr")=0, py::arg("max_size")=15)
+        .def("read", &OldPyUmi::read, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem")=1, py::arg("srcaddr")=0, py::arg("max_bytes")=32768)
         .def("atomic", &OldPyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str, "Returns a string representation of a UMI opcode");

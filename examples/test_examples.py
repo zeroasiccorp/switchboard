@@ -17,7 +17,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['old_ebrick_cpu_verif', 'Hello World!', None],
     ['old_riscv_grid', 'Hello World!', 'hello'],
     ['old_umidriver', ['correct: 2', 'incorrect: 0'], None],
-    ['old_umiram', 'PASS!', 'python'],
+    ['old_umiram', None, 'python'],
     ['old_umiram', 'PASS!', 'cpp'],
     ['umiram', None, 'python'],
     ['umiram', None, 'cpp'],

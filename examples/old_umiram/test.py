@@ -3,7 +3,6 @@
 # Example illustrating how UMI packets are handled in the Switchboard Python binding
 # Copyright (C) 2023 Zero ASIC
 
-import sys
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
@@ -12,9 +11,9 @@ from switchboard import UmiTxRx, delete_queue, verilator_run, binary_run, SbDut
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(mode='python', rxq='rx.q', txq='tx.q'):
+def main(mode='python', rxq='rx.q', txq='tx.q', fast=False):
     # build the simulator
-    verilator_bin = build_testbench()
+    verilator_bin = build_testbench(fast=fast)
 
     # clean up old queues if present
     for q in [rxq, txq]:
@@ -39,30 +38,58 @@ def python_intf(rxq, txq):
 
     umi = UmiTxRx(rxq, txq, old=True)
 
-    # write 0xbeefcafe to address 0x12
+    print("### WRITES ###")
 
-    wr_addr = 0x12
-    wr_data = np.uint32(0xbeefcafe)
-    umi.write(wr_addr, wr_data)
-    print(f"Wrote to 0x{wr_addr:02x}: 0x{wr_data:08x}")
+    # 1 byte
+    wrbuf = np.array([0x0D, 0xF0, 0xAD, 0xBA], np.uint8)
+    for i in range(4):
+        umi.write(0x10 + i, wrbuf[i])
 
-    # read data from address 0x12
+    # 2 bytes
+    wrbuf = np.array([0xCAFE, 0xB0BA], np.uint16)
+    umi.write(0x20, wrbuf)
 
-    rd_addr = wr_addr
-    rd_data = umi.read(rd_addr, np.uint32)
-    print(f"Read from 0x{rd_addr:02x}: 0x{rd_data:08x}")
+    # 4 bytes
+    umi.write(0x30, np.uint32(0xDEADBEEF))
 
-    # declare test as having passed for regression testing purposes
+    # 8 bytes
+    umi.write(0x40, np.uint64(0xBAADD00DCAFEFACE))
 
-    if rd_data == wr_data:
-        print('PASS!')
-        sys.exit(0)
-    else:
-        print('FAIL')
-        sys.exit(1)
+    # 64 bytes
+    wrbuf = np.arange(64, dtype=np.uint8)
+    umi.write(0x50, wrbuf, max_bytes=16)
+
+    print("### READS ###")
+
+    # 1 byte
+    rdbuf = umi.read(0x10, 4, np.uint8)
+    val32 = rdbuf.view(np.uint32)[0]
+    print(f"Read: 0x{val32:08x}")
+    assert val32 == 0xBAADF00D
+
+    # 2 bytes
+    rdbuf = umi.read(0x20, 2, np.uint16)
+    val32 = rdbuf.view(np.uint32)[0]
+    print(f"Read: 0x{val32:08x}")
+    assert val32 == 0xB0BACAFE
+
+    # 4 bytes
+    val32 = umi.read(0x30, np.uint32)
+    print(f"Read: 0x{val32:08x}")
+    assert val32 == 0xDEADBEEF
+
+    # 8 bytes
+    val64 = umi.read(0x40, np.uint64)
+    print(f"Read: 0x{val64:016x}")
+    assert val64 == 0xBAADD00DCAFEFACE
+
+    # 64 bytes
+    rdbuf = umi.read(0x50, 64, max_bytes=16)
+    print("Read: {" + ", ".join([f"0x{elem:02x}" for elem in rdbuf]) + "}")
+    assert (rdbuf == np.arange(64, dtype=np.uint8)).all()
 
 
-def build_testbench():
+def build_testbench(fast=False):
     dut = SbDut('testbench')
 
     EX_DIR = Path('..')
@@ -81,8 +108,13 @@ def build_testbench():
     # Settings
     dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
 
-    # Build simulator
-    dut.run()
+    result = None
+
+    if fast:
+        result = dut.find_result('vexe', step='compile')
+
+    if result is None:
+        dut.run()
 
     return dut.find_result('vexe', step='compile')
 
@@ -90,6 +122,8 @@ def build_testbench():
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--mode', default='python')
+    parser.add_argument('--fast', action='store_true', help='Do not build'
+        ' the simulator binary if it has already been built.')
     args = parser.parse_args()
 
-    main(mode=args.mode)
+    main(mode=args.mode, fast=args.fast)
