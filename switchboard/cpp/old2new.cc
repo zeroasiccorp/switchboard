@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
                             old_tx[i]->is_active()) {
                             // create response object
                             // note the swapped srcaddr and dstaddr fields
-                            OldUmiTransaction old_resp_txn(OLD_UMI_WRITE_POSTED, old_req_txn.size,
+                            OldUmiTransaction old_resp_txn(OLD_UMI_WRITE_RESPONSE, old_req_txn.size,
                                 old_req_txn.user, old_req_txn.srcaddr, old_req_txn.dstaddr);
                             old_resp_txn.resize(1 << old_req_txn.size);
 
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
 
                             // put result in an old transaction
                             // note the swapped dstaddr and srcaddr
-                            OldUmiTransaction old_resp_txn(OLD_UMI_WRITE_POSTED, old_req_txn.size,
+                            OldUmiTransaction old_resp_txn(OLD_UMI_WRITE_RESPONSE, old_req_txn.size,
                                 old_req_txn.user, old_req_txn.srcaddr, old_req_txn.dstaddr,
                                 new_resp_txn.ptr(), new_resp_txn.nbytes());
 
