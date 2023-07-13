@@ -28,12 +28,12 @@ def main(client2adapter="client2adapter.q", adapter2client="adapter2client.q",
     verilator_run(verilator_bin, plusargs=['trace'])
 
     # launch the adapter
-    old2new_run([dict(
+    old2new_run(
         old_tx=adapter2rtl,
         old_rx=rtl2adapter,
         new_req_rx=client2adapter,
         new_resp_tx=adapter2client
-    )])
+    )
 
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
