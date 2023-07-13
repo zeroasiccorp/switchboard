@@ -1,4 +1,4 @@
-TARGETS = umidriver old_umidriver router
+TARGETS = umidriver old_umidriver router old2new
 
 all: $(TARGETS)
 
