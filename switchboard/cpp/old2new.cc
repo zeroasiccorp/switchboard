@@ -257,23 +257,25 @@ int main(int argc, char* argv[]) {
                                     // write, since old UMI HW did not implement ack'd writes
                                     OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2,
                                         0, dstaddr, srcaddr, ptr, nbytes);
-                                    
                                     old_umisb_send(old_req_txn, *old_tx[i]);
                                     nreq -= nbytes;
                                     dstaddr += nbytes;
                                     srcaddr += nbytes;
+                                    ptr += nbytes;
                                 }
                                 pow2++;
                             }
-                            // send back a write response if needed
-                            // note the swapped srcaddr and dstaddr
-                            uint32_t cmd = umi_pack(UMI_RESP_WRITE, 0, umi_size(new_req_txn.cmd),
-                                umi_len(new_req_txn.cmd), 1, 1);
-                            UmiTransaction umi_resp_txn(cmd, new_req_txn.srcaddr, new_req_txn.dstaddr);
-                            if (new_resp_tx[i]->is_active()) {
-                                umisb_send(umi_resp_txn, *new_resp_tx[i]);
-                            } else {
-                                throw std::runtime_error("new_resp_tx is not active");
+                            if (opcode == UMI_REQ_WRITE) {
+                                // send back a write response if needed
+                                // note the swapped srcaddr and dstaddr
+                                uint32_t cmd = umi_pack(UMI_RESP_WRITE, 0, umi_size(new_req_txn.cmd),
+                                    umi_len(new_req_txn.cmd), 1, 1);
+                                UmiTransaction umi_resp_txn(cmd, new_req_txn.srcaddr, new_req_txn.dstaddr);
+                                if (new_resp_tx[i]->is_active()) {
+                                    umisb_send(umi_resp_txn, *new_resp_tx[i]);
+                                } else {
+                                    throw std::runtime_error("new_resp_tx is not active");
+                                }
                             }
                         } else {
                             throw std::runtime_error("old_tx is not active");
