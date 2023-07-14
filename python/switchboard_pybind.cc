@@ -615,8 +615,8 @@ class PyUmi {
             return result;
         }
 
-        py::array_t<uint8_t> atomic(uint64_t addr, py::array_t<uint8_t> data,
-            uint32_t opcode, uint64_t srcaddr=0, uint32_t qos=0, uint32_t prot=0) {
+        py::array atomic(uint64_t addr, py::array_t<uint8_t> data, uint32_t opcode,
+            uint64_t srcaddr=0, uint32_t qos=0, uint32_t prot=0) {
             // input validation
 
             uint32_t num = data.nbytes();
@@ -649,7 +649,7 @@ class PyUmi {
 
             // check that the response makes sense
             // TODO: replace with the atomic response opcode
-            umisb_check_resp(resp, UMI_RESP_READ, size, 0, srcaddr);
+            umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr);
 
             // return the result of the operation
             return resp.data;
@@ -987,6 +987,9 @@ PYBIND11_MODULE(_switchboard, m) {
         .value("UMI_RESP_FUTURE0", UMI_RESP_FUTURE0)
         .value("UMI_RESP_FUTURE1", UMI_RESP_FUTURE1)
         .value("UMI_RESP_LINK", UMI_RESP_LINK)
+        .export_values();
+    
+    py::enum_<UMI_ATOMIC>(m, "UmiAtomic")
         .value("UMI_REQ_ATOMICADD", UMI_REQ_ATOMICADD)
         .value("UMI_REQ_ATOMICAND", UMI_REQ_ATOMICAND)
         .value("UMI_REQ_ATOMICOR", UMI_REQ_ATOMICOR)

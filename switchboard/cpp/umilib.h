@@ -31,8 +31,10 @@ enum UMI_CMD {
     UMI_RESP_USER1      = 0x08,
     UMI_RESP_FUTURE0    = 0x0A,
     UMI_RESP_FUTURE1    = 0x0C,
-    UMI_RESP_LINK       = 0x0E,
+    UMI_RESP_LINK       = 0x0E
+};
 
+enum UMI_ATOMIC {
     UMI_REQ_ATOMICADD   = 0x00,
     UMI_REQ_ATOMICAND   = 0x01,
     UMI_REQ_ATOMICOR    = 0x02,

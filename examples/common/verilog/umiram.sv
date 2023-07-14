@@ -5,7 +5,8 @@ module umiram #(
     parameter integer DATA_WIDTH=32,
     parameter integer DW=256,
     parameter integer AW=64,
-    parameter integer CW=32
+    parameter integer CW=32,
+    parameter integer ATOMIC_WIDTH=64
 ) (
     input clk,
 
@@ -70,6 +71,9 @@ module umiram #(
     wire req_cmd_posted;
     assign req_cmd_posted = (req_opcode == UMI_REQ_POSTED) ? 1'b1 : 1'b0;
 
+    wire req_cmd_atomic;
+    assign req_cmd_atomic = (req_opcode == UMI_REQ_ATOMIC) ? 1'b1 : 1'b0;
+
     // form outgoing packet (which can only be a read response)
 
     /* verilator lint_off WIDTH */
@@ -116,11 +120,61 @@ module umiram #(
     reg [((2**ADDR_WIDTH)*8-1):0] mem;
 
     wire [15:0] nbytes;
-    assign nbytes = ({8'd0, req_len} + 16'd1)*(16'd1<<{13'd0, req_size});
+    assign nbytes = ({8'd0, req_cmd_atomic ? 8'd0 : req_len} + 16'd1)*(16'd1<<{13'd0, req_size});
 
     assign udev_req_ready = !(udev_resp_valid && (!udev_resp_ready));
 
     integer i;
+
+    function [ATOMIC_WIDTH-1:0] atomic_op(input [ATOMIC_WIDTH-1:0] a,
+        input [ATOMIC_WIDTH-1:0] b, input [3:0] size, input [7:0] atype);
+
+        integer nbits;
+        integer nshift;
+        reg signed [ATOMIC_WIDTH-1:0] aval;
+        reg [ATOMIC_WIDTH-1:0] avalu;
+        reg signed [ATOMIC_WIDTH-1:0] bval;
+        reg [ATOMIC_WIDTH-1:0] bvalu;
+
+        nbits = (32'd1 << {28'd0, size}) << 32'd3;
+        if (nbits > ATOMIC_WIDTH) begin
+            nbits = ATOMIC_WIDTH;
+        end
+
+        nshift = ATOMIC_WIDTH - nbits;
+
+        avalu = (a << nshift) >> nshift;
+        bvalu = (b << nshift) >> nshift;
+
+        aval = (a <<< nshift) >>> nshift;
+        bval = (b <<< nshift) >>> nshift;
+
+        if (atype == UMI_REQ_ATOMICSWAP) begin
+            atomic_op = bval;
+        end else if (atype == UMI_REQ_ATOMICADD) begin
+            atomic_op = aval + bval;
+        end else if (atype == UMI_REQ_ATOMICAND) begin
+            atomic_op = aval & bval;
+        end else if (atype == UMI_REQ_ATOMICOR) begin
+            atomic_op = aval | bval;
+        end else if (atype == UMI_REQ_ATOMICXOR) begin
+            atomic_op = aval ^ bval;
+        end else if (atype == UMI_REQ_ATOMICMIN) begin
+            atomic_op = (aval <= bval) ? aval : bval;
+        end else if (atype == UMI_REQ_ATOMICMAX) begin
+            atomic_op = (aval >= bval) ? aval : bval;
+        end else if (atype == UMI_REQ_ATOMICMINU) begin
+            atomic_op = (avalu <= bvalu) ? avalu : bvalu;
+        end else if (atype == UMI_REQ_ATOMICMAXU) begin
+            atomic_op = (avalu >= bvalu) ? avalu : bvalu;
+        end else begin
+            atomic_op = '0;
+        end
+    endfunction
+
+    reg [ATOMIC_WIDTH-1:0] a_atomic;
+    reg [ATOMIC_WIDTH-1:0] b_atomic;
+    reg [ATOMIC_WIDTH-1:0] y_atomic;
 
     always @(posedge clk) begin
         if (udev_req_valid && udev_req_ready) begin
@@ -132,9 +186,24 @@ module umiram #(
                     resp_opcode <= UMI_RESP_WRITE;
                     udev_resp_valid <= 1'b1;
                 end
-            end else if (req_cmd_read) begin
+            end else if (req_cmd_read || req_cmd_atomic) begin
                 for (i=0; i<nbytes; i=i+1) begin
                     udev_resp_data[i*8 +: 8] <= mem[(i+udev_req_dstaddr)*8 +: 8];
+                    if (req_cmd_atomic) begin
+                        // blocking assignment
+                        a_atomic[i*8 +: 8] = mem[(i+udev_req_dstaddr)*8 +: 8];
+                    end
+                end
+                if (req_cmd_atomic) begin
+                    for (i=0; i<nbytes; i=i+1) begin
+                        // blocking assignment
+                        b_atomic[i*8 +: 8] = udev_req_data[i*8 +: 8];
+                    end
+                    // blocking assignment
+                    y_atomic = atomic_op(a_atomic, b_atomic, req_size, req_atype);
+                    for (i=0; i<nbytes; i=i+1) begin
+                        mem[(i+udev_req_dstaddr)*8 +: 8] <= y_atomic[i*8 +: 8];
+                    end
                 end
                 resp_opcode <= UMI_RESP_READ;
                 udev_resp_valid <= 1'b1;
@@ -142,7 +211,7 @@ module umiram #(
 
             // pass through data
             resp_size <= req_size;
-            resp_len <= req_len;
+            resp_len <= req_cmd_atomic ? 8'd0 : req_len;
             resp_atype <= req_atype;
             resp_prot <= req_prot;
             resp_qos <= req_qos;

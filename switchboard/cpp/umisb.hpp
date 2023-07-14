@@ -234,7 +234,14 @@ template <typename T> static inline bool umisb_send(
         // do nothing, since there isn't data to copy
     } else {
         uint32_t size = umi_size(x.cmd);
-        uint32_t len = umi_len(x.cmd);
+
+        uint32_t len;
+        if (opcode != UMI_REQ_ATOMIC) {
+            len = umi_len(x.cmd);
+        } else {
+            len = 0;
+        }
+
         size_t nbytes = (len+1)<<size;
 
         if (nbytes > sizeof(up->data)) {
@@ -320,7 +327,13 @@ template <typename T> static inline bool umisb_recv(
         // do nothing, since there isn't data to copy
     } else {
         uint32_t size = umi_size(x.cmd);
-        uint32_t len = umi_len(x.cmd);
+
+        uint32_t len;
+        if (opcode != UMI_REQ_ATOMIC) {
+            len = umi_len(x.cmd);
+        } else {
+            len = 0;
+        }
 
         if (!x.storage()) {
             x.allocate(size, len);
