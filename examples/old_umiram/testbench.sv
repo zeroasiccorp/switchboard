@@ -13,14 +13,18 @@ module testbench (
     wire umi_tx_valid;
     wire umi_tx_ready;
 
-    old_umi_rx_sim rx_i (
+    old_umi_rx_sim #(
+        .VALID_MODE_DEFAULT(0)
+    ) rx_i (
         .clk(clk),
         .packet(umi_rx_packet), // output
         .ready(umi_rx_ready), // input
         .valid(umi_rx_valid) // output
     );
 
-    old_umi_tx_sim tx_i (
+    old_umi_tx_sim #(
+        .READY_MODE_DEFAULT(0)
+    ) tx_i (
         .clk(clk),
         .packet(umi_tx_packet), // input
         .ready(umi_tx_ready), // output

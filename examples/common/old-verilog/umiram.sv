@@ -142,16 +142,16 @@ module umiram #(
         if (umi_rx_valid && umi_rx_ready) begin
             umi_rx_ready <= 1'b0;
         end else if (umi_rx_valid && (!read_in_progress)) begin
-            if (rx_cmd_write) begin
+            if (rx_cmd_write || write_in_progress) begin
                 if (!write_in_progress) begin
                     if (nbytes <= 16'd16) begin
                         nbytes_flit = nbytes;  // blocking
-                        dstaddr_flit = rx_dstaddr;  // blocking
                     end else begin
                         nbytes_flit = 16'd16;  // blocking
                         nbytes_left <= (nbytes - nbytes_flit);
                         write_in_progress <= 1'b1;
                     end
+                    dstaddr_flit = rx_dstaddr;  // blocking
                 end else begin
                     if (nbytes_left <= 16'd32) begin
                         nbytes_flit = nbytes_left;  // blocking
@@ -209,7 +209,7 @@ module umiram #(
                 end else begin
                     nbytes_flit = 16'd32;  // blocking
                 end
-                
+
                 for (i=0; i<nbytes_flit; i=i+1) begin
                     tx_data[i*8 +: 8] <= mem[(i+dstaddr_flit)*8 +: 8];
                 end                

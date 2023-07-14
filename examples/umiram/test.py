@@ -41,7 +41,7 @@ def python_intf(from_client, to_client, old=False):
 
     # 64 bytes
     wrbuf = np.arange(64, dtype=np.uint8)
-    umi.write(0x50, wrbuf)
+    umi.write(0x80, wrbuf)
 
     print("### READS ###")
 
@@ -68,22 +68,22 @@ def python_intf(from_client, to_client, old=False):
     assert val64 == 0xBAADD00DCAFEFACE
 
     # 64 bytes
-    rdbuf = umi.read(0x50, 64)
+    rdbuf = umi.read(0x80, 64)
     print("Read: {" + ", ".join([f"0x{elem:02x}" for elem in rdbuf]) + "}")
     assert (rdbuf == np.arange(64, dtype=np.uint8)).all()
 
     print("### ATOMICS ###")
 
-    umi.write(0x90, np.uint32(0x12))
-    val1 = umi.atomic(0x90, np.uint32(0x34), 'add')
-    val2 = umi.read(0x90, np.uint32)
+    umi.write(0xC0, np.uint32(0x12))
+    val1 = umi.atomic(0xC0, np.uint32(0x34), 'add')
+    val2 = umi.read(0xC0, np.uint32)
     print(f'val1: {val1}, val2: {val2}')
     assert val1 == 0x12
     assert val2 == (0x12 + 0x34)
 
-    umi.write(0xA0, np.uint64(0xAB))
-    val1 = umi.atomic(0xA0, np.uint64(0xCD), 'swap')
-    val2 = umi.read(0xA0, np.uint64)
+    umi.write(0xD0, np.uint64(0xAB))
+    val1 = umi.atomic(0xD0, np.uint64(0xCD), 'swap')
+    val2 = umi.read(0xD0, np.uint64)
     print(f'val1: {val1}, val2: {val2}')
     assert val1 == 0xAB
     assert val2 == 0xCD
