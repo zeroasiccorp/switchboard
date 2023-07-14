@@ -1,3 +1,12 @@
+// Converts between old and new UMI formats
+// Usage:
+// old2new [-v] [--should-yield] conn0 conn1 ...
+// where connN is of the form old_rx:old_tx:new_req_rx:new_req_tx:new_resp_rx:new_resp_tx:
+// tx/rx refer to the direction seen by old2new, i.e. old2new expects to drive packets to *_tx
+// any of the queues can be omitted, for example old_rx::::new_resp_rx:: is a valid input
+// TODO: make the trailing colon optional
+// Copyright: (c) 2022 Zero ASIC. All rights reserved.
+
 #include "switchboard.hpp"
 #include "old_umilib.hpp"
 #include "old_umisb.hpp"
@@ -25,6 +34,18 @@ void signal_callback_handler(int signum) {
 
 void init(int argc, char* argv[]) {
     int arg_idx = 1;
+
+    if (argc <= 1) {
+        printf("Usage:\n");
+        printf("old2new [-v] [--should-yield] conn0 conn1 ...\n");
+        printf("where connN is of the form ");
+        printf("old_rx:old_tx:new_req_rx:new_req_tx:new_resp_rx:new_resp_tx:\n");
+        printf("tx/rx refers to the direction seen by old2new, ");
+        printf("i.e. old2new expects to drive packets to *_tx\n");
+        printf("any of the queues can be omitted, ");
+        printf("for example old_rx::::new_resp_rx:: is a valid format\n");
+        exit(0);
+    }
 
     while (arg_idx < argc) {
         std::string s = std::string(argv[arg_idx++]);
