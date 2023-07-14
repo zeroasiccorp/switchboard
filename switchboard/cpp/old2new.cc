@@ -328,7 +328,7 @@ int main(int argc, char* argv[]) {
                         if (old_tx[i]->is_active() && old_rx[i]->is_active()
                             && new_resp_tx[i]->is_active()) {
                             // issue an old UMI atomic request
-                            uint32_t opcode = (umi_atype(new_req_txn.cmd) << 4) | 0x4;
+                            uint32_t opcode = ((umi_atype(new_req_txn.cmd) & 0xf) << 4) | 0x4;
                             OldUmiTransaction old_req_txn(opcode, umi_size(new_req_txn.cmd),
                                 0, new_req_txn.dstaddr, new_req_txn.srcaddr, new_req_txn.ptr(),
                                 new_req_txn.nbytes());
@@ -344,6 +344,7 @@ int main(int argc, char* argv[]) {
                             uint32_t cmd = umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd), 0, 1, 1);
                             UmiTransaction new_resp_txn(cmd, new_req_txn.srcaddr,
                                 new_req_txn.dstaddr, old_resp_txn.ptr(), old_resp_txn.nbytes());
+                            umisb_send(new_resp_txn, *new_resp_tx[i]);
                         } else {
                             throw std::runtime_error("old_tx, old_rx, and/or new_resp_tx is not active.");
                         }
