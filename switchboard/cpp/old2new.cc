@@ -5,7 +5,7 @@
 // tx/rx refer to the direction seen by old2new, i.e. old2new expects to drive packets to *_tx
 // any of the queues can be omitted, for example old_rx::::new_resp_rx:: is a valid input
 // TODO: make the trailing colon optional
-// Copyright: (c) 2022 Zero ASIC. All rights reserved.
+// Copyright: (c) 2023 Zero ASIC. All rights reserved.
 
 #include "switchboard.hpp"
 #include "old_umilib.hpp"

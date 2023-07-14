@@ -78,7 +78,7 @@ def python_intf(from_client, to_client, old=True):
 
     # 64 bytes
     wrbuf = np.arange(64, dtype=np.uint8)
-    umi.write(0x50, wrbuf, max_bytes=16)
+    umi.write(0x50, wrbuf)
 
     print("### READS ###")
 

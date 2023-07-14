@@ -77,6 +77,12 @@ module umiram #(
     wire [15:0] nbytes;
     assign nbytes = 16'd1<<{12'd0, rx_size};
 
+    reg [15:0] nbytes_flit;
+    reg [15:0] nbytes_left;
+    reg write_in_progress = 1'b0;
+
+    reg [63:0] dstaddr_flit;
+
     integer i;
 
     function [ATOMIC_WIDTH-1:0] atomic_op(input [ATOMIC_WIDTH-1:0] a,
@@ -135,10 +141,30 @@ module umiram #(
             umi_rx_ready <= 1'b0;
         end else if (umi_rx_valid) begin
             if (rx_cmd_write) begin
-                for (i=0; i<nbytes; i=i+1) begin
-                    mem[(i+rx_dstaddr)*8 +: 8] <= rx_data[i*8 +: 8];
+                if (!write_in_progress) begin
+                    if (nbytes <= 16'd16) begin
+                        nbytes_flit = nbytes;  // blocking
+                        dstaddr_flit = rx_dstaddr;  // blocking
+                    end else begin
+                        nbytes_flit = 16'd16;  // blocking
+                        nbytes_left <= (nbytes - 16'd16);
+                        write_in_progress <= 1'b1;
+                    end
+                end else begin
+                    if (nbytes_left <= 16'd32) begin
+                        nbytes_flit = nbytes_left;  // blocking
+                        nbytes_left <= 16'd0;
+                        write_in_progress <= 1'b0;
+                    end else begin
+                        nbytes_flit = 16'd32;
+                        nbytes_left <= nbytes_left - 16'd32;
+                    end
+                end
+                for (i=0; i<nbytes_flit; i=i+1) begin
+                    mem[(i+dstaddr_flit)*8 +: 8] <= rx_data[i*8 +: 8];
                 end
                 umi_rx_ready <= 1'b1;
+                dstaddr_flit = dstaddr_flit + {48'd0, nbytes_flit};
             end else if ((rx_cmd_read || rx_cmd_atomic) && !umi_tx_valid) begin
                 for (i=0; i<nbytes; i=i+1) begin
                     tx_data[i*8 +: 8] <= mem[(i+rx_dstaddr)*8 +: 8];
