@@ -210,16 +210,17 @@ int main(int argc, char* argv[]) {
                             int nreq = 1<<old_req_txn.size;
                             uint64_t dstaddr = old_req_txn.dstaddr;
                             uint64_t srcaddr = old_req_txn.srcaddr;
+                            uint8_t* ptr = old_req_txn.ptr();
                             while (nreq > 0) {
                                 uint32_t nbytes = std::min(nreq, 32);
                                 uint32_t eom = (nbytes == nreq) ? 1 : 0;
                                 uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, 0, nbytes-1, eom, 1, 0, 0, 0);
-                                UmiTransaction new_req_txn(cmd, dstaddr, srcaddr,
-                                    old_req_txn.ptr(), nbytes);
+                                UmiTransaction new_req_txn(cmd, dstaddr, srcaddr, ptr, nbytes);
                                 umisb_send(new_req_txn, *new_req_tx[i]);
                                 nreq -= nbytes;
                                 dstaddr += nbytes;
                                 srcaddr += nbytes;
+                                ptr += nbytes;
                             }
                         } else {
                             throw std::runtime_error("new_req_tx is not active.");
