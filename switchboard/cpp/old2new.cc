@@ -14,6 +14,7 @@
 #include "umilib.hpp"
 #include "umisb.hpp"
 #include "umilib.h"
+#include "bitutil.h"
 
 std::vector<std::unique_ptr<SBRX>> old_rx;
 std::vector<std::unique_ptr<SBTX>> old_tx;
@@ -68,6 +69,8 @@ void init(int argc, char* argv[]) {
                 } else {
                     token = "";
                 }
+
+                // TODO: is there a more concise way of doing this parsing?
 
                 if (i == 0) {
                     // old_rx
@@ -249,21 +252,31 @@ int main(int argc, char* argv[]) {
                             uint64_t dstaddr = new_req_txn.dstaddr;
                             uint64_t srcaddr = new_req_txn.srcaddr;
                             uint8_t* ptr = new_req_txn.ptr();
-                            int pow2 = 0;
                             while (nreq > 0) {
+                                // send the largest amount of data that can
+                                // be transmitted in an aligned fashion
+                                ssize_t pow2 = std::min(highest_bit(nreq),
+                                    lowest_bit(dstaddr));
+                                // SIZE=15 is the maximum for old UMI transactions
+                                pow2 = std::min(pow2, (ssize_t)15);
+
+                                // calculate the number of bytes transmitted
                                 int nbytes = 1 << pow2;
-                                if ((nreq >> pow2) & 1) {
-                                    // even if the opcode is UMI_REQ_WRITE, use an old posted
-                                    // write, since old UMI HW did not implement ack'd writes
-                                    OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2,
-                                        0, dstaddr, srcaddr, ptr, nbytes);
-                                    old_umisb_send(old_req_txn, *old_tx[i]);
-                                    nreq -= nbytes;
-                                    dstaddr += nbytes;
-                                    srcaddr += nbytes;
-                                    ptr += nbytes;
-                                }
-                                pow2++;
+
+                                // even if the opcode is UMI_REQ_WRITE, use an old posted
+                                // write, since old UMI HW did not implement ack'd writes
+                                OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2,
+                                    0, dstaddr, srcaddr, ptr, nbytes);
+
+                                // might as well block since there aren't other
+                                // transactions outstanding
+                                old_umisb_send(old_req_txn, *old_tx[i]);
+
+                                // update state of the transaction
+                                nreq -= nbytes;
+                                dstaddr += nbytes;
+                                srcaddr += nbytes;
+                                ptr += nbytes;
                             }
                             if (opcode == UMI_REQ_WRITE) {
                                 // send back a write response if needed
@@ -295,21 +308,27 @@ int main(int argc, char* argv[]) {
                             uint64_t new_dstaddr = new_req_txn.dstaddr;
                             uint64_t new_srcaddr = new_req_txn.srcaddr;
                             uint8_t* ptr = new_req_txn.ptr();
-                            int pow2 = 0;
                             while ((old_nreq > 0) || (old_nresp > 0)) {
                                 if (old_nreq > 0) {
+                                    // read the largest amount of data that can
+                                    // be read in an aligned fashion
+                                    ssize_t pow2 = std::min(highest_bit(old_nreq),
+                                        lowest_bit(old_dstaddr));
+
+                                    // SIZE=15 is the maximum for old UMI transactions
+                                    pow2 = std::min(pow2, (ssize_t)15);
+
+                                    // calculate the number of bytes transmitted
                                     int nbytes = 1 << pow2;
-                                    if ((old_nreq >> pow2) & 1) {
-                                        // issue an old read request
-                                        OldUmiTransaction old_req_txn(OLD_UMI_READ_REQUEST, pow2,
-                                            0, old_dstaddr, old_srcaddr);
-                                        if (old_umisb_send(old_req_txn, *old_tx[i], false)) {
-                                            old_nreq -= nbytes;
-                                            old_dstaddr += nbytes;
-                                            old_srcaddr += nbytes;
-                                        }
+
+                                    // issue an old read request
+                                    OldUmiTransaction old_req_txn(OLD_UMI_READ_REQUEST,
+                                        pow2, 0, old_dstaddr, old_srcaddr);
+                                    if (old_umisb_send(old_req_txn, *old_tx[i], false)) {
+                                        old_nreq -= nbytes;
+                                        old_dstaddr += nbytes;
+                                        old_srcaddr += nbytes;
                                     }
-                                    pow2++;
                                 }
                                 if (old_nresp > 0) {
                                     // get old read response
