@@ -1,12 +1,3 @@
-#include <chrono>
-#include <string>
-#include <iostream>
-#include <stdexcept>
-#include <thread>
-#include <map>
-#include <set>
-#include <signal.h>
-
 #include "switchboard.hpp"
 #include "old_umilib.hpp"
 #include "old_umisb.hpp"
@@ -34,7 +25,7 @@ void signal_callback_handler(int signum) {
 
 void init(int argc, char* argv[]) {
     int arg_idx = 1;
-    std::set<uint64_t> locations;
+
     while (arg_idx < argc) {
         std::string s = std::string(argv[arg_idx++]);
 
