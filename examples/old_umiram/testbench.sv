@@ -46,8 +46,8 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("rx.q");
-        tx_i.init("tx.q");
+        rx_i.init("to_rtl.q");
+        tx_i.init("from_rtl.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 
