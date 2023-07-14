@@ -34,6 +34,7 @@ def main(mode='python', fast=False, old2new=False):
     # start simulation
     verilator_run(verilator_bin, plusargs=['trace'])
 
+    # start UMI protocol adapter if needed
     if old2new:
         old2new_run(
             old_tx=to_rtl,

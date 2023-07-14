@@ -11,11 +11,11 @@
 int main() {
     // initialize tx connection
     SBTX tx;
-    tx.init("client2rtl.q");
+    tx.init("to_rtl.q");
 
     // initialize rx connection
     SBRX rx;
-    rx.init("rtl2client.q");
+    rx.init("from_rtl.q");
 
     // packet structure used for sending/receiving
     sb_packet p;
