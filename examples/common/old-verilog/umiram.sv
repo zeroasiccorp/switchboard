@@ -54,6 +54,7 @@ module umiram #(
     reg [63:0] tx_dstaddr;
     reg [255:0] tx_data;
     reg [3:0] tx_size;
+    reg tx_burst = 1'b0;
 
     assign tx_write = WRITE_RESPONSE[0];
     assign tx_command = WRITE_RESPONSE[7:1];
@@ -63,7 +64,7 @@ module umiram #(
         .command(tx_command),
         .size(tx_size),
         .options(20'd0),
-        .burst(1'b0),
+        .burst(tx_burst),
         .dstaddr(tx_dstaddr),
         .srcaddr(64'd0),
         .data(tx_data),
@@ -80,6 +81,7 @@ module umiram #(
     reg [15:0] nbytes_flit;
     reg [15:0] nbytes_left;
     reg write_in_progress = 1'b0;
+    reg read_in_progress = 1'b0;
 
     reg [63:0] dstaddr_flit;
 
@@ -139,7 +141,7 @@ module umiram #(
         // handle receiver
         if (umi_rx_valid && umi_rx_ready) begin
             umi_rx_ready <= 1'b0;
-        end else if (umi_rx_valid) begin
+        end else if (umi_rx_valid && (!read_in_progress)) begin
             if (rx_cmd_write) begin
                 if (!write_in_progress) begin
                     if (nbytes <= 16'd16) begin
@@ -147,26 +149,33 @@ module umiram #(
                         dstaddr_flit = rx_dstaddr;  // blocking
                     end else begin
                         nbytes_flit = 16'd16;  // blocking
-                        nbytes_left <= (nbytes - 16'd16);
+                        nbytes_left <= (nbytes - nbytes_flit);
                         write_in_progress <= 1'b1;
                     end
                 end else begin
                     if (nbytes_left <= 16'd32) begin
                         nbytes_flit = nbytes_left;  // blocking
-                        nbytes_left <= 16'd0;
                         write_in_progress <= 1'b0;
                     end else begin
-                        nbytes_flit = 16'd32;
-                        nbytes_left <= nbytes_left - 16'd32;
+                        nbytes_flit = 16'd32;  // blocking
                     end
+                    nbytes_left <= nbytes_left - nbytes_flit;
                 end
                 for (i=0; i<nbytes_flit; i=i+1) begin
                     mem[(i+dstaddr_flit)*8 +: 8] <= rx_data[i*8 +: 8];
                 end
                 umi_rx_ready <= 1'b1;
-                dstaddr_flit = dstaddr_flit + {48'd0, nbytes_flit};
+                dstaddr_flit = dstaddr_flit + {48'd0, nbytes_flit};  // blocking
             end else if ((rx_cmd_read || rx_cmd_atomic) && !umi_tx_valid) begin
-                for (i=0; i<nbytes; i=i+1) begin
+                if (nbytes <= 16'd16) begin
+                    nbytes_flit = nbytes;  // blocking
+                end else begin
+                    nbytes_flit = 16'd16;  // blocking
+                    nbytes_left <= (nbytes - nbytes_flit);
+                    read_in_progress <= 1'b1;
+                    dstaddr_flit = rx_dstaddr + nbytes_flit;  // blocking
+                end
+                for (i=0; i<nbytes_flit; i=i+1) begin
                     tx_data[i*8 +: 8] <= mem[(i+rx_dstaddr)*8 +: 8];
                     if (rx_cmd_atomic) begin
                         // blocking assignment
@@ -174,13 +183,13 @@ module umiram #(
                     end
                 end
                 if (rx_cmd_atomic) begin
-                    for (i=0; i<nbytes; i=i+1) begin
+                    for (i=0; i<nbytes_flit; i=i+1) begin
                         // blocking assignment
                         b_atomic[i*8 +: 8] = rx_data[i*8 +: 8];
                     end
                     // blocking assignment
                     y_atomic = atomic_op(a_atomic, b_atomic, rx_size, rx_opcode);
-                    for (i=0; i<nbytes; i=i+1) begin
+                    for (i=0; i<nbytes_flit; i=i+1) begin
                         mem[(i+rx_dstaddr)*8 +: 8] <= y_atomic[i*8 +: 8];
                     end
                 end                
@@ -193,7 +202,27 @@ module umiram #(
 
         // handle transmitter
         if (umi_tx_valid && umi_tx_ready) begin
-            umi_tx_valid <= 1'b0;
+            if (read_in_progress) begin
+                if (nbytes_left <= 16'd32) begin
+                    nbytes_flit = nbytes_left;  // blocking
+                    read_in_progress <= 1'b0;
+                end else begin
+                    nbytes_flit = 16'd32;  // blocking
+                end
+                
+                for (i=0; i<nbytes_flit; i=i+1) begin
+                    tx_data[i*8 +: 8] <= mem[(i+dstaddr_flit)*8 +: 8];
+                end                
+
+                tx_burst <= 1'b1;
+
+                // update pointers
+                nbytes_left <= nbytes_left - nbytes_flit;
+                dstaddr_flit = dstaddr_flit + nbytes_flit;  // blocking
+            end else begin
+                umi_tx_valid <= 1'b0;
+                tx_burst <= 1'b0;
+            end
         end
     end
 

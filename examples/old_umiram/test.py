@@ -105,7 +105,7 @@ def python_intf(from_client, to_client, old=True):
     assert val64 == 0xBAADD00DCAFEFACE
 
     # 64 bytes
-    rdbuf = umi.read(0x50, 64, max_bytes=16)
+    rdbuf = umi.read(0x50, 64)
     print("Read: {" + ", ".join([f"0x{elem:02x}" for elem in rdbuf]) + "}")
     assert (rdbuf == np.arange(64, dtype=np.uint8)).all()
 
