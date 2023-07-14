@@ -152,7 +152,7 @@ struct UmiTransaction {
 
     ~UmiTransaction() {
         if (m_allocated) {
-            free(data);
+            delete[] data;
         }
     }
 
@@ -174,7 +174,7 @@ struct UmiTransaction {
         // allocate the memory
 
         size_t nbytes = (len+1)<<size;
-        data = (uint8_t*)malloc(nbytes);
+        data = new uint8_t[nbytes];
 
         // indicate that storage is now available for this transaction,
         // and that we allocated memory to make it available 

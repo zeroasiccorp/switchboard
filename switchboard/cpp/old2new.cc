@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
                             while ((nreq > 0) || (nresp > 0)) {
                                 if (nreq > 0) {
                                     // TODO: could issue fewer reads
-                                    uint32_t nbytes = std::max(nreq, 32);
+                                    uint32_t nbytes = std::min(nreq, 32);
                                     uint32_t eom = (nbytes == nreq) ? 1 : 0;
                                     uint32_t cmd = umi_pack(UMI_REQ_READ, 0, 0, nbytes-1, eom, 1,
                                         0, 0, 0);
@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
                                     }
                                 }
                                 if (nresp > 0) {
-                                    uint32_t nbytes = std::max(nresp, 32);
+                                    uint32_t nbytes = std::min(nresp, 32);
                                     UmiTransaction new_resp_txn(0, 0, 0, ptr, nbytes);
                                     if (umisb_recv(new_resp_txn, *new_resp_rx[i], false)) {
                                         ptr += umi_len(new_resp_txn.cmd) + 1;
@@ -199,7 +199,7 @@ int main(int argc, char* argv[]) {
                             uint64_t dstaddr = old_req_txn.dstaddr;
                             uint64_t srcaddr = old_req_txn.srcaddr;
                             while (nreq > 0) {
-                                uint32_t nbytes = std::max(nreq, 32);
+                                uint32_t nbytes = std::min(nreq, 32);
                                 uint32_t eom = (nbytes == nreq) ? 1 : 0;
                                 uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, 0, nbytes-1, eom, 1, 0, 0, 0);
                                 UmiTransaction new_req_txn(cmd, dstaddr, srcaddr,
