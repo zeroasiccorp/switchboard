@@ -7,6 +7,16 @@
 // TODO: make the trailing colon optional
 // Copyright: (c) 2023 Zero ASIC. All rights reserved.
 
+#include <vector>  // for std::vector
+#include <memory>  // for std::unique_ptr
+#include <string>  // for std::string
+#include <algorithm>  // for std::min
+#include <stdexcept>  // for std::runtime_error
+#include <thread>  // for std::this_thread
+
+#include <stdio.h>  // for printf
+#include <signal.h>  // for sig_atomic_t, signal
+
 #include "switchboard.hpp"
 #include "old_umilib.hpp"
 #include "old_umisb.hpp"
