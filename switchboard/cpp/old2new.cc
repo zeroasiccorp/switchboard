@@ -195,6 +195,8 @@ int main(int argc, char* argv[]) {
                         if (new_req_tx[i]->is_active() && new_resp_rx[i]->is_active()
                             && old_tx[i]->is_active()) {
                             // issue new UMI atomic
+                            // fortunately, a shift is all that's necessary to
+                            // translate between old and new atomic opcodes
                             uint32_t atype = old_req_txn.opcode >> 4;
                             uint32_t cmd = umi_pack(UMI_REQ_ATOMIC, atype, old_req_txn.size, 0, 1, 1);
                             UmiTransaction new_req_txn(cmd, old_req_txn.dstaddr, old_req_txn.srcaddr,
@@ -258,7 +260,7 @@ int main(int argc, char* argv[]) {
                         // issue old posted write(s).  this may need to be broken
                         // up into multiple writes if not a power of two
                         if (old_tx[i]->is_active()) {
-                            uint32_t nreq = (umi_len(new_req_txn.cmd)+1)<<umi_size(new_req_txn.cmd);
+                            int nreq = (umi_len(new_req_txn.cmd)+1)<<umi_size(new_req_txn.cmd);
                             uint64_t dstaddr = new_req_txn.dstaddr;
                             uint64_t srcaddr = new_req_txn.srcaddr;
                             uint8_t* ptr = new_req_txn.ptr();
@@ -372,6 +374,8 @@ int main(int argc, char* argv[]) {
                         if (old_tx[i]->is_active() && old_rx[i]->is_active()
                             && new_resp_tx[i]->is_active()) {
                             // issue an old UMI atomic request
+                            // fortunately, a shift is all that's necessary to
+                            // translate between old and new atomic opcodes
                             uint32_t opcode = ((umi_atype(new_req_txn.cmd) & 0xf) << 4) | 0x4;
                             OldUmiTransaction old_req_txn(opcode, umi_size(new_req_txn.cmd),
                                 0, new_req_txn.dstaddr, new_req_txn.srcaddr, new_req_txn.ptr(),
