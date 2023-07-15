@@ -11,6 +11,7 @@ parameter-name-style=localparam_style:CamelCase|ALL_CAPS
 # may want to revisit this at some point, but most parameters we're
 # using are untyped, so this would be a major change
 -explicit-parameter-storage-type
+-explicit-function-task-parameter-type
 
 # allow "always @*", since "always_comb" is not part of plain Verilog
 -always-comb

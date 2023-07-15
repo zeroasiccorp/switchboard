@@ -192,7 +192,7 @@ module umiram #(
                     for (i=0; i<nbytes_flit; i=i+1) begin
                         mem[(i+rx_dstaddr)*8 +: 8] <= y_atomic[i*8 +: 8];
                     end
-                end                
+                end
                 tx_dstaddr <= rx_srcaddr;
                 tx_size <= rx_size;
                 umi_tx_valid <= 1'b1;
@@ -212,7 +212,7 @@ module umiram #(
 
                 for (i=0; i<nbytes_flit; i=i+1) begin
                     tx_data[i*8 +: 8] <= mem[(i+dstaddr_flit)*8 +: 8];
-                end                
+                end
 
                 tx_burst <= 1'b1;
 
