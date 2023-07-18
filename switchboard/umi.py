@@ -4,7 +4,8 @@
 import random
 import numpy as np
 from typing import Iterable
-from _switchboard import PyUmi, PyUmiPacket, umi_pack, UmiCmd, OldPyUmi, OldUmiCmd
+from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic,
+    OldPyUmi, OldUmiCmd)
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
@@ -198,18 +199,10 @@ class UmiTxRx:
 
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
-            # figure out what set of opcodes to use
             if self.old:
-                opcode_enum = OldUmiCmd
+                opcode = getattr(OldUmiCmd, f'OLD_UMI_ATOMIC_{opcode.upper()}')
             else:
-                opcode_enum = UmiCmd
-
-            # make sure that the string provided is in that opcode
-            if opcode not in opcode_enum:
-                raise ValueError(f'The provided opcode "{opcode}" does not appear to be valid.')
-
-            # perform the conversion from string to enum
-            opcode = opcode_enum[opcode]
+                opcode = getattr(UmiAtomic, f'UMI_REQ_ATOMIC{opcode.upper()}')
 
         extra_args = []
         if not self.old:

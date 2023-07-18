@@ -6,7 +6,7 @@
 from _switchboard import (PySbPacket, delete_queue, umi_opcode_to_str,
     PySbTx, PySbRx, UmiCmd, PySbTxPcie, PySbRxPcie, PyUmiPacket, umi_pack,
     umi_opcode, umi_size, umi_len, umi_atype, umi_qos, umi_prot, umi_eom,
-    umi_eof, umi_ex)
+    umi_eof, umi_ex, UmiAtomic)
 
 from _switchboard import old_umi_opcode_to_str, OldUmiCmd, OldPyUmiPacket
 
@@ -15,3 +15,4 @@ from .util import binary_run
 from .verilator import verilator_run
 from .icarus import icarus_run
 from .sbdut import SbDut
+from .old2new import old2new_run

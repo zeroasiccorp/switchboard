@@ -4,6 +4,10 @@ SBDIR := $(shell switchboard --path)
 python:
 	./test.py --mode python
 
+.PHONY: python_old2new
+python_old2new:
+	./test.py --mode python --old2new
+
 .PHONY: cpp
 cpp: client
 	./test.py --mode cpp

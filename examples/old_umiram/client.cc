@@ -21,11 +21,11 @@ void print_packet_details(const uint32_t* p) {
 int main() {
     // initialize tx connection
     SBTX tx;
-    tx.init("rx.q");
+    tx.init("to_rtl.q");
 
     // initialize rx connection
     SBRX rx;
-    rx.init("tx.q");
+    rx.init("from_rtl.q");
 
     // packet structure used for sending/receiving
     sb_packet p;

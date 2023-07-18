@@ -27,6 +27,7 @@
 #include "umilib.h"
 #include "umilib.hpp"
 #include "umisb.hpp"
+#include "bitutil.h"
 
 namespace py = pybind11;
 
@@ -215,36 +216,6 @@ void check_signals() {
         }
     } else {
         count++;
-    }
-}
-
-// highest_bit: determine the index of the most significant non-zero
-// bit in a number.
-
-size_t highest_bit (size_t x) {
-    size_t retval = 0;
-    while ((x>>=1) != 0) {
-        retval++;
-    }
-    return retval;
-}
-
-// lowest_bit: determine index of the least significant non-zero
-// bit in a number.
-
-size_t lowest_bit (size_t x) {
-    if (x == 0) {
-        // if the input is zero, it is convenient to return a value
-        // that is larger than the return value for any non-zero
-        // input value, which is (sizeof(size_t)*8)-1.
-        return sizeof(size_t)*8;
-    } else {
-        size_t retval = 0;
-        while ((x & 1) == 0) {
-            x >>= 1;
-            retval++;
-        }
-        return retval;
     }
 }
 
@@ -615,8 +586,8 @@ class PyUmi {
             return result;
         }
 
-        py::array_t<uint8_t> atomic(uint64_t addr, py::array_t<uint8_t> data,
-            uint32_t opcode, uint64_t srcaddr=0, uint32_t qos=0, uint32_t prot=0) {
+        py::array atomic(uint64_t addr, py::array_t<uint8_t> data, uint32_t opcode,
+            uint64_t srcaddr=0, uint32_t qos=0, uint32_t prot=0) {
             // input validation
 
             uint32_t num = data.nbytes();
@@ -649,7 +620,7 @@ class PyUmi {
 
             // check that the response makes sense
             // TODO: replace with the atomic response opcode
-            umisb_check_resp(resp, UMI_RESP_READ, size, 0, srcaddr);
+            umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr);
 
             // return the result of the operation
             return resp.data;
@@ -753,7 +724,7 @@ class OldPyUmi {
         }
 
         py::array_t<uint8_t> read(uint64_t addr, size_t len, size_t bytes_per_elem,
-            uint64_t srcaddr=0, uint32_t max_size=15) {
+            uint64_t srcaddr=0, uint32_t max_bytes=32768) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
@@ -761,8 +732,10 @@ class OldPyUmi {
             // the source address to which responses should be sent.  this
             // function is blocking.
 
-            // calculate the number of bytes to be read
+            // calculate the maximum size
+            uint32_t max_size = highest_bit(max_bytes);
 
+            // calculate the number of bytes to be read
             size_t num = len * bytes_per_elem;
 
             // create a buffer to hold the result
@@ -943,7 +916,7 @@ PYBIND11_MODULE(_switchboard, m) {
         .def("send", &OldPyUmi::send, py::arg("py_packet"), py::arg("blocking")=true)
         .def("recv", &OldPyUmi::recv, py::arg("blocking")=true)
         .def("write", &OldPyUmi::write, py::arg("addr"), py::arg("data"), py::arg("max_bytes")=32768, py::arg("progressbar")=false)
-        .def("read", &OldPyUmi::read, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem")=1, py::arg("srcaddr")=0, py::arg("max_size")=15)
+        .def("read", &OldPyUmi::read, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem")=1, py::arg("srcaddr")=0, py::arg("max_bytes")=32768)
         .def("atomic", &OldPyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"), py::arg("srcaddr")=0);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str, "Returns a string representation of a UMI opcode");
@@ -985,6 +958,9 @@ PYBIND11_MODULE(_switchboard, m) {
         .value("UMI_RESP_FUTURE0", UMI_RESP_FUTURE0)
         .value("UMI_RESP_FUTURE1", UMI_RESP_FUTURE1)
         .value("UMI_RESP_LINK", UMI_RESP_LINK)
+        .export_values();
+    
+    py::enum_<UMI_ATOMIC>(m, "UmiAtomic")
         .value("UMI_REQ_ATOMICADD", UMI_REQ_ATOMICADD)
         .value("UMI_REQ_ATOMICAND", UMI_REQ_ATOMICAND)
         .value("UMI_REQ_ATOMICOR", UMI_REQ_ATOMICOR)
