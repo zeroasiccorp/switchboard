@@ -319,7 +319,8 @@ int main(int argc, char* argv[]) {
                             uint64_t old_srcaddr = new_req_txn.srcaddr;
                             uint64_t new_dstaddr = new_req_txn.dstaddr;
                             uint64_t new_srcaddr = new_req_txn.srcaddr;
-                            uint8_t* ptr = new_req_txn.ptr();
+                            uint8_t* old_resp_ptr = data;
+                            uint8_t* new_resp_ptr = data;
                             while ((old_nreq > 0) || (old_nresp > 0)) {
                                 if (old_nreq > 0) {
                                     // read the largest amount of data that can
@@ -344,9 +345,10 @@ int main(int argc, char* argv[]) {
                                 }
                                 if (old_nresp > 0) {
                                     // get old read response
-                                    OldUmiTransaction old_resp_txn(0, 0, 0, 0, 0, data, old_nresp);
+                                    OldUmiTransaction old_resp_txn(0, 0, 0, 0, 0, old_resp_ptr, old_nresp);
                                     if (old_umisb_recv(old_resp_txn, *old_rx[i], false)) {
                                         old_nresp -= old_resp_txn.nbytes();
+                                        old_resp_ptr += old_resp_txn.nbytes();
                                     }
                                 }
                             }
@@ -358,11 +360,13 @@ int main(int argc, char* argv[]) {
                                 uint32_t cmd = umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd),
                                     (nbytes >> umi_size(new_req_txn.cmd)) - 1, eom, 1, 0);
                                 // note the swapped srcaddr and dstaddr
-                                UmiTransaction new_resp_txn(cmd, new_srcaddr, new_dstaddr, data, nbytes);
+                                UmiTransaction new_resp_txn(cmd, new_srcaddr, new_dstaddr,
+                                    new_resp_ptr, nbytes);
                                 umisb_send(new_resp_txn, *new_resp_tx[i]);
                                 new_nresp -= nbytes;
                                 new_dstaddr += nbytes;
                                 new_srcaddr += nbytes;
+                                new_resp_ptr += nbytes;
                             }
 
                             // delete the data buffer now that we're done with it
