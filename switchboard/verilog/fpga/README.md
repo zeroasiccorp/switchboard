@@ -24,6 +24,15 @@ accessed over an AXI-Lite interface.
 | `0x04`       | Capability. Currently returns all zeros. (Read-only) |
 | `0x08`       | Clock divider. Used to program a clock divider that may be implemented at a design top-level. The effective clock speed becomes the value set in this register plus 1 (e.g. a value of 0 means no change in speed, a value of 2 means run at one third the speed). |
 
+### Per-chiplet
+
+Each chiplet has its own 16-byte address space for per-chiplet configuration,
+starting at `0x40` for the first queue, `0x50` for the second, etc.
+
+| **Address offset** | **Description** |
+|--------------------|-----------------|
+| `0x00`             | Row/column. Bits 7-0 represent row, bits 15-8 represent column. Rest unused. |
+
 ### Per-queue
 
 Each queue has its own 256-byte address space for per-queue configuration,
