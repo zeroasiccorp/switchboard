@@ -99,6 +99,8 @@ module loopback (
 
         // Unimplemented by this top-level
         .cfg_clk_divide(),
+        .cfg_chip_row(),
+        .cfg_chip_col(),
 
         .*
     );

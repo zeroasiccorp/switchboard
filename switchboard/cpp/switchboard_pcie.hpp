@@ -24,6 +24,10 @@
 #define REG_CAP               0x004
 #define REG_CLK_DIV           0x008
 
+#define REG_CHIPLET_BASE      0x040
+#define REG_ROW_COL           0x000
+#define REG_CHIPLET_ADDR_SIZE 0x010
+
 #define REG_ENABLE            0x100
 #define REG_RESET             0x104
 #define REG_STATUS            0x108

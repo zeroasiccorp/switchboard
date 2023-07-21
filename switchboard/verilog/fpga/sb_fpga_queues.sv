@@ -2,7 +2,8 @@
 
 module sb_fpga_queues #(
     parameter NUM_RX_QUEUES = 1,
-    parameter NUM_TX_QUEUES = 1
+    parameter NUM_TX_QUEUES = 1,
+    parameter NUM_CHIPLETS = 1
 ) (
     input wire clk,
     input wire nreset,
@@ -21,6 +22,8 @@ module sb_fpga_queues #(
     input wire [NUM_TX_QUEUES-1:0] tx_valid,
 
     output wire [31:0] cfg_clk_divide,
+    output wire [8*NUM_CHIPLETS-1:0] cfg_chip_row,
+    output wire [8*NUM_CHIPLETS-1:0] cfg_chip_col,
 
     // AXI manager interface for memory access
     output wire [15:0] m_axi_awid,
@@ -237,7 +240,8 @@ module sb_fpga_queues #(
     endgenerate
 
     config_registers #(
-        .NUM_QUEUES(NUM_QUEUES)
+        .NUM_QUEUES(NUM_QUEUES),
+        .NUM_CHIPLETS(NUM_CHIPLETS)
     ) config_regs (
         .clk(clk),
         .nreset(nreset),
@@ -248,6 +252,8 @@ module sb_fpga_queues #(
         .cfg_base_addr(cfg_base_addr),
         .cfg_capacity(cfg_capacity),
         .cfg_clk_divide(cfg_clk_divide),
+        .cfg_chip_row(cfg_chip_row),
+        .cfg_chip_col(cfg_chip_col),
 
         .s_axil_awaddr(s_axil_awaddr),
         .s_axil_awvalid(s_axil_awvalid),
