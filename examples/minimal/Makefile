@@ -6,7 +6,7 @@ verilator: obj_dir/Vtestbench client
 	./test.py verilator
 
 .PHONY: icarus
-icarus: testbench.vvp client switchboard_vpi.vpi
+icarus: client switchboard_vpi.vpi
 	./test.py icarus
 
 client: client.cc $(SBDIR)/cpp/switchboard.hpp
@@ -31,9 +31,6 @@ switchboard_vpi.o: $(SBDIR)/vpi/switchboard_vpi.cc $(SBDIR)/cpp/switchboard.hpp
 
 switchboard_vpi.vpi: switchboard_vpi.o
 	g++ -o $@ `iverilog-vpi --ldflags` $< -pthread `iverilog-vpi --ldlibs`
-
-testbench.vvp: testbench.sv
-	iverilog -y$(SBDIR)/verilog/sim -Y.sv -g2012 -s testbench -o testbench.vvp $^
 
 .PHONY: clean
 clean:
