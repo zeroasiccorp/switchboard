@@ -146,11 +146,11 @@ class UmiTxRx:
             elif data.ndim == 1:
                 write_data = data
             else:
-                raise ValueError(f'Can only write 1D arrays (provided ndim={data.ndim})')
+                raise ValueError(f'Can only write 1D arrays (got ndim={data.ndim})')
 
             if not np.issubdtype(write_data.dtype, np.integer):
                 raise ValueError('Can only write integer dtypes such as uint8, uint16, etc.'
-                    f'  (got dtype={data.dtype})')
+                    f'  (got dtype "{data.dtype}")')
         elif isinstance(data, np.integer):
             write_data = np.array(data, ndmin=1, copy=False)
         else:
