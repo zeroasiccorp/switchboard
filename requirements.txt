@@ -9,7 +9,7 @@
 # lines are added as extras under a group called "<tag>".
 
 numpy
-siliconcompiler~=0.12.3
+siliconcompiler~=0.13.1
 
 # Testing dependencies
 #:test
