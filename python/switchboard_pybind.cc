@@ -429,8 +429,8 @@ class PyUmi {
         }
 
         void write(uint64_t addr, py::array data, uint64_t srcaddr=0,
-            uint32_t max_bytes=32, bool posted=false, uint32_t qos=0,
-            uint32_t prot=0, bool progressbar=false) {
+            uint32_t max_bytes=UMI_PACKET_DATA_BYTES, bool posted=false,
+            uint32_t qos=0, uint32_t prot=0, bool progressbar=false) {
 
             // write data to the given address.  data can be of any length,
             // including greater than the length of a header packet and
@@ -439,7 +439,24 @@ class PyUmi {
             // get access to the data
             py::buffer_info info = py::buffer(data).request();
 
-            // make sure that max_bytes is set appropriately
+            // make sure that max_bytes is set appropriately.
+
+            // I thought about directly reading the size of the data payload
+            // from the umi_packet struct, but the mechanism for doing this
+            // is fairly hard to read: sizeof(((umi_packet*)NULL)->data).  It
+            // seemed clearer to define a new constant that refers to the size
+            // the UMI packet data payload.  Eventually, we will make this
+            // payload size configurable so that different SUMI bus widths
+            // can be represented.  SGH 7/24/23
+
+            if (max_bytes > UMI_PACKET_DATA_BYTES) {
+                printf("WARNING: max_bytes is greater than the data payload"
+                    " of a single UMI packet (%d vs. %d bytes).  Change max_bytes"
+                    " to %d or smaller to clear this warning.\n", max_bytes,
+                    UMI_PACKET_DATA_BYTES, UMI_PACKET_DATA_BYTES);
+                max_bytes = UMI_PACKET_DATA_BYTES;
+            }
+
             if (max_bytes < info.itemsize) {
                 throw std::runtime_error(
                     "max_bytes must be greater than or equal to the word size in bytes.");
@@ -507,8 +524,8 @@ class PyUmi {
         }
 
         py::array read(uint64_t addr, uint32_t num, size_t bytes_per_elem,
-            uint64_t srcaddr=0, uint32_t max_bytes=32, uint32_t qos=0,
-            uint32_t prot=0) {
+            uint64_t srcaddr=0, uint32_t max_bytes=UMI_PACKET_DATA_BYTES,
+            uint32_t qos=0, uint32_t prot=0) {
 
             // read "num" bytes from the given address.  "num" may be any value,
             // including greater than the length of a header packet, and values
@@ -517,6 +534,15 @@ class PyUmi {
             // function is blocking.
 
             // make sure that max_bytes is set appropriately
+
+            if (max_bytes > UMI_PACKET_DATA_BYTES) {
+                printf("WARNING: max_bytes is greater than the data payload"
+                    " of a single UMI packet (%d vs. %d bytes).  Change max_bytes"
+                    " to %d or smaller to clear this warning.\n", max_bytes,
+                    UMI_PACKET_DATA_BYTES, UMI_PACKET_DATA_BYTES);
+                max_bytes = UMI_PACKET_DATA_BYTES;
+            }
+
             if (max_bytes < bytes_per_elem) {
                 throw std::runtime_error(
                     "max_bytes must be greater than or equal to bytes_per_elem.");
@@ -680,6 +706,14 @@ class OldPyUmi {
             // including greater than the length of a header packet and
             // values that are not powers of two.  this function is blocking.
 
+            // make sure that max_bytes is set appropriately
+            if (max_bytes > 32768) {
+                printf("WARNING: max_bytes is greater than the maximum length"
+                    " of a UMI burst transaction.  Change max_bytes to %d or"
+                    " smaller to clear this warning.\n", 32768);
+                max_bytes = 32768;
+            }
+
             // calculate the maximum size
             uint32_t max_size = highest_bit(max_bytes);
 
@@ -731,6 +765,14 @@ class OldPyUmi {
             // that are not powers of two.  the optional "srcaddr" argument is
             // the source address to which responses should be sent.  this
             // function is blocking.
+
+            // make sure that max_bytes is set appropriately
+            if (max_bytes > 32768) {
+                printf("WARNING: max_bytes is greater than the maximum length"
+                    " of a UMI burst transaction.  Change max_bytes to %d or"
+                    " smaller to clear this warning.\n", 32768);
+                max_bytes = 32768;
+            }
 
             // calculate the maximum size
             uint32_t max_size = highest_bit(max_bytes);
