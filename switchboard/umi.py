@@ -3,7 +3,7 @@
 
 import random
 import numpy as np
-from typing import Iterable, Union
+from typing import Iterable, Union, Dict
 from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic,
     OldPyUmi, OldUmiCmd, OldPyUmiPacket)
 
@@ -14,7 +14,8 @@ from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic,
 
 class UmiTxRx:
     def __init__(self, tx_uri: str = None, rx_uri: str = None, old: bool = False,
-        srcaddr: int = 0, posted: bool = False, max_bytes: int = None):
+        srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
+        max_bytes: int = None):
         """
         Args:
             tx_uri (str, optional): Name of the switchboard queue that
@@ -26,7 +27,13 @@ class UmiTxRx:
             old (bool, optional): If True, use the old UMI protocol.
             Defaults to False.  This option will eventually be removed.
             srcaddr (int, optional): Default srcaddr to use for reads,
-            ack'd writes, and atomics.  Defaults to 0.
+            ack'd writes, and atomics.  Defaults to 0.  Can also be
+            provided as a dictionary with separate defaults for each
+            type of transaction: srcaddr={'read': 0x1234, 'write':
+            0x2345, 'atomic': 0x3456}.  When the defaults are provided
+            with a dictionary, all keys are optional.  Transactions
+            that are not specified in the dictionary will default
+            to a srcaddr of 0.
             posted (bool, optional): If True, default to using posted
             (i.e., non-ack'd) writes.  This can be overridden on a
             transaction-by-transaction basis.  Defaults to False.
@@ -50,7 +57,20 @@ class UmiTxRx:
             self.umi = PyUmi(tx_uri, rx_uri)
 
         if srcaddr is not None:
-            self.default_srcaddr = int(srcaddr)
+            # convert srcaddr default to a dictionary if necessary
+            if isinstance(srcaddr, int):
+                srcaddr = {
+                    'read': srcaddr,
+                    'write': srcaddr,
+                    'atomic': srcaddr
+                }
+
+            if isinstance(srcaddr, dict):
+                self.def_read_srcaddr = int(srcaddr.get('read', 0))
+                self.def_write_srcaddr = int(srcaddr.get('write', 0))
+                self.def_atomic_srcaddr = int(srcaddr.get('atomic', 0))
+            else:
+                raise ValueError(f'Unsupported default srcaddr specification: {srcaddr}')
         else:
             raise ValueError('Default value of "srcaddr" cannot be None.')
 
@@ -129,7 +149,7 @@ class UmiTxRx:
         max_bytes = int(max_bytes)
 
         if srcaddr is None:
-            srcaddr = self.default_srcaddr
+            srcaddr = self.def_write_srcaddr
 
         srcaddr = int(srcaddr)
 
@@ -166,7 +186,8 @@ class UmiTxRx:
             self.umi.write(addr, write_data, srcaddr, max_bytes,
                 posted, qos, prot, progressbar)
 
-    def write_readback(self, addr, value, mask=None, srcaddr=None, dtype=None):
+    def write_readback(self, addr, value, mask=None, srcaddr=None, dtype=None,
+        posted=True, write_srcaddr=None):
         """
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
@@ -183,14 +204,25 @@ class UmiTxRx:
 
         srcaddr is the UMI source address used for the read transaction.  This
         is sometimes needed to make sure that reads get routed to the right place.
+
+        By default, the write is performed as a posted write, however it is
+        is possible to use an ack'd write by setting posted=False.  In that
+        case, write_srcaddr specifies the srcaddr used for that transaction.
+        If write_srcaddr is None, the default srcaddr for writes will be
+        be used.
         """
 
         # set defaults
 
         if srcaddr is None:
-            srcaddr = self.default_srcaddr
+            srcaddr = self.def_read_srcaddr
 
         srcaddr = int(srcaddr)
+
+        if write_srcaddr is None:
+            write_srcaddr = self.def_write_srcaddr
+
+        write_srcaddr = int(write_srcaddr)
 
         # convert value to a numpy datatype if it is not already
         if not isinstance(value, np.integer):
@@ -212,7 +244,7 @@ class UmiTxRx:
                 raise TypeError("Must provide mask as a numpy integer type, or specify dtype.")
 
         # write, then read repeatedly until the value written is observed
-        self.write(addr, value)
+        self.write(addr, value, srcaddr=write_srcaddr, posted=posted)
         rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
@@ -249,7 +281,7 @@ class UmiTxRx:
         max_bytes = int(max_bytes)
 
         if srcaddr is None:
-            srcaddr = self.default_srcaddr
+            srcaddr = self.def_read_srcaddr
 
         srcaddr = int(srcaddr)
 
@@ -292,7 +324,7 @@ class UmiTxRx:
         # set defaults
 
         if srcaddr is None:
-            srcaddr = self.default_srcaddr
+            srcaddr = self.def_atomic_srcaddr
 
         srcaddr = int(srcaddr)
 
