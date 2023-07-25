@@ -46,11 +46,14 @@ enum UMI_ATOMIC {
     UMI_REQ_ATOMICSWAP  = 0x08
 };
 
+// TODO: make this flexible
+#define UMI_PACKET_DATA_BYTES 32
+
 struct umi_packet {
     uint32_t cmd;
     uint64_t dstaddr;
     uint64_t srcaddr;
-    uint8_t data[32];
+    uint8_t data[UMI_PACKET_DATA_BYTES];
 } __attribute__ ((packed));
 
 static inline bool has_umi_resp(uint32_t opcode) {
