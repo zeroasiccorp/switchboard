@@ -9,10 +9,12 @@ from argparse import ArgumentParser
 def main(dry_run=False, verbose=False):
     """Get dependencies from git repositories."""
 
-    deps_dir = Path(__file__).resolve().parent / 'deps'
+    this_dir = Path(__file__).resolve().parent
+
+    deps_dir = this_dir / 'deps'
     deps_dir.mkdir(parents=True, exist_ok=True)
 
-    with open('dependencies.json', 'r') as f:
+    with open(this_dir / 'dependencies.json', 'r') as f:
         deps = json.load(f)
 
     for dep in deps:
@@ -20,30 +22,28 @@ def main(dry_run=False, verbose=False):
 
         if not dep_dir.exists():
             # clone if the folder doesn't exist
-            if verbose or dry_run:
-                print(f'Cloning {dep["name"]}')
-            if not dry_run:
-                git('clone', dep['url'], dep['name'], cwd=deps_dir)
-        else:
-            # otherwise fetch updates
-            if verbose or dry_run:
-                print(f'Fetching updates for {dep["name"]}')
-            if not dry_run:
-                git('fetch', cwd=dep_dir)
+            if dry_run:
+                print(f'Would clone {dep["url"]} into {dep_dir}.')
+            else:
+                git('clone', dep['url'], dep['name'], verbose=verbose, cwd=deps_dir)
 
         # checkout the specific commit
-        if verbose or dry_run:
-            print(f'Checking out {dep["name"]} @ {dep["commit"]}')
-        if not dry_run:
-            git('checkout', dep['commit'], cwd=dep_dir)
+        if dry_run:
+            print(f'Would checkout {dep["name"]} @ {dep["commit"]}.')
+        else:
+            try:
+                git('checkout', dep['commit'], verbose=verbose, cwd=dep_dir)
+            except subprocess.CalledProcessError:
+                git('fetch', cwd=dep_dir)
+                git('checkout', dep['commit'], verbose=verbose, cwd=dep_dir)
 
 
-def git(*args, **kwargs):
+def git(*args, verbose=False, cwd=None):
     cmd = ['git']
     cmd.extend(args)
     cmd = [str(elem) for elem in cmd]
 
-    subprocess.run(cmd, check=True, **kwargs)
+    subprocess.run(cmd, check=True, capture_output=(not verbose), cwd=cwd)
 
 
 if __name__ == "__main__":
