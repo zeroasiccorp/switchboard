@@ -1,0 +1,22 @@
+[
+    {
+        "name": "umi",
+        "url": "git@github.com:zeroasiccorp/umi.git",
+        "commit": "d96c893"
+    },
+    {
+        "name": "old-umi",
+        "url": "git@github.com:zeroasiccorp/umi.git",
+        "commit": "1fce4fc"
+    },
+    {
+        "name": "lambdalib",
+        "url": "git@github.com:siliconcompiler/lambdalib.git",
+        "commit": "ebbcd48"
+    },
+    {
+        "name": "libsystemctlm-soc",
+        "url": "git@github.com:Xilinx/libsystemctlm-soc.git",
+        "commit": "670d73c"
+    }
+]

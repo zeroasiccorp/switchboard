@@ -1,6 +1,9 @@
 # Build output
 build
 
+# Example dependencies
+/examples/deps
+
 # Common editor/IDE config and temporary files
 .project
 .vscode/
