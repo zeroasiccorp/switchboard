@@ -68,7 +68,7 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
     stream << "opcode: " << umi_opcode_to_str(opcode);
 
     stream << std::endl << "dstaddr: 0x" << std::hex << x.dstaddr;
-    
+
     // print out the source address if this is a request, as long
     // as it isn't a posted write, since that doesn't have a source
     // address.
@@ -177,7 +177,7 @@ struct UmiTransaction {
         data = new uint8_t[nbytes];
 
         // indicate that storage is now available for this transaction,
-        // and that we allocated memory to make it available 
+        // and that we allocated memory to make it available
 
         m_storage = true;
         m_allocated = true;
@@ -201,10 +201,10 @@ struct UmiTransaction {
     uint64_t srcaddr;
     uint8_t* data;
 
-    private:
-        size_t m_nbytes;
-        bool m_allocated;
-        bool m_storage;
+  private:
+    size_t m_nbytes;
+    bool m_allocated;
+    bool m_storage;
 };
 
 // higher-level functions for UMI transactions

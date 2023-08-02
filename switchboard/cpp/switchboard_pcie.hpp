@@ -52,122 +52,122 @@ static inline void sb_pcie_deinit(T *s) {
 }
 
 class SB_pcie {
-    public:
-        SB_pcie(int queue_id) : m_queue_id(queue_id), m_map(NULL), m_addr(0) { }
+  public:
+    SB_pcie(int queue_id) : m_queue_id(queue_id), m_map(NULL), m_addr(0) { }
 
-        ~SB_pcie() {
-            sb_pcie_deinit(this);
+    ~SB_pcie() {
+        sb_pcie_deinit(this);
+    }
+
+    virtual bool init_host(const char *uri, const char *bdf, int bar_num, void *handle) {
+        m_addr = pagemap_virt_to_phys(handle);
+        m_map = (char *) pcie_bar_map(bdf, bar_num, 0, PCIE_BAR_MAP_SIZE);
+        if (m_map == MAP_FAILED) {
+            m_map = NULL;
+            return false;
+        }
+        return true;
+    }
+
+    virtual void deinit_host(void) {
+        if (m_map) {
+            pcie_bar_unmap(m_map, PCIE_BAR_MAP_SIZE);
+            m_map = NULL;
+        }
+    }
+
+    bool init_dev(int capacity) {
+        int qoffset = m_queue_id * REG_QUEUE_ADDR_SIZE;
+        int reset_retry = 0;
+        uint32_t r;
+
+        // TODO Validate the ID and version regs.
+        r = dev_read32(REG_ID);
+        D(printf("SB pcie ID=%x\n", r));
+        if (r >> 16 != REG_ID_FPGA) {
+            printf("%s: Incompatible REG_ID=%x\n", __func__, r);
+            return false;
         }
 
-        virtual bool init_host(const char *uri, const char *bdf, int bar_num, void *handle) {
-            m_addr = pagemap_virt_to_phys(handle);
-            m_map = (char *) pcie_bar_map(bdf, bar_num, 0, PCIE_BAR_MAP_SIZE);
-            if (m_map == MAP_FAILED) {
-                m_map = NULL;
+        r = dev_read32(REG_CAP);
+        D(printf("SB pcie CAP=%x\n", r));
+
+        // Reset the device.
+        dev_write32(qoffset + REG_RESET, 0x1);
+        // TODO: timeout/yield?
+        D(printf("Read reset state\n"));
+        while (dev_read32(qoffset + REG_STATUS) != 0x1) {
+            if (reset_retry++ >= MAX_RETRY) {
                 return false;
             }
-            return true;
+            usleep(100 * 1000);
         }
 
-        virtual void deinit_host(void) {
-            if (m_map) {
-                pcie_bar_unmap(m_map, PCIE_BAR_MAP_SIZE);
-                m_map = NULL;
-            }
+        dev_write32(qoffset + REG_QUEUE_ADDRESS_LO, m_addr);
+        dev_write32(qoffset + REG_QUEUE_ADDRESS_HI, m_addr >> 32);
+        D(printf("SB QUEUE_ADDR=%lx\n", m_addr));
+
+        dev_write32(qoffset + REG_QUEUE_CAPACITY, capacity);
+        D(printf("SB CAPACITY=%d\n", capacity));
+
+        dev_write32_strong(qoffset + REG_ENABLE, 0x1);
+        return true;
+    }
+
+    void deinit_dev() {
+        int disable_retry = 0;
+
+        if (!m_map) {
+            return;
         }
+        int qoffset = m_queue_id * REG_QUEUE_ADDR_SIZE;
 
-        bool init_dev(int capacity) {
-            int qoffset = m_queue_id * REG_QUEUE_ADDR_SIZE;
-            int reset_retry = 0;
-            uint32_t r;
-
-            // TODO Validate the ID and version regs.
-            r = dev_read32(REG_ID);
-            D(printf("SB pcie ID=%x\n", r));
-            if (r >> 16 != REG_ID_FPGA) {
-                printf("%s: Incompatible REG_ID=%x\n", __func__, r);
-                return false;
-            }
-
-            r = dev_read32(REG_CAP);
-            D(printf("SB pcie CAP=%x\n", r));
-
-            // Reset the device.
-            dev_write32(qoffset + REG_RESET, 0x1);
-            // TODO: timeout/yield?
-            D(printf("Read reset state\n"));
-            while (dev_read32(qoffset + REG_STATUS) != 0x1) {
-                if (reset_retry++ >= MAX_RETRY) {
-                    return false;
-                }
-                usleep(100 * 1000);
-            }
-
-            dev_write32(qoffset + REG_QUEUE_ADDRESS_LO, m_addr);
-            dev_write32(qoffset + REG_QUEUE_ADDRESS_HI, m_addr >> 32);
-            D(printf("SB QUEUE_ADDR=%lx\n", m_addr));
-
-            dev_write32(qoffset + REG_QUEUE_CAPACITY, capacity);
-            D(printf("SB CAPACITY=%d\n", capacity));
-
-            dev_write32_strong(qoffset + REG_ENABLE, 0x1);
-            return true;
-        }
-
-        void deinit_dev() {
-            int disable_retry = 0;
-
-            if (!m_map) {
+        // Must disable queue and wait for it to quiesce before unmapping
+        // queue shared memory, otherwise FPGA may read from/write to memory
+        // that gets reallocated to another process.
+        dev_write32_strong(qoffset + REG_ENABLE, 0x0);
+        while (dev_read32(qoffset + REG_STATUS) != 0x1) {
+            if (disable_retry++ >= MAX_RETRY) {
                 return;
             }
-            int qoffset = m_queue_id * REG_QUEUE_ADDR_SIZE;
-
-            // Must disable queue and wait for it to quiesce before unmapping
-            // queue shared memory, otherwise FPGA may read from/write to memory
-            // that gets reallocated to another process.
-            dev_write32_strong(qoffset + REG_ENABLE, 0x0);
-            while (dev_read32(qoffset + REG_STATUS) != 0x1) {
-                if (disable_retry++ >= MAX_RETRY) {
-                    return;
-                }
-                usleep(100 * 1000);
-            }
+            usleep(100 * 1000);
         }
+    }
 
-        virtual uint32_t dev_read32(uint64_t offset)
-        {
-                assert(m_map);
-                assert(offset <= PCIE_BAR_MAP_SIZE - 4);
-                return pcie_read32(m_map + offset);
-        }
+    virtual uint32_t dev_read32(uint64_t offset)
+    {
+            assert(m_map);
+            assert(offset <= PCIE_BAR_MAP_SIZE - 4);
+            return pcie_read32(m_map + offset);
+    }
 
-        virtual void dev_write32(uint64_t offset, uint32_t v)
-        {
-                assert(m_map);
-                assert(offset <= PCIE_BAR_MAP_SIZE - 4);
-                pcie_write32(m_map + offset, v);
-        }
+    virtual void dev_write32(uint64_t offset, uint32_t v)
+    {
+            assert(m_map);
+            assert(offset <= PCIE_BAR_MAP_SIZE - 4);
+            pcie_write32(m_map + offset, v);
+    }
 
-        virtual void dev_write32_strong(uint64_t offset, uint32_t v)
-        {
-                assert(m_map);
-                assert(offset <= PCIE_BAR_MAP_SIZE - 4);
-                pcie_write32_strong(m_map + offset, v);
-        }
+    virtual void dev_write32_strong(uint64_t offset, uint32_t v)
+    {
+            assert(m_map);
+            assert(offset <= PCIE_BAR_MAP_SIZE - 4);
+            pcie_write32_strong(m_map + offset, v);
+    }
 
-protected:
-        // Queue index.
-        int m_queue_id;
+  protected:
+    // Queue index.
+    int m_queue_id;
 
 	// m_map holds a pointer to a mapped memory area that can be
 	// used for register accesses. Not all implementions will use it.
-        char *m_map;
+    char *m_map;
 
 	// m_addr holds an address to the SPSC queue's SHM area. For some
 	// implementations this will simply be a user-space virtual address
 	// and for others it may be a physical address for HW DMA implementations
 	// to access.
-        uint64_t m_addr;
+    uint64_t m_addr;
 };
 
 
@@ -205,43 +205,43 @@ static inline bool sb_pcie_init(T *s, const char *uri,
 }
 
 class SBTX_pcie : public SBTX, public SB_pcie {
-    public:
-        SBTX_pcie(int queue_id) : SB_pcie(queue_id) {
-        }
+  public:
+    SBTX_pcie(int queue_id) : SB_pcie(queue_id) {
+    }
 
-        bool init(std::string uri, std::string bdf, int bar_num) {
-            return init(uri.c_str(), bdf.c_str(), bar_num);
-        }
+    bool init(std::string uri, std::string bdf, int bar_num) {
+        return init(uri.c_str(), bdf.c_str(), bar_num);
+    }
 
-        bool init(const char *uri, const char *bdf, int bar_num) {
-            return sb_pcie_init(this, uri, bdf, bar_num);
-        }
+    bool init(const char *uri, const char *bdf, int bar_num) {
+        return sb_pcie_init(this, uri, bdf, bar_num);
+    }
 
-        void deinit(void) {
-            sb_pcie_deinit(this);
-        }
+    void deinit(void) {
+        sb_pcie_deinit(this);
+    }
 
-    private:
+  private:
 };
 
 class SBRX_pcie : public SBRX, public SB_pcie {
-    public:
-        SBRX_pcie(int queue_id) : SB_pcie(queue_id) {
-        }
+  public:
+    SBRX_pcie(int queue_id) : SB_pcie(queue_id) {
+    }
 
-        bool init(std::string uri, std::string bdf, int bar_num) {
-            return init(uri.c_str(), bdf.c_str(), bar_num);
-        }
+    bool init(std::string uri, std::string bdf, int bar_num) {
+        return init(uri.c_str(), bdf.c_str(), bar_num);
+    }
 
-        bool init(const char *uri, const char *bdf, int bar_num) {
-            return sb_pcie_init(this, uri, bdf, bar_num);
-        }
+    bool init(const char *uri, const char *bdf, int bar_num) {
+        return sb_pcie_init(this, uri, bdf, bar_num);
+    }
 
-        void deinit(void) {
-            sb_pcie_deinit(this);
-        }
+    void deinit(void) {
+        sb_pcie_deinit(this);
+    }
 
-    private:
+  private:
 };
 
 #endif // __SWITCHBOARD_PCIE_HPP__
