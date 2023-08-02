@@ -80,10 +80,10 @@ int main(int argc, char* argv[]) {
     init_sram(binfile);
 
     // put chiplet in reset
-    while(!gpio_write(0));
+    while(!gpio_write(0)) {}
 
     // release chiplet from reset
-    while(!gpio_write(1));
+    while(!gpio_write(1)) {}
 
     // handle UMI packets
 

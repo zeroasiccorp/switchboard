@@ -48,10 +48,8 @@ int main(int argc, char* argv[]) {
 
 		printf("ping %d\n", i);
 		clock_gettime(CLOCK_MONOTONIC, &start);
-		while(!tx.send(p))
-			;
-		while(!rx.recv(p))
-			;
+		while(!tx.send(p)) {}
+		while(!rx.recv(p)) {}
 		clock_gettime(CLOCK_MONOTONIC, &end);
 
 		double tdiff = (end.tv_sec - start.tv_sec) + 1e-9 * (end.tv_nsec - start.tv_nsec);
