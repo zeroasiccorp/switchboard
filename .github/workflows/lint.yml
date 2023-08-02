@@ -73,3 +73,31 @@ jobs:
           ./verible/bin/verible-verilog-lint \
             --rules_config verible_lint.txt \
             `cat files.txt`
+
+  lint_cc:
+    name: Lint C/C++ Code Style
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Gather files
+        run: |
+          find . \( \
+            -name "*.c" \
+            -or -name "*.cc" \
+            -or -name "*.h" \
+            -or -name "*.hpp" \
+          \) -not \( \
+            -path "./switchboard/deps/*" \
+            -or -path "./examples/deps/*" \
+          \) > files.txt
+          cat files.txt
+
+      - name: Lint with clang-format
+        run: |
+          clang-format-14 --dry-run -Werror `cat files.txt`
