@@ -3,11 +3,11 @@
 int main(int argc, char* argv[]) {
     // form UMI packet with an interesting pattern
     umi_packet p0;
-    for (int i=0; i<8; i++) {
+    for (int i = 0; i < 8; i++) {
         p0[i] = 0;
-        for (int j=0; j<8; j++) {
+        for (int j = 0; j < 8; j++) {
             p0[i] <<= 4;
-            p0[i] |= (i+j)%16;
+            p0[i] |= (i + j) % 16;
         }
     }
 
@@ -24,11 +24,11 @@ int main(int argc, char* argv[]) {
     printf("p1: %s\n", umi_packet_to_str(p1).c_str());
 
     // check that strings match
-    assert (s0 == s1);
+    assert(s0 == s1);
 
     // check that packets match
-    for (int i=0; i<8; i++) {
-        assert (p0[i] == p1[i]);
+    for (int i = 0; i < 8; i++) {
+        assert(p0[i] == p1[i]);
     }
 
     return 0;

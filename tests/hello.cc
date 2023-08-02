@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
 
     // determine if this is TX or RX
 
-    bool is_tx=false;
+    bool is_tx = false;
     if (arg_idx < argc) {
         const char* arg = argv[arg_idx++];
         if (strcmp(arg, "-") == 0) {
@@ -41,11 +41,11 @@ int main(int argc, char* argv[]) {
         sb_packet p;
         p.destination = 0xbeefcafe;
         p.last = true;
-        for (int i=0; i<NBYTES; i++) {
+        for (int i = 0; i < NBYTES; i++) {
             p.data[i] = 0;
-            for (int j=0; j<2; j++) {
+            for (int j = 0; j < 2; j++) {
                 p.data[i] <<= 4;
-                p.data[i] |= (i+j)%16;
+                p.data[i] |= (i + j) % 16;
             }
         }
 

@@ -1,12 +1,12 @@
 #ifndef __SWITCHBOARD_HPP__
 #define __SWITCHBOARD_HPP__
 
-#include <string>
 #include <array>
 #include <cstdio>
+#include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
-#include <stdexcept>
 
 #include "spsc_queue.h"
 
@@ -22,7 +22,7 @@ struct sb_packet {
         uint32_t flags;
     };
     uint8_t data[SB_DATA_SIZE];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 class SB_base {
   public:
@@ -65,12 +65,12 @@ class SB_base {
         return m_q->capacity;
     }
 
-    void *get_shm_handle(void) {
+    void* get_shm_handle(void) {
         check_active();
         return m_q->shm;
     }
-  protected:
 
+  protected:
     void check_active(void) {
         if (!m_active) {
             throw std::runtime_error("Using an uninitialized SB queue!");
@@ -79,12 +79,12 @@ class SB_base {
 
     bool m_auto_deinit;
     bool m_active;
-    spsc_queue *m_q;
+    spsc_queue* m_q;
 };
 
 class SBTX : public SB_base {
   public:
-    SBTX () {}
+    SBTX() {}
 
     bool send(sb_packet& p) {
         check_active();
@@ -92,7 +92,7 @@ class SBTX : public SB_base {
     }
 
     void send_blocking(sb_packet& p) {
-        while(!send(p)) {
+        while (!send(p)) {
             std::this_thread::yield();
         }
     }
@@ -105,7 +105,7 @@ class SBTX : public SB_base {
 
 class SBRX : public SB_base {
   public:
-    SBRX () {}
+    SBRX() {}
 
     bool recv(sb_packet& p) {
         check_active();
@@ -118,8 +118,8 @@ class SBRX : public SB_base {
         return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
     }
 
-    void recv_blocking(sb_packet& p){
-        while(!recv(p)) {
+    void recv_blocking(sb_packet& p) {
+        while (!recv(p)) {
             std::this_thread::yield();
         }
     }
@@ -138,7 +138,7 @@ static inline void delete_shared_queue(std::string name) {
     delete_shared_queue(name.c_str());
 }
 
-static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes=-1) {
+static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes = -1) {
     // determine how many bytes to print
     size_t max_idx;
     if (nbytes < 0) {
@@ -159,10 +159,10 @@ static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes=-1) {
     retval += buf;
 
     // format data
-    for (size_t i=0; i<max_idx; i++) {
+    for (size_t i = 0; i < max_idx; i++) {
         sprintf(buf, "%02x", p.data[i]);
         retval += buf;
-        if (i != (max_idx-1)) {
+        if (i != (max_idx - 1)) {
             retval += ", ";
         }
     }

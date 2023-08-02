@@ -1,19 +1,19 @@
 #ifndef __OLD_UMISB_HPP__
 #define __OLD_UMISB_HPP__
 
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <sstream>
-#include <iostream>
-#include <functional>
 
-#include "switchboard.hpp"
 #include "old_umilib.hpp"
+#include "switchboard.hpp"
 
 typedef std::function<void(sb_packet packet, bool header)> PacketPrinter;
 
 // generic formatting methods
 
-template <typename T> std::string old_umi_data_as_str(T& x, ssize_t max_len=-1) {
+template <typename T> std::string old_umi_data_as_str(T& x, ssize_t max_len = -1) {
     // get the data representation
     uint8_t* ptr = x.ptr();
     size_t len = x.nbytes();
@@ -29,11 +29,11 @@ template <typename T> std::string old_umi_data_as_str(T& x, ssize_t max_len=-1) 
     // create a formatted representation
     std::stringstream stream;
     stream << "[";
-    for (size_t i=0; i<len; i++) {
+    for (size_t i = 0; i < len; i++) {
         // uint8_t needs to be cast to an integer to print correctly
         // with std::hex: https://stackoverflow.com/a/23575509
         stream << "0x" << std::hex << static_cast<int>(ptr[i]);
-        if (i != (len-1)){
+        if (i != (len - 1)) {
             stream << ", ";
         }
     }
@@ -61,7 +61,7 @@ template <typename T> std::string old_umi_transaction_as_str(T& x) {
     // print out the data as long as this isn't a read request, since
     // that doesn't have data
     if (!old_is_umi_read_request(x.opcode)) {
-        stream << std::endl << "data: " << old_umi_data_as_str<T>(x, 1<<x.size);
+        stream << std::endl << "data: " << old_umi_data_as_str<T>(x, 1 << x.size);
     }
 
     // return the result, noting that it does not contain a final newline
@@ -73,19 +73,19 @@ template <typename T> std::string old_umi_transaction_as_str(T& x) {
 template <typename T> void old_umisb_check_reply(T& request, T& reply) {
     // check that the response makes sense
     if (!old_is_umi_write_response(reply.opcode)) {
-        std::cerr << "Warning: got " << old_umi_opcode_to_str(reply.opcode)
-            << " in response to " << old_umi_opcode_to_str(request.opcode)
-            << " (expected WRITE-RESPONSE)" << std::endl;
+        std::cerr << "Warning: got " << old_umi_opcode_to_str(reply.opcode) << " in response to "
+                  << old_umi_opcode_to_str(request.opcode) << " (expected WRITE-RESPONSE)"
+                  << std::endl;
     }
     if (reply.size != request.size) {
-        std::cerr << "Warning: " << old_umi_opcode_to_str(request.opcode)
-            << " response size is " << std::to_string(reply.size)
-            << " (expected " << std::to_string(request.size) << ")" << std::endl;
+        std::cerr << "Warning: " << old_umi_opcode_to_str(request.opcode) << " response size is "
+                  << std::to_string(reply.size) << " (expected " << std::to_string(request.size)
+                  << ")" << std::endl;
     }
     if (reply.dstaddr != request.srcaddr) {
-        std::cerr <<  "Warning: dstaddr in " << old_umi_opcode_to_str(request.opcode)
-            << " response is " << std::to_string(reply.dstaddr)
-            << " (expected " << std::to_string(request.srcaddr) << ")" << std::endl;
+        std::cerr << "Warning: dstaddr in " << old_umi_opcode_to_str(request.opcode)
+                  << " response is " << std::to_string(reply.dstaddr) << " (expected "
+                  << std::to_string(request.srcaddr) << ")" << std::endl;
     }
 }
 
@@ -93,15 +93,14 @@ template <typename T> void old_umisb_check_reply(T& request, T& reply) {
 // multiple packets.
 
 struct OldUmiTransaction {
-    OldUmiTransaction(uint32_t opcode=0, uint32_t size=0, uint32_t user=0, uint64_t dstaddr=0,
-        uint64_t srcaddr=0, uint8_t* data=NULL, size_t nbytes=0) : opcode(opcode), size(size),
-        user(user), dstaddr(dstaddr), srcaddr(srcaddr), data(data), m_nbytes(nbytes),
-        allocated(false) {
+    OldUmiTransaction(uint32_t opcode = 0, uint32_t size = 0, uint32_t user = 0,
+        uint64_t dstaddr = 0, uint64_t srcaddr = 0, uint8_t* data = NULL, size_t nbytes = 0)
+        : opcode(opcode), size(size), user(user), dstaddr(dstaddr), srcaddr(srcaddr), data(data),
+          m_nbytes(nbytes), allocated(false) {
 
         if ((data == NULL) && (nbytes > 0)) {
             resize(nbytes);
         }
-
     }
 
     ~OldUmiTransaction() {
@@ -128,7 +127,7 @@ struct OldUmiTransaction {
         m_nbytes = n;
     }
 
-    size_t nbytes(){
+    size_t nbytes() {
         return m_nbytes;
     }
 
@@ -143,16 +142,16 @@ struct OldUmiTransaction {
     uint64_t srcaddr;
     uint8_t* data;
 
-    private:
-        size_t m_nbytes;
-        bool allocated;
+  private:
+    size_t m_nbytes;
+    bool allocated;
 };
 
 // higher-level functions for UMI transactions
 
-template <typename T> static inline bool old_umisb_send(
-    T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL,
-    PacketPrinter printer=NULL) {
+template <typename T>
+static inline bool old_umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)(void) = NULL,
+    PacketPrinter printer = NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
     // if length of the data payload in the packet is greater than
@@ -173,8 +172,7 @@ template <typename T> static inline bool old_umisb_send(
 
     sb_packet p;
     uint8_t* ptr = x.ptr();
-    old_umi_pack((uint32_t*)p.data, x.opcode, x.size, x.user, x.dstaddr,
-        x.srcaddr, ptr, flit_size);
+    old_umi_pack((uint32_t*)p.data, x.opcode, x.size, x.user, x.dstaddr, x.srcaddr, ptr, flit_size);
 
     // try to send the packet once or multiple times depending
     // on the "blocking" argument
@@ -226,8 +224,9 @@ template <typename T> static inline bool old_umisb_send(
     return true;
 }
 
-template <typename T> static inline bool old_umisb_recv(
-    T& x, SBRX& rx, bool blocking=true, void (*loop)(void)=NULL, PacketPrinter printer=NULL) {
+template <typename T>
+static inline bool old_umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)(void) = NULL,
+    PacketPrinter printer = NULL) {
 
     // if the receive side isn't active, there is nothing to receive
     if (!rx.is_active()) {
@@ -261,7 +260,7 @@ template <typename T> static inline bool old_umisb_recv(
 
     // determine how many bytes are in the payload
 
-    int nbytes = old_is_umi_read_request(x.opcode) ? 0 : (1<<x.size);
+    int nbytes = old_is_umi_read_request(x.opcode) ? 0 : (1 << x.size);
 
     // create an object to hold data to be returned to python
 

@@ -1,15 +1,15 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <string>
-#include <vector>
-#include <unistd.h>
 #include <fstream>
 #include <signal.h>
+#include <string>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <vector>
 
-#include "switchboard.hpp"
 #include "old_umilib.hpp"
+#include "switchboard.hpp"
 
 int main(int argc, char* argv[]) {
     // process command-line arguments
@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     std::string rxqueue = "queue-5555";
 
     int arg_idx = 1;
-    while (arg_idx < (argc-1)) {
+    while (arg_idx < (argc - 1)) {
         std::string key = argv[arg_idx++];
         std::string val = argv[arg_idx++];
         if (key == "--sim") {
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 
             std::vector<std::string> arr;
 
-            //arr.push_back("verilator");
+            // arr.push_back("verilator");
             arr.push_back(sim);
             if (txqueue != "-") {
                 arr.push_back("+tx_port=" + txqueue);
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
             // the final argument being "NULL"
 
             std::vector<char*> arr_as_cstrs;
-            for (auto & elem : arr) {
+            for (auto& elem : arr) {
                 arr_as_cstrs.push_back((char*)(elem.c_str()));
             }
             arr_as_cstrs.push_back(nullptr);
@@ -196,8 +196,10 @@ int main(int argc, char* argv[]) {
                             // if there's an error, print out what it is, and
                             // increment the error counter
                             printf("*** mismatch at rxfile line %d ***\n", rxline);
-                            printf("got:      %s\n", old_umi_packet_to_str((uint32_t*)outp.data).c_str());
-                            printf("expected: %s\n", old_umi_packet_to_str((uint32_t*)rxp.data).c_str());
+                            printf("got:      %s\n",
+                                old_umi_packet_to_str((uint32_t*)outp.data).c_str());
+                            printf("expected: %s\n",
+                                old_umi_packet_to_str((uint32_t*)rxp.data).c_str());
                             incorrect_count++;
                         } else {
                             correct_count++;

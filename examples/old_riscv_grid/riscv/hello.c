@@ -2,5 +2,5 @@
 
 void main() {
     puts(0, 0, "Hello World!");
-	done(0, 0, EXIT_PASS);
+    done(0, 0, EXIT_PASS);
 }

@@ -4,38 +4,38 @@
 #ifndef __SWITCHBOARD_PCIE_HPP__
 #define __SWITCHBOARD_PCIE_HPP__
 
-#include <string>
 #include <array>
 #include <cstdio>
+#include <string>
 #include <thread>
 #include <vector>
 
-#include "spsc_queue.h"
-#include "switchboard.hpp"
 #include "pagemap.h"
 #include "pciedev.h"
+#include "spsc_queue.h"
+#include "switchboard.hpp"
 
 #undef D
 #define D(x)
 
-#define REG_ID                0x000
-#define REG_ID_FPGA           0x1234
+#define REG_ID 0x000
+#define REG_ID_FPGA 0x1234
 
-#define REG_CAP               0x004
-#define REG_CLK_DIV           0x008
+#define REG_CAP 0x004
+#define REG_CLK_DIV 0x008
 
-#define REG_CHIPLET_BASE      0x040
-#define REG_ROW_COL           0x000
+#define REG_CHIPLET_BASE 0x040
+#define REG_ROW_COL 0x000
 #define REG_CHIPLET_ADDR_SIZE 0x010
 
-#define REG_ENABLE            0x100
-#define REG_RESET             0x104
-#define REG_STATUS            0x108
-#define REG_QUEUE_ADDRESS_LO  0x10c
-#define REG_QUEUE_ADDRESS_HI  0x110
-#define REG_QUEUE_CAPACITY    0x114
+#define REG_ENABLE 0x100
+#define REG_RESET 0x104
+#define REG_STATUS 0x108
+#define REG_QUEUE_ADDRESS_LO 0x10c
+#define REG_QUEUE_ADDRESS_HI 0x110
+#define REG_QUEUE_CAPACITY 0x114
 
-#define REG_QUEUE_ADDR_SIZE   0x100 // size of addr space dedicated to each queue
+#define REG_QUEUE_ADDR_SIZE 0x100 // size of addr space dedicated to each queue
 
 // Map enough space to configure 256 queues + global config.
 #define PCIE_BAR_MAP_SIZE (REG_QUEUE_ADDR_SIZE * 256 + REG_ENABLE)
@@ -43,8 +43,7 @@
 // Max nr of retries when resetting or disabling queue's.
 #define MAX_RETRY 3
 
-template<typename T>
-static inline void sb_pcie_deinit(T *s) {
+template <typename T> static inline void sb_pcie_deinit(T* s) {
 
     // Needs to be done in reverse order.
     s->deinit_dev();
@@ -53,15 +52,15 @@ static inline void sb_pcie_deinit(T *s) {
 
 class SB_pcie {
   public:
-    SB_pcie(int queue_id) : m_queue_id(queue_id), m_map(NULL), m_addr(0) { }
+    SB_pcie(int queue_id) : m_queue_id(queue_id), m_map(NULL), m_addr(0) {}
 
     ~SB_pcie() {
         sb_pcie_deinit(this);
     }
 
-    virtual bool init_host(const char *uri, const char *bdf, int bar_num, void *handle) {
+    virtual bool init_host(const char* uri, const char* bdf, int bar_num, void* handle) {
         m_addr = pagemap_virt_to_phys(handle);
-        m_map = (char *) pcie_bar_map(bdf, bar_num, 0, PCIE_BAR_MAP_SIZE);
+        m_map = (char*)pcie_bar_map(bdf, bar_num, 0, PCIE_BAR_MAP_SIZE);
         if (m_map == MAP_FAILED) {
             m_map = NULL;
             return false;
@@ -134,62 +133,57 @@ class SB_pcie {
         }
     }
 
-    virtual uint32_t dev_read32(uint64_t offset)
-    {
-            assert(m_map);
-            assert(offset <= PCIE_BAR_MAP_SIZE - 4);
-            return pcie_read32(m_map + offset);
+    virtual uint32_t dev_read32(uint64_t offset) {
+        assert(m_map);
+        assert(offset <= PCIE_BAR_MAP_SIZE - 4);
+        return pcie_read32(m_map + offset);
     }
 
-    virtual void dev_write32(uint64_t offset, uint32_t v)
-    {
-            assert(m_map);
-            assert(offset <= PCIE_BAR_MAP_SIZE - 4);
-            pcie_write32(m_map + offset, v);
+    virtual void dev_write32(uint64_t offset, uint32_t v) {
+        assert(m_map);
+        assert(offset <= PCIE_BAR_MAP_SIZE - 4);
+        pcie_write32(m_map + offset, v);
     }
 
-    virtual void dev_write32_strong(uint64_t offset, uint32_t v)
-    {
-            assert(m_map);
-            assert(offset <= PCIE_BAR_MAP_SIZE - 4);
-            pcie_write32_strong(m_map + offset, v);
+    virtual void dev_write32_strong(uint64_t offset, uint32_t v) {
+        assert(m_map);
+        assert(offset <= PCIE_BAR_MAP_SIZE - 4);
+        pcie_write32_strong(m_map + offset, v);
     }
 
   protected:
     // Queue index.
     int m_queue_id;
 
-	// m_map holds a pointer to a mapped memory area that can be
-	// used for register accesses. Not all implementions will use it.
-    char *m_map;
+    // m_map holds a pointer to a mapped memory area that can be
+    // used for register accesses. Not all implementions will use it.
+    char* m_map;
 
-	// m_addr holds an address to the SPSC queue's SHM area. For some
-	// implementations this will simply be a user-space virtual address
-	// and for others it may be a physical address for HW DMA implementations
-	// to access.
+    // m_addr holds an address to the SPSC queue's SHM area. For some
+    // implementations this will simply be a user-space virtual address
+    // and for others it may be a physical address for HW DMA implementations
+    // to access.
     uint64_t m_addr;
 };
 
+static inline bool sb_init_queue(SB_base* s, const char* uri) {
+    int capacity;
 
-static inline bool sb_init_queue(SB_base *s, const char *uri) {
-        int capacity;
+    // Create queue's that fit into a single page.
+    capacity = spsc_capacity(getpagesize());
+    s->init(uri, capacity);
 
-        // Create queue's that fit into a single page.
-        capacity = spsc_capacity(getpagesize());
-        s->init(uri, capacity);
-
-        // Lock pages into RAM (avoid ondemand allocation or swapping).
-        if (s->mlock()) {
-            perror("mlock");
-            s->deinit();
-            return false;
-        }
-        return true;
+    // Lock pages into RAM (avoid ondemand allocation or swapping).
+    if (s->mlock()) {
+        perror("mlock");
+        s->deinit();
+        return false;
+    }
+    return true;
 }
 
-template<typename T>
-static inline bool sb_pcie_init(T *s, const char *uri,
-                                const char *bdf, int bar_num) {
+template <typename T>
+static inline bool sb_pcie_init(T* s, const char* uri, const char* bdf, int bar_num) {
     sb_init_queue(s, uri);
 
     if (!s->init_host(uri, bdf, bar_num, s->get_shm_handle())) {
@@ -206,14 +200,13 @@ static inline bool sb_pcie_init(T *s, const char *uri,
 
 class SBTX_pcie : public SBTX, public SB_pcie {
   public:
-    SBTX_pcie(int queue_id) : SB_pcie(queue_id) {
-    }
+    SBTX_pcie(int queue_id) : SB_pcie(queue_id) {}
 
     bool init(std::string uri, std::string bdf, int bar_num) {
         return init(uri.c_str(), bdf.c_str(), bar_num);
     }
 
-    bool init(const char *uri, const char *bdf, int bar_num) {
+    bool init(const char* uri, const char* bdf, int bar_num) {
         return sb_pcie_init(this, uri, bdf, bar_num);
     }
 
@@ -226,14 +219,13 @@ class SBTX_pcie : public SBTX, public SB_pcie {
 
 class SBRX_pcie : public SBRX, public SB_pcie {
   public:
-    SBRX_pcie(int queue_id) : SB_pcie(queue_id) {
-    }
+    SBRX_pcie(int queue_id) : SB_pcie(queue_id) {}
 
     bool init(std::string uri, std::string bdf, int bar_num) {
         return init(uri.c_str(), bdf.c_str(), bar_num);
     }
 
-    bool init(const char *uri, const char *bdf, int bar_num) {
+    bool init(const char* uri, const char* bdf, int bar_num) {
         return sb_pcie_init(this, uri, bdf, bar_num);
     }
 

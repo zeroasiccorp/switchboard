@@ -6,15 +6,15 @@
 #ifndef SPSC_QUEUE_H__
 #define SPSC_QUEUE_H__
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 #include <atomic>
@@ -34,14 +34,15 @@ using namespace std;
 typedef struct spsc_queue_shared {
     int32_t head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     int32_t tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
-    uint32_t packets[1][SPSC_QUEUE_MAX_PACKET_SIZE / 4] __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
+    uint32_t packets[1][SPSC_QUEUE_MAX_PACKET_SIZE / 4]
+        __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
 } spsc_queue_shared;
 
 typedef struct spsc_queue {
     int32_t cached_tail __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
     int32_t cached_head __attribute__((__aligned__(SPSC_QUEUE_CACHE_LINE_SIZE)));
-    spsc_queue_shared *shm;
-    char *name;
+    spsc_queue_shared* shm;
+    char* name;
     int capacity;
 
     bool unmap_at_close;
@@ -49,7 +50,7 @@ typedef struct spsc_queue {
 
 // Returns the capacity of a queue given a specific mapsize.
 static inline int spsc_capacity(size_t mapsize) {
-    spsc_queue *q = NULL;
+    spsc_queue* q = NULL;
     int capacity;
 
     if (mapsize < sizeof(*q->shm)) {
@@ -71,7 +72,7 @@ static inline int spsc_capacity(size_t mapsize) {
 }
 
 static inline size_t spsc_mapsize(int capacity) {
-    spsc_queue *q = NULL;
+    spsc_queue* q = NULL;
     size_t mapsize;
 
     assert(capacity >= 2);
@@ -85,10 +86,10 @@ static inline size_t spsc_mapsize(int capacity) {
     return mapsize;
 }
 
-static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void *mem) {
-    spsc_queue *q = NULL;
+static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void* mem) {
+    spsc_queue* q = NULL;
     size_t mapsize;
-    void *p;
+    void* p;
     int fd = -1;
     int r;
 
@@ -96,13 +97,12 @@ static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void 
     mapsize = spsc_mapsize(capacity);
 
     // Allocate a cache-line aligned spsc-queue.
-    r = posix_memalign(&p, SPSC_QUEUE_CACHE_LINE_SIZE,
-                       sizeof (spsc_queue));
+    r = posix_memalign(&p, SPSC_QUEUE_CACHE_LINE_SIZE, sizeof(spsc_queue));
     if (r) {
         fprintf(stderr, "posix_memalign: %s\n", strerror(r));
         goto err;
     }
-    q = (spsc_queue *) p;
+    q = (spsc_queue*)p;
     memset(q, 0, sizeof *q);
 
     p = mem;
@@ -121,9 +121,7 @@ static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void 
 
         // Map a shared file-backed mapping for the SHM area.
         // This will always be page-aligned.
-        p = mmap(NULL, mapsize,
-                 PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE,
-                 fd, 0);
+        p = mmap(NULL, mapsize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
 
         if (p == MAP_FAILED) {
             perror("mmap");
@@ -135,7 +133,7 @@ static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void 
         q->unmap_at_close = true;
     }
 
-    q->shm = (spsc_queue_shared *) p;
+    q->shm = (spsc_queue_shared*)p;
     q->name = strdup(name);
     q->capacity = capacity;
     return q;
@@ -148,7 +146,7 @@ err:
     return NULL;
 }
 
-static inline int spsc_mlock(spsc_queue *q) {
+static inline int spsc_mlock(spsc_queue* q) {
     size_t mapsize = spsc_mapsize(q->capacity);
 
     return mlock(q->shm, mapsize);
@@ -158,11 +156,11 @@ static inline spsc_queue* spsc_open(const char* name, size_t capacity) {
     return spsc_open_mem(name, capacity, NULL);
 }
 
-static inline void spsc_remove_shmfile(const char *name) {
+static inline void spsc_remove_shmfile(const char* name) {
     remove(name);
 }
 
-static inline void spsc_close(spsc_queue *q) {
+static inline void spsc_close(spsc_queue* q) {
     size_t mapsize;
 
     if (!q) {
@@ -180,7 +178,7 @@ static inline void spsc_close(spsc_queue *q) {
     free(q);
 }
 
-static inline int spsc_size(spsc_queue *q) {
+static inline int spsc_size(spsc_queue* q) {
     int head, tail;
     int size;
 
@@ -194,7 +192,7 @@ static inline int spsc_size(spsc_queue *q) {
     return size;
 }
 
-static inline bool spsc_send(spsc_queue *q, void *buf, size_t size) {
+static inline bool spsc_send(spsc_queue* q, void* buf, size_t size) {
     // get pointer to head
     int head;
 
@@ -225,7 +223,7 @@ static inline bool spsc_send(spsc_queue *q, void *buf, size_t size) {
     return true;
 }
 
-static inline bool spsc_recv_base(spsc_queue* q, void *buf, size_t size, bool pop) {
+static inline bool spsc_recv_base(spsc_queue* q, void* buf, size_t size, bool pop) {
     // get the read pointer
     int tail;
     __atomic_load(&q->shm->tail, &tail, __ATOMIC_RELAXED);
@@ -255,11 +253,11 @@ static inline bool spsc_recv_base(spsc_queue* q, void *buf, size_t size, bool po
     return true;
 }
 
-static inline bool spsc_recv(spsc_queue* q, void *buf, size_t size) {
+static inline bool spsc_recv(spsc_queue* q, void* buf, size_t size) {
     return spsc_recv_base(q, buf, size, true);
 }
 
-static inline bool spsc_recv_peek(spsc_queue* q, void *buf, size_t size) {
+static inline bool spsc_recv_peek(spsc_queue* q, void* buf, size_t size) {
     return spsc_recv_base(q, buf, size, false);
 }
 #endif // _SPSC_QUEUE

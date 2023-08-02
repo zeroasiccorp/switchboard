@@ -13,7 +13,7 @@ static std::vector<int> txwidth;
 static std::chrono::steady_clock::time_point start_time;
 
 PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
-    (void)userdata;  // unused
+    (void)userdata; // unused
 
     // get arguments
     vpiHandle args_iter;
@@ -22,7 +22,7 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i=0; i<3; i++) {
+        for (size_t i = 0; i < 3; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -31,7 +31,7 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
     std::string uri;
     {
         t_vpi_value argval;
-	    argval.format = vpiStringVal;
+        argval.format = vpiStringVal;
         vpi_get_value(argh[1], &argval);
         uri = std::string(argval.value.str);
     }
@@ -44,7 +44,7 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
     int width;
     {
         t_vpi_value argval;
-	    argval.format = vpiIntVal;
+        argval.format = vpiIntVal;
         vpi_get_value(argh[2], &argval);
         width = argval.value.integer;
     }
@@ -56,7 +56,7 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiIntVal;
-        argval.value.integer = rxconn.size()-1;
+        argval.value.integer = rxconn.size() - 1;
         vpi_put_value(argh[0], &argval, NULL, vpiNoDelay);
     }
 
@@ -68,7 +68,7 @@ PLI_INT32 pi_sb_rx_init(PLI_BYTE8* userdata) {
 }
 
 PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
-    (void)userdata;  // unused
+    (void)userdata; // unused
 
     // get arguments
     vpiHandle args_iter;
@@ -77,7 +77,7 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i=0; i<3; i++) {
+        for (size_t i = 0; i < 3; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -86,7 +86,7 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
     std::string uri;
     {
         t_vpi_value argval;
-	    argval.format = vpiStringVal;
+        argval.format = vpiStringVal;
         vpi_get_value(argh[1], &argval);
         uri = std::string(argval.value.str);
     }
@@ -99,7 +99,7 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
     int width;
     {
         t_vpi_value argval;
-	    argval.format = vpiIntVal;
+        argval.format = vpiIntVal;
         vpi_get_value(argh[2], &argval);
         width = argval.value.integer;
     }
@@ -111,7 +111,7 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiIntVal;
-        argval.value.integer = txconn.size()-1;
+        argval.value.integer = txconn.size() - 1;
         vpi_put_value(argh[0], &argval, NULL, vpiNoDelay);
     }
 
@@ -123,7 +123,7 @@ PLI_INT32 pi_sb_tx_init(PLI_BYTE8* userdata) {
 }
 
 PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
-    (void)userdata;  // unused
+    (void)userdata; // unused
 
     // get arguments
     vpiHandle args_iter;
@@ -132,7 +132,7 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i=0; i<5; i++) {
+        for (size_t i = 0; i < 5; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -141,7 +141,7 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
     int id;
     {
         t_vpi_value argval;
-	    argval.format = vpiIntVal;
+        argval.format = vpiIntVal;
         vpi_get_value(argh[0], &argval);
         id = argval.value.integer;
     }
@@ -157,11 +157,11 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
 
         // store data
         argval.format = vpiVectorVal;
-        s_vpi_vecval vecval[SB_DATA_SIZE/4];
+        s_vpi_vecval vecval[SB_DATA_SIZE / 4];
         argval.value.vector = vecval;
-        int nwords = rxwidth[id]/4;
-        for (int i=0; i<nwords; i++) {
-            argval.value.vector[i].aval = *((uint32_t*)(&p.data[i*4]));
+        int nwords = rxwidth[id] / 4;
+        for (int i = 0; i < nwords; i++) {
+            argval.value.vector[i].aval = *((uint32_t*)(&p.data[i * 4]));
             argval.value.vector[i].bval = 0;
         }
         vpi_put_value(argh[1], &argval, NULL, vpiNoDelay);
@@ -177,7 +177,7 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
         vpi_put_value(argh[3], &argval, NULL, vpiNoDelay);
     } else {
         success = 0;
-    } 
+    }
 
     // indicate success
     {
@@ -195,7 +195,7 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
 }
 
 PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
-    (void)userdata;  // unused
+    (void)userdata; // unused
 
     // get arguments
     vpiHandle args_iter;
@@ -204,7 +204,7 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i=0; i<5; i++) {
+        for (size_t i = 0; i < 5; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -213,7 +213,7 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
     int id;
     {
         t_vpi_value argval;
-	    argval.format = vpiIntVal;
+        argval.format = vpiIntVal;
         vpi_get_value(argh[0], &argval);
         id = argval.value.integer;
     }
@@ -227,9 +227,9 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
         // store data
         argval.format = vpiVectorVal;
         vpi_get_value(argh[1], &argval);
-        int nwords = txwidth[id]/4;
-        for (int i=0; i<nwords; i++) {
-            *((uint32_t*)(&p.data[i*4])) = argval.value.vector[i].aval;
+        int nwords = txwidth[id] / 4;
+        for (int i = 0; i < nwords; i++) {
+            *((uint32_t*)(&p.data[i * 4])) = argval.value.vector[i].aval;
         }
 
         // store destination
@@ -242,7 +242,7 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
         vpi_get_value(argh[3], &argval);
         p.last = argval.value.integer;
     }
-    
+
     // try to send packet
     int success;
     if (txconn[id]->send(p)) {
@@ -259,15 +259,15 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
         vpi_put_value(argh[4], &argval, NULL, vpiNoDelay);
     }
 
-	// clean up
-	vpi_free_object(args_iter);
+    // clean up
+    vpi_free_object(args_iter);
 
     // return value unused?
     return 0;
 }
 
 PLI_INT32 pi_time_taken(PLI_BYTE8* userdata) {
-    (void)userdata;  // unused
+    (void)userdata; // unused
 
     // get argument
 
@@ -275,22 +275,24 @@ PLI_INT32 pi_time_taken(PLI_BYTE8* userdata) {
     vpiHandle argh;
     t_vpi_value argval;
 
-	systfref = vpi_handle(vpiSysTfCall, NULL);
-	args_iter = vpi_iterate(vpiArgument, systfref);
+    systfref = vpi_handle(vpiSysTfCall, NULL);
+    args_iter = vpi_iterate(vpiArgument, systfref);
     argh = vpi_scan(args_iter);
 
     // calculate the time taken
-	std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
-    double t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
+    std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
+    double t =
+        1.0e-6 *
+        (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
     start_time = stop_time;
 
     // store the time taken
-	argval.format = vpiRealVal;
+    argval.format = vpiRealVal;
     argval.value.real = t;
     vpi_put_value(argh, &argval, NULL, vpiNoDelay);
 
-	// clean up
-	vpi_free_object(args_iter);
+    // clean up
+    vpi_free_object(args_iter);
 
     // return value unused?
     return 0;
@@ -299,19 +301,11 @@ PLI_INT32 pi_time_taken(PLI_BYTE8* userdata) {
 // macro that creates a function to register PLI functions
 
 #define VPI_REGISTER_FUNC_NAME(name) register_##name
-#define VPI_REGISTER_FUNC(name) \
-    void VPI_REGISTER_FUNC_NAME(name)(void) { \
-        s_vpi_systf_data data = { \
-		    vpiSysTask, \
-		    0, \
-		    (char*)("$"#name), \
-		    name, \
-		    0, \
-		    0, \
-		    0 \
-	    }; \
-\
-	    vpi_register_systf(&data); \
+#define VPI_REGISTER_FUNC(name)                                                                    \
+    void VPI_REGISTER_FUNC_NAME(name)(void) {                                                      \
+        s_vpi_systf_data data = {vpiSysTask, 0, (char*)("$" #name), name, 0, 0, 0};                \
+                                                                                                   \
+        vpi_register_systf(&data);                                                                 \
     }
 
 // create the PLI registration functions using this macro
@@ -323,10 +317,8 @@ VPI_REGISTER_FUNC(pi_sb_send)
 VPI_REGISTER_FUNC(pi_time_taken)
 
 void (*vlog_startup_routines[])(void) = {
-    VPI_REGISTER_FUNC_NAME(pi_sb_rx_init),
-    VPI_REGISTER_FUNC_NAME(pi_sb_tx_init),
-    VPI_REGISTER_FUNC_NAME(pi_sb_recv),
-    VPI_REGISTER_FUNC_NAME(pi_sb_send),
+    VPI_REGISTER_FUNC_NAME(pi_sb_rx_init), VPI_REGISTER_FUNC_NAME(pi_sb_tx_init),
+    VPI_REGISTER_FUNC_NAME(pi_sb_recv), VPI_REGISTER_FUNC_NAME(pi_sb_send),
     VPI_REGISTER_FUNC_NAME(pi_time_taken),
-	0  // last entry must be 0
+    0 // last entry must be 0
 };

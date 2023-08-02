@@ -5,7 +5,7 @@ int main(int argc, char* argv[]) {
 
     int arg_idx = 1;
 
-    bool is_first=false;
+    bool is_first = false;
     if (arg_idx < argc) {
         const char* arg = argv[arg_idx++];
         if (strcmp(arg, "second") == 0) {
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     char tx_port[128];
     sprintf(tx_port, "queue-%s", tx_arg);
 
-    int iterations=10000000;
+    int iterations = 10000000;
     if (arg_idx < argc) {
         const char* arg = argv[arg_idx++];
         if (strcmp(arg, "-") != 0) {
@@ -51,16 +51,18 @@ int main(int argc, char* argv[]) {
 
     if (is_first) {
         // start measuring time taken
-	    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
         while (count < iterations) {
             // busy-loop for minimum latency
-            while(!tx.send(p));
-            while(!rx.recv(p));
+            while (!tx.send(p))
+                ;
+            while (!rx.recv(p))
+                ;
 
-            for (int i=0; i<8; i++) {
+            for (int i = 0; i < 8; i++) {
                 // TODO: clean this up...
-                (*((uint32_t*)(&p.data[4*i])))++;
+                (*((uint32_t*)(&p.data[4 * i])))++;
             }
 
             count++;
@@ -68,9 +70,9 @@ int main(int argc, char* argv[]) {
 
         // print output to make sure it is not optimized away
         printf("Output: {");
-        for (int i=0; i<8; i++) {
+        for (int i = 0; i < 8; i++) {
             // TODO: clean this up...
-            printf("%0d", *((uint32_t*)(&p.data[4*i])));
+            printf("%0d", *((uint32_t*)(&p.data[4 * i])));
             if (i != 7) {
                 printf(", ");
             }
@@ -79,22 +81,26 @@ int main(int argc, char* argv[]) {
 
         // stop measuring time taken
         std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
-        double t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
+        double t =
+            1.0e-6 *
+            (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
 
-        double latency = t/(1.0*iterations);
-        printf("Latency: %0.1f ns\n", latency*1.0e9);
+        double latency = t / (1.0 * iterations);
+        printf("Latency: %0.1f ns\n", latency * 1.0e9);
     } else {
         while (count < iterations) {
             // busy-loop for minimum latency
-            while(!rx.recv(p));
+            while (!rx.recv(p))
+                ;
 
-            for (int i=0; i<8; i++) {
+            for (int i = 0; i < 8; i++) {
                 // TODO: clean this up...
-                (*((uint32_t*)(&p.data[4*i])))++;
+                (*((uint32_t*)(&p.data[4 * i])))++;
             }
 
             // busy-loop for minimum latency
-            while(!tx.send(p));
+            while (!tx.send(p))
+                ;
 
             count++;
         }

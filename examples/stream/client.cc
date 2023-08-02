@@ -1,12 +1,12 @@
-#include <stdint.h>
-#include <cinttypes>
 #include "switchboard.hpp"
+#include <cinttypes>
+#include <stdint.h>
 
 int main() {
     SBTX tx;
     SBRX rx;
 
-    int iterations=10;
+    int iterations = 10;
 
     // initialize connections
 
@@ -20,10 +20,10 @@ int main() {
     memset(&rxp, 0, sizeof(rxp));
 
     // loopback test
-    
+
     uint64_t txcount = 0;
     uint64_t rxcount = 0;
-    
+
     int exit_code = 0;
 
     while ((txcount < iterations) && (rxcount < iterations)) {
@@ -39,11 +39,12 @@ int main() {
             uint64_t tmp;
             memcpy(&tmp, rxp.data, sizeof(tmp));
             if (tmp != (rxcount + 42)) {
-                printf("*** ERROR: data mismatch, got %" PRId64 " but expected %" PRId64 "\n", tmp, rxcount);
+                printf("*** ERROR: data mismatch, got %" PRId64 " but expected %" PRId64 "\n", tmp,
+                    rxcount);
                 exit_code = 1;
                 break;
             }
-         
+
             // increment the receive counter
             rxcount++;
         }
@@ -51,7 +52,7 @@ int main() {
 
     // send a packet that will end the test
 
-    for (int i=0; i<32; i++) {
+    for (int i = 0; i < 32; i++) {
         txp.data[i] = 0xff;
     }
     tx.send_blocking(txp);

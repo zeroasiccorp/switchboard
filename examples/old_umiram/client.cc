@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <stdint.h>
 #include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
 
-#include "switchboard.hpp"
 #include "old_umilib.hpp"
+#include "switchboard.hpp"
 
 void print_packet_details(const uint32_t* p) {
     uint32_t opcode, size, user;
@@ -55,8 +55,7 @@ int main() {
     uint64_t dstaddr, srcaddr;
     uint32_t data_arr[4];
 
-    old_umi_unpack((uint32_t*)p.data, opcode, size, user,
-        dstaddr, srcaddr, (uint8_t*)data_arr, 16);
+    old_umi_unpack((uint32_t*)p.data, opcode, size, user, dstaddr, srcaddr, (uint8_t*)data_arr, 16);
 
     assert(data_arr[0] == 0xBEEFCAFE);
 
