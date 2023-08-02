@@ -1,0 +1,41 @@
+name: add-ssh-key
+inputs:
+  ssh-key:
+    description: 'SSH key to add'
+    required: true
+    default: ''
+  ssh-auth-sock:
+    description: 'Socket file to use'
+    required: false
+    default: '/tmp/ssh_agent.sock'
+  ssh-host:
+    description: 'Hostname to add'
+    required: false
+    default: 'github.com'
+  ssh-known-hosts:
+    description: 'Location of the SSH known hosts file'
+    required: false
+    default: '/etc/ssh/ssh_known_hosts'
+
+runs:
+  using: 'composite'
+  steps:
+    # ref: https://maxschmitt.me/posts/github-actions-ssh-key
+
+    # when using sbtest, using the default SSH known hosts
+    # value, /etc/ssh/ssh_known_hosts, is critical to making
+    # this work properly.  using ~/.ssh/known_hosts does not
+    # work in that situation.
+
+    - name: Add SSH key
+      shell: bash
+      env:
+        SSH_AUTH_SOCK: ${{ inputs.ssh-auth-sock }}
+      run: |
+        mkdir -p `dirname ${{ inputs.ssh-known-hosts }}`
+        touch ${{ inputs.ssh-known-hosts }}
+        ssh-keygen -R ${{ inputs.ssh-host }} -f ${{ inputs.ssh-known-hosts }}
+        ssh-keyscan ${{ inputs.ssh-host }} >> ${{ inputs.ssh-known-hosts }}
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null	
+        ssh-add - <<< "${{ inputs.ssh-key }}"
+        echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV

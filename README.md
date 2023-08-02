@@ -30,10 +30,18 @@ If you're a switchboard developer, we recommend cloning the repo and installing 
 ```shell
 > git clone https://github.com/zeroasiccorp/switchboard.git
 > cd switchboard
-> git submodule update --init --recursive
+> git submodule update --init
 > pip install --upgrade pip
 > pip install -e .
 ```
+
+To run the examples below, you'll also need to run the following command:
+
+```
+> ./examples/get_deps.py
+```
+
+This clones some additional repositories that are only used in the examples.  These are not made "official" git submodules to prevent `pip` from cloning them, which adds about 5 minutes to the installation.
 
 ## Example
 
