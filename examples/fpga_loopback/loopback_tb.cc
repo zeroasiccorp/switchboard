@@ -45,10 +45,12 @@ using namespace std;
 #include "checkers/pc-axilite.h"
 #include "test-modules/signals-axi.h"
 #include "test-modules/signals-axilite.h"
-#include "test-modules/utils.h"
 #include "trace/trace.h"
 #include "traffic-generators/tg-tlm.h"
 #include "traffic-generators/traffic-desc.h"
+// clang-format off: utils.h relies on a header included by tg-tlm.h
+#include "test-modules/utils.h"
+// clang-format on
 
 #include "soc/interconnect/iconnect.h"
 
