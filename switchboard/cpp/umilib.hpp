@@ -1,12 +1,11 @@
 #ifndef __UMILIB_HPP__
 #define __UMILIB_HPP__
 
-#include <string>
 #include "umilib.h"
+#include <string>
 
-static inline uint32_t umi_pack(uint32_t opcode, uint32_t atype, uint32_t size,
-    uint32_t len, uint32_t eom, uint32_t eof, uint32_t qos=0, uint32_t prot=0,
-    uint32_t ex=0) {
+static inline uint32_t umi_pack(uint32_t opcode, uint32_t atype, uint32_t size, uint32_t len,
+    uint32_t eom, uint32_t eof, uint32_t qos = 0, uint32_t prot = 0, uint32_t ex = 0) {
 
     uint32_t cmd = 0;
 
@@ -26,9 +25,8 @@ static inline uint32_t umi_pack(uint32_t opcode, uint32_t atype, uint32_t size,
     return cmd;
 }
 
-static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
-    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos,
-    uint32_t& prot, uint32_t& ex) {
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype, uint32_t& size,
+    uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos, uint32_t& prot, uint32_t& ex) {
 
     opcode = umi_opcode(cmd);
     size = umi_size(cmd);
@@ -41,21 +39,20 @@ static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
     ex = umi_ex(cmd);
 }
 
-static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
-    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof) {
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype, uint32_t& size,
+    uint32_t& len, uint32_t& eom, uint32_t& eof) {
     uint32_t qos, prot, ex;
     umi_unpack(cmd, opcode, atype, size, len, eom, eof, qos, prot, ex);
 }
 
-static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
-    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos) {
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype, uint32_t& size,
+    uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos) {
     uint32_t prot, ex;
     umi_unpack(cmd, opcode, atype, size, len, eom, eof, qos, prot, ex);
 }
 
-static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype,
-    uint32_t& size, uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos,
-    uint32_t& prot) {
+static inline void umi_unpack(uint32_t cmd, uint32_t& opcode, uint32_t& atype, uint32_t& size,
+    uint32_t& len, uint32_t& eom, uint32_t& eof, uint32_t& qos, uint32_t& prot) {
     uint32_t ex;
     umi_unpack(cmd, opcode, atype, size, len, eom, eof, qos, prot, ex);
 }

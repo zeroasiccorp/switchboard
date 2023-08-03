@@ -11,7 +11,9 @@
 #include "Vtestbench.h"
 
 // Legacy function required only so linking works on Cygwin and MSVC++
-double sc_time_stamp() { return 0; }
+double sc_time_stamp() {
+    return 0;
+}
 
 // ref: https://stackoverflow.com/a/4217052
 static volatile int got_sigint = 0;
@@ -58,7 +60,7 @@ int main(int argc, char** argv, char** env) {
         // being used (per thread).  It's faster and clearer to use the
         // newer contextp-> versions.
 
-        contextp->timeInc(1);  // 1 timeprecision period passes...
+        contextp->timeInc(1); // 1 timeprecision period passes...
         // Historical note, before Verilator 4.200 a sc_time_stamp()
         // function was required instead of using timeInc.  Once timeInc()
         // is called (with non-zero), the Verilated libraries assume the

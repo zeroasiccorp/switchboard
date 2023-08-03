@@ -1,12 +1,12 @@
 #ifndef __SWITCHBOARD_HPP__
 #define __SWITCHBOARD_HPP__
 
-#include <string>
 #include <array>
 #include <cstdio>
+#include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
-#include <stdexcept>
 
 #include "spsc_queue.h"
 
@@ -22,112 +22,112 @@ struct sb_packet {
         uint32_t flags;
     };
     uint8_t data[SB_DATA_SIZE];
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 class SB_base {
-    public:
-        SB_base() : m_active(false), m_q(NULL) {}
+  public:
+    SB_base() : m_active(false), m_q(NULL) {}
 
-        virtual ~SB_base() {
-            deinit();
+    virtual ~SB_base() {
+        deinit();
+    }
+
+    void init(std::string uri) {
+        init(uri.c_str());
+    }
+
+    void init(const char* uri, size_t capacity = 0) {
+        // Default to one page of capacity
+        if (capacity == 0) {
+            capacity = spsc_capacity(getpagesize());
         }
+        m_q = spsc_open(uri, capacity);
+        m_active = true;
+    }
 
-        void init(std::string uri) {
-            init(uri.c_str());
+    void deinit(void) {
+        spsc_close(m_q);
+        m_active = false;
+    }
+
+    bool is_active() {
+        return m_active;
+    }
+
+    int mlock(void) {
+        check_active();
+        assert(m_q);
+        return spsc_mlock(m_q);
+    }
+
+    int get_capacity(void) {
+        check_active();
+        return m_q->capacity;
+    }
+
+    void* get_shm_handle(void) {
+        check_active();
+        return m_q->shm;
+    }
+
+  protected:
+    void check_active(void) {
+        if (!m_active) {
+            throw std::runtime_error("Using an uninitialized SB queue!");
         }
+    }
 
-        void init(const char* uri, size_t capacity = 0) {
-            // Default to one page of capacity
-            if (capacity == 0) {
-                capacity = spsc_capacity(getpagesize());
-            }
-            m_q = spsc_open(uri, capacity);
-            m_active = true;
-        }
-
-        void deinit(void) {
-            spsc_close(m_q);
-            m_active = false;
-        }
-
-        bool is_active() {
-            return m_active;
-        }
-
-        int mlock(void) {
-            check_active();
-            assert(m_q);
-            return spsc_mlock(m_q);
-        }
-
-        int get_capacity(void) {
-            check_active();
-            return m_q->capacity;
-        }
-
-        void *get_shm_handle(void) {
-            check_active();
-            return m_q->shm;
-        }
-    protected:
-
-        void check_active(void) {
-            if (!m_active) {
-                throw std::runtime_error("Using an uninitialized SB queue!");
-            }
-        }
-
-        bool m_auto_deinit;
-        bool m_active;
-        spsc_queue *m_q;
+    bool m_auto_deinit;
+    bool m_active;
+    spsc_queue* m_q;
 };
 
 class SBTX : public SB_base {
-    public:
-        SBTX () {}
+  public:
+    SBTX() {}
 
-        bool send(sb_packet& p) {
-            check_active();
-            return spsc_send(m_q, &p, sizeof p);
-        }
+    bool send(sb_packet& p) {
+        check_active();
+        return spsc_send(m_q, &p, sizeof p);
+    }
 
-        void send_blocking(sb_packet& p) {
-            while(!send(p)) {
-                std::this_thread::yield();
-            }
+    void send_blocking(sb_packet& p) {
+        while (!send(p)) {
+            std::this_thread::yield();
         }
+    }
 
-        bool all_read() {
-            check_active();
-            return spsc_size(m_q) == 0;
-        }
+    bool all_read() {
+        check_active();
+        return spsc_size(m_q) == 0;
+    }
 };
 
 class SBRX : public SB_base {
-    public:
-        SBRX () {}
+  public:
+    SBRX() {}
 
-        bool recv(sb_packet& p) {
-            check_active();
-            return spsc_recv(m_q, &p, sizeof p);
-        }
+    bool recv(sb_packet& p) {
+        check_active();
+        return spsc_recv(m_q, &p, sizeof p);
+    }
 
-        bool recv() {
-            check_active();
-            sb_packet dummy_p;
-            return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
-        }
+    bool recv() {
+        check_active();
+        sb_packet dummy_p;
+        return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
+    }
 
-        void recv_blocking(sb_packet& p){
-            while(!recv(p)) {
-                std::this_thread::yield();
-            }
+    void recv_blocking(sb_packet& p) {
+        while (!recv(p)) {
+            std::this_thread::yield();
         }
+    }
 
-        bool recv_peek(sb_packet& p) {
-            check_active();
-            return spsc_recv_peek(m_q, &p, sizeof p);
-        }
+    bool recv_peek(sb_packet& p) {
+        check_active();
+        return spsc_recv_peek(m_q, &p, sizeof p);
+    }
 };
 
 static inline void delete_shared_queue(const char* name) {
@@ -138,7 +138,7 @@ static inline void delete_shared_queue(std::string name) {
     delete_shared_queue(name.c_str());
 }
 
-static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes=-1) {
+static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes = -1) {
     // determine how many bytes to print
     size_t max_idx;
     if (nbytes < 0) {
@@ -159,10 +159,10 @@ static inline std::string sb_packet_to_str(sb_packet p, ssize_t nbytes=-1) {
     retval += buf;
 
     // format data
-    for (size_t i=0; i<max_idx; i++) {
+    for (size_t i = 0; i < max_idx; i++) {
         sprintf(buf, "%02x", p.data[i]);
         retval += buf;
-        if (i != (max_idx-1)) {
+        if (i != (max_idx - 1)) {
             retval += ", ";
         }
     }

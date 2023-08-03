@@ -1,20 +1,21 @@
+#include <assert.h>
 #include <chrono>
 #include <memory>
 #include <vector>
-#include <assert.h>
 
-#include "switchboard.hpp"
 #include "svdpi.h"
+#include "switchboard.hpp"
 
 // function definitions
 #ifdef __cplusplus
 extern "C" {
 #endif
-    extern void pi_sb_rx_init(int* id, const char* uri, int width);
-    extern void pi_sb_tx_init(int* id, const char* uri, int width);
-    extern void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, int* success);
-    extern void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast, int* success);
-    extern void pi_time_taken(double* t);
+extern void pi_sb_rx_init(int* id, const char* uri, int width);
+extern void pi_sb_tx_init(int* id, const char* uri, int width);
+extern void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, int* success);
+extern void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast,
+    int* success);
+extern void pi_time_taken(double* t);
 #ifdef __cplusplus
 }
 #endif
@@ -59,10 +60,11 @@ void pi_sb_recv(int id, svBitVecVal* rdata, svBitVecVal* rdest, svBit* rlast, in
         *success = 1;
     } else {
         *success = 0;
-    } 
+    }
 }
 
-void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast, int* success) {
+void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBit slast,
+    int* success) {
     // make sure this is a valid id
     assert(id < txconn.size());
 
@@ -71,7 +73,7 @@ void pi_sb_send(int id, const svBitVecVal* sdata, const svBitVecVal* sdest, svBi
     memcpy(p.data, sdata, txwidth[id]);
     p.destination = *sdest;
     p.last = slast;
-    
+
     // try to send the packet
     if (txconn[id]->send(p)) {
         *success = 1;
@@ -85,7 +87,8 @@ void pi_time_taken(double* t) {
     static std::chrono::steady_clock::time_point stop_time;
 
     // compute time taken in seconds
-	stop_time = std::chrono::steady_clock::now();
-    *t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
+    stop_time = std::chrono::steady_clock::now();
+    *t = 1.0e-6 *
+         (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
     start_time = std::chrono::steady_clock::now();
 }

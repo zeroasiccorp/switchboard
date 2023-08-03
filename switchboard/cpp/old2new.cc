@@ -7,24 +7,24 @@
 // TODO: make the trailing colon optional
 // Copyright: (c) 2023 Zero ASIC. All rights reserved.
 
-#include <vector>  // for std::vector
-#include <memory>  // for std::unique_ptr
-#include <string>  // for std::string
-#include <algorithm>  // for std::min
-#include <stdexcept>  // for std::runtime_error
-#include <thread>  // for std::this_thread
+#include <algorithm> // for std::min
+#include <memory>    // for std::unique_ptr
+#include <stdexcept> // for std::runtime_error
+#include <string>    // for std::string
+#include <thread>    // for std::this_thread
+#include <vector>    // for std::vector
 
+#include <signal.h> // for sig_atomic_t, signal
 #include <stdio.h>  // for printf
-#include <signal.h>  // for sig_atomic_t, signal
 
-#include "switchboard.hpp"
+#include "bitutil.h"
+#include "old_umilib.h"
 #include "old_umilib.hpp"
 #include "old_umisb.hpp"
-#include "old_umilib.h"
+#include "switchboard.hpp"
+#include "umilib.h"
 #include "umilib.hpp"
 #include "umisb.hpp"
-#include "umilib.h"
-#include "bitutil.h"
 
 std::vector<std::unique_ptr<SBRX>> old_rx;
 std::vector<std::unique_ptr<SBTX>> old_tx;
@@ -70,7 +70,7 @@ void init(int argc, char* argv[]) {
 
             // ref: https://stackoverflow.com/a/14266139
             std::string delim = ":";
-            for (int i=0; i<=5; i++) {
+            for (int i = 0; i <= 5; i++) {
                 size_t pos = s.find(delim);
                 std::string token;
                 if (pos != std::string::npos) {
@@ -135,7 +135,7 @@ int main(int argc, char* argv[]) {
     while (!quit) {
         bool any_received = false;
 
-        for (int i=0; i<nconn; i++) {
+        for (int i = 0; i < nconn; i++) {
             ////////////
             // old_rx //
             ////////////
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
                             old_resp_txn.resize(1 << old_req_txn.size);
 
                             // issue new UMI read(s)
-                            int nreq = 1<<old_req_txn.size;
+                            int nreq = 1 << old_req_txn.size;
                             int nresp = nreq;
                             uint8_t* ptr = old_resp_txn.ptr();
                             uint64_t dstaddr = old_req_txn.dstaddr;
@@ -166,8 +166,8 @@ int main(int argc, char* argv[]) {
                                     // TODO: could issue fewer reads
                                     uint32_t nbytes = std::min(nreq, 32);
                                     uint32_t eom = (nbytes == nreq) ? 1 : 0;
-                                    uint32_t cmd = umi_pack(UMI_REQ_READ, 0, 0, nbytes-1, eom, 1,
-                                        0, 0, 0);
+                                    uint32_t cmd =
+                                        umi_pack(UMI_REQ_READ, 0, 0, nbytes - 1, eom, 1, 0, 0, 0);
                                     UmiTransaction new_req_txn(cmd, dstaddr, srcaddr);
                                     if (umisb_send(new_req_txn, *new_req_tx[i], false)) {
                                         nreq -= nbytes;
@@ -189,18 +189,20 @@ int main(int argc, char* argv[]) {
                             // send that back via old_umisb_send
                             old_umisb_send(old_resp_txn, *old_tx[i]);
                         } else {
-                            throw std::runtime_error("new_req_tx, new_resp_rx, and/or old_tx not active");
+                            throw std::runtime_error(
+                                "new_req_tx, new_resp_rx, and/or old_tx not active");
                         }
                     } else if (old_is_umi_atomic(old_req_txn.opcode)) {
-                        if (new_req_tx[i]->is_active() && new_resp_rx[i]->is_active()
-                            && old_tx[i]->is_active()) {
+                        if (new_req_tx[i]->is_active() && new_resp_rx[i]->is_active() &&
+                            old_tx[i]->is_active()) {
                             // issue new UMI atomic
                             // fortunately, a shift is all that's necessary to
                             // translate between old and new atomic opcodes
                             uint32_t atype = old_req_txn.opcode >> 4;
-                            uint32_t cmd = umi_pack(UMI_REQ_ATOMIC, atype, old_req_txn.size, 0, 1, 1);
-                            UmiTransaction new_req_txn(cmd, old_req_txn.dstaddr, old_req_txn.srcaddr,
-                                old_req_txn.ptr(), old_req_txn.nbytes());
+                            uint32_t cmd =
+                                umi_pack(UMI_REQ_ATOMIC, atype, old_req_txn.size, 0, 1, 1);
+                            UmiTransaction new_req_txn(cmd, old_req_txn.dstaddr,
+                                old_req_txn.srcaddr, old_req_txn.ptr(), old_req_txn.nbytes());
                             umisb_send(new_req_txn, *new_req_tx[i]);
 
                             // get result
@@ -216,20 +218,22 @@ int main(int argc, char* argv[]) {
                             // send that back via old_umisb_send
                             old_umisb_send(old_resp_txn, *old_tx[i]);
                         } else {
-                            throw std::runtime_error("new_req_tx, new_resp_rx, and/or old_tx not active");
+                            throw std::runtime_error(
+                                "new_req_tx, new_resp_rx, and/or old_tx not active");
                         }
                     } else if (old_is_umi_write_posted(old_req_txn.opcode)) {
                         // this should only be a write originating from the old block
                         if (new_req_tx[i]->is_active()) {
                             // issue new UMI posted writes(s)
-                            int nreq = 1<<old_req_txn.size;
+                            int nreq = 1 << old_req_txn.size;
                             uint64_t dstaddr = old_req_txn.dstaddr;
                             uint64_t srcaddr = old_req_txn.srcaddr;
                             uint8_t* ptr = old_req_txn.ptr();
                             while (nreq > 0) {
                                 uint32_t nbytes = std::min(nreq, 32);
                                 uint32_t eom = (nbytes == nreq) ? 1 : 0;
-                                uint32_t cmd = umi_pack(UMI_REQ_POSTED, 0, 0, nbytes-1, eom, 1, 0, 0, 0);
+                                uint32_t cmd =
+                                    umi_pack(UMI_REQ_POSTED, 0, 0, nbytes - 1, eom, 1, 0, 0, 0);
                                 UmiTransaction new_req_txn(cmd, dstaddr, srcaddr, ptr, nbytes);
                                 umisb_send(new_req_txn, *new_req_tx[i]);
                                 nreq -= nbytes;
@@ -260,15 +264,14 @@ int main(int argc, char* argv[]) {
                         // issue old posted write(s).  this may need to be broken
                         // up into multiple writes if not a power of two
                         if (old_tx[i]->is_active()) {
-                            int nreq = (umi_len(new_req_txn.cmd)+1)<<umi_size(new_req_txn.cmd);
+                            int nreq = (umi_len(new_req_txn.cmd) + 1) << umi_size(new_req_txn.cmd);
                             uint64_t dstaddr = new_req_txn.dstaddr;
                             uint64_t srcaddr = new_req_txn.srcaddr;
                             uint8_t* ptr = new_req_txn.ptr();
                             while (nreq > 0) {
                                 // send the largest amount of data that can
                                 // be transmitted in an aligned fashion
-                                ssize_t pow2 = std::min(highest_bit(nreq),
-                                    lowest_bit(dstaddr));
+                                ssize_t pow2 = std::min(highest_bit(nreq), lowest_bit(dstaddr));
                                 // SIZE=15 is the maximum for old UMI transactions
                                 pow2 = std::min(pow2, (ssize_t)15);
 
@@ -277,8 +280,8 @@ int main(int argc, char* argv[]) {
 
                                 // even if the opcode is UMI_REQ_WRITE, use an old posted
                                 // write, since old UMI HW did not implement ack'd writes
-                                OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2,
-                                    0, dstaddr, srcaddr, ptr, nbytes);
+                                OldUmiTransaction old_req_txn(OLD_UMI_WRITE_POSTED, pow2, 0,
+                                    dstaddr, srcaddr, ptr, nbytes);
 
                                 // might as well block since there aren't other
                                 // transactions outstanding
@@ -293,9 +296,10 @@ int main(int argc, char* argv[]) {
                             if (opcode == UMI_REQ_WRITE) {
                                 // send back a write response if needed
                                 // note the swapped srcaddr and dstaddr
-                                uint32_t cmd = umi_pack(UMI_RESP_WRITE, 0, umi_size(new_req_txn.cmd),
-                                    umi_len(new_req_txn.cmd), 1, 1);
-                                UmiTransaction umi_resp_txn(cmd, new_req_txn.srcaddr, new_req_txn.dstaddr);
+                                uint32_t cmd = umi_pack(UMI_RESP_WRITE, 0,
+                                    umi_size(new_req_txn.cmd), umi_len(new_req_txn.cmd), 1, 1);
+                                UmiTransaction umi_resp_txn(cmd, new_req_txn.srcaddr,
+                                    new_req_txn.dstaddr);
                                 if (new_resp_tx[i]->is_active()) {
                                     umisb_send(umi_resp_txn, *new_resp_tx[i]);
                                 } else {
@@ -309,12 +313,14 @@ int main(int argc, char* argv[]) {
                         // issue old read(s).  this may need to be broken up
                         // into multiple reads if not a power of two
 
-                        if (old_tx[i]->is_active() && old_rx[i]->is_active() && new_resp_tx[i]->is_active()) {
+                        if (old_tx[i]->is_active() && old_rx[i]->is_active() &&
+                            new_resp_tx[i]->is_active()) {
                             // issue old reads to get the data
-                            int old_nreq = (umi_len(new_req_txn.cmd)+1)<<umi_size(new_req_txn.cmd);
+                            int old_nreq = (umi_len(new_req_txn.cmd) + 1)
+                                           << umi_size(new_req_txn.cmd);
                             int old_nresp = old_nreq;
                             int new_nresp = old_nreq;
-                            uint8_t* data = new uint8_t[old_nreq];  // max size is 32k
+                            uint8_t* data = new uint8_t[old_nreq]; // max size is 32k
                             uint64_t old_dstaddr = new_req_txn.dstaddr;
                             uint64_t old_srcaddr = new_req_txn.srcaddr;
                             uint64_t new_dstaddr = new_req_txn.dstaddr;
@@ -325,8 +331,8 @@ int main(int argc, char* argv[]) {
                                 if (old_nreq > 0) {
                                     // read the largest amount of data that can
                                     // be read in an aligned fashion
-                                    ssize_t pow2 = std::min(highest_bit(old_nreq),
-                                        lowest_bit(old_dstaddr));
+                                    ssize_t pow2 =
+                                        std::min(highest_bit(old_nreq), lowest_bit(old_dstaddr));
 
                                     // SIZE=15 is the maximum for old UMI transactions
                                     pow2 = std::min(pow2, (ssize_t)15);
@@ -335,8 +341,8 @@ int main(int argc, char* argv[]) {
                                     int nbytes = 1 << pow2;
 
                                     // issue an old read request
-                                    OldUmiTransaction old_req_txn(OLD_UMI_READ_REQUEST,
-                                        pow2, 0, old_dstaddr, old_srcaddr);
+                                    OldUmiTransaction old_req_txn(OLD_UMI_READ_REQUEST, pow2, 0,
+                                        old_dstaddr, old_srcaddr);
                                     if (old_umisb_send(old_req_txn, *old_tx[i], false)) {
                                         old_nreq -= nbytes;
                                         old_dstaddr += nbytes;
@@ -345,7 +351,8 @@ int main(int argc, char* argv[]) {
                                 }
                                 if (old_nresp > 0) {
                                     // get old read response
-                                    OldUmiTransaction old_resp_txn(0, 0, 0, 0, 0, old_resp_ptr, old_nresp);
+                                    OldUmiTransaction old_resp_txn(0, 0, 0, 0, 0, old_resp_ptr,
+                                        old_nresp);
                                     if (old_umisb_recv(old_resp_txn, *old_rx[i], false)) {
                                         old_nresp -= old_resp_txn.nbytes();
                                         old_resp_ptr += old_resp_txn.nbytes();
@@ -372,17 +379,18 @@ int main(int argc, char* argv[]) {
                             // delete the data buffer now that we're done with it
                             delete[] data;
                         } else {
-                            throw std::runtime_error("old_tx, old_rx, and/or new_resp_tx is not active.");
+                            throw std::runtime_error(
+                                "old_tx, old_rx, and/or new_resp_tx is not active.");
                         }
                     } else if (opcode == UMI_REQ_ATOMIC) {
-                        if (old_tx[i]->is_active() && old_rx[i]->is_active()
-                            && new_resp_tx[i]->is_active()) {
+                        if (old_tx[i]->is_active() && old_rx[i]->is_active() &&
+                            new_resp_tx[i]->is_active()) {
                             // issue an old UMI atomic request
                             // fortunately, a shift is all that's necessary to
                             // translate between old and new atomic opcodes
                             uint32_t opcode = ((umi_atype(new_req_txn.cmd) & 0xf) << 4) | 0x4;
-                            OldUmiTransaction old_req_txn(opcode, umi_size(new_req_txn.cmd),
-                                0, new_req_txn.dstaddr, new_req_txn.srcaddr, new_req_txn.ptr(),
+                            OldUmiTransaction old_req_txn(opcode, umi_size(new_req_txn.cmd), 0,
+                                new_req_txn.dstaddr, new_req_txn.srcaddr, new_req_txn.ptr(),
                                 new_req_txn.nbytes());
                             old_umisb_send(old_req_txn, *old_tx[i]);
 
@@ -393,19 +401,20 @@ int main(int argc, char* argv[]) {
                             // send as a new UMI atomic response
                             // note the swapped dstaddr and srcaddr
                             // TODO what is the right opcode to use?
-                            uint32_t cmd = umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd), 0, 1, 1);
+                            uint32_t cmd =
+                                umi_pack(UMI_RESP_READ, 0, umi_size(new_req_txn.cmd), 0, 1, 1);
                             UmiTransaction new_resp_txn(cmd, new_req_txn.srcaddr,
                                 new_req_txn.dstaddr, old_resp_txn.ptr(), old_resp_txn.nbytes());
                             umisb_send(new_resp_txn, *new_resp_tx[i]);
                         } else {
-                            throw std::runtime_error("old_tx, old_rx, and/or new_resp_tx is not active.");
+                            throw std::runtime_error(
+                                "old_tx, old_rx, and/or new_resp_tx is not active.");
                         }
                     } else {
                         throw std::runtime_error("Unsupported command recevied on new_req_rx.");
                     }
                 }
             }
-
         }
 
         // yield if needed

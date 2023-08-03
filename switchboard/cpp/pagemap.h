@@ -7,15 +7,15 @@
 #ifndef PAGEMAP_H_
 #define PAGEMAP_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
 #include <assert.h>
+#include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 /*
@@ -45,48 +45,48 @@
 #define PAGEMAP_FAILED (~0ULL)
 
 static inline int pagemap_open_self(void) {
-	int r;
+    int r;
 
-	r = open("/proc/self/pagemap", O_RDONLY);
-	if (r < 0) {
-		perror("open");
-	}
-	return r;
+    r = open("/proc/self/pagemap", O_RDONLY);
+    if (r < 0) {
+        perror("open");
+    }
+    return r;
 }
 
 // Translate a given virtual ptr into its physical address.
-static inline uint64_t pagemap_virt_to_phys(void *ptr) {
-	uint64_t va = (uintptr_t) ptr;
-	uint64_t pagemap;
-	uint64_t offset;
-	uint64_t vfn;
-	uint64_t pa;
-	int pagesize;
-	ssize_t r;
-	int fd;
+static inline uint64_t pagemap_virt_to_phys(void* ptr) {
+    uint64_t va = (uintptr_t)ptr;
+    uint64_t pagemap;
+    uint64_t offset;
+    uint64_t vfn;
+    uint64_t pa;
+    int pagesize;
+    ssize_t r;
+    int fd;
 
-	fd = pagemap_open_self();
-	if (fd < 0) {
-		return PAGEMAP_FAILED;
-	}
+    fd = pagemap_open_self();
+    if (fd < 0) {
+        return PAGEMAP_FAILED;
+    }
 
-	pagesize = getpagesize();
-	offset = va % pagesize;
-	vfn = va / pagesize;
-	r = pread(fd, &pagemap, sizeof pagemap, 8 * vfn);
-	assert(r == sizeof pagemap);
-	close(fd);
+    pagesize = getpagesize();
+    offset = va % pagesize;
+    vfn = va / pagesize;
+    r = pread(fd, &pagemap, sizeof pagemap, 8 * vfn);
+    assert(r == sizeof pagemap);
+    close(fd);
 
-	if (!(pagemap & PAGEMAP_PAGE_PRESENT)) {
-		return PAGEMAP_FAILED;
-	}
+    if (!(pagemap & PAGEMAP_PAGE_PRESENT)) {
+        return PAGEMAP_FAILED;
+    }
 
-	pa = (pagemap & PAGEMAP_PFN_MASK) * pagesize;
-	if (!pa) {
-		return PAGEMAP_FAILED;
-	}
+    pa = (pagemap & PAGEMAP_PFN_MASK) * pagesize;
+    if (!pa) {
+        return PAGEMAP_FAILED;
+    }
 
-	pa |= offset;
-	return pa;
+    pa |= offset;
+    return pa;
 }
 #endif

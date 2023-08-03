@@ -5,7 +5,7 @@ int main(int argc, char* argv[]) {
 
     int arg_idx = 1;
 
-    bool is_tx=false;
+    bool is_tx = false;
     if (arg_idx < argc) {
         const char* arg = argv[arg_idx++];
         if (strcmp(arg, "-") == 0) {
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     char port[128];
     sprintf(port, "queue-%s", arg);
 
-    int iterations=10000000;
+    int iterations = 10000000;
     if (arg_idx < argc) {
         const char* arg = argv[arg_idx++];
         if (strcmp(arg, "-") != 0) {
@@ -53,8 +53,8 @@ int main(int argc, char* argv[]) {
 
                 // rotate pattern
                 uint8_t tmp = p.data[31];
-                for (int i=31; i>0; i--) {
-                    p.data[i] = p.data[i-1];
+                for (int i = 31; i > 0; i--) {
+                    p.data[i] = p.data[i - 1];
                 }
                 p.data[0] = tmp;
             }
@@ -69,12 +69,12 @@ int main(int argc, char* argv[]) {
         rx.init(port);
 
         // start measuring time taken
-	    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
         while (count < iterations) {
             if (rx.recv(p)) {
                 count++;
-                for (int i=0; i<32; i++) {
+                for (int i = 0; i < 32; i++) {
                     out += p.data[i];
                 }
             }
@@ -85,11 +85,13 @@ int main(int argc, char* argv[]) {
 
         // stop measuring time taken
         std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
-        double t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
+        double t =
+            1.0e-6 *
+            (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
 
         // print bandwidth
-        double rate = (1.0*iterations)/t;
-        printf("Rate: %0.3f MT/s\n", rate*1e-6);
+        double rate = (1.0 * iterations) / t;
+        printf("Rate: %0.3f MT/s\n", rate * 1e-6);
     }
 
     return 0;

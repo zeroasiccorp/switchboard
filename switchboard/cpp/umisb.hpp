@@ -1,10 +1,10 @@
 #ifndef __UMISB_HPP__
 #define __UMISB_HPP__
 
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <sstream>
-#include <iostream>
-#include <functional>
 #include <stdexcept>
 
 #include "switchboard.hpp"
@@ -28,10 +28,10 @@ template <typename T> std::string umi_data_as_str(T& x) {
     if (has_umi_data(opcode)) {
 
         uint32_t size = umi_size(x.cmd);
-        uint32_t len = umi_len(x.cmd)+1;
+        uint32_t len = umi_len(x.cmd) + 1;
 
-        for (size_t i=0; i<len; i++) {
-            if ((i+1)*(1<<size) <= nbytes) {
+        for (size_t i = 0; i < len; i++) {
+            if ((i + 1) * (1 << size) <= nbytes) {
                 if (size == 0) {
                     // uint8_t needs to be cast to an integer to print correctly
                     // with std::hex: https://stackoverflow.com/a/23575509
@@ -48,7 +48,7 @@ template <typename T> std::string umi_data_as_str(T& x) {
             } else {
                 stream << "X";
             }
-            if (i != (len-1)){
+            if (i != (len - 1)) {
                 stream << ", ";
             }
         }
@@ -68,7 +68,7 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
     stream << "opcode: " << umi_opcode_to_str(opcode);
 
     stream << std::endl << "dstaddr: 0x" << std::hex << x.dstaddr;
-    
+
     // print out the source address if this is a request, as long
     // as it isn't a posted write, since that doesn't have a source
     // address.
@@ -93,8 +93,9 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
 
 // function for checking if requests and replies match up as expected
 
-template <typename T> void umisb_check_resp(T& resp, uint32_t opcode,
-    uint32_t size, uint32_t to_ack, uint64_t expected_addr) {
+template <typename T>
+void umisb_check_resp(T& resp, uint32_t opcode, uint32_t size, uint32_t to_ack,
+    uint64_t expected_addr) {
 
     uint32_t resp_opcode = umi_opcode(resp.cmd);
     uint32_t resp_size = umi_size(resp.cmd);
@@ -103,27 +104,26 @@ template <typename T> void umisb_check_resp(T& resp, uint32_t opcode,
     // check that the response makes sense
 
     if (resp_opcode != opcode) {
-        std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode)
-            << " (expected " << umi_opcode_to_str(opcode)
-            << ")" << std::endl;
+        std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode) << " (expected "
+                  << umi_opcode_to_str(opcode) << ")" << std::endl;
     }
 
     if (resp_size != size) {
-        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode)
-            << " response SIZE is " << std::to_string(resp_size)
-            << " (expected " << std::to_string(size) << ")" << std::endl;
+        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode) << " response SIZE is "
+                  << std::to_string(resp_size) << " (expected " << std::to_string(size) << ")"
+                  << std::endl;
     }
 
     if ((resp_len + 1) > to_ack) {
-        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode)
-            << " response LEN is " << std::to_string(resp_len)
-            << " (expected no more than " << std::to_string(to_ack-1) << ")" << std::endl;
+        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode) << " response LEN is "
+                  << std::to_string(resp_len) << " (expected no more than "
+                  << std::to_string(to_ack - 1) << ")" << std::endl;
     }
 
     if (resp.dstaddr != expected_addr) {
-        std::cerr <<  "Warning: dstaddr in " << umi_opcode_to_str(resp_opcode)
-            << " response is " << std::to_string(resp.dstaddr)
-            << " (expected " << std::to_string(expected_addr) << ")" << std::endl;
+        std::cerr << "Warning: dstaddr in " << umi_opcode_to_str(resp_opcode) << " response is "
+                  << std::to_string(resp.dstaddr) << " (expected " << std::to_string(expected_addr)
+                  << ")" << std::endl;
     }
 }
 
@@ -131,9 +131,9 @@ template <typename T> void umisb_check_resp(T& resp, uint32_t opcode,
 // multiple packets.
 
 struct UmiTransaction {
-    UmiTransaction(uint32_t cmd=0, uint64_t dstaddr=0, uint64_t srcaddr=0,
-        uint8_t* data=NULL, size_t nbytes=0) : cmd(cmd), dstaddr(dstaddr),
-        srcaddr(srcaddr) {
+    UmiTransaction(uint32_t cmd = 0, uint64_t dstaddr = 0, uint64_t srcaddr = 0,
+        uint8_t* data = NULL, size_t nbytes = 0)
+        : cmd(cmd), dstaddr(dstaddr), srcaddr(srcaddr) {
 
         m_storage = false;
         m_allocated = false;
@@ -164,7 +164,8 @@ struct UmiTransaction {
         // check that we can perform this operation
 
         if (m_storage) {
-            throw std::runtime_error("There is already storage for this UMI transaction, no need to allocate.");
+            throw std::runtime_error(
+                "There is already storage for this UMI transaction, no need to allocate.");
         }
 
         if (m_allocated) {
@@ -173,11 +174,11 @@ struct UmiTransaction {
 
         // allocate the memory
 
-        size_t nbytes = (len+1)<<size;
+        size_t nbytes = (len + 1) << size;
         data = new uint8_t[nbytes];
 
         // indicate that storage is now available for this transaction,
-        // and that we allocated memory to make it available 
+        // and that we allocated memory to make it available
 
         m_storage = true;
         m_allocated = true;
@@ -188,7 +189,7 @@ struct UmiTransaction {
         return m_storage;
     }
 
-    size_t nbytes(){
+    size_t nbytes() {
         return m_nbytes;
     }
 
@@ -201,17 +202,17 @@ struct UmiTransaction {
     uint64_t srcaddr;
     uint8_t* data;
 
-    private:
-        size_t m_nbytes;
-        bool m_allocated;
-        bool m_storage;
+  private:
+    size_t m_nbytes;
+    bool m_allocated;
+    bool m_storage;
 };
 
 // higher-level functions for UMI transactions
 
-template <typename T> static inline bool umisb_send(
-    T& x, SBTX& tx, bool blocking=true, void (*loop)(void)=NULL,
-    PacketPrinter printer=NULL) {
+template <typename T>
+static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)(void) = NULL,
+    PacketPrinter printer = NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
 
@@ -242,11 +243,10 @@ template <typename T> static inline bool umisb_send(
             len = 0;
         }
 
-        size_t nbytes = (len+1)<<size;
+        size_t nbytes = (len + 1) << size;
 
         if (nbytes > sizeof(up->data)) {
-            throw std::runtime_error(
-                "(len+1)<<size cannot exceed the data size of a umi_packet.");
+            throw std::runtime_error("(len+1)<<size cannot exceed the data size of a umi_packet.");
         }
 
         if (nbytes > x.nbytes()) {
@@ -283,8 +283,9 @@ template <typename T> static inline bool umisb_send(
     return true;
 }
 
-template <typename T> static inline bool umisb_recv(
-    T& x, SBRX& rx, bool blocking=true, void (*loop)(void)=NULL, PacketPrinter printer=NULL) {
+template <typename T>
+static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)(void) = NULL,
+    PacketPrinter printer = NULL) {
 
     // if the receive side isn't active, there is nothing to receive
     if (!rx.is_active()) {
@@ -339,11 +340,10 @@ template <typename T> static inline bool umisb_recv(
             x.allocate(size, len);
         }
 
-        size_t nbytes = (len+1)<<size;
+        size_t nbytes = (len + 1) << size;
 
         if (nbytes > sizeof(up->data)) {
-            throw std::runtime_error(
-                "(len+1)<<size cannot exceed the data size of a umi_packet.");
+            throw std::runtime_error("(len+1)<<size cannot exceed the data size of a umi_packet.");
         }
 
         if (nbytes > x.nbytes()) {

@@ -1,12 +1,11 @@
-#include <stdio.h>
-#include <stdint.h>
 #include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "switchboard.hpp"
 #include "umilib.h"
 #include "umilib.hpp"
 #include "umisb.hpp"
-
 
 int main() {
     // initialize tx connection

@@ -1,13 +1,13 @@
-#include <chrono>
-#include <thread>
-#include <fstream>
-#include <unistd.h>
-#include <signal.h>
 #include <assert.h>
+#include <chrono>
+#include <fstream>
+#include <signal.h>
 #include <sys/wait.h>
+#include <thread>
+#include <unistd.h>
 
-#include "switchboard.hpp"
 #include "old_umilib.hpp"
+#include "switchboard.hpp"
 
 SBRX rx1, rx_tb;
 SBTX tx1, tx_tb;
@@ -80,10 +80,10 @@ int main(int argc, char* argv[]) {
     init_sram(binfile);
 
     // put chiplet in reset
-    while(!gpio_write(0));
+    while (!gpio_write(0)) {}
 
     // release chiplet from reset
-    while(!gpio_write(1));
+    while (!gpio_write(1)) {}
 
     // handle UMI packets
 
@@ -92,13 +92,13 @@ int main(int argc, char* argv[]) {
     while (1) {
         // try to receive a packet
         sb_packet p;
-        if(rx1.recv_peek(p)) {
+        if (rx1.recv_peek(p)) {
             // parse the packet
             uint32_t opcode, size, user;
             uint64_t dstaddr, srcaddr;
             uint32_t data_arr[4];
-            old_umi_unpack((uint32_t*)p.data, opcode, size, user,
-                dstaddr, srcaddr, (uint8_t*)data_arr, 16);
+            old_umi_unpack((uint32_t*)p.data, opcode, size, user, dstaddr, srcaddr,
+                (uint8_t*)data_arr, 16);
 
             // handle the packet
             if (opcode == OLD_UMI_WRITE_POSTED) {
@@ -119,13 +119,13 @@ int main(int argc, char* argv[]) {
                         break;
                     }
                 } else {
-                    sram[dstaddr>>2] = data_arr[0];
+                    sram[dstaddr >> 2] = data_arr[0];
                 }
             } else if (opcode == OLD_UMI_READ_REQUEST) {
                 // try to send a read response
                 sb_packet resp;
                 old_umi_pack((uint32_t*)resp.data, OLD_UMI_WRITE_RESPONSE, 2, 0, srcaddr, 0,
-                    (uint8_t*)(&sram[dstaddr>>2]), 4);
+                    (uint8_t*)(&sram[dstaddr >> 2]), 4);
                 if (tx1.send(resp)) {
                     // ACK if the response was sent successfully
                     rx1.recv();

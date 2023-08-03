@@ -1,15 +1,15 @@
 #include <chrono>
-#include <thread>
 #include <fstream>
+#include <thread>
 
-#include "switchboard.hpp"
 #include "old_umilib.hpp"
+#include "switchboard.hpp"
 
 SBRX rx;
 SBTX tx;
 
 // don't have this defined in multiple places
-#define PICORV32_MEM_TOP (1<<17)
+#define PICORV32_MEM_TOP (1 << 17)
 
 void init(int rx_port, int tx_port) {
     // RX
@@ -23,7 +23,7 @@ void init(int rx_port, int tx_port) {
     tx.init(tx_uri);
 }
 
-void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, const uint32_t col){
+void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, const uint32_t col) {
     // determine destination address
     uint64_t dstaddr;
     dstaddr = 0;
@@ -42,7 +42,7 @@ void dut_send(const uint32_t data, const uint32_t addr, const uint32_t row, cons
     tx.send_blocking(p);
 }
 
-void dut_recv(uint32_t& data, uint32_t& addr){
+void dut_recv(uint32_t& data, uint32_t& addr) {
     // receive packet
     sb_packet p;
     rx.recv_blocking(p);
@@ -60,7 +60,7 @@ void dut_recv(uint32_t& data, uint32_t& addr){
 
 void init_chip(int row, int col, int rows, int cols, const char* binfile) {
     // write program
-    std::ifstream file(binfile, std::ios::in|std::ios::binary);
+    std::ifstream file(binfile, std::ios::in | std::ios::binary);
     uint32_t waddr = 0;
     do {
         // read into the buffer
@@ -72,14 +72,14 @@ void init_chip(int row, int col, int rows, int cols, const char* binfile) {
 
         // increment address
         waddr += 4;
-    } while(file);
+    } while (file);
 
     // write to a certain region of memory to specify the row, col
     // address of the chip, and the total number of rows and columns
-    dut_send(row,  (uint32_t)(PICORV32_MEM_TOP) -  4, row, col);
-    dut_send(col,  (uint32_t)(PICORV32_MEM_TOP) -  8, row, col);
-    dut_send(rows, (uint32_t)(PICORV32_MEM_TOP) - 12, row, col);
-    dut_send(cols, (uint32_t)(PICORV32_MEM_TOP) - 16, row, col);
+    dut_send(row, (uint32_t)(PICORV32_MEM_TOP)-4, row, col);
+    dut_send(col, (uint32_t)(PICORV32_MEM_TOP)-8, row, col);
+    dut_send(rows, (uint32_t)(PICORV32_MEM_TOP)-12, row, col);
+    dut_send(cols, (uint32_t)(PICORV32_MEM_TOP)-16, row, col);
 }
 
 int main(int argc, char* argv[]) {
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
     const char* binfile = "riscv/hello.bin";
     if (arg_idx < argc) {
         binfile = argv[arg_idx++];
-    }    
+    }
 
     // set up UMI ports
     init(rx_port, tx_port);
@@ -119,8 +119,8 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
     // put all chips in reset
-    for (int row=0; row<rows; row++) {
-        for (int col=0; col<cols; col++) {
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < cols; col++) {
             if ((row == 0) && (col == 0)) {
                 // skip since this is where the client resides
                 continue;
@@ -135,8 +135,8 @@ int main(int argc, char* argv[]) {
     // all chip have been programmed, since some might write to
     // the memory of other chips, and those writes may be clobbered
     // by the programming operation.
-    for (int row=0; row<rows; row++) {
-        for (int col=0; col<cols; col++) {
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < cols; col++) {
             if ((row == 0) && (col == 0)) {
                 // skip since this is where the client resides
                 continue;
@@ -148,16 +148,16 @@ int main(int argc, char* argv[]) {
 
     // write command-line provided parameters into the top of memory
     // TODO: don't hard-code the memory size
-    int param_idx = 4;  // the first 4 are already populated
+    int param_idx = 4; // the first 4 are already populated
     while (arg_idx < argc) {
         int param_val = atoi(argv[arg_idx++]);
-        for (int row=0; row<rows; row++) {
-            for (int col=0; col<cols; col++) {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
                 if ((row == 0) && (col == 0)) {
                     // skip since this is where the client resides
                     continue;
                 } else {
-                    dut_send(param_val, PICORV32_MEM_TOP - 4*(param_idx+1), row, col);
+                    dut_send(param_val, PICORV32_MEM_TOP - 4 * (param_idx + 1), row, col);
                 }
             }
         }
@@ -174,8 +174,8 @@ int main(int argc, char* argv[]) {
     }
 
     // release all chips from reset
-    for (int row=0; row<rows; row++) {
-        for (int col=0; col<cols; col++) {
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < cols; col++) {
             if ((row == 0) && (col == 0)) {
                 // skip since this is where the client resides
                 continue;
@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
     // receive characters sent by DUT
     uint16_t exit_code;
     uint32_t data, addr;
-    while(1){
+    while (1) {
         dut_recv(data, addr);
         if (addr == 0x500000) {
             printf("%c", data & 0xff);
@@ -207,10 +207,12 @@ int main(int argc, char* argv[]) {
 
     // determine how long the process took
     std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
-    double t = 1.0e-6*(std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
+    double t =
+        1.0e-6 *
+        (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
 
     // print out the runtime
-    printf("Time taken: %0.3f ms\n", t*1e3);
+    printf("Time taken: %0.3f ms\n", t * 1e3);
 
     return exit_code;
 }
