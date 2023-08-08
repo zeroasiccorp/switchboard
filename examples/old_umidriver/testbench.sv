@@ -10,8 +10,6 @@ module testbench (
     // UMI TX port
 
     wire [255:0] umi_packet_tx;
-    wire umi_valid;
-    wire umi_ready;
 
     old_umi_rx_sim rx_i (
         .clk(clk),
