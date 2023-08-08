@@ -235,13 +235,7 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
         // do nothing, since there isn't data to copy
     } else {
         uint32_t size = umi_size(x.cmd);
-
-        uint32_t len;
-        if (opcode != UMI_REQ_ATOMIC) {
-            len = umi_len(x.cmd);
-        } else {
-            len = 0;
-        }
+        uint32_t len = umi_len(x.cmd);
 
         size_t nbytes = (len + 1) << size;
 
@@ -328,13 +322,7 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
         // do nothing, since there isn't data to copy
     } else {
         uint32_t size = umi_size(x.cmd);
-
-        uint32_t len;
-        if (opcode != UMI_REQ_ATOMIC) {
-            len = umi_len(x.cmd);
-        } else {
-            len = 0;
-        }
+        uint32_t len = umi_len(x.cmd);
 
         if (!x.storage()) {
             x.allocate(size, len);

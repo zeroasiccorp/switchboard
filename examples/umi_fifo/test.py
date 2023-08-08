@@ -25,31 +25,45 @@ def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', n=3, fast=False):
 
     umi = UmiTxRx(client2rtl, rtl2client)
 
-    tx_list = []
-    rx_list = []
+    n_sent = 0
+    n_recv = 0
+    txq = []
 
-    while (len(tx_list) < n) or (len(rx_list) < n):
-        if len(tx_list) < n:
+    while (n_sent < n) or (n_recv < n):
+        if n_sent < n:
             txp = random_umi_packet()
             if umi.send(txp, blocking=False):
                 print('* TX *')
                 print(str(txp))
-                tx_list.append(txp)
+                txq.append(txp)
+                n_sent += 1
 
-        if len(rx_list) < n:
+        if n_recv < n:
             rxp = umi.recv(blocking=False)
             if rxp is not None:
                 print('* RX *')
                 print(str(rxp))
-                rx_list.append(rxp)
+                if not packets_match(rxp, txq[0]):
+                    raise Exception('Mismatch!')
+                else:
+                    txq.pop(0)
+                    n_recv += 1
 
-    assert len(tx_list) == len(rx_list)
 
-    for txp, rxp in zip(tx_list, rx_list):
-        assert txp.cmd == rxp.cmd
-        assert txp.dstaddr == rxp.dstaddr
-        assert txp.srcaddr == rxp.srcaddr
-        assert (txp.data == rxp.data).all()
+def packets_match(txp, rxp):
+    # compare data in both packets
+    txbytes = len(txp.data) if txp.data is not None else 0
+    rxbytes = len(rxp.data) if rxp.data is not None else 0
+    if rxbytes != txbytes:
+        data_match = False
+    elif (rxbytes == 0) and (txbytes == 0):
+        data_match = True
+    else:
+        data_match = (txp.data == rxp.data).all()
+
+    # compare the rest of the packets
+    return ((txp.cmd == rxp.cmd) and (txp.dstaddr == rxp.dstaddr)
+        and (txp.srcaddr == rxp.srcaddr) and data_match)
 
 
 def build_testbench(fast=False):
