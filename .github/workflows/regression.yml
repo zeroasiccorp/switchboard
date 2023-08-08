@@ -18,7 +18,7 @@ jobs:
       credentials:
          username: ${{ secrets.ZA_ACTOR }}
          password: ${{ secrets.ZA_TOKEN }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
         with:
