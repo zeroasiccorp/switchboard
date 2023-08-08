@@ -3,19 +3,21 @@
 module sb_fpga_queues #(
     parameter NUM_RX_QUEUES = 1,
     parameter NUM_TX_QUEUES = 1,
-    parameter NUM_CHIPLETS = 1
+    parameter NUM_CHIPLETS = 1,
+
+    parameter integer DW=416
 ) (
     input wire clk,
     input wire nreset,
 
     // Switchboard interfaces
-    output wire [NUM_RX_QUEUES*256-1:0] rx_data,
+    output wire [NUM_RX_QUEUES*DW-1:0] rx_data,
     output wire [NUM_RX_QUEUES*32-1:0] rx_dest,
     output wire [NUM_RX_QUEUES-1:0] rx_last,
     input wire [NUM_RX_QUEUES-1:0] rx_ready,
     output wire [NUM_RX_QUEUES-1:0] rx_valid,
 
-    input wire [NUM_TX_QUEUES*256-1:0] tx_data,
+    input wire [NUM_TX_QUEUES*DW-1:0] tx_data,
     input wire [NUM_TX_QUEUES*32-1:0] tx_dest,
     input wire [NUM_TX_QUEUES-1:0] tx_last,
     output wire [NUM_TX_QUEUES-1:0] tx_ready,

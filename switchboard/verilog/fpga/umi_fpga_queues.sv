@@ -1,17 +1,29 @@
+`default_nettype none
+
 module umi_fpga_queues #(
     parameter NUM_RX_QUEUES = 1,
     parameter NUM_TX_QUEUES = 1,
-    parameter NUM_CHIPLETS = 1
+    parameter NUM_CHIPLETS = 1,
+
+    parameter integer DW=256,
+    parameter integer AW=64,
+    parameter integer CW=32
 ) (
     input wire clk,
     input wire nreset,
 
     // UMI interfaces
-    output wire [NUM_RX_QUEUES*256-1:0] rx_packet,
+    output wire [NUM_RX_QUEUES*DW-1:0] rx_data,
+    output wire [NUM_RX_QUEUES*AW-1:0] rx_srcaddr,
+    output wire [NUM_RX_QUEUES*AW-1:0] rx_dstaddr,
+    output wire [NUM_RX_QUEUES*CW-1:0] rx_cmd,
     input wire [NUM_RX_QUEUES-1:0] rx_ready,
     output wire [NUM_RX_QUEUES-1:0] rx_valid,
 
-    input wire [NUM_TX_QUEUES*256-1:0] tx_packet,
+    input wire [NUM_TX_QUEUES*DW-1:0] tx_data,
+    input wire [NUM_TX_QUEUES*AW-1:0] tx_srcaddr,
+    input wire [NUM_TX_QUEUES*AW-1:0] tx_dstaddr,
+    input wire [NUM_TX_QUEUES*CW-1:0] tx_cmd,
     output wire [NUM_TX_QUEUES-1:0] tx_ready,
     input wire [NUM_TX_QUEUES-1:0] tx_valid,
 
@@ -78,29 +90,47 @@ module umi_fpga_queues #(
     input wire s_axil_rready
 );
 
-    genvar i;
-    wire [NUM_TX_QUEUES*32-1:0] tx_dest;
+    localparam SB_DW = DW + AW + AW + CW;
 
+    // Pack/unpack UMI signals to/from Switchboard packets
+
+    genvar i;
+    wire [NUM_RX_QUEUES*SB_DW-1:0] sb_rx_data;
+    wire [SB_DW-1:0] rx_packet;
+    for (i = 0; i < NUM_RX_QUEUES; i = i + 1) begin
+        assign rx_packet = sb_rx_data[i*SB_DW+:SB_DW];
+
+        assign rx_cmd[i*CW+:CW] = rx_packet[CW-1:0];
+        assign rx_dstaddr[i*AW+:AW] = rx_packet[AW+CW-1:CW];
+        assign rx_srcaddr[i*AW+:AW] = rx_packet[AW+AW+CW-1:AW+CW];
+        assign rx_data[i*DW+:DW] = rx_packet[DW+AW+AW+CW-1:AW+AW+CW];
+    end
+
+    wire [NUM_TX_QUEUES*SB_DW-1:0] sb_tx_data;
+    wire [NUM_TX_QUEUES*32-1:0] sb_tx_dest;
     for (i = 0; i < NUM_TX_QUEUES; i = i + 1) begin
-        assign tx_dest[i*32+:32] = {16'h0000, tx_packet[256*(i+1)-1-:16]};
+        assign sb_tx_data[i*SB_DW+:SB_DW] = {tx_data[i*DW+:DW], tx_srcaddr[i*AW+:AW], tx_dstaddr[i*AW+:AW], tx_cmd[i*CW+:CW]};
+        assign sb_tx_dest[i*32+:32] = {16'h0000, tx_dstaddr[i*AW+55:i*AW+40]};
     end
 
     sb_fpga_queues #(
         .NUM_RX_QUEUES(NUM_RX_QUEUES),
         .NUM_TX_QUEUES(NUM_TX_QUEUES),
-        .NUM_CHIPLETS(NUM_CHIPLETS)
+        .NUM_CHIPLETS(NUM_CHIPLETS),
+
+        .DW(SB_DW)
     ) sb_fpga_queues_i (
         .clk(clk),
         .nreset(nreset),
 
-        .rx_data(rx_packet),
+        .rx_data(sb_rx_data),
         .rx_dest(),
         .rx_last(),
         .rx_ready(rx_ready),
         .rx_valid(rx_valid),
 
-        .tx_data(tx_packet),
-        .tx_dest(tx_dest),
+        .tx_data(sb_tx_data),
+        .tx_dest(sb_tx_dest),
         // TODO: support burst mode
         .tx_last({NUM_TX_QUEUES{1'b1}}),
         .tx_ready(tx_ready),
@@ -111,3 +141,5 @@ module umi_fpga_queues #(
     );
 
 endmodule
+
+`default_nettype wire
