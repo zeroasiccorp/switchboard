@@ -411,9 +411,20 @@ def random_int_value(name, value, min, max):
     return value
 
 
-def random_umi_packet(opcode=UmiCmd.UMI_REQ_WRITE, len=None, size=None,
-    dstaddr=None, srcaddr=None, data=None, qos=0, prot=0, ex=0,
-    atype=0, eom=1, eof=1):
+def random_umi_packet(
+    opcode=None,
+    len=None,
+    size=None,
+    dstaddr=None,
+    srcaddr=None,
+    data=None,
+    qos=0,
+    prot=0,
+    ex=0,
+    atype=0,
+    eom=1,
+    eof=1
+):
 
     # TODO: make these parameters flexible, or more centrally-defined
 
@@ -429,7 +440,8 @@ def random_umi_packet(opcode=UmiCmd.UMI_REQ_WRITE, len=None, size=None,
             UmiCmd.UMI_REQ_POSTED,
             UmiCmd.UMI_REQ_READ,
             UmiCmd.UMI_RESP_WRITE,
-            UmiCmd.UMI_RESP_READ
+            UmiCmd.UMI_RESP_READ,
+            UmiCmd.UMI_REQ_ATOMIC
         ])
     elif isinstance(opcode, Iterable):
         opcode = random.choice(opcode)
@@ -450,7 +462,7 @@ def random_umi_packet(opcode=UmiCmd.UMI_REQ_WRITE, len=None, size=None,
 
     # generate other fields
 
-    atype = random_int_value('atype', atype, 0x00, 0xff)
+    atype = random_int_value('atype', atype, 0x00, 0x08)
     qos = random_int_value('qos', qos, 0b0000, 0b1111)
     prot = random_int_value('prot', prot, 0b00, 0b11)
     eom = random_int_value('eom', eom, 0b0, 0b1)

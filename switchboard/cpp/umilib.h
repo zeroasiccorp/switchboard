@@ -95,17 +95,30 @@ static inline void set_umi_bits(uint32_t* cmd, uint32_t bits, uint32_t offset, u
     *cmd = *cmd | (((bits & mask) << offset));
 }
 
-#define DECL_UMI_FIELD(FIELD, OFFSET, WIDTH)                                                       \
+#define DECL_UMI_GETTER(FIELD, OFFSET, WIDTH)                                                      \
     static inline uint32_t umi_##FIELD(uint32_t cmd) {                                             \
         return get_umi_bits(cmd, OFFSET, WIDTH);                                                   \
-    }                                                                                              \
+    }
+
+#define DECL_UMI_SETTER(FIELD, OFFSET, WIDTH)                                                      \
     static inline void set_umi_##FIELD(uint32_t* cmd, uint32_t FIELD) {                            \
         set_umi_bits(cmd, FIELD, OFFSET, WIDTH);                                                   \
     }
 
+#define DECL_UMI_FIELD(FIELD, OFFSET, WIDTH)                                                       \
+    DECL_UMI_GETTER(FIELD, OFFSET, WIDTH)                                                          \
+    DECL_UMI_SETTER(FIELD, OFFSET, WIDTH)
+
 DECL_UMI_FIELD(opcode, 0, 5)
 DECL_UMI_FIELD(size, 5, 3)
-DECL_UMI_FIELD(len, 8, 8)
+static inline uint32_t umi_len(uint32_t cmd) {
+    if (umi_opcode(cmd) == UMI_REQ_ATOMIC) {
+        return 0;
+    } else {
+        return get_umi_bits(cmd, 8, 8);
+    }
+}
+DECL_UMI_SETTER(len, 8, 8)
 DECL_UMI_FIELD(atype, 8, 8)
 DECL_UMI_FIELD(qos, 16, 4)
 DECL_UMI_FIELD(prot, 20, 2)
