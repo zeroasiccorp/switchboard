@@ -1,13 +1,15 @@
 `default_nettype none
 
 module sb_rx_fpga #(
-    parameter ID_WIDTH = 16
+    parameter ID_WIDTH = 16,
+    // must be <= (512-64) (TODO: capture with assertion?)
+    parameter DW = 416
 ) (
     input wire clk,
     input wire en,
     input wire reset,
 
-    output reg [255:0] data=256'b0,
+    output reg [DW-1:0] data={DW{1'b0}},
     output reg [31:0] dest=32'b0,
     output reg last=1'b0,
     input wire ready,
@@ -238,12 +240,12 @@ module sb_rx_fpga #(
             valid <= 1'b0;
             dest <= 32'd0;
             last <= 1'b0;
-            data <= 256'd0;
+            data <= 'd0;
         end else if (state == STATE_RD_PACKET && rready) begin
             valid <= 1'b1;
             dest <= rdata[31:0];
             last <= rdata[32];
-            data <= rdata[319:64];
+            data <= rdata[DW+64-1:64];
         end else if (valid && ready) begin
             valid <= 1'b0;
         end

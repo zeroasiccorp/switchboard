@@ -96,14 +96,11 @@ module umi_fpga_queues #(
 
     genvar i;
     wire [NUM_RX_QUEUES*SB_DW-1:0] sb_rx_data;
-    wire [SB_DW-1:0] rx_packet;
     for (i = 0; i < NUM_RX_QUEUES; i = i + 1) begin
-        assign rx_packet = sb_rx_data[i*SB_DW+:SB_DW];
-
-        assign rx_cmd[i*CW+:CW] = rx_packet[CW-1:0];
-        assign rx_dstaddr[i*AW+:AW] = rx_packet[AW+CW-1:CW];
-        assign rx_srcaddr[i*AW+:AW] = rx_packet[AW+AW+CW-1:AW+CW];
-        assign rx_data[i*DW+:DW] = rx_packet[DW+AW+AW+CW-1:AW+AW+CW];
+        assign rx_cmd[i*CW+:CW] = sb_rx_data[i*SB_DW + CW-1:i*SB_DW];
+        assign rx_dstaddr[i*AW+:AW] = sb_rx_data[i*SB_DW + AW+CW-1:i*SB_DW + CW];
+        assign rx_srcaddr[i*AW+:AW] = sb_rx_data[i*SB_DW + AW+AW+CW-1:i*SB_DW + AW+CW];
+        assign rx_data[i*DW+:DW] = sb_rx_data[i*SB_DW + DW+AW+AW+CW-1:i*SB_DW + AW+AW+CW];
     end
 
     wire [NUM_TX_QUEUES*SB_DW-1:0] sb_tx_data;
