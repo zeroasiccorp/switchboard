@@ -1,13 +1,15 @@
 `default_nettype none
 
 module sb_tx_fpga #(
-    parameter ID_WIDTH = 16
+    parameter ID_WIDTH = 16,
+    // must be <= 448 (512-64)
+    parameter DW = 416
 ) (
     input wire clk,
     input wire en,
     input wire reset,
 
-    input wire [255:0] data,
+    input wire [DW-1:0] data,
     input wire [31:0] dest,
     input wire last,
     output wire ready,
@@ -235,7 +237,7 @@ module sb_tx_fpga #(
         if (reset) begin
             packet_to_write <= 512'd0;
         end else if (valid && ready) begin
-            packet_to_write <= {192'd0, data, 31'd0, last, dest};
+            packet_to_write <= {{(512-64-DW){1'b0}}, data, 31'd0, last, dest};
         end
     end
     assign ready = (state == STATE_IDLE) && en;
