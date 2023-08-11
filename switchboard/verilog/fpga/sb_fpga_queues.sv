@@ -3,19 +3,21 @@
 module sb_fpga_queues #(
     parameter NUM_RX_QUEUES = 1,
     parameter NUM_TX_QUEUES = 1,
-    parameter NUM_CHIPLETS = 1
+    parameter NUM_CHIPLETS = 1,
+
+    parameter integer DW=416
 ) (
     input wire clk,
     input wire nreset,
 
     // Switchboard interfaces
-    output wire [NUM_RX_QUEUES*256-1:0] rx_data,
+    output wire [NUM_RX_QUEUES*DW-1:0] rx_data,
     output wire [NUM_RX_QUEUES*32-1:0] rx_dest,
     output wire [NUM_RX_QUEUES-1:0] rx_last,
     input wire [NUM_RX_QUEUES-1:0] rx_ready,
     output wire [NUM_RX_QUEUES-1:0] rx_valid,
 
-    input wire [NUM_TX_QUEUES*256-1:0] tx_data,
+    input wire [NUM_TX_QUEUES*DW-1:0] tx_data,
     input wire [NUM_TX_QUEUES*32-1:0] tx_dest,
     input wire [NUM_TX_QUEUES-1:0] tx_last,
     output wire [NUM_TX_QUEUES-1:0] tx_ready,
@@ -132,7 +134,8 @@ module sb_fpga_queues #(
     generate
         for (i = 0; i < NUM_RX_QUEUES; i = i + 1) begin
             sb_rx_fpga #(
-                .ID_WIDTH(ID_WIDTH)
+                .ID_WIDTH(ID_WIDTH),
+                .DW(DW)
             ) rx (
                 .clk(clk),
                 .en(cfg_enable[2*i]),
@@ -143,7 +146,7 @@ module sb_fpga_queues #(
 
                 .status_idle(status_idle[2*i]),
 
-                .data(rx_data[256*i+:256]),
+                .data(rx_data[DW*i+:DW]),
                 .dest(rx_dest[32*i+:32]),
                 .last(rx_last[i]),
                 .ready(rx_ready[i]),
@@ -187,7 +190,8 @@ module sb_fpga_queues #(
     generate
         for (i = NUM_RX_QUEUES; i < NUM_QUEUES; i = i + 1) begin
             sb_tx_fpga #(
-                .ID_WIDTH(ID_WIDTH)
+                .ID_WIDTH(ID_WIDTH),
+                .DW(DW)
             ) tx (
                 .clk(clk),
                 .en(cfg_enable[2*(i-NUM_RX_QUEUES)+1]),
@@ -198,7 +202,7 @@ module sb_fpga_queues #(
 
                 .status_idle(status_idle[2*(i-NUM_RX_QUEUES)+1]),
 
-                .data(tx_data[256*(i-NUM_RX_QUEUES)+:256]),
+                .data(tx_data[DW*(i-NUM_RX_QUEUES)+:DW]),
                 .dest(tx_dest[32*(i-NUM_RX_QUEUES)+:32]),
                 .last(tx_last[i-NUM_RX_QUEUES]),
                 .ready(tx_ready[i-NUM_RX_QUEUES]),
