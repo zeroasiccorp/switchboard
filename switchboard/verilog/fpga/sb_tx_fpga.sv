@@ -2,7 +2,7 @@
 
 module sb_tx_fpga #(
     parameter ID_WIDTH = 16,
-    // must be <= (512-64) (TODO: capture with assertion?)
+    // must be <= 448 (512-64)
     parameter DW = 416
 ) (
     input wire clk,
