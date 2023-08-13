@@ -49,12 +49,12 @@ enum UMI_ATOMIC {
 // TODO: make this flexible
 #define UMI_PACKET_DATA_BYTES 32
 
-struct umi_packet {
+typedef struct umi_packet {
     uint32_t cmd;
     uint64_t dstaddr;
     uint64_t srcaddr;
     uint8_t data[UMI_PACKET_DATA_BYTES];
-} __attribute__((packed));
+} __attribute__((packed)) umi_packet;
 
 static inline bool has_umi_resp(uint32_t opcode) {
     return ((opcode == UMI_REQ_READ) | (opcode == UMI_REQ_WRITE) | (opcode == UMI_REQ_ATOMIC));
