@@ -388,27 +388,41 @@ def dtype2size(dtype: np.dtype):
         raise ValueError(f'dtype must be of type np.dtype (got {type(dtype)})')
 
 
-def random_int_value(name, value, min, max):
+def random_int_value(name, value, min, max, align=None):
     # determine the length of the transaction
 
     if value is None:
         value = random.randint(min, max)
+        if align is not None:
+            value >>= align
+            value <<= align
     elif isinstance(value, Iterable):
         value = random.choice(value)
 
     # validate result
 
-    if int(value) != value:
-        raise ValueError(f'{name} is not an integer: {value}')
+    check_int_in_range(name, value, min=min, max=max)
 
     value = int(value)
 
-    if not ((min <= value) and (value <= max)):
-        raise ValueError(f'unsupported {name}: {value}')
+    if align is not None:
+        if (value & ((1 << align) - 1)) != 0:
+            raise ValueError(f'misaligned {name}: {value}')
 
     # return result
 
     return value
+
+
+def check_int_in_range(name, value, min=None, max=None):
+    if not np.issubdtype(type(value), np.integer):
+        raise ValueError(f'{name} is not an integer')
+
+    if (min is not None) and (value < min):
+        raise ValueError(f'{name} is less than {min}')
+
+    if (max is not None) and (value > max):
+        raise ValueError(f'{name} is greater than {max}')
 
 
 def random_umi_packet(
@@ -423,12 +437,15 @@ def random_umi_packet(
     ex=0,
     atype=0,
     eom=1,
-    eof=1
+    eof=1,
+    max_bytes=32
 ):
+    # input validation
+
+    check_int_in_range("max_bytes", max_bytes, min=0, max=32)
 
     # TODO: make these parameters flexible, or more centrally-defined
 
-    MAX_SUMI_BYTES = 32
     MAX_SUMI_SIZE = 3
     AW = 64
 
@@ -458,7 +475,7 @@ def random_umi_packet(
     if (len is None) and (data is not None):
         len = data.size - 1
 
-    len = random_int_value('len', len, 0, (MAX_SUMI_BYTES >> size) - 1)
+    len = random_int_value('len', len, 0, (max_bytes >> size) - 1)
 
     # generate other fields
 
@@ -475,8 +492,8 @@ def random_umi_packet(
 
     # generate destination address
 
-    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1)
-    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1)
+    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1, align=8 * size)
+    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1, align=8 * size)
 
     # generate data if needed
 
