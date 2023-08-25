@@ -62,7 +62,7 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
 def build_testbench(fast=False):
     dut = SbDut('testbench')
 
-    EX_DIR = Path('..')
+    EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')

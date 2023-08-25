@@ -129,7 +129,7 @@ def python_intf(from_client, to_client, old=True):
 def build_testbench(fast=False):
     dut = SbDut('testbench')
 
-    EX_DIR = Path('..')
+    EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')
