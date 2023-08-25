@@ -492,8 +492,8 @@ def random_umi_packet(
 
     # generate destination address
 
-    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1, align=8 * size)
-    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1, align=8 * size)
+    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1, align=size)
+    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1, align=size)
 
     # generate data if needed
 

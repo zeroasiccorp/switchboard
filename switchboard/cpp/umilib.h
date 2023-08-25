@@ -57,12 +57,17 @@ typedef struct umi_packet {
 } __attribute__((packed)) umi_packet;
 
 static inline bool has_umi_resp(uint32_t opcode) {
-    return ((opcode == UMI_REQ_READ) | (opcode == UMI_REQ_WRITE) | (opcode == UMI_REQ_ATOMIC));
+    return ((opcode == UMI_REQ_READ) || (opcode == UMI_REQ_WRITE) || (opcode == UMI_REQ_ATOMIC));
 }
 
 static inline bool has_umi_data(uint32_t opcode) {
-    return ((opcode == UMI_REQ_WRITE) | (opcode == UMI_REQ_POSTED) | (opcode == UMI_REQ_RDMA) |
-            (opcode == UMI_REQ_ATOMIC) | (opcode == UMI_RESP_READ));
+    return ((opcode == UMI_REQ_WRITE) || (opcode == UMI_REQ_POSTED) || (opcode == UMI_REQ_ATOMIC) ||
+            (opcode == UMI_REQ_USER0) || (opcode == UMI_REQ_FUTURE0) || (opcode == UMI_RESP_READ) ||
+            (opcode == UMI_RESP_USER1) || (opcode == UMI_RESP_FUTURE1));
+}
+
+static inline bool is_umi_invalid(uint32_t opcode) {
+    return opcode == 0;
 }
 
 static inline bool is_umi_req(uint32_t opcode) {
@@ -70,7 +75,7 @@ static inline bool is_umi_req(uint32_t opcode) {
 }
 
 static inline bool is_umi_resp(uint32_t opcode) {
-    return (opcode & 0b1) == 0b0;
+    return (opcode != 0) && ((opcode & 0b1) == 0b0);
 }
 
 static inline bool is_umi_user(uint32_t opcode) {

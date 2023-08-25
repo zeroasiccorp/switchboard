@@ -14,6 +14,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 
 #include "bitutil.h"
 #include "bytesobject.h"
@@ -156,6 +157,71 @@ struct PyUmiPacket {
     uint64_t dstaddr;
     uint64_t srcaddr;
     py::array data;
+
+    bool friend operator==(const PyUmiPacket& lhs, const PyUmiPacket& rhs) {
+        if (((lhs.cmd & 0xff) == 0) && ((rhs.cmd & 0xff) == 0)) {
+            // both are invalid; only the first 8 bits of the command
+            // have to match in order for the packets to be considered
+            // equivalent
+            return true;
+        }
+
+        if (lhs.cmd != rhs.cmd) {
+            // commands match
+            return false;
+        }
+
+        // if we get to this point, the commands match, so we can
+        // just work with the command from the left-hand side
+
+        uint32_t cmd = lhs.cmd;
+        uint32_t opcode = umi_opcode(cmd);
+
+        if ((opcode == UMI_REQ_LINK) || (opcode == UMI_RESP_LINK)) {
+            // link commands have no address or data, so the comparison
+            // is done at this point
+            return true;
+        }
+
+        // all other commands have a destination address, which must match
+        // between lhs and rhs
+
+        if (lhs.dstaddr != rhs.dstaddr) {
+            return false;
+        }
+
+        if (is_umi_req(opcode) && (lhs.srcaddr != rhs.srcaddr)) {
+            // requests also have a source address, which must match
+            // between lhs and rhs
+            return false;
+        }
+
+        if(has_umi_data(opcode)) {
+            uint32_t len = umi_len(cmd);
+            uint32_t size = umi_size(cmd);
+            uint32_t nbytes = (len + 1) << size;
+
+            if ((lhs.data.nbytes() < nbytes) || (rhs.data.nbytes() < nbytes)) {
+                // one packet or both doesn't have enough data to compare
+                return false;
+            }
+
+            py::buffer_info lhs_info = py::buffer(lhs.data).request();
+            py::buffer_info rhs_info = py::buffer(rhs.data).request();
+
+            if (memcmp(lhs_info.ptr, rhs_info.ptr, nbytes) != 0) {
+                // note that memcpy returns "0" if the arrays match,
+                // so we'll only get here if there is a mismatch
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool friend operator!=(const PyUmiPacket& lhs, const PyUmiPacket& rhs) {
+        return !(lhs == rhs);
+    }
 
   private:
     bool m_allocated;
@@ -902,7 +968,9 @@ PYBIND11_MODULE(_switchboard, m) {
         .def_readwrite("cmd", &PyUmiPacket::cmd)
         .def_readwrite("dstaddr", &PyUmiPacket::dstaddr)
         .def_readwrite("srcaddr", &PyUmiPacket::srcaddr)
-        .def_readwrite("data", &PyUmiPacket::data);
+        .def_readwrite("data", &PyUmiPacket::data)
+        .def(py::self == py::self)
+        .def(py::self != py::self);
 
     py::class_<OldPyUmiPacket>(m, "OldPyUmiPacket")
         .def(py::init<uint32_t, uint32_t, uint32_t, uint64_t, uint64_t,
