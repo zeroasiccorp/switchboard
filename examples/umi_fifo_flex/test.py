@@ -3,7 +3,6 @@
 # Example illustrating how to interact with the umi_fifo_flex module
 # Copyright (C) 2023 Zero ASIC
 
-import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, random_umi_packet
@@ -25,38 +24,77 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
 
     # randomly write data
 
-    q = []
-    partial = None
-    num_sent = 0
-    num_recv = 0
+    tx_orig = [random_umi_packet() for _ in range(n)]
 
-    while (num_sent < n) or (num_recv < n):
+    tx_sets = []  # kept for debug purposes
+    tx_hist = []
+
+    tx_set = None
+    tx_partial = None
+
+    rx_set = None  # kept for debug purposes
+    rx_partial = None
+
+    num_sent = 0
+
+    while (num_sent < n) or (len(tx_hist) > 0):
         # send data
         if num_sent < n:
-            txp = random_umi_packet()
-            if umi.send(txp, blocking=False):
-                print('*** SENT ***')
-                print(txp)
-                q.append(txp.data)
+            txp = tx_orig[num_sent]
+            if umi.send(tx_orig[num_sent], blocking=False):
                 num_sent += 1
 
+                if tx_partial is not None:
+                    if not tx_partial.merge(txp):
+                        tx_hist.append(tx_partial)
+                        tx_sets.append(tx_set)
+                        tx_start_new = True
+                    else:
+                        tx_set.append(txp)
+                        tx_start_new = False
+                else:
+                    tx_start_new = True
+
+                if tx_start_new:
+                    tx_partial = txp
+                    tx_set = [txp]
+
+                if num_sent == n:
+                    # if this is the last packet, add it to the history
+                    # even if the merge was successful
+                    tx_hist.append(tx_partial)
+                    tx_sets.append(tx_set)
+
         # receive data
-        if num_recv < n:
+        if len(tx_hist) > 0:
             rxp = umi.recv(blocking=False)
             if rxp is not None:
-                print("*** RECEIVED ***")
-                print(rxp)
-
-                if partial is None:
-                    partial = rxp.data
+                # try to merge into an existing partial packet
+                if rx_partial is not None:
+                    if not rx_partial.merge(rxp):
+                        print('=== Mismatch detected ===')
+                        for i, p in enumerate(tx_sets[0]):
+                            print(f'* TX[{i}] *')
+                            print(p)
+                        print('---')
+                        for i, p in enumerate(rx_set):
+                            print(f'* RX[{i}] *')
+                            print(p)
+                        print('=========================')
+                        raise Exception('Mismatch!')
+                    else:
+                        rx_set.append(rxp)
                 else:
-                    partial = np.concatenate((partial, rxp.data))
+                    rx_partial = rxp
+                    rx_set = [rxp]
 
-                if (len(q) > 0) and (len(q[0]) == len(partial)):
-                    assert (q[0] == partial).all(), "Data mismatch"
-                    q.pop(0)
-                    partial = None
-                    num_recv += 1
+                # at this point it is guaranteed there is something in
+                # rx_partial, so compare it to the expected outbound packet
+                if rx_partial == tx_hist[0]:
+                    tx_hist.pop(0)
+                    tx_sets.pop(0)
+                    rx_partial = None
+                    rx_set = None
 
 
 def build_testbench(fast=False):

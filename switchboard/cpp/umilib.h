@@ -66,6 +66,11 @@ static inline bool has_umi_data(uint32_t opcode) {
             (opcode == UMI_RESP_USER1) || (opcode == UMI_RESP_FUTURE1));
 }
 
+static inline bool allows_umi_merge(uint32_t opcode) {
+    return ((opcode == UMI_REQ_READ) || (opcode == UMI_REQ_WRITE) || (opcode == UMI_REQ_POSTED) ||
+            (opcode == UMI_REQ_RDMA) || (opcode == UMI_RESP_READ) || (opcode == UMI_RESP_WRITE));
+}
+
 static inline bool is_umi_invalid(uint32_t opcode) {
     return opcode == 0;
 }

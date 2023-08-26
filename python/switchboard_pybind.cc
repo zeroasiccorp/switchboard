@@ -139,6 +139,18 @@ struct PyUmiPacket {
         m_allocated = true;
     }
 
+    void resize(size_t size, size_t len) {
+        if (!m_storage) {
+            throw std::runtime_error("There is not storage associated with this UMI transaction.");
+        } else {
+            if (data.itemsize() != (1 << size)) {
+                throw std::runtime_error("Array data type doesn't match SIZE.");
+            }
+
+            data.resize({len + 1});
+        }
+    }
+
     bool storage() {
         return m_storage;
     }
@@ -157,6 +169,74 @@ struct PyUmiPacket {
     uint64_t dstaddr;
     uint64_t srcaddr;
     py::array data;
+
+    bool merge(const PyUmiPacket& other) {
+        uint32_t opcode = umi_opcode(cmd);
+
+        if (!allows_umi_merge(opcode)) {
+            // merging is not allowed for this kind of transaction
+            return false;
+        }
+
+        if (umi_ex(cmd) != 0) {
+            // merging is only allowed when ex == 0
+            return false;
+        }
+
+        // check that all fields except EOM and LEN match
+        uint32_t mask = 0xffffffff;
+        set_umi_eom(&mask, 0);
+        set_umi_len(&mask, 0);
+        if ((cmd & mask) != (other.cmd & mask)) {
+            return false;
+        }
+
+
+        if (umi_eom(cmd)) {
+            // when merging a sequence of packets, only the last
+            // packet can have eom=1
+            return false;
+        }
+
+        uint32_t size = umi_size(cmd);
+        uint32_t len = umi_len(cmd);
+        uint32_t nbytes = (len + 1) << size;
+
+        if (other.dstaddr != (dstaddr + nbytes)) {
+            // new dstaddr must be next sequentially
+            return false;
+        }
+
+        if (other.srcaddr != (srcaddr + nbytes)) {
+            // new srcaddr must be next sequentially
+            return false;
+        }
+
+        if (has_umi_data(opcode)) {
+            // resize this packet
+            resize(size, len + umi_len(other.cmd) + 1);
+
+            // make sure the data indicated by the command is there
+            uint32_t other_len = umi_len(other.cmd);
+            uint32_t other_nbytes = (other_len + 1) << size;
+            if (other.data.nbytes() < other_nbytes) {
+                throw std::runtime_error("other packet doesn't contain enough data");
+            }
+
+            // copy in the data
+            uint8_t* ptr = (uint8_t*)py::buffer(data).request().ptr;
+            uint8_t* other_ptr = (uint8_t*)py::buffer(other.data).request().ptr;
+            memcpy(ptr + nbytes, other_ptr, other_nbytes);
+        }
+
+        // set LEN
+        set_umi_len(&cmd, len + umi_len(other.cmd) + 1);
+
+        // set EOM
+        set_umi_eom(&cmd, umi_eom(other.cmd));
+
+        return true;
+    }
 
     bool friend operator==(const PyUmiPacket& lhs, const PyUmiPacket& rhs) {
         if (((lhs.cmd & 0xff) == 0) && ((rhs.cmd & 0xff) == 0)) {
@@ -965,6 +1045,7 @@ PYBIND11_MODULE(_switchboard, m) {
         .def(py::init<uint32_t, uint64_t, uint64_t, std::optional<py::array>>(), py::arg("cmd") = 0,
             py::arg("dstaddr") = 0, py::arg("srcaddr") = 0, py::arg("data") = py::none())
         .def("__str__", &PyUmiPacket::toString)
+        .def("merge", &PyUmiPacket::merge)
         .def_readwrite("cmd", &PyUmiPacket::cmd)
         .def_readwrite("dstaddr", &PyUmiPacket::dstaddr)
         .def_readwrite("srcaddr", &PyUmiPacket::srcaddr)
