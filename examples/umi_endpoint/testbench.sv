@@ -22,7 +22,9 @@ module testbench (
     wire [AW-1:0] udev_resp_srcaddr;
     wire [DW-1:0] udev_resp_data;
 
-    umi_rx_sim rx_i (
+    umi_rx_sim #(
+        .VALID_MODE_DEFAULT(1)
+    ) rx_i (
         .clk(clk),
         .data(udev_req_data),
         .srcaddr(udev_req_srcaddr),
@@ -32,7 +34,9 @@ module testbench (
         .valid(udev_req_valid)
     );
 
-    umi_tx_sim tx_i (
+    umi_tx_sim #(
+        .READY_MODE_DEFAULT(1)
+    ) tx_i (
         .clk(clk),
         .data(udev_resp_data),
         .srcaddr(udev_resp_srcaddr),
@@ -55,7 +59,9 @@ module testbench (
 
     assign loc_ready = nreset;
 
-    umi_endpoint umi_endpoint_i (
+    umi_endpoint #(
+        .REG(0)
+    ) umi_endpoint_i (
         .*
     );
 
