@@ -543,4 +543,3 @@ def random_umi_packet(
     # return the packet
 
     return PyUmiPacket(cmd=cmd, dstaddr=dstaddr, srcaddr=srcaddr, data=data)
-

@@ -12,9 +12,9 @@
 #include <stdio.h>
 
 #include <pybind11/numpy.h>
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/operators.h>
 
 #include "bitutil.h"
 #include "bytesobject.h"
@@ -191,7 +191,6 @@ struct PyUmiPacket {
             return false;
         }
 
-
         if (umi_eom(cmd)) {
             // when merging a sequence of packets, only the last
             // packet can have eom=1
@@ -276,7 +275,7 @@ struct PyUmiPacket {
             return false;
         }
 
-        if(has_umi_data(opcode)) {
+        if (has_umi_data(opcode)) {
             uint32_t len = umi_len(cmd);
             uint32_t size = umi_size(cmd);
             uint32_t nbytes = (len + 1) << size;
