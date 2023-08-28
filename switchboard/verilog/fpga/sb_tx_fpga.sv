@@ -217,7 +217,7 @@ module sb_tx_fpga #(
             wdata = {480'd0, head};
         end else if (state == STATE_WR_PACKET) begin
             waddr = cfg_base_addr + PACKET_OFFSET + (head * PACKET_SIZE);
-            wstrb = 64'hff_ffff_ffff; // 40 bytes
+            wstrb = {{((512-64-DW)/8){1'b0}}, {((DW+64)/8){1'b1}}};
             wdata = packet_to_write;
         end
     end
