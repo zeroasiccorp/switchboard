@@ -43,33 +43,17 @@ def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', n=3, fast=False):
             if rxp is not None:
                 print('* RX *')
                 print(str(rxp))
-                if not packets_match(rxp, txq[0]):
+                if rxp != txq[0]:
                     raise Exception('Mismatch!')
                 else:
                     txq.pop(0)
                     n_recv += 1
 
 
-def packets_match(txp, rxp):
-    # compare data in both packets
-    txbytes = len(txp.data) if txp.data is not None else 0
-    rxbytes = len(rxp.data) if rxp.data is not None else 0
-    if rxbytes != txbytes:
-        data_match = False
-    elif (rxbytes == 0) and (txbytes == 0):
-        data_match = True
-    else:
-        data_match = (txp.data == rxp.data).all()
-
-    # compare the rest of the packets
-    return ((txp.cmd == rxp.cmd) and (txp.dstaddr == rxp.dstaddr)
-        and (txp.srcaddr == rxp.srcaddr) and data_match)
-
-
 def build_testbench(fast=False):
     dut = SbDut('testbench')
 
-    EX_DIR = Path('..')
+    EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')

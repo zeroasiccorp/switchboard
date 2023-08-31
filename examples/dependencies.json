@@ -2,7 +2,7 @@
     {
         "name": "umi",
         "url": "git@github.com:zeroasiccorp/umi.git",
-        "commit": "f85d0cc"
+        "commit": "6bd33a1"
     },
     {
         "name": "old-umi",
@@ -12,7 +12,7 @@
     {
         "name": "lambdalib",
         "url": "git@github.com:siliconcompiler/lambdalib.git",
-        "commit": "ebbcd48"
+        "commit": "98863b317ab0d038631763dcc66545a26c44f785"
     },
     {
         "name": "libsystemctlm-soc",

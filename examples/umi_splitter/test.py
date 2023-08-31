@@ -65,7 +65,7 @@ def main(in_="in.q", out0="out0.q", out1="out1.q", n=3, fast=False):
 def build_testbench(fast=False):
     dut = SbDut('testbench')
 
-    EX_DIR = Path('..')
+    EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')
