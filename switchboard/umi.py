@@ -393,7 +393,7 @@ def nbytes2size(nbytes: Integral):
 
     nbytes = int(nbytes)
 
-    if nbytes.bit_count() != 1:
+    if bin(nbytes).count('1') != 1:
         raise ValueError(f'Number of bytes must be a power of two (got {nbytes})')
 
     size = nbytes.bit_length() - 1
