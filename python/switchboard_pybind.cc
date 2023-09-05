@@ -650,6 +650,10 @@ class PyUmi {
                     ptr += len << size;
                     addr += len << size;
                     srcaddr += len << size;
+
+                    if (posted && progressbar) {
+                        progressbar_show(info.size - total_len, info.size);
+                    }
                 }
             }
 
@@ -662,11 +666,18 @@ class PyUmi {
                     // update ack status
                     to_ack -= (umi_len(resp.cmd) + 1);
                     expected_addr += (umi_len(resp.cmd) + 1) << umi_size(resp.cmd);
+
+                    if (!posted && progressbar) {
+                        progressbar_show(info.size - to_ack, info.size);
+                    }
                 }
             }
 
             // make sure there aren't outside signals trying to interrupt
             check_signals();
+        }
+        if (progressbar) {
+            progressbar_done();
         }
     }
 
