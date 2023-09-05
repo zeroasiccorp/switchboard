@@ -3,10 +3,9 @@
 # Example illustrating how to interact with the umi_fifo_flex module
 # Copyright (C) 2023 Zero ASIC
 
-import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, random_umi_packet
+from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, umi_loopback
 
 
 def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
@@ -24,45 +23,13 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
     umi = UmiTxRx(client2rtl, rtl2client)
 
     # randomly write data
-
-    q = []
-    partial = None
-    num_sent = 0
-    num_recv = 0
-
-    while (num_sent < n) or (num_recv < n):
-        # send data
-        if num_sent < n:
-            txp = random_umi_packet()
-            if umi.send(txp, blocking=False):
-                print('*** SENT ***')
-                print(txp)
-                q.append(txp.data)
-                num_sent += 1
-
-        # receive data
-        if num_recv < n:
-            rxp = umi.recv(blocking=False)
-            if rxp is not None:
-                print("*** RECEIVED ***")
-                print(rxp)
-
-                if partial is None:
-                    partial = rxp.data
-                else:
-                    partial = np.concatenate((partial, rxp.data))
-
-                if (len(q) > 0) and (len(q[0]) == len(partial)):
-                    assert (q[0] == partial).all(), "Data mismatch"
-                    q.pop(0)
-                    partial = None
-                    num_recv += 1
+    umi_loopback(umi, n)
 
 
 def build_testbench(fast=False):
     dut = SbDut('testbench')
 
-    EX_DIR = Path('..')
+    EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')

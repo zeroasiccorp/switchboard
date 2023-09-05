@@ -16,3 +16,4 @@ from .verilator import verilator_run
 from .icarus import icarus_run
 from .sbdut import SbDut
 from .old2new import old2new_run
+from .loopback import umi_loopback

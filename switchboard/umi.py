@@ -3,7 +3,10 @@
 
 import random
 import numpy as np
+
+from numbers import Integral
 from typing import Iterable, Union, Dict
+
 from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic,
     OldPyUmi, OldUmiCmd, OldPyUmiPacket)
 
@@ -125,7 +128,7 @@ class UmiTxRx:
         return self.umi.recv(blocking)
 
     def write(self, addr, data, srcaddr=None, max_bytes=None,
-        posted=None, qos=0, prot=0, progressbar=False):
+        posted=None, qos=0, prot=0, progressbar=False, check_alignment=True):
         """
         Writes the provided data to the given 64-bit address.  Data can be either
         a numpy integer type (e.g., np.uint32) or an numpy array of integer types
@@ -179,6 +182,11 @@ class UmiTxRx:
         if self.old:
             write_data = write_data.view(np.uint8)
 
+        if (not self.old) and check_alignment:
+            size = dtype2size(write_data.dtype)
+            if not addr_aligned(addr=addr, align=size):
+                raise ValueError(f'addr={addr} misaligned for size={size}')
+
         # perform write
         if self.old:
             self.umi.write(addr, write_data, max_bytes, progressbar)
@@ -187,7 +195,7 @@ class UmiTxRx:
                 posted, qos, prot, progressbar)
 
     def write_readback(self, addr, value, mask=None, srcaddr=None, dtype=None,
-        posted=True, write_srcaddr=None):
+        posted=True, write_srcaddr=None, check_alignment=True):
         """
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
@@ -244,13 +252,14 @@ class UmiTxRx:
                 raise TypeError("Must provide mask as a numpy integer type, or specify dtype.")
 
         # write, then read repeatedly until the value written is observed
-        self.write(addr, value, srcaddr=write_srcaddr, posted=posted)
-        rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
+        self.write(addr, value, srcaddr=write_srcaddr, posted=posted,
+            check_alignment=check_alignment)
+        rdval = self.read(addr, value.dtype, srcaddr=srcaddr, check_alignment=check_alignment)
         while ((rdval & mask) != (value & mask)):
-            rdval = self.read(addr, value.dtype, srcaddr=srcaddr)
+            rdval = self.read(addr, value.dtype, srcaddr=srcaddr, check_alignment=check_alignment)
 
     def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=None,
-        max_bytes=None, qos=0, prot=0):
+        max_bytes=None, qos=0, prot=0, check_alignment=True):
         """
         Reads from the provided 64-bit address.  The "num_or_dtype" argument can be
         either a plain integer, specifying the number of bytes to be read, or a numpy
@@ -286,17 +295,22 @@ class UmiTxRx:
         srcaddr = int(srcaddr)
 
         if isinstance(num_or_dtype, (type, np.dtype)):
-            len = 1
-            size = np.dtype(num_or_dtype).itemsize
+            num = 1
+            bytes_per_elem = np.dtype(num_or_dtype).itemsize
         else:
-            len = num_or_dtype
-            size = np.dtype(dtype).itemsize
+            num = num_or_dtype
+            bytes_per_elem = np.dtype(dtype).itemsize
+
+        if (not self.old) and check_alignment:
+            size = nbytes2size(bytes_per_elem)
+            if not addr_aligned(addr=addr, align=size):
+                raise ValueError(f'addr={addr} misaligned for size={size}')
 
         extra_args = []
         if not self.old:
             extra_args += [qos, prot]
 
-        result = self.umi.read(addr, len, size, srcaddr, max_bytes, *extra_args)
+        result = self.umi.read(addr, num, bytes_per_elem, srcaddr, max_bytes, *extra_args)
 
         if isinstance(num_or_dtype, (type, np.dtype)):
             return result.view(num_or_dtype)[0]
@@ -371,44 +385,71 @@ def size2dtype(size: int, signed: bool = False, float: bool = False):
     return dtype
 
 
+def nbytes2size(nbytes: Integral):
+    if not isinstance(nbytes, Integral):
+        raise ValueError(f'Number of bytes must be an integer (got {nbytes})')
+    elif nbytes <= 0:
+        raise ValueError(f'Number of bytes must be positive (got {nbytes})')
+
+    nbytes = int(nbytes)
+
+    if bin(nbytes).count('1') != 1:
+        raise ValueError(f'Number of bytes must be a power of two (got {nbytes})')
+
+    size = nbytes.bit_length() - 1
+
+    if size < 0:
+        raise ValueError(f'size cannot be negative (got {size})')
+
+    return size
+
+
 def dtype2size(dtype: np.dtype):
     if isinstance(dtype, np.dtype):
-        itemsize = int(dtype.itemsize)
-
-        if itemsize.bit_count() != 1:
-            raise ValueError(f'itemsize must be a power of two (got {itemsize})')
-
-        size = int(dtype.itemsize).bit_length() - 1
-
-        if size < 0:
-            raise ValueError(f'size cannot be negative (got {size})')
-
-        return size
+        return nbytes2size(dtype.itemsize)
     else:
         raise ValueError(f'dtype must be of type np.dtype (got {type(dtype)})')
 
 
-def random_int_value(name, value, min, max):
+def addr_aligned(addr: Integral, align: Integral) -> bool:
+    return ((addr >> align) << align) == addr
+
+
+def random_int_value(name, value, min, max, align=None):
     # determine the length of the transaction
 
     if value is None:
         value = random.randint(min, max)
+        if align is not None:
+            value >>= align
+            value <<= align
     elif isinstance(value, Iterable):
         value = random.choice(value)
 
     # validate result
 
-    if int(value) != value:
-        raise ValueError(f'{name} is not an integer: {value}')
+    check_int_in_range(name, value, min=min, max=max)
 
     value = int(value)
 
-    if not ((min <= value) and (value <= max)):
-        raise ValueError(f'unsupported {name}: {value}')
+    if align is not None:
+        if not addr_aligned(addr=value, align=align):
+            raise ValueError(f'misaligned {name}: {value}')
 
     # return result
 
     return value
+
+
+def check_int_in_range(name, value, min=None, max=None):
+    if not np.issubdtype(type(value), np.integer):
+        raise ValueError(f'{name} is not an integer')
+
+    if (min is not None) and (value < min):
+        raise ValueError(f'{name} is less than {min}')
+
+    if (max is not None) and (value > max):
+        raise ValueError(f'{name} is greater than {max}')
 
 
 def random_umi_packet(
@@ -423,12 +464,15 @@ def random_umi_packet(
     ex=0,
     atype=0,
     eom=1,
-    eof=1
+    eof=1,
+    max_bytes=32
 ):
+    # input validation
+
+    check_int_in_range("max_bytes", max_bytes, min=0, max=32)
 
     # TODO: make these parameters flexible, or more centrally-defined
 
-    MAX_SUMI_BYTES = 32
     MAX_SUMI_SIZE = 3
     AW = 64
 
@@ -458,7 +502,7 @@ def random_umi_packet(
     if (len is None) and (data is not None):
         len = data.size - 1
 
-    len = random_int_value('len', len, 0, (MAX_SUMI_BYTES >> size) - 1)
+    len = random_int_value('len', len, 0, (max_bytes >> size) - 1)
 
     # generate other fields
 
@@ -475,8 +519,8 @@ def random_umi_packet(
 
     # generate destination address
 
-    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1)
-    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1)
+    dstaddr = random_int_value('dstaddr', dstaddr, 0, (1 << AW) - 1, align=size)
+    srcaddr = random_int_value('srcaddr', srcaddr, 0, (1 << AW) - 1, align=size)
 
     # generate data if needed
 
