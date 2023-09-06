@@ -10,7 +10,7 @@
 
 numpy
 tqdm
-siliconcompiler >=0.13.1,<0.15
+siliconcompiler >=0.13.1
 
 # Testing dependencies
 #:test
