@@ -517,10 +517,14 @@ class PySbRx {
 
 // Functions to show a progress bar.
 
-static void progressbar_show(uint64_t progress, uint64_t total) {
+static void progressbar_show(int& state, uint64_t progress, uint64_t total) {
     unsigned int progress_percent = progress * 100 / total;
     // Cap it to 50 chars for smaller terminals.
     unsigned int count = progress_percent / 2;
+
+    if (count == state)
+        return;
+    state = count;
 
     putchar('\r');
     printf("%d%%\t", progress_percent);
@@ -635,6 +639,7 @@ class PyUmi {
 
         // determine the maximum length of an individual packet
         uint32_t max_len = max_bytes / info.itemsize;
+        int pb_state = 0;
 
         // send all of the data
         while ((total_len > 0) || ((!posted) && (to_ack > 0))) {
@@ -652,7 +657,7 @@ class PyUmi {
                     srcaddr += len << size;
 
                     if (posted && progressbar) {
-                        progressbar_show(info.size - total_len, info.size);
+                        progressbar_show(pb_state, info.size - total_len, info.size);
                     }
                 }
             }
@@ -668,7 +673,7 @@ class PyUmi {
                     expected_addr += (umi_len(resp.cmd) + 1) << umi_size(resp.cmd);
 
                     if (!posted && progressbar) {
-                        progressbar_show(info.size - to_ack, info.size);
+                        progressbar_show(pb_state, info.size - to_ack, info.size);
                     }
                 }
             }
@@ -859,6 +864,8 @@ class OldPyUmi {
 
     void write(uint64_t addr, py::array_t<uint8_t> data, uint32_t max_bytes = 32768,
         bool progressbar = false) {
+        int pb_state = 0;
+
         // write data to the given address.  data can be of any length,
         // including greater than the length of a header packet and
         // values that are not powers of two.  this function is blocking.
@@ -907,7 +914,7 @@ class OldPyUmi {
 
             if (progressbar) {
                 uint64_t progress = info.size - num;
-                progressbar_show(progress, info.size);
+                progressbar_show(pb_state, progress, info.size);
             }
         }
         if (progressbar) {
