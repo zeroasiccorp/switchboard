@@ -29,6 +29,7 @@ class SbDut(siliconcompiler.Chip):
         super().__init__(design)
 
         self.set('option', 'ydir', sb_path() / 'verilog' / 'sim')
+        self.add('option', 'ydir', sb_path() / 'verilog' / 'common')
 
         self.set('option', 'mode', 'sim')
 
