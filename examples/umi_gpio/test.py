@@ -27,7 +27,7 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     umi = UmiTxRx(client2rtl, rtl2client)
     gpio = umi.gpio(owidth=128, iwidth=384, init=0xcafed00d)
 
-    print(f'Initial value: {gpio.o[:]}')
+    print(f'Initial value: 0x{gpio.o[:]:x}')
     assert gpio.o[:] == 0xcafed00d
 
     # drive outputs
@@ -57,14 +57,14 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     stimulus = random.randint(0, (1 << 128) - 1)
 
     gpio.o[:] = stimulus
-    print(f'Wrote gpio.o[:] = {gpio.o[:]}')
+    print(f'Wrote gpio.o[:] = 0x{gpio.o[:]:032x}')
 
     c = gpio.i[255:128]
-    print(f'Read gpio.i[255:128] = {c}')
+    print(f'Read gpio.i[255:128] = 0x{c:032x}')
     assert c == stimulus
 
     d = gpio.i[383:256]
-    print(f'Read gpio.i[383:256] = {d}')
+    print(f'Read gpio.i[383:256] = 0x{d:032x}')
     assert d == (~stimulus) & ((1 << 128) - 1)
 
     print('PASS!')

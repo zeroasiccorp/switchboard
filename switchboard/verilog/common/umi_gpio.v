@@ -142,7 +142,8 @@ module umi_gpio #(
     assign flit_bytes = (nbytes <= (DW/8)) ? nbytes : (DW/8);
 
     reg active;
-    assign udev_req_ready = active && (!((udev_resp_valid && (!udev_resp_ready)) || resp_in_progress));
+    assign udev_req_ready = (active
+        && (!((udev_resp_valid && (!udev_resp_ready)) || resp_in_progress)));
 
     reg udev_resp_valid_r;
     assign udev_resp_valid = udev_resp_valid_r;
