@@ -26,18 +26,19 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
 
     umi = UmiTxRx(client2rtl, rtl2client)
 
-    wbv = BitVector(bits=32)
-    wbv[7:0] = 22
-    wbv[15:8] = 77
-    umi.write(0, wbv.value)
+    # drive inputs
+    umi.write(0, np.uint8(22))
+    umi.write(1, np.uint8(77))
 
-    rbv = BitVector(value=umi.read(0, np.uint32), bits=32)
+    # read first output
+    a = umi.read(0, np.uint8)
+    print(f'Got a={a}')
+    assert a == 34
 
-    print(f'Got rbv[7:0]={rbv[7:0]}')
-    assert rbv[7:0] == 34
-
-    print(f'Got rbv[15:8]={rbv[15:8]}')
-    assert rbv[15:8] == 43
+    # read second output
+    b = umi.read(1, np.uint8)
+    print(f'Got b={b}')
+    assert b == 43
 
     print('PASS!')
 
