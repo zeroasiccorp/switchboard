@@ -222,7 +222,7 @@ class UmiTxRx:
         if (not self.old) and check_alignment:
             size = dtype2size(write_data.dtype)
             if not addr_aligned(addr=addr, align=size):
-                raise ValueError(f'addr={addr} misaligned for size={size}')
+                raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         # perform write
         if self.old:
@@ -341,7 +341,7 @@ class UmiTxRx:
         if (not self.old) and check_alignment:
             size = nbytes2size(bytes_per_elem)
             if not addr_aligned(addr=addr, align=size):
-                raise ValueError(f'addr={addr} misaligned for size={size}')
+                raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         extra_args = []
         if not self.old:
@@ -471,7 +471,7 @@ def random_int_value(name, value, min, max, align=None):
 
     if align is not None:
         if not addr_aligned(addr=value, align=align):
-            raise ValueError(f'misaligned {name}: {value}')
+            raise ValueError(f'misaligned {name}: 0x{value:x}')
 
     # return result
 
