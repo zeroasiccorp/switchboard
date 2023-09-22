@@ -3,10 +3,9 @@
 # Example illustrating how to interact with the umi_endpoint module
 # Copyright (C) 2023 Zero ASIC
 
-import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, delete_queue, verilator_run, SbDut, BitVector
+from switchboard import UmiTxRx, delete_queue, verilator_run, SbDut
 
 
 def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
@@ -25,18 +24,19 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     # "init" method
 
     umi = UmiTxRx(client2rtl, rtl2client)
+    gpio = umi.gpio()
 
-    # drive inputs
-    umi.write(0, np.uint8(22))
-    umi.write(1, np.uint8(77))
+    # drive outputs
+    gpio.o[7:0] = 22
+    gpio.o[8:0] = 77
 
-    # read first output
-    a = umi.read(0, np.uint8)
+    # read first input
+    a = gpio.i[7:0]
     print(f'Got a={a}')
     assert a == 34
 
-    # read second output
-    b = umi.read(1, np.uint8)
+    # read second input
+    b = gpio.i[15:8]
     print(f'Got b={b}')
     assert b == 43
 
@@ -53,7 +53,6 @@ def build_testbench(fast=False):
     dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
-        dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
 
     # Verilator configuration
     vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import numpy as np
 from switchboard import BitVector
 
 
@@ -15,6 +16,8 @@ def test_bit_vector():
 
     bv[7:0] = 0x0d
     assert bv.value == 0xcafed00d
+
+    assert np.array_equal(bv.tobytes(), np.array([0x0d, 0xd0, 0xfe, 0xca], dtype=np.uint8))
 
 
 if __name__ == '__main__':

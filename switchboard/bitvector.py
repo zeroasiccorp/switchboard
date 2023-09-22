@@ -2,6 +2,8 @@
 
 # Copyright (C) 2023 Zero ASIC
 
+import numpy as np
+
 
 class BitVector:
     def __init__(self, value: int = 0):
@@ -15,7 +17,10 @@ class BitVector:
 
     def __setitem__(self, key, value):
         if isinstance(key, slice):
-            msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
+            if (key.start is None) and (key.stop is None) and (key.step is None):
+                self.value = value
+            else:
+                msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
         else:
             msb, lsb = self.slice_to_msb_lsb(key, key)
 
@@ -35,7 +40,10 @@ class BitVector:
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
+            if (key.start is None) and (key.stop is None) and (key.step is None):
+                return self.value
+            else:
+                msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
         else:
             msb, lsb = self.slice_to_msb_lsb(key, key)
 
@@ -66,3 +74,34 @@ class BitVector:
             raise ValueError('Negative LSB is not allowed.')
 
         return msb, lsb
+
+    def tobytes(self, n=None):
+        # convert to a numpy byte array.  if "n" is provided,
+        # pad result to be "n" bytes.  will error out if "n"
+        # is less than the number of bytes needed to represent
+        # the current value.
+
+        value = self.value
+        bytes = []
+
+        while value != 0:
+            bytes.append(value & 0xff)
+            value >>= 8
+
+        if n is not None:
+            if len(bytes) < n:
+                bytes += [0] * (n - len(bytes))
+            elif len(bytes) > n:
+                raise ValueError('Number of bytes needed to represent the current value'
+                    f' ({self.value}) is {len(bytes)}, but the argument n={n} is smaller.')
+
+        return np.array(bytes, dtype=np.uint8)
+
+    @staticmethod
+    def frombytes(arr):
+        value = 0
+
+        for i, elem in enumerate(arr):
+            value |= (elem & 0xff) << (i * 8)
+
+        return BitVector(value)
