@@ -17,19 +17,24 @@ class UmiGpioInput:
             nbytes += 1
 
         # read the bytes
-        return self.umi.read(
-            addr=self.dstaddr,
-            num_or_dtype=nbytes,
-            dtype=np.uint8,
-            srcaddr=self.srcaddr,
-            max_bytes=self.max_bytes
+        return BitVector.frombytes(
+            self.umi.read(
+                addr=self.dstaddr,
+                num_or_dtype=nbytes,
+                dtype=np.uint8,
+                srcaddr=self.srcaddr,
+                max_bytes=self.max_bytes
+            )
         )
+
+    def __str__(self):
+        return str(self._read())
 
     def __int__(self):
         return int(self[:])
 
     def __getitem__(self, key):
-        bv = BitVector.frombytes(self._read())
+        bv = self._read()
         return bv.__getitem__(key=key)
 
 
@@ -67,6 +72,9 @@ class UmiGpioOutput:
         self._write()
 
     # read functions provided for convenience
+
+    def __str__(self):
+        return str(self.bv)
 
     def __int__(self):
         return int(self[:])

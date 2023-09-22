@@ -24,20 +24,31 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     # "init" method
 
     umi = UmiTxRx(client2rtl, rtl2client)
-    gpio = umi.gpio()
+    gpio = umi.gpio(wwidth=32, rwidth=32, init=0xcafed00d)
+
+    print(f'Initial value: {gpio.o}')
+    assert gpio.o[:] == 0xcafed00d
 
     # drive outputs
+
     gpio.o[7:0] = 22
+    print(f'gpio.o[7:0] = {gpio.o[7:0]}')
+    assert gpio.o[7:0] == 22
+
     gpio.o[15:8] = 77
+    print(f'gpio.o[15:8] = {gpio.o[15:8]}')
+    assert gpio.o[15:8] == 77
 
     # read first input
+
     a = gpio.i[7:0]
-    print(f'Got a={a}')
+    print(f'Got gpio.i[7:0] = {a}')
     assert a == 34
 
     # read second input
+
     b = gpio.i[15:8]
-    print(f'Got b={b}')
+    print(f'Got gpio.i[15:8] = {b}')
     assert b == 43
 
     print('PASS!')
