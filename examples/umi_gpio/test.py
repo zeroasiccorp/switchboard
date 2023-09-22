@@ -25,7 +25,7 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     # "init" method
 
     umi = UmiTxRx(client2rtl, rtl2client)
-    gpio = umi.gpio(wwidth=128, rwidth=384, init=0xcafed00d)
+    gpio = umi.gpio(owidth=128, iwidth=384, init=0xcafed00d)
 
     print(f'Initial value: {gpio.o[:]}')
     assert gpio.o[:] == 0xcafed00d

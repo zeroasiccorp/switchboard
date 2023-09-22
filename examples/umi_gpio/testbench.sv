@@ -7,8 +7,8 @@ module testbench (
     parameter integer DW=256;
     parameter integer AW=64;
     parameter integer CW=32;
-    parameter integer RWIDTH=384;
-    parameter integer WWIDTH=128;
+    parameter integer IWIDTH=384;
+    parameter integer OWIDTH=128;
 
     wire           udev_req_valid;
     wire           udev_req_ready;
@@ -45,15 +45,15 @@ module testbench (
     );
 
     wire nreset;
-    wire [(RWIDTH-1):0] gpio_in;
-    wire [(WWIDTH-1):0] gpio_out;
+    wire [(IWIDTH-1):0] gpio_in;
+    wire [(OWIDTH-1):0] gpio_out;
 
     umi_gpio #(
         .DW(DW),
         .AW(AW),
         .CW(CW),
-        .RWIDTH(RWIDTH),
-        .WWIDTH(WWIDTH)
+        .IWIDTH(IWIDTH),
+        .OWIDTH(OWIDTH)
     ) umi_gpio_i (
         .*
     );

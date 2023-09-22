@@ -14,16 +14,16 @@ module umi_gpio #(
     parameter integer DW=256,
     parameter integer AW=64,
     parameter integer CW=32,
-    parameter integer RWIDTH=32,
-    parameter integer WWIDTH=32,
-    parameter [WWIDTH-1:0] INITVAL=0
+    parameter integer IWIDTH=32,
+    parameter integer OWIDTH=32,
+    parameter [OWIDTH-1:0] INITVAL=0
 ) (
     input clk,
     input nreset,
 
     // GPIO interface
-    input [RWIDTH-1:0] gpio_in,
-    output [WWIDTH-1:0] gpio_out,
+    input [IWIDTH-1:0] gpio_in,
+    output [OWIDTH-1:0] gpio_out,
 
     // UMI inbound interface
     input           udev_req_valid,
@@ -127,7 +127,7 @@ module umi_gpio #(
 
     // main logic
 
-    reg [WWIDTH-1:0] gpio_out_r;
+    reg [OWIDTH-1:0] gpio_out_r;
     assign gpio_out = gpio_out_r;
 
     reg [31:0] read_bytes_remaining;

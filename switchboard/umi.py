@@ -93,8 +93,8 @@ class UmiTxRx:
 
     def gpio(
         self,
-        rwidth: int = 32,
-        wwidth: int = 32,
+        iwidth: int = 32,
+        owidth: int = 32,
         init: int = 0,
         dstaddr: int = 0,
         srcaddr: int = 0,
@@ -105,8 +105,8 @@ class UmiTxRx:
         Returns an object for communicating with umi_gpio modules.
 
         Args:
-            rwidth (int): Width of GPIO input (bits). Defaults to 32.
-            wwidth (int): Width of GPIO output (bits). Defaults to 32.
+            iwidth (int): Width of GPIO input (bits). Defaults to 32.
+            owidth (int): Width of GPIO output (bits). Defaults to 32.
             init (int): Default value of GPIO output. Defaults to 0.
             dstaddr (int): Base address of the GPIO device. Defaults to 0.
             srcaddr (int): Source address to which responses should be routed. Defaults to 0.
@@ -117,8 +117,8 @@ class UmiTxRx:
         """
 
         return UmiGpio(
-            rwidth=rwidth,
-            wwidth=wwidth,
+            iwidth=iwidth,
+            owidth=owidth,
             init=init,
             dstaddr=dstaddr,
             srcaddr=srcaddr,
