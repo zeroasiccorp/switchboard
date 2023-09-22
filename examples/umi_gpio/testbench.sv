@@ -7,8 +7,8 @@ module testbench (
     parameter integer DW=256;
     parameter integer AW=64;
     parameter integer CW=32;
-    parameter integer RWIDTH=32;
-    parameter integer WWIDTH=32;
+    parameter integer RWIDTH=384;
+    parameter integer WWIDTH=128;
 
     wire           udev_req_valid;
     wire           udev_req_ready;
@@ -69,6 +69,9 @@ module testbench (
 
     assign gpio_in[ 7:0] = gpio_out[ 7:0] + 8'd12;
     assign gpio_in[15:8] = gpio_out[15:8] - 8'd34;
+
+    assign gpio_in[255:128] = gpio_out[127:0];
+    assign gpio_in[383:256] = ~gpio_out[127:0];
 
     // Initialize UMI
 

@@ -19,6 +19,7 @@ class BitVector:
         if isinstance(key, slice):
             if (key.start is None) and (key.stop is None) and (key.step is None):
                 self.value = value
+                return
             else:
                 msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
         else:
@@ -102,6 +103,8 @@ class BitVector:
         value = 0
 
         for i, elem in enumerate(arr):
-            value |= (elem & 0xff) << (i * 8)
+            if not (0 <= elem <= 255):
+                raise ValueError(f'Non-byte value detected at index {i}: {elem}')
+            value |= (int(elem) & 0xff) << (i * 8)
 
         return BitVector(value)

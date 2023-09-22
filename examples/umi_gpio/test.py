@@ -3,6 +3,7 @@
 # Example illustrating how to interact with the umi_endpoint module
 # Copyright (C) 2023 Zero ASIC
 
+import random
 from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import UmiTxRx, delete_queue, verilator_run, SbDut
@@ -24,9 +25,9 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     # "init" method
 
     umi = UmiTxRx(client2rtl, rtl2client)
-    gpio = umi.gpio(wwidth=32, rwidth=32, init=0xcafed00d)
+    gpio = umi.gpio(wwidth=128, rwidth=384, init=0xcafed00d)
 
-    print(f'Initial value: {gpio.o}')
+    print(f'Initial value: {gpio.o[:]}')
     assert gpio.o[:] == 0xcafed00d
 
     # drive outputs
@@ -50,6 +51,21 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     b = gpio.i[15:8]
     print(f'Got gpio.i[15:8] = {b}')
     assert b == 43
+
+    # show that long values work
+
+    stimulus = random.randint(0, (1 << 128) - 1)
+
+    gpio.o[:] = stimulus
+    print(f'Wrote gpio.o[:] = {gpio.o[:]}')
+
+    c = gpio.i[255:128]
+    print(f'Read gpio.i[255:128] = {c}')
+    assert c == stimulus
+
+    d = gpio.i[383:256]
+    print(f'Read gpio.i[383:256] = {d}')
+    assert d == (~stimulus) & ((1 << 128) - 1)
 
     print('PASS!')
 
