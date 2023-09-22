@@ -28,7 +28,7 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
 
     # drive outputs
     gpio.o[7:0] = 22
-    gpio.o[8:0] = 77
+    gpio.o[15:8] = 77
 
     # read first input
     a = gpio.i[7:0]
