@@ -3,7 +3,7 @@
 # Example illustrating how to interact with the umi_endpoint module
 # Copyright (C) 2023 Zero ASIC
 
-import numpy as np
+import random
 from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import UmiTxRx, delete_queue, verilator_run, SbDut
@@ -25,59 +25,49 @@ def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
     # "init" method
 
     umi = UmiTxRx(client2rtl, rtl2client)
+    gpio = umi.gpio(owidth=128, iwidth=384, init=0xcafed00d)
 
-    print("### MINIMAL EXAMPLE ###")
+    print(f'Initial value: 0x{gpio.o[:]:x}')
+    assert gpio.o[:] == 0xcafed00d
 
-    umi.write(0x0, np.uint32(0xDEADBEEF))
-    rdval = umi.read(0x0, np.uint32)
-    print(f"Read: 0x{rdval:08x}")
-    assert rdval == 0xDEADBEEF
+    # drive outputs
 
-    print("### WRITES ###")
+    gpio.o[7:0] = 22
+    print(f'gpio.o[7:0] = {gpio.o[7:0]}')
+    assert gpio.o[7:0] == 22
 
-    # 1 byte
-    wrbuf = np.array([0xBAADF00D], np.uint32).view(np.uint8)
-    for i in range(4):
-        umi.write(0x10 + i, wrbuf[i])
+    gpio.o[15:8] = 77
+    print(f'gpio.o[15:8] = {gpio.o[15:8]}')
+    assert gpio.o[15:8] == 77
 
-    # 2 bytes
-    wrbuf = np.array([0xB0BACAFE], np.uint32).view(np.uint16)
-    for i in range(2):
-        umi.write(0x20 + 2 * i, wrbuf[i])
+    # read first input
 
-    # 4 bytes
-    umi.write(0x30, np.uint32(0xDEADBEEF))
+    a = gpio.i[7:0]
+    print(f'Got gpio.i[7:0] = {a}')
+    assert a == 34
 
-    # 8 bytes
-    umi.write(0x40, np.uint64(0xBAADD00DCAFEFACE))
+    # read second input
 
-    print("### READS ###")
+    b = gpio.i[15:8]
+    print(f'Got gpio.i[15:8] = {b}')
+    assert b == 43
 
-    # 1 byte
-    rdbuf = np.empty((4,), dtype=np.uint8)
-    for i in range(4):
-        rdbuf[i] = umi.read(0x10 + i, np.uint8)
-    val32 = rdbuf.view(np.uint32)[0]
-    print(f"Read: 0x{val32:08x}")
-    assert val32 == 0xBAADF00D
+    # show that long values work
 
-    # 2 bytes
-    rdbuf = np.empty((2,), dtype=np.uint16)
-    for i in range(2):
-        rdbuf[i] = umi.read(0x20 + 2 * i, np.uint16)
-    val32 = rdbuf.view(np.uint32)[0]
-    print(f"Read: 0x{val32:08x}")
-    assert val32 == 0xB0BACAFE
+    stimulus = random.randint(0, (1 << 128) - 1)
 
-    # 4 bytes
-    val32 = umi.read(0x30, np.uint32)
-    print(f"Read: 0x{val32:08x}")
-    assert val32 == 0xDEADBEEF
+    gpio.o[:] = stimulus
+    print(f'Wrote gpio.o[:] = 0x{gpio.o[:]:032x}')
 
-    # 8 bytes
-    val64 = umi.read(0x40, np.uint64)
-    print(f"Read: 0x{val64:016x}")
-    assert val64 == 0xBAADD00DCAFEFACE
+    c = gpio.i[255:128]
+    print(f'Read gpio.i[255:128] = 0x{c:032x}')
+    assert c == stimulus
+
+    d = gpio.i[383:256]
+    print(f'Read gpio.i[383:256] = 0x{d:032x}')
+    assert d == (~stimulus) & ((1 << 128) - 1)
+
+    print('PASS!')
 
 
 def build_testbench(fast=False):
@@ -90,7 +80,6 @@ def build_testbench(fast=False):
     dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
-        dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
 
     # Verilator configuration
     vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'

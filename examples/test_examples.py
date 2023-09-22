@@ -28,6 +28,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['stream', 'PASS!', None],
     ['tcp', 'PASS!', None],
     ['umi_endpoint', None, None],
+    ['umi_gpio', None, None],
     ['umi_fifo', None, None],
     ['umi_fifo_flex', None, None],
     ['umi_splitter', None, None]

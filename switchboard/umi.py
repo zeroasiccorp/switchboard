@@ -9,6 +9,7 @@ from typing import Iterable, Union, Dict
 
 from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic,
     OldPyUmi, OldUmiCmd, OldPyUmiPacket)
+from .gpio import UmiGpio
 
 # note: it was convenient to implement some of this in Python, rather
 # than have everything in C++, because it was easier to provide
@@ -89,6 +90,42 @@ class UmiTxRx:
                 max_bytes = 32
 
         self.default_max_bytes = max_bytes
+
+    def gpio(
+        self,
+        iwidth: int = 32,
+        owidth: int = 32,
+        init: int = 0,
+        dstaddr: int = 0,
+        srcaddr: int = 0,
+        posted: bool = False,
+        max_bytes: int = 32
+    ) -> UmiGpio:
+        """
+        Returns an object for communicating with umi_gpio modules.
+
+        Args:
+            iwidth (int): Width of GPIO input (bits). Defaults to 32.
+            owidth (int): Width of GPIO output (bits). Defaults to 32.
+            init (int): Default value of GPIO output. Defaults to 0.
+            dstaddr (int): Base address of the GPIO device. Defaults to 0.
+            srcaddr (int): Source address to which responses should be routed. Defaults to 0.
+            posted (bool): Whether writes should be sent as posted. Defaults to False.
+            max_bytes (int): Maximum number of bytes in a single transaction to umi_gpio.
+        Returns:
+            UmiGpio object with .i (input) and .o (output) attributes
+        """
+
+        return UmiGpio(
+            iwidth=iwidth,
+            owidth=owidth,
+            init=init,
+            dstaddr=dstaddr,
+            srcaddr=srcaddr,
+            posted=posted,
+            max_bytes=max_bytes,
+            umi=self
+        )
 
     def init_queues(self, tx_uri=None, rx_uri=None):
         """
@@ -185,7 +222,7 @@ class UmiTxRx:
         if (not self.old) and check_alignment:
             size = dtype2size(write_data.dtype)
             if not addr_aligned(addr=addr, align=size):
-                raise ValueError(f'addr={addr} misaligned for size={size}')
+                raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         # perform write
         if self.old:
@@ -304,7 +341,7 @@ class UmiTxRx:
         if (not self.old) and check_alignment:
             size = nbytes2size(bytes_per_elem)
             if not addr_aligned(addr=addr, align=size):
-                raise ValueError(f'addr={addr} misaligned for size={size}')
+                raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         extra_args = []
         if not self.old:
@@ -434,7 +471,7 @@ def random_int_value(name, value, min, max, align=None):
 
     if align is not None:
         if not addr_aligned(addr=value, align=align):
-            raise ValueError(f'misaligned {name}: {value}')
+            raise ValueError(f'misaligned {name}: 0x{value:x}')
 
     # return result
 
