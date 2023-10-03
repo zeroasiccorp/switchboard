@@ -63,6 +63,8 @@ static inline std::string umi_opcode_to_str(uint32_t cmd) {
         return "UMI_INVALID";
     } else if (opcode == UMI_REQ_READ) {
         return "UMI_REQ_READ";
+    } else if (opcode == UMI_REQ_RDMA) {
+        return "UMI_REQ_RDMA";
     } else if (opcode == UMI_REQ_WRITE) {
         return "UMI_REQ_WRITE";
     } else if (opcode == UMI_REQ_POSTED) {
