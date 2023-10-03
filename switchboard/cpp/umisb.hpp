@@ -83,7 +83,7 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
 
     // print out the data as long as this isn't a read request, since
     // that doesn't have data
-    if (opcode != UMI_REQ_READ) {
+    if (!((opcode == UMI_REQ_READ) || (opcode == UMI_REQ_RDMA))) {
         stream << std::endl << "data: " << umi_data_as_str<T>(x);
     }
 
@@ -231,7 +231,7 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
 
     uint32_t opcode = umi_opcode(x.cmd);
 
-    if ((opcode == UMI_REQ_READ) || (opcode == UMI_RESP_WRITE)) {
+    if ((opcode == UMI_REQ_READ) || (opcode == UMI_REQ_RDMA) || (opcode == UMI_RESP_WRITE)) {
         // do nothing, since there isn't data to copy
     } else {
         uint32_t size = umi_size(x.cmd);
@@ -318,7 +318,7 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
 
     uint32_t opcode = umi_opcode(up->cmd);
 
-    if ((opcode == UMI_REQ_READ) || (opcode == UMI_RESP_WRITE)) {
+    if ((opcode == UMI_REQ_READ) || (opcode == UMI_REQ_RDMA) || (opcode == UMI_RESP_WRITE)) {
         // do nothing, since there isn't data to copy
     } else {
         uint32_t size = umi_size(x.cmd);
