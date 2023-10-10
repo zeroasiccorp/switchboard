@@ -61,4 +61,4 @@ class SbDut(siliconcompiler.Chip):
         # use dvflow to execute Icarus, but set steplist so we don't run sim
         self.use(dvflow)
         self.set('option', 'flow', 'dvflow')
-        self.set('option', 'steplist', 'compile')
+        self.set('option', 'to', 'compile')
