@@ -141,6 +141,12 @@ module umi_gpio #(
     wire [31:0] flit_bytes;
     assign flit_bytes = (nbytes <= (DW/8)) ? nbytes : (DW/8);
 
+    wire [31:0] resp_len_req_next32 = {((flit_bytes >> req_size) - 32'd1)};
+    wire [7:0] resp_len_req_next = resp_len_req_next32[7:0];
+
+    wire [31:0] resp_len_next32 = {((flit_bytes >> resp_size) - 32'd1)};
+    wire [7:0] resp_len_next = resp_len_next32[7:0];
+
     reg active;
     assign udev_req_ready = (active
         && (!((udev_resp_valid && (!udev_resp_ready)) || resp_in_progress)));
@@ -174,7 +180,8 @@ module umi_gpio #(
         end else if (udev_req_valid && udev_req_ready) begin
             if (req_cmd_posted || req_cmd_write) begin
                 for (i=0; i<flit_bytes; i=i+1) begin
-                    gpio_out_r[(i+udev_req_dstaddr)*8 +: 8] <= udev_req_data[i*8 +: 8];
+                    gpio_out_r[(i[$clog2(OWIDTH)-1:0]+udev_req_dstaddr[$clog2(OWIDTH)-1:0])*8 +: 8]
+                        <= udev_req_data[i*8 +: 8];
                 end
                 if (req_cmd_write) begin
                     resp_opcode <= UMI_RESP_WRITE;
@@ -182,7 +189,8 @@ module umi_gpio #(
                 end
             end else if (req_cmd_read) begin
                 for (i=0; i<flit_bytes; i=i+1) begin
-                    udev_resp_data_r[i*8 +: 8] <= gpio_in[(i+udev_req_dstaddr)*8 +: 8];
+                    udev_resp_data_r[i*8 +: 8] <=
+                      gpio_in[(i[$clog2(IWIDTH)-1:0]+udev_req_dstaddr[$clog2(IWIDTH)-1:0])*8 +: 8];
                 end
                 resp_opcode <= UMI_RESP_READ;
                 udev_resp_valid_r <= 1'b1;
@@ -195,7 +203,7 @@ module umi_gpio #(
 
             // pass through data
             resp_size <= req_size;
-            resp_len <= ((flit_bytes >> req_size) - 8'd1);
+            resp_len <= resp_len_req_next;
             resp_atype <= req_atype;
             resp_prot <= req_prot;
             resp_qos <= req_qos;
@@ -214,12 +222,13 @@ module umi_gpio #(
                     resp_in_progress <= 1'b0;
                 end else begin
                     read_bytes_remaining <= read_bytes_remaining - flit_bytes;
-                    resp_len <= ((flit_bytes >> resp_size) - 8'd1);
+                    resp_len <= resp_len_next;
                     udev_resp_dstaddr_r <= udev_resp_dstaddr + {{(AW-32){1'b0}}, flit_bytes};
                     read_dstaddr <= read_dstaddr + {{(AW-32){1'b0}}, flit_bytes};
                     resp_eom <= (read_bytes_remaining <= (DW/8)) ? 1'b1 : 1'b0;
                     for (i=0; i<flit_bytes; i=i+1) begin
-                        udev_resp_data_r[i*8 +: 8] <= gpio_in[(i+read_dstaddr)*8 +: 8];
+                        udev_resp_data_r[i*8 +: 8] <=
+                          gpio_in[(i[$clog2(IWIDTH)-1:0]+read_dstaddr[$clog2(IWIDTH)-1:0])*8 +: 8];
                     end
                 end
             end else begin
