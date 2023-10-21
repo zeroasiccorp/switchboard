@@ -5,17 +5,16 @@ UMI/UART Transactor.
 import numpy as np
 
 
-REG_TX = 0
-REG_RX = 4
-REG_SR = 8
-
-REGF_SR_RXEMPTY_MASK = 1 << 0
-REGF_SR_RXFULL_MASK = 1 << 1
-REGF_SR_TXEMPTY_MASK = 1 << 8
-REGF_SR_TXFULL_MASK = 1 << 9
-
-
 class uart_xactor:
+    REG_TX = 0
+    REG_RX = 4
+    REG_SR = 8
+
+    REGF_SR_RXEMPTY_MASK = 1 << 0
+    REGF_SR_RXFULL_MASK = 1 << 1
+    REGF_SR_TXEMPTY_MASK = 1 << 8
+    REGF_SR_TXFULL_MASK = 1 << 9
+
     def __init__(self, umi, encoding='ascii'):
         self.encoding = encoding
         self.umi = umi
@@ -23,9 +22,9 @@ class uart_xactor:
     def read_byte(self, blocking=True):
         c8 = None
         while blocking:
-            sr = self.umi.read(REG_SR, np.uint32)
-            if (sr & REGF_SR_RXEMPTY_MASK) == 0:
-                rx = self.umi.read(REG_RX, np.uint32)
+            sr = self.umi.read(self.REG_SR, np.uint32)
+            if (sr & self.REGF_SR_RXEMPTY_MASK) == 0:
+                rx = self.umi.read(self.REG_RX, np.uint32)
                 c8 = rx & 0xff
                 break
         return bytes([c8])
@@ -42,9 +41,9 @@ class uart_xactor:
 
     def write_byte(self, b):
         while True:
-            sr = self.umi.read(REG_SR, np.uint32)
-            if (sr & REGF_SR_TXFULL_MASK) == 0:
-                self.umi.write(REG_TX, np.uint32(b))
+            sr = self.umi.read(self.REG_SR, np.uint32)
+            if (sr & self.REGF_SR_TXFULL_MASK) == 0:
+                self.umi.write(self.REG_TX, np.uint32(b))
                 break
 
     # File-like ops
