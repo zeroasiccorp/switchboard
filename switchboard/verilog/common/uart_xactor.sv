@@ -164,7 +164,7 @@ module uart_xactor
          clk_i <= 0;
       end else begin
          clk_i <= clk_i + 1;
-         if (clk_i == UART_CLKDIV) begin
+         if (clk_i == UART_CLKDIV[$clog2(UART_CLKDIV):0]) begin
             clk_i <= 0;
          end
       end
