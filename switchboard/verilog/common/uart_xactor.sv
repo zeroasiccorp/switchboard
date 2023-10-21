@@ -82,12 +82,11 @@ module uart_xactor
        if (~nreset) begin
            loc_rddata <= 0;
        end else begin
-          loc_rddata <= 'hdeadbeef;
-
           if (loc_read) begin
              case (loc_addr)
                 REG_RX: loc_rddata <= {24'b0, rxfifo_dout};
                 REG_SR: loc_rddata <= reg_sr;
+                default: loc_rddata <= 'hdeadbeef;
              endcase
           end
        end
