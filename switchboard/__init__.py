@@ -18,3 +18,4 @@ from .sbdut import SbDut
 from .old2new import old2new_run
 from .loopback import umi_loopback
 from .bitvector import BitVector
+from .uart_xactor import uart_xactor
