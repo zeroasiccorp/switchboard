@@ -240,12 +240,13 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
         size_t nbytes = (len + 1) << size;
 
         if (nbytes > sizeof(up->data)) {
-            throw std::runtime_error("(len+1)<<size cannot exceed the data size of a umi_packet.");
+            throw std::runtime_error(
+                "umisb_send: (len+1)<<size cannot exceed the data size of a umi_packet.");
         }
 
         if (nbytes > x.nbytes()) {
             throw std::runtime_error(
-                "(len+1)<<size cannot exceed the data size of a UmiTransaction.");
+                "umisb_send: (len+1)<<size cannot exceed the data size of a UmiTransaction.");
         }
 
         memcpy(up->data, x.ptr(), nbytes);
@@ -331,12 +332,13 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
         size_t nbytes = (len + 1) << size;
 
         if (nbytes > sizeof(up->data)) {
-            throw std::runtime_error("(len+1)<<size cannot exceed the data size of a umi_packet.");
+            throw std::runtime_error(
+                "umisb_recv: (len+1)<<size cannot exceed the data size of a umi_packet.");
         }
 
         if (nbytes > x.nbytes()) {
             throw std::runtime_error(
-                "(len+1)<<size cannot exceed the data size of a UmiTransaction.");
+                "umisb_recv: (len+1)<<size cannot exceed the data size of a UmiTransaction.");
         }
 
         memcpy(x.ptr(), up->data, nbytes);
