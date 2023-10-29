@@ -19,9 +19,9 @@ class uart_xactor:
         self.encoding = encoding
         self.umi = umi
 
-    def read_byte(self, blocking=True):
+    def read_byte(self):
         c8 = None
-        while blocking:
+        while True:
             sr = self.umi.read(self.REG_SR, np.uint32)
             if (sr & self.REGF_SR_RXEMPTY_MASK) == 0:
                 rx = self.umi.read(self.REG_RX, np.uint32)
