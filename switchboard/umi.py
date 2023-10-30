@@ -7,8 +7,7 @@ import numpy as np
 from numbers import Integral
 from typing import Iterable, Union, Dict
 
-from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic,
-    OldPyUmi, OldUmiCmd, OldPyUmiPacket)
+from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic)
 from .gpio import UmiGpio
 
 # note: it was convenient to implement some of this in Python, rather
@@ -17,7 +16,7 @@ from .gpio import UmiGpio
 
 
 class UmiTxRx:
-    def __init__(self, tx_uri: str = None, rx_uri: str = None, old: bool = False,
+    def __init__(self, tx_uri: str = None, rx_uri: str = None,
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
         max_bytes: int = None):
         """
@@ -28,8 +27,6 @@ class UmiTxRx:
             rx_uri (str, optional): Name of the switchboard queue that
             read() and recv() will receive UMI packets from.  Defaults
             to None, meaning "unused".
-            old (bool, optional): If True, use the old UMI protocol.
-            Defaults to False.  This option will eventually be removed.
             srcaddr (int, optional): Default srcaddr to use for reads,
             ack'd writes, and atomics.  Defaults to 0.  Can also be
             provided as a dictionary with separate defaults for each
@@ -43,8 +40,7 @@ class UmiTxRx:
             transaction-by-transaction basis.  Defaults to False.
             max_bytes (int, optional): Default maximum number of bytes
             to use in each UMI transaction.  Can be overridden on a
-            transaction-by-transaction basis.  Defaults to 32 bytes
-            when old=False and 32kB when old=True.
+            transaction-by-transaction basis.  Defaults to 32 bytes.
         """
 
         if tx_uri is None:
@@ -53,12 +49,7 @@ class UmiTxRx:
         if rx_uri is None:
             rx_uri = ""
 
-        self.old = old
-
-        if old:
-            self.umi = OldPyUmi(tx_uri, rx_uri)
-        else:
-            self.umi = PyUmi(tx_uri, rx_uri)
+        self.umi = PyUmi(tx_uri, rx_uri)
 
         if srcaddr is not None:
             # convert srcaddr default to a dictionary if necessary
@@ -84,10 +75,7 @@ class UmiTxRx:
             raise ValueError('Default value of "posted" cannot be None.')
 
         if max_bytes is None:
-            if old:
-                max_bytes = (1 << 15)
-            else:
-                max_bytes = 32
+            max_bytes = 32
 
         self.default_max_bytes = max_bytes
 
@@ -148,18 +136,17 @@ class UmiTxRx:
 
     def send(self, p, blocking=True) -> bool:
         """
-        Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket if
-        old=False, OldPyUmiPacket if old=True).  Returns True if the packet was
-        sent successfully, else False.
+        Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket)
+        Returns True if the packet was sent successfully, else False.
         """
 
         return self.umi.send(p, blocking)
 
-    def recv(self, blocking=True) -> Union[PyUmiPacket, OldPyUmiPacket]:
+    def recv(self, blocking=True) -> PyUmiPacket:
         """
         Wait for and return a UMI packet if blocking=True, otherwise return a
         UMI packet if one can be read immediately, and None otherwise.  The return
-        type (if not None) is a PyUmiPacket if old=False and OldPyUmiPacket if old=True
+        type (if not None) is a PyUmiPacket.
         """
 
         return self.umi.recv(blocking)
@@ -216,20 +203,14 @@ class UmiTxRx:
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 
-        if self.old:
-            write_data = write_data.view(np.uint8)
-
-        if (not self.old) and check_alignment:
+        if check_alignment:
             size = dtype2size(write_data.dtype)
             if not addr_aligned(addr=addr, align=size):
                 raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         # perform write
-        if self.old:
-            self.umi.write(addr, write_data, max_bytes, progressbar)
-        else:
-            self.umi.write(addr, write_data, srcaddr, max_bytes,
-                posted, qos, prot, progressbar)
+        self.umi.write(addr, write_data, srcaddr, max_bytes,
+                       posted, qos, prot, progressbar)
 
     def write_readback(self, addr, value, mask=None, srcaddr=None, dtype=None,
         posted=True, write_srcaddr=None, check_alignment=True):
@@ -338,14 +319,13 @@ class UmiTxRx:
             num = num_or_dtype
             bytes_per_elem = np.dtype(dtype).itemsize
 
-        if (not self.old) and check_alignment:
+        if check_alignment:
             size = nbytes2size(bytes_per_elem)
             if not addr_aligned(addr=addr, align=size):
                 raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         extra_args = []
-        if not self.old:
-            extra_args += [qos, prot]
+        extra_args += [qos, prot]
 
         result = self.umi.read(addr, num, bytes_per_elem, srcaddr, max_bytes, *extra_args)
 
@@ -381,14 +361,10 @@ class UmiTxRx:
 
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
-            if self.old:
-                opcode = getattr(OldUmiCmd, f'OLD_UMI_ATOMIC_{opcode.upper()}')
-            else:
-                opcode = getattr(UmiAtomic, f'UMI_REQ_ATOMIC{opcode.upper()}')
+            opcode = getattr(UmiAtomic, f'UMI_REQ_ATOMIC{opcode.upper()}')
 
         extra_args = []
-        if not self.old:
-            extra_args += [qos, prot]
+        extra_args += [qos, prot]
 
         # format the data for sending
         if isinstance(data, np.integer):

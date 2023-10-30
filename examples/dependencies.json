@@ -5,11 +5,6 @@
         "commit": "76c25d066bc00c3571eff2b13f0e870d03012314"
     },
     {
-        "name": "old-umi",
-        "url": "git@github.com:zeroasiccorp/umi.git",
-        "commit": "1fce4fc"
-    },
-    {
         "name": "lambdalib",
         "url": "git@github.com:siliconcompiler/lambdalib.git",
         "commit": "e9ff56c7fda8802c3d752d6d06d5df35b9012a0d"

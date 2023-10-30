@@ -10,17 +10,17 @@ import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import (SbDut, UmiTxRx, delete_queue, verilator_run,
-    binary_run, old2new_run)
+    binary_run)
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def python_intf(from_client, to_client, old=False):
+def python_intf(from_client, to_client):
     # instantiate TX and RX queues.  note that these can be instantiated without
     # specifying a URI, in which case the URI can be specified later via the
     # "init" method
 
-    umi = UmiTxRx(from_client, to_client, old=old)
+    umi = UmiTxRx(from_client, to_client)
 
     print("### WRITES ###")
 
@@ -119,22 +119,14 @@ def build_testbench(fast=False):
     return dut.find_result('vexe', step='compile')
 
 
-def main(mode='python', fast=False, old2new=False):
+def main(mode='python', fast=False):
     # build the simulator
     verilator_bin = build_testbench(fast=fast)
 
     # clean up old queues if present
-
-    if old2new:
-        from_client = 'from_client.q'
-        to_client = 'to_client.q'
-        from_rtl = 'from_rtl.q'
-        to_rtl = 'to_rtl.q'
-        queues = [from_client, to_client, from_rtl, to_rtl]
-    else:
-        from_client = 'to_rtl.q'
-        to_client = 'from_rtl.q'
-        queues = [from_client, to_client]
+    from_client = 'to_rtl.q'
+    to_client = 'from_rtl.q'
+    queues = [from_client, to_client]
 
     for q in queues:
         delete_queue(q)
@@ -142,17 +134,8 @@ def main(mode='python', fast=False, old2new=False):
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
 
-    # start UMI protocol adapter if needed
-    if old2new:
-        old2new_run(
-            old_tx=to_client,
-            old_rx=from_client,
-            new_req_tx=to_rtl,
-            new_resp_rx=from_rtl
-        )
-
     if mode == 'python':
-        python_intf(from_client=from_client, to_client=to_client, old=old2new)
+        python_intf(from_client=from_client, to_client=to_client)
     elif mode == 'cpp':
         client = binary_run(THIS_DIR / 'client')
         client.wait()
@@ -163,9 +146,8 @@ def main(mode='python', fast=False, old2new=False):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--mode', default='python')
-    parser.add_argument('--old2new', action='store_true')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
     args = parser.parse_args()
 
-    main(mode=args.mode, fast=args.fast, old2new=args.old2new)
+    main(mode=args.mode, fast=args.fast)
