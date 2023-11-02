@@ -14,6 +14,7 @@ THIS_DIR = Path(__file__).resolve().parent
 @pytest.mark.parametrize('path,expected,target', [
     ['minimal', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
+    ['umi_mem_cpp', None, None],
     ['umiram', None, 'python'],
     ['umiram', None, 'cpp'],
     ['python', 'PASS!', None],
