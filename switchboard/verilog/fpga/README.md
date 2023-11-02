@@ -4,11 +4,6 @@ This directory contains FPGA-synthesizable RTL that interacts with Switchboard
 shared memory queues residing on a host CPU. This interaction occurs via direct
 memory access controlled by AXI.
 
-A demo using this RTL on AWS F1 can be found here:
-https://github.com/zeroasiccorp/aws-fpga. In this example, host memory access is
-performed via PCIe bus mastering, and the config registers are mapped to a PCIe
-BAR. A corresponding software example can be found in `examples/pcie-ping/`.
-
 A simulation setup for testing this RTL can be found in `examples/fpga-loopback/`.
 
 ## Memory Map
