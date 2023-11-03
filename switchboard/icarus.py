@@ -6,6 +6,19 @@
 from pathlib import Path
 
 from .util import binary_run
+from .switchboard import path as sb_path
+from subprocess import check_output, STDOUT
+
+
+def run(command: list, cwd: str = None) -> str:
+    return check_output(command, cwd=cwd, stderr=STDOUT).decode()
+
+
+def icarus_build_vpi(cwd: str = None) -> str:
+    sbdir = sb_path()
+    vpi_cc = sbdir / 'vpi/switchboard_vpi.cc'
+    vpi_flags = f'-I{sbdir}/cpp'
+    return run(['iverilog-vpi', vpi_flags, vpi_cc], cwd)
 
 
 def icarus_run(vvp, modules=None, extra_args=None, **kwargs):
