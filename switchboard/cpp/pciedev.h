@@ -15,7 +15,7 @@
         uintptr_t i = (uintptr_t)p;                                                                \
         t val;                                                                                     \
                                                                                                    \
-        /* Enforce aligment. */                                                                    \
+        /* Enforce alignment. */                                                                   \
         assert((i % sizeof(val)) == 0);                                                            \
                                                                                                    \
         /* Make access.	*/                                                                         \
@@ -27,7 +27,7 @@
         uintptr_t i = (uintptr_t)p;                                                                \
         t val;                                                                                     \
                                                                                                    \
-        /* Enforce aligment. */                                                                    \
+        /* Enforce alignment. */                                                                   \
         assert((i % sizeof(val)) == 0);                                                            \
                                                                                                    \
         /* Make access.	*/                                                                         \

@@ -156,7 +156,7 @@ class SB_pcie {
     int m_queue_id;
 
     // m_map holds a pointer to a mapped memory area that can be
-    // used for register accesses. Not all implementions will use it.
+    // used for register accesses. Not all implementations will use it.
     char* m_map;
 
     // m_addr holds an address to the SPSC queue's SHM area. For some
