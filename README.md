@@ -143,3 +143,16 @@ The `last` indicator (part of the `flags` bit vector) indicates whether there is
 <img width="253" alt="image" src="https://user-images.githubusercontent.com/19254098/225485752-59cd02f3-6877-4cbd-960c-823276d8a815.png">
 
 The purpose of `last` is two-fold.  For one, it simplifies the process of transmitting "burstable" protocols such as UMI through Switchboard.  It also provides opportunities for performance optimization.  For example, if a long sequence of SB packets is being sent over TCP, the TCP bridge knows it can wait to fill up its transmission buffer as long as `last=0`.  Without the `last` bit, the bridge would have to send each packet one at a time (or wait a predefined time for more packets), since any given packet may be the last one.
+
+## License
+
+[MIT License](LICENSE)
+
+## Contributing
+
+switchboard is an open-source project and welcomes contributions. To find out how to contribute to the project, see our
+[Contributing Guidelines](CONTRIBUTING.md).
+
+## Issues / Bugs
+
+We use [GitHub Issues](https://github.com/zeroasiccorp/switchboard/issues) for tracking requests and bugs.
