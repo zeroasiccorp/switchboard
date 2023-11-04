@@ -3,7 +3,7 @@
 
 # TODO: replace with SiliconCompiler functionality
 
-from .util import binary_run
+from .util import plusargs_to_args, binary_run
 
 
 def verilator_run(bin, plusargs=None, args=None, use_sigint=True, **kwargs):
@@ -21,17 +21,7 @@ def verilator_run(bin, plusargs=None, args=None, use_sigint=True, **kwargs):
 
     # build up the argument list
     args = []
-
-    if plusargs is not None:
-        if not isinstance(plusargs, list):
-            raise TypeError('plusargs must be a list')
-        for plusarg in plusargs:
-            if isinstance(plusarg, (list, tuple)):
-                if len(plusarg) != 2:
-                    raise ValueError('Only lists/tuples of length 2 allowed')
-                args += [f'+{plusarg[0]}={plusarg[1]}']
-            else:
-                args += [f'+{plusarg}']
+    args += plusargs_to_args(plusargs)
 
     # append any extra arguments user provided by the user
     args += extra_args
