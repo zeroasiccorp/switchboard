@@ -1,4 +1,7 @@
+from pathlib import Path
 from .switchboard import path as sb_path
+from .verilator import verilator_run
+from .icarus import icarus_build_vpi, icarus_run
 
 import siliconcompiler
 from siliconcompiler.tools.verilator import compile
@@ -25,6 +28,8 @@ class SbDut(siliconcompiler.Chip):
     def __init__(self, design, tool: str = 'verilator', default_main: bool = False):
         if tool not in ('verilator', 'icarus'):
             raise ValueError('Invalid tool, expected one of "verilator" or "icarus"')
+        self.tool = tool
+        self.sim = None
 
         super().__init__(design)
 
@@ -66,3 +71,27 @@ class SbDut(siliconcompiler.Chip):
         self.use(dvflow)
         self.set('option', 'flow', 'dvflow')
         self.set('option', 'to', 'compile')
+
+    def build(self, cwd: str = None):
+        result_kind = {'verilator': 'vexe',
+                       'icarus': 'vvp'}
+
+        if self.tool == 'icarus':
+            icarus_build_vpi(cwd)
+
+        self.run()
+        self.sim = self.find_result(result_kind[self.tool], step='compile')
+        return self.sim
+
+    def simulate(self, plusargs=None, extra_args=None):
+        assert self.sim is not None
+
+        p = None
+        if self.tool == 'verilator':
+            p = verilator_run(self.sim,
+                          plusargs=plusargs)
+        elif self.tool == 'icarus':
+            p = icarus_run(self.sim, plusargs=plusargs,
+                       modules=[Path('switchboard_vpi.vpi')],
+                       extra_args=extra_args)
+        return p
