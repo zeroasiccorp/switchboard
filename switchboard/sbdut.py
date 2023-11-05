@@ -84,7 +84,8 @@ class SbDut(siliconcompiler.Chip):
         return self.sim
 
     def simulate(self, plusargs=None, extra_args=None):
-        assert self.sim is not None
+        if self.sim is None:
+            self.build()
 
         p = None
         if self.tool == 'verilator':
