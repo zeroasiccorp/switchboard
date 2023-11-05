@@ -33,7 +33,7 @@ class uart_xactor:
         line = ""
 
         while size < 0 or len(line) < size:
-            c8 = self.read_byte(self)
+            c8 = self.read_byte()
             if c8 == end.encode(self.encoding):
                 break
             line += c8.decode(self.encoding)
