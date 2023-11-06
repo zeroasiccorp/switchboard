@@ -6,25 +6,18 @@
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, delete_queue, verilator_run, SbDut
+from switchboard import UmiTxRx, verilator_run, SbDut
 
 
-def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", fast=False):
+def main(fast=False):
     # build the simulator
     verilator_bin = build_testbench(fast=fast)
 
-    # clean up old queues if present
-    for q in [client2rtl, rtl2client]:
-        delete_queue(q)
+    # create queues
+    umi = UmiTxRx("client2rtl.q", "rtl2client.q", fresh=True)
 
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
-
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
-    umi = UmiTxRx(client2rtl, rtl2client)
 
     print("### MINIMAL EXAMPLE ###")
 

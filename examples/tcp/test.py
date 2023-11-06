@@ -5,20 +5,13 @@
 
 import sys
 import numpy as np
-from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, binary_run
+from switchboard import PySbPacket, PySbTx, PySbRx, binary_run
 
 
 def main(rxq='rx.q', txq='tx.q'):
-    # clean up old queues if present
-    for q in [rxq, txq]:
-        delete_queue(q)
-
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
-    tx = PySbTx(rxq)
-    rx = PySbRx(txq)
+    # create queues
+    tx = PySbTx(rxq, fresh=True)
+    rx = PySbRx(txq, fresh=True)
 
     # start TCP bridges
     start_tcp_bridge(mode='server', rx=rxq)
