@@ -26,8 +26,6 @@ jobs:
             arch: aarch64
           - os: macos-latest
             arch: universal
-          - os: windows-latest
-            arch: x86_64
 
     env:
       CIBW_ARCHS_LINUX: ${{ matrix.platform.arch }}
