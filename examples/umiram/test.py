@@ -90,14 +90,13 @@ def python_intf(from_client, to_client):
 
 
 def build_testbench(fast=False):
-    dut = SbDut('testbench')
+    dut = SbDut('testbench', default_main=True)
 
     EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')
     dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
-    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
 

@@ -22,7 +22,7 @@ class SbDut(siliconcompiler.Chip):
         "icarus".
     """
 
-    def __init__(self, design, tool='verilator'):
+    def __init__(self, design, tool: str = 'verilator', default_main: bool = False):
         if tool not in ('verilator', 'icarus'):
             raise ValueError('Invalid tool, expected one of "verilator" or "icarus"')
 
@@ -35,12 +35,15 @@ class SbDut(siliconcompiler.Chip):
         self.set('option', 'mode', 'sim')
 
         if tool == 'verilator':
-            self._configure_verilator()
+            self._configure_verilator(default_main=default_main)
         elif tool == 'icarus':
             self._configure_icarus()
 
-    def _configure_verilator(self):
+    def _configure_verilator(self, default_main: bool = False):
         self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
+
+        if default_main:
+            self.input(SB_DIR / 'verilator' / 'testbench.cc')
 
         c_flags = ['-Wno-unknown-warning-option']
         c_includes = [SB_DIR / 'cpp']
