@@ -6,8 +6,7 @@ Basic reusable test for a memory chiplet
 
 import numpy as np
 from util import (get_dtype_from_umi_size, dtype_random_data, umi_atomic_op)
-from switchboard import (UmiTxRx, umi_pack, PyUmiPacket, UmiCmd, delete_queue,
-        binary_run)
+from switchboard import (UmiTxRx, umi_pack, PyUmiPacket, UmiCmd, binary_run)
 
 
 def memory_check(umi, device, test_rdma=False):
@@ -147,14 +146,6 @@ def run_atomic(umi, prev, data, cmd, sram_base):
 
 
 if __name__ == '__main__':
-    # clean up old queues if present
-    from_client = 'mem-req-rx.q'
-    to_client = 'mem-rep-tx.q'
-    queues = [from_client, to_client]
-
-    for q in queues:
-        delete_queue(q)
-
-    umi = UmiTxRx(from_client, to_client)
+    umi = UmiTxRx('mem-req-rx.q', 'mem-rep-tx.q', fresh=True)
     binary_run(bin='./umi_mem', args=None)
     memory_check(umi=umi, device=None, test_rdma=False)

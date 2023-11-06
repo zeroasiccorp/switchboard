@@ -6,23 +6,16 @@
 import sys
 import numpy as np
 from argparse import ArgumentParser
-from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, verilator_run, SbDut
+from switchboard import PySbPacket, PySbTx, PySbRx, verilator_run, SbDut
 
 
-def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', fast=False):
+def main(fast=False):
     # build the simulator
     verilator_bin = build_testbench(fast=fast)
 
-    # clean up old queues if present
-    for q in [client2rtl, rtl2client]:
-        delete_queue(q)
-
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
-    tx = PySbTx(client2rtl)
-    rx = PySbRx(rtl2client)
+    # create queues
+    tx = PySbTx('client2rtl.q', fresh=True)
+    rx = PySbRx('rtl2client.q', fresh=True)
 
     # start chip simulation
     chip = verilator_run(verilator_bin, plusargs=['trace'])
