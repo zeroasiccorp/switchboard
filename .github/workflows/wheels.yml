@@ -6,6 +6,10 @@ on:
     branches:
       - wr/wheels_build
 
+# Ensure C compilation works on MacOS.
+env:
+  MACOSX_DEPLOYMENT_TARGET: "10.13"
+
 jobs:
 
   build_wheels:
