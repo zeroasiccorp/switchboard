@@ -63,13 +63,12 @@ def main(in_="in.q", out0="out0.q", out1="out1.q", n=3, fast=False):
 
 
 def build_testbench(fast=False):
-    dut = SbDut('testbench')
+    dut = SbDut('testbench', default_main=True)
 
     EX_DIR = Path('..').resolve()
 
     # Set up inputs
     dut.input('testbench.sv')
-    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
         dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'ramlib' / 'rtl')

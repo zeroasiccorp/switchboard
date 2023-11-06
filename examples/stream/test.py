@@ -31,13 +31,10 @@ def main():
 
 
 def build_testbench():
-    dut = SbDut('testbench')
-
-    EX_DIR = Path('..').resolve()
+    dut = SbDut('testbench', default_main=True)
 
     # Set up inputs
     dut.input('testbench.sv')
-    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
 
     # Settings
     dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)

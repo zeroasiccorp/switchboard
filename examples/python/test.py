@@ -5,7 +5,6 @@
 
 import sys
 import numpy as np
-from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import delete_queue, PySbPacket, PySbTx, PySbRx, verilator_run, SbDut
 
@@ -72,13 +71,10 @@ def main(client2rtl='client2rtl.q', rtl2client='rtl2client.q', fast=False):
 
 
 def build_testbench(fast=False):
-    dut = SbDut('testbench')
-
-    EX_DIR = Path('..').resolve()
+    dut = SbDut('testbench', default_main=True)
 
     # Set up inputs
     dut.input('testbench.sv')
-    dut.input(EX_DIR / 'common' / 'verilator' / 'testbench.cc')
 
     # Settings
     dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
