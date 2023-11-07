@@ -6,7 +6,7 @@
 from .util import binary_run
 
 
-def verilator_run(bin, plusargs=None, args=None, **kwargs):
+def verilator_run(bin, plusargs=None, args=None, use_sigint=True, **kwargs):
     if args is None:
         extra_args = []
     elif isinstance(args, (list, tuple)):
@@ -36,4 +36,4 @@ def verilator_run(bin, plusargs=None, args=None, **kwargs):
     # append any extra arguments user provided by the user
     args += extra_args
 
-    return binary_run(bin=bin, args=args, **kwargs)
+    return binary_run(bin=bin, args=args, use_sigint=use_sigint, **kwargs)
