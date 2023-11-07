@@ -11,7 +11,7 @@
 `define USER_REG(i) (i == 0 ? USER_0_REG : USER_1_BASE + (i - 1) * PER_USER_OFFSET)
 
 module config_registers #(
-    // can be up to 12
+    // can be up to 13
     parameter NUM_USER_REGS = 0,
     parameter NUM_QUEUES = 2
 ) (
