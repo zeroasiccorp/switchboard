@@ -7,7 +7,7 @@
     {
         "name": "lambdalib",
         "url": "git@github.com:siliconcompiler/lambdalib.git",
-        "commit": "88855539259ed15c9649157981727506346f50d2"
+        "commit": "e376b13db46a321e9ffb139895754455c5242b0e"
     },
     {
         "name": "libsystemctlm-soc",

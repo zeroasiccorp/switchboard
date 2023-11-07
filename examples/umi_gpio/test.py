@@ -81,10 +81,6 @@ def build_testbench(fast=False):
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
 
-    # Verilator configuration
-    vlt_config = EX_DIR / 'common' / 'verilator' / 'config.vlt'
-    dut.set('tool', 'verilator', 'task', 'compile', 'file', 'config', vlt_config)
-
     # Settings
     dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
 

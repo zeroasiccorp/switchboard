@@ -39,7 +39,7 @@ module umiram #(
     wire         req_eof;
     wire         req_ex;
     wire [1:0]   req_user;
-    wire [18:0]  req_user_extended;
+    wire [23:0]  req_user_extended;
     wire [1:0]   req_err;
     wire [4:0]   req_hostid;
 
@@ -90,7 +90,7 @@ module umiram #(
     reg         resp_eof;
     reg         resp_ex;
     reg [1:0]   resp_user;
-    reg [18:0]  resp_user_extended;
+    reg [23:0]  resp_user_extended;
     reg [1:0]   resp_err;
     reg [4:0]   resp_hostid;
 
@@ -127,7 +127,7 @@ module umiram #(
     integer i;
 
     function [ATOMIC_WIDTH-1:0] atomic_op(input [ATOMIC_WIDTH-1:0] a,
-        input [ATOMIC_WIDTH-1:0] b, input [3:0] size, input [7:0] atype);
+        input [ATOMIC_WIDTH-1:0] b, input [2:0] size, input [7:0] atype);
 
         integer nbits;
         integer nshift;
@@ -180,7 +180,7 @@ module umiram #(
         if (udev_req_valid && udev_req_ready) begin
             if (req_cmd_posted || req_cmd_write) begin
                 for (i=0; i<nbytes; i=i+1) begin
-                    mem[(i+udev_req_dstaddr)*8 +: 8] <= udev_req_data[i*8 +: 8];
+                    mem[(i+udev_req_dstaddr[31:0])*8 +: 8] <= udev_req_data[i*8 +: 8];
                 end
                 if (req_cmd_write) begin
                     resp_opcode <= UMI_RESP_WRITE;
@@ -188,10 +188,10 @@ module umiram #(
                 end
             end else if (req_cmd_read || req_cmd_atomic) begin
                 for (i=0; i<nbytes; i=i+1) begin
-                    udev_resp_data[i*8 +: 8] <= mem[(i+udev_req_dstaddr)*8 +: 8];
+                    udev_resp_data[i*8 +: 8] <= mem[(i+udev_req_dstaddr[31:0])*8 +: 8];
                     if (req_cmd_atomic) begin
                         // blocking assignment
-                        a_atomic[i*8 +: 8] = mem[(i+udev_req_dstaddr)*8 +: 8];
+                        a_atomic[i*8 +: 8] = mem[(i+udev_req_dstaddr[31:0])*8 +: 8];
                     end
                 end
                 if (req_cmd_atomic) begin
@@ -202,7 +202,7 @@ module umiram #(
                     // blocking assignment
                     y_atomic = atomic_op(a_atomic, b_atomic, req_size, req_atype);
                     for (i=0; i<nbytes; i=i+1) begin
-                        mem[(i+udev_req_dstaddr)*8 +: 8] <= y_atomic[i*8 +: 8];
+                        mem[(i+udev_req_dstaddr[31:0])*8 +: 8] <= y_atomic[i*8 +: 8];
                     end
                 end
                 resp_opcode <= UMI_RESP_READ;
