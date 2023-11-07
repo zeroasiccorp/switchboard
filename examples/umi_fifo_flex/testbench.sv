@@ -22,7 +22,7 @@ module testbench (
     wire [AW-1:0] udev_resp_srcaddr;
     wire [DW-1:0] udev_resp_data;
 
-    wire nreset;
+    reg nreset = 1'b0;
 
     queue_to_umi_sim #(
         .VALID_MODE_DEFAULT(2)
@@ -79,12 +79,9 @@ module testbench (
         .vss(1'b0)
     );
 
-    reg [7:0] nreset_vec = 8'h00;
     always @(posedge clk) begin
-        nreset_vec <= {nreset_vec[6:0], 1'b1};
+        nreset <= 1'b1;
     end
-
-    assign nreset = nreset_vec[7];
 
     // Initialize UMI
 

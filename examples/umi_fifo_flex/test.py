@@ -35,7 +35,7 @@ def build_testbench(fast=False):
         dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
 
     # Settings
-    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+    dut.set('option', 'trace', True)  # enable VCD
 
     result = None
 
