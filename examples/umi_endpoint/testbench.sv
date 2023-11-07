@@ -52,6 +52,8 @@ module testbench (
     wire [DW-1:0] loc_wrdata;
     reg  [DW-1:0] loc_rddata;
     wire          loc_ready;
+    wire          loc_atomic;
+    wire [7:0]    loc_atype;
 
     assign loc_ready = nreset;
 
