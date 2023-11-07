@@ -83,6 +83,7 @@ module loopback (
     wire sb_tx_ready;
 
     sb_fpga_queues #(
+        .NUM_USER_REGS(2),
         .DW(DW)
     ) queues (
         .clk(clk),
@@ -100,10 +101,7 @@ module loopback (
         .tx_ready(sb_tx_ready),
         .tx_valid(sb_tx_valid),
 
-        // Unimplemented by this top-level
-        .cfg_clk_divide(),
-        .cfg_chip_row(),
-        .cfg_chip_col(),
+        .cfg_user(),
 
         .*
     );

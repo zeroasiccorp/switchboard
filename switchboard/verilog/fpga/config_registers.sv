@@ -8,10 +8,11 @@
 `define VERSION_MINOR 0
 `endif
 
-`define CHIPLET_BASE(i) (PER_CHIPLET_BASE + i * PER_CHIPLET_OFFSET)
+`define USER_REG(i) (i == 0 ? USER_0_REG : USER_1_BASE + (i - 1) * PER_USER_OFFSET)
 
 module config_registers #(
-    parameter NUM_CHIPLETS = 2,
+    // can be up to 12
+    parameter NUM_USER_REGS = 0,
     parameter NUM_QUEUES = 2
 ) (
     input wire clk,
@@ -40,9 +41,7 @@ module config_registers #(
     output reg [NUM_QUEUES-1:0] cfg_reset = {NUM_QUEUES{1'd0}},
     output reg [NUM_QUEUES*64-1:0] cfg_base_addr,
     output reg [NUM_QUEUES*32-1:0] cfg_capacity = {NUM_QUEUES{32'd2}},
-    output reg [31:0] cfg_clk_divide = 32'd0,
-    output reg [8*NUM_CHIPLETS-1:0] cfg_chip_row,
-    output reg [8*NUM_CHIPLETS-1:0] cfg_chip_col
+    output reg [(NUM_USER_REGS > 0 ? NUM_USER_REGS : 1)*32-1:0] cfg_user
 );
 
     `include "sb_queue_regmap.vh"
@@ -161,19 +160,12 @@ module config_registers #(
 
     // TODO: implement wstrb
 
-    always @(posedge clk) begin
-        if (reg_wr_en && reg_wr_addr == CLK_DIVIDE_REG) begin
-            cfg_clk_divide <= reg_wr_data;
-        end
-    end
-
     genvar i;
     generate
-        for (i = 0; i < NUM_CHIPLETS; i++) begin
+        for (i = 0; i < NUM_USER_REGS; i++) begin
             always @(posedge clk) begin
-                if (reg_wr_en && reg_wr_addr == `CHIPLET_BASE(i) + ROW_COL_REG) begin
-                    cfg_chip_row[8*i+:8] <= reg_wr_data[7:0];
-                    cfg_chip_col[8*i+:8] <= reg_wr_data[15:8];
+                if (reg_wr_en && reg_wr_addr == `USER_REG(i)) begin
+                    cfg_user[i*32+:32] <= reg_wr_data;
                 end
             end
         end
@@ -209,14 +201,12 @@ module config_registers #(
                 reg_rd_data = ID_VERSION;
             end else if (reg_rd_addr == CAPABILITY_REG) begin
                 reg_rd_data = 32'h0;
-            end else if (reg_rd_addr == CLK_DIVIDE_REG) begin
-                reg_rd_data = cfg_clk_divide;
             end else begin
                 integer i;
 
-                for (i = 0; i < NUM_CHIPLETS; i = i + 1) begin
-                    if (reg_rd_addr == `CHIPLET_BASE(i) + ROW_COL_REG) begin
-                        reg_rd_data = {16'd0, cfg_chip_col[8*i+:8], cfg_chip_row[8*i+:8]};
+                for (i = 0; i < NUM_USER_REGS; i = i + 1) begin
+                    if (reg_rd_addr == `USER_REG(i)) begin
+                        reg_rd_data = cfg_user[i*32+:32];
                     end
                 end
 

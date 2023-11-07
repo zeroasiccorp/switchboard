@@ -3,7 +3,7 @@
 module umi_fpga_queues #(
     parameter NUM_RX_QUEUES = 1,
     parameter NUM_TX_QUEUES = 1,
-    parameter NUM_CHIPLETS = 1,
+    parameter NUM_USER_REGS = 1,
 
     parameter integer DW=256,
     parameter integer AW=64,
@@ -27,9 +27,7 @@ module umi_fpga_queues #(
     output wire [NUM_TX_QUEUES-1:0] tx_ready,
     input wire [NUM_TX_QUEUES-1:0] tx_valid,
 
-    output wire [31:0] cfg_clk_divide,
-    output wire [8*NUM_CHIPLETS-1:0] cfg_chip_row,
-    output wire [8*NUM_CHIPLETS-1:0] cfg_chip_col,
+    output wire [(NUM_USER_REGS > 0 ? NUM_USER_REGS : 1)*32-1:0] cfg_user,
 
     // AXI manager interface for memory access
     output wire [15:0] m_axi_awid,
@@ -115,7 +113,7 @@ module umi_fpga_queues #(
     sb_fpga_queues #(
         .NUM_RX_QUEUES(NUM_RX_QUEUES),
         .NUM_TX_QUEUES(NUM_TX_QUEUES),
-        .NUM_CHIPLETS(NUM_CHIPLETS),
+        .NUM_USER_REGS(NUM_USER_REGS),
 
         .DW(SB_DW)
     ) sb_fpga_queues_i (
