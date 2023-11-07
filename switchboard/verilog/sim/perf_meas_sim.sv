@@ -1,7 +1,6 @@
 `default_nettype none
 
 module perf_meas_sim #(
-    // TODO: look into changing the parameter style
     // verilog_lint: waive-start parameter-name-style
     parameter integer default_cycles_per_meas=0,
     parameter real max_report_time=3.0,

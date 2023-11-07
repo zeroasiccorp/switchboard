@@ -70,7 +70,7 @@ def build_testbench(fast=False):
     dut.input('testbench.sv')
 
     # Settings
-    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+    dut.set('option', 'trace', True)  # enable VCD
 
     result = None
 

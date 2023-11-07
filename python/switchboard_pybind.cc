@@ -768,7 +768,6 @@ class PyUmi {
         umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals);
 
         // check that the response makes sense
-        // TODO: replace with the atomic response opcode
         umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr);
 
         // return the result of the operation

@@ -37,7 +37,7 @@ def build_testbench():
     dut.input('testbench.sv')
 
     # Settings
-    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+    dut.set('option', 'trace', True)  # enable VCD
 
     # Build simulator
     dut.run()

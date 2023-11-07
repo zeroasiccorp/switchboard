@@ -219,7 +219,6 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
     }
 
     // get outgoing packet
-    // TODO: possible to use vpi_get_value_array?
     sb_packet p;
     {
         t_vpi_value argval;

@@ -61,7 +61,6 @@ int main(int argc, char* argv[]) {
                 ;
 
             for (int i = 0; i < 8; i++) {
-                // TODO: clean this up...
                 (*((uint32_t*)(&p.data[4 * i])))++;
             }
 
@@ -71,7 +70,6 @@ int main(int argc, char* argv[]) {
         // print output to make sure it is not optimized away
         printf("Output: {");
         for (int i = 0; i < 8; i++) {
-            // TODO: clean this up...
             printf("%0d", *((uint32_t*)(&p.data[4 * i])));
             if (i != 7) {
                 printf(", ");
@@ -94,7 +92,6 @@ int main(int argc, char* argv[]) {
                 ;
 
             for (int i = 0; i < 8; i++) {
-                // TODO: clean this up...
                 (*((uint32_t*)(&p.data[4 * i])))++;
             }
 
