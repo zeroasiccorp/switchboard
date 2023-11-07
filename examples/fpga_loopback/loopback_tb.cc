@@ -95,6 +95,13 @@ SC_MODULE(Top) {
         wait(400, SC_NS);
         tx.init("queue-tx");
         rx.init("queue-rx");
+
+        // test user regs
+        tx.dev_write32(0x8, 0x1);
+        tx.dev_write32(0x40, 0x2);
+
+        assert(tx.dev_read32(0x8) == 0x1);
+        assert(tx.dev_read32(0x40) == 0x2);
     }
 
     void gen_rst_n(void) {
