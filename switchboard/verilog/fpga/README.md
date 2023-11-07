@@ -17,16 +17,6 @@ accessed over an AXI-Lite interface.
 |-------------|-----------------|
 | `0x00`       | Version/ID. Split into bitfields for ID [31:16], major version [15:9], and minor version [8:0]. (Read-only) |
 | `0x04`       | Capability. Currently returns all zeros. (Read-only) |
-| `0x08`       | Clock divider. Used to program a clock divider that may be implemented at a design top-level. The effective clock speed becomes the value set in this register plus 1 (e.g. a value of 0 means no change in speed, a value of 2 means run at one third the speed). |
-
-### Per-chiplet
-
-Each chiplet has its own 16-byte address space for per-chiplet configuration,
-starting at `0x40` for the first queue, `0x50` for the second, etc.
-
-| **Address offset** | **Description** |
-|--------------------|-----------------|
-| `0x00`             | Row/column. Bits 7-0 represent row, bits 15-8 represent column. Rest unused. |
 
 ### Per-queue
 
@@ -41,6 +31,25 @@ starting at `0x100` for the first queue, `0x200` for the second, etc.
 | `0x0c`             | Base address low. Lower 32-bits of physical address of shared memory queue. |
 | `0x10`             | Base address high. Upper 32-bits of physical address of shared memory queue. |
 | `0x14`             | Capacity. Capacity of shared memory queue. |
+
+### User registers
+
+The configuration register module also provides functionality for configuring up to 13 32-bit "user
+registers" that can be used for application-specific purposes. The values of these registers are
+exposed to a top-level design by the `cfg_user` output of the `sb_fpga_queues`/`umi_fpga_queues`
+modules.
+
+| **Address** | **Description**  |
+|-------------|------------------|
+| `0x08`      | User register 0  |
+| `0x40`      | User register 1  |
+| `0x50`      | User register 2  |
+| ...         | ...              |
+| `0xf0`      | User register 12 |
+
+Note that the register map is a bit inconsistent and sparse (for backwards compatibility). User
+register 0 is located at address `0x8`, while the remaining user registers start at `0x40` and are
+offset by `0x10` bytes.
 
 ## Dependencies
 
