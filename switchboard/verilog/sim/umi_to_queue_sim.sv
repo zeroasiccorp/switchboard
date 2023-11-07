@@ -1,9 +1,6 @@
-// wrapper module for backwards compatibility
-// will eventually be removed
-
 `default_nettype none
 
-module umi_tx_sim #(
+module umi_to_queue_sim #(
     parameter integer READY_MODE_DEFAULT=0,
     parameter integer DW=256,
     parameter integer AW=64,
@@ -18,6 +15,22 @@ module umi_tx_sim #(
     input valid
 );
 
+    // TODO: support burst mode (through "last")
+
+    sb_to_queue_sim #(
+        .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
+        .DW(DW+AW+AW+CW)
+    ) tx_i (
+        .clk(clk),
+        .data({data, srcaddr, dstaddr, cmd}),
+        .dest({16'h0000, dstaddr[55:40]}),
+        .last(1'b1),
+        .ready(ready),
+        .valid(valid)
+    );
+
+    // handle differences between simulators
+
     `ifdef __ICARUS__
         `define SB_START_FUNC task
         `define SB_END_FUNC endtask
@@ -25,15 +38,6 @@ module umi_tx_sim #(
         `define SB_START_FUNC function void
         `define SB_END_FUNC endfunction
     `endif
-
-    umi_to_queue_sim #(
-        .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(DW),
-        .AW(AW),
-        .CW(CW)
-    ) tx_i (
-        .*
-    );
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */

@@ -15,7 +15,7 @@ module testbench (
     wire sb_tx_valid;
     wire sb_tx_ready;
 
-    sb_rx_sim #(
+    queue_to_sb_sim #(
         .DW(256)
     ) rx_i (
         .clk(clk),
@@ -26,7 +26,7 @@ module testbench (
         .valid(sb_rx_valid)  // output
     );
 
-    sb_tx_sim #(
+    sb_to_queue_sim #(
         .DW(256)
     ) tx_i (
         .clk(clk),

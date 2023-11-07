@@ -1,3 +1,6 @@
+// wrapper module for backwards compatibility
+// will eventually be removed
+
 `default_nettype none
 
 module umi_rx_sim #(
@@ -15,20 +18,6 @@ module umi_rx_sim #(
     output valid
 );
 
-    sb_rx_sim #(
-        .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(DW+AW+AW+CW)
-    ) rx_i (
-        .clk(clk),
-        .data({data, srcaddr, dstaddr, cmd}),
-        .dest(),
-        .last(),
-        .ready(ready),
-        .valid(valid)
-    );
-
-    // handle differences between simulators
-
     `ifdef __ICARUS__
         `define SB_START_FUNC task
         `define SB_END_FUNC endtask
@@ -36,6 +25,15 @@ module umi_rx_sim #(
         `define SB_START_FUNC function void
         `define SB_END_FUNC endfunction
     `endif
+
+    queue_to_umi_sim #(
+        .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
+        .DW(DW),
+        .AW(AW),
+        .CW(CW)
+    ) rx_i (
+        .*
+    );
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
