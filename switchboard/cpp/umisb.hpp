@@ -11,8 +11,6 @@
 #include "umilib.h"
 #include "umilib.hpp"
 
-typedef std::function<void(sb_packet packet, bool header)> PacketPrinter;
-
 // generic formatting methods
 
 template <typename T> std::string umi_data_as_str(T& x) {
@@ -211,8 +209,7 @@ struct UmiTransaction {
 // higher-level functions for UMI transactions
 
 template <typename T>
-static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)(void) = NULL,
-    PacketPrinter printer = NULL) {
+static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)(void) = NULL) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
 
@@ -269,18 +266,12 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
         }
     }
 
-    // print out the packet sent if desired
-    if (printer != NULL) {
-        printer(p, true);
-    }
-
     // if we reach this point, we succeeded in sending the packet
     return true;
 }
 
 template <typename T>
-static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)(void) = NULL,
-    PacketPrinter printer = NULL) {
+static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)(void) = NULL) {
 
     // if the receive side isn't active, there is nothing to receive
     if (!rx.is_active()) {
@@ -306,10 +297,6 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
     // if we get to this point, there is valid data in "p"
 
     umi_packet* up = (umi_packet*)p.data;
-
-    if (printer != NULL) {
-        printer(p, true);
-    }
 
     // read information from the packet
 
