@@ -5,21 +5,23 @@
 
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import switchboard, delete_queue, verilator_run, binary_run, SbDut
+from switchboard import switchboard, delete_queue, binary_run, SbDut
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
 def main(aq="5555", bq="5556", cq="5557", dq="5558", fast=False):
     # build the simulator
-    verilator_bin = build_testbench(fast=fast)
+    dut = SbDut(default_main=True)
+    dut.input('testbench.sv')
+    dut.build(fast=fast)
 
     # clean up old queues if present
     for q in [aq, bq, cq, dq]:
         delete_queue(f'queue-{q}')
 
     # start chip simulation
-    verilator_run(verilator_bin)
+    dut.simulate()
 
     # start router
     start_router(aq=aq, bq=bq, cq=cq, dq=dq)
@@ -36,26 +38,6 @@ def start_router(aq, bq, cq, dq):
     args += ['--route', '0:5556', '1:5557']
 
     return binary_run(bin=switchboard.path() / 'cpp' / 'router', args=args)
-
-
-def build_testbench(fast=False):
-    dut = SbDut('testbench', default_main=True)
-
-    # Set up inputs
-    dut.input('testbench.sv')
-
-    # Settings
-    dut.set('option', 'trace', True)  # enable VCD
-
-    result = None
-
-    if fast:
-        result = dut.find_result('vexe', step='compile')
-
-    if result is None:
-        dut.run()
-
-    return dut.find_result('vexe', step='compile')
 
 
 if __name__ == '__main__':
