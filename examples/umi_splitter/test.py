@@ -5,13 +5,12 @@
 
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import (UmiTxRx, random_umi_packet,
-    verilator_run, SbDut, UmiCmd, umi_opcode)
+from switchboard import UmiTxRx, random_umi_packet, SbDut, UmiCmd, umi_opcode
 
 
 def main(n=3, fast=False):
     # build the simulator
-    verilator_bin = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast)
 
     # create queues
     umi_in = UmiTxRx("in.q", "", fresh=True)
@@ -21,7 +20,7 @@ def main(n=3, fast=False):
     ]
 
     # launch the simulation
-    verilator_run(verilator_bin, plusargs=['trace'])
+    dut.simulate()
 
     # main loop
     tx_req_list = []
@@ -60,29 +59,19 @@ def main(n=3, fast=False):
 
 
 def build_testbench(fast=False):
-    dut = SbDut('testbench', default_main=True)
+    dut = SbDut(default_main=True)
 
     EX_DIR = Path('..').resolve()
 
-    # Set up inputs
     dut.input('testbench.sv')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
         dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'ramlib' / 'rtl')
         dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
 
-    # Settings
-    dut.set('option', 'trace', True)  # enable VCD
+    dut.build(fast=fast)
 
-    result = None
-
-    if fast:
-        result = dut.find_result('vexe', step='compile')
-
-    if result is None:
-        dut.run()
-
-    return dut.find_result('vexe', step='compile')
+    return dut
 
 
 if __name__ == '__main__':

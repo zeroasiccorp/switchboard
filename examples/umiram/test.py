@@ -9,7 +9,7 @@
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import SbDut, UmiTxRx, verilator_run, binary_run
+from switchboard import SbDut, UmiTxRx, binary_run
 
 THIS_DIR = Path(__file__).resolve().parent
 
@@ -83,40 +83,29 @@ def python_intf(umi):
 
 
 def build_testbench(fast=False):
-    dut = SbDut('testbench', default_main=True)
+    dut = SbDut('testbench', default_main=True, trace_type='fst')
 
     EX_DIR = Path('..').resolve()
 
-    # Set up inputs
     dut.input('testbench.sv')
     dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
     for option in ['ydir', 'idir']:
         dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
 
-    # Settings
-    dut.set('option', 'trace', True)
-    dut.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', 'fst')
+    dut.build(fast=fast)
 
-    result = None
-
-    if fast:
-        result = dut.find_result('vexe', step='compile')
-
-    if result is None:
-        dut.run()
-
-    return dut.find_result('vexe', step='compile')
+    return dut
 
 
 def main(mode='python', fast=False):
     # build the simulator
-    verilator_bin = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast)
 
     # create queues
     umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
 
     # launch the simulation
-    verilator_run(verilator_bin, plusargs=['trace'])
+    dut.simulate()
 
     if mode == 'python':
         python_intf(umi)

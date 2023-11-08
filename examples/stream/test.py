@@ -6,43 +6,29 @@
 import time
 
 from pathlib import Path
-from switchboard import delete_queue, verilator_run, binary_run, SbDut
+from switchboard import delete_queues, binary_run, SbDut
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
 def main():
     # build the simulator
-    verilator_bin = build_testbench()
+    dut = SbDut(default_main=True)
+    dut.input('testbench.sv')
+    dut.build()
 
     # clean up old queues if present
-    for q in ['client2rtl.q', 'rtl2client.q']:
-        delete_queue(q)
+    delete_queues(['client2rtl.q', 'rtl2client.q'])
 
     # start client and chip
-    # this order yields a smaller VCD
+    # this order yields a smaller waveform file
     client = binary_run(THIS_DIR / 'client')
     time.sleep(1)
-    chip = verilator_run(verilator_bin)
+    chip = dut.simulate()
 
     # wait for client and chip to complete
     client.wait()
     chip.wait()
-
-
-def build_testbench():
-    dut = SbDut('testbench', default_main=True)
-
-    # Set up inputs
-    dut.input('testbench.sv')
-
-    # Settings
-    dut.set('option', 'trace', True)  # enable VCD
-
-    # Build simulator
-    dut.run()
-
-    return dut.find_result('vexe', step='compile')
 
 
 if __name__ == '__main__':

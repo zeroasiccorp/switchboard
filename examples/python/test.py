@@ -6,19 +6,21 @@
 import sys
 import numpy as np
 from argparse import ArgumentParser
-from switchboard import PySbPacket, PySbTx, PySbRx, verilator_run, SbDut
+from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 
 def main(fast=False):
     # build the simulator
-    verilator_bin = build_testbench(fast=fast)
+    dut = SbDut(default_main=True)
+    dut.input('testbench.sv')
+    dut.build(fast=fast)
 
     # create queues
     tx = PySbTx('client2rtl.q', fresh=True)
     rx = PySbRx('rtl2client.q', fresh=True)
 
     # start chip simulation
-    chip = verilator_run(verilator_bin, plusargs=['trace'])
+    chip = dut.simulate()
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
@@ -61,26 +63,6 @@ def main(fast=False):
     else:
         print("FAIL")
         sys.exit(1)
-
-
-def build_testbench(fast=False):
-    dut = SbDut('testbench', default_main=True)
-
-    # Set up inputs
-    dut.input('testbench.sv')
-
-    # Settings
-    dut.set('option', 'trace', True)  # enable VCD
-
-    result = None
-
-    if fast:
-        result = dut.find_result('vexe', step='compile')
-
-    if result is None:
-        dut.run()
-
-    return dut.find_result('vexe', step='compile')
 
 
 if __name__ == '__main__':

@@ -785,6 +785,12 @@ void delete_queue(std::string uri) {
     delete_shared_queue(uri);
 }
 
+void delete_queues(const std::vector<std::string>& uri_list) {
+    for (const std::string& uri : uri_list) {
+        delete_shared_queue(uri);
+    }
+}
+
 // Python bindings follow below.  There is some duplication of information in the default
 // values for functions, but this is unavoidable for pybind.  Note also that the "toString"
 // method of various classes is bound to "__str__", which has a special meaning in Python.
@@ -857,6 +863,7 @@ PYBIND11_MODULE(_switchboard, m) {
         "Returns a string representation of a UMI opcode");
 
     m.def("delete_queue", &delete_queue, "Deletes an old queue.");
+    m.def("delete_queues", &delete_queues, "Deletes a old queues specified in a list.");
 
     m.def("umi_pack", &umi_pack, "Returns a UMI command with the given parameters.",
         py::arg("opcode") = 0, py::arg("atype") = 0, py::arg("size") = 0, py::arg("len") = 0,

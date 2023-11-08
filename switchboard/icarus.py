@@ -3,6 +3,7 @@
 
 # TODO: replace with SiliconCompiler functionality
 
+from typing import Union
 from pathlib import Path
 
 from .util import plusargs_to_args, binary_run
@@ -19,6 +20,18 @@ def icarus_build_vpi(cwd: str = None) -> str:
     vpi_cc = sbdir / 'vpi/switchboard_vpi.cc'
     vpi_flags = f'-I{sbdir}/cpp'
     return run(['iverilog-vpi', vpi_flags, vpi_cc], cwd)
+
+
+def icarus_find_vpi(cwd: Union[str, Path] = None) -> Path:
+    path = Path('switchboard_vpi.vpi')
+
+    if cwd is not None:
+        path = Path(cwd) / path
+
+    if path.exists():
+        return path
+    else:
+        return None
 
 
 def icarus_run(vvp, plusargs=None, modules=None, extra_args=None, **kwargs):

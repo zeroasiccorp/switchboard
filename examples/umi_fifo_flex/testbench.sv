@@ -92,7 +92,7 @@ module testbench (
         /* verilator lint_on IGNOREDRETURN */
     end
 
-    // VCD
+    // Waveforms
 
     initial begin
         if ($test$plusargs("trace")) begin
