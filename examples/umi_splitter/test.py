@@ -5,28 +5,25 @@
 
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import (UmiTxRx, random_umi_packet, delete_queue,
+from switchboard import (UmiTxRx, random_umi_packet,
     verilator_run, SbDut, UmiCmd, umi_opcode)
 
 
-def main(in_="in.q", out0="out0.q", out1="out1.q", n=3, fast=False):
+def main(n=3, fast=False):
     # build the simulator
     verilator_bin = build_testbench(fast=fast)
 
-    # clean up old queues if present
-    for q in [in_, out0, out1]:
-        delete_queue(q)
+    # create queues
+    umi_in = UmiTxRx("in.q", "", fresh=True)
+    umi_out = [
+        UmiTxRx("", "out0.q", fresh=True),
+        UmiTxRx("", "out1.q", fresh=True)
+    ]
 
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
 
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
-    umi_in = UmiTxRx(in_, "")
-    umi_out = [UmiTxRx("", out0), UmiTxRx("", out1)]
-
+    # main loop
     tx_req_list = []
     tx_resp_list = []
     rx_list = [[], []]
@@ -75,7 +72,7 @@ def build_testbench(fast=False):
         dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
 
     # Settings
-    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+    dut.set('option', 'trace', True)  # enable VCD
 
     result = None
 

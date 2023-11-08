@@ -5,22 +5,18 @@
 
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import SbDut, UmiTxRx, delete_queue, verilator_run, umi_loopback
+from switchboard import SbDut, UmiTxRx, verilator_run, umi_loopback
 
 
-def main(client2rtl="client2rtl.q", rtl2client="rtl2client.q", n=3, fast=False):
+def main(n=3, fast=False):
     # build simulator
     verilator_bin = build_testbench(fast=fast)
 
-    # clean up old queues if present
-    for q in [client2rtl, rtl2client]:
-        delete_queue(q)
+    # create queues
+    umi = UmiTxRx("client2rtl.q", "rtl2client.q", fresh=True)
 
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
-
-    # instantiate TX and RX queues
-    umi = UmiTxRx(client2rtl, rtl2client)
 
     # randomly write data
     umi_loopback(umi, n)
@@ -39,7 +35,7 @@ def build_testbench(fast=False):
         dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
 
     # Settings
-    dut.set('option', 'trace', True)  # enable VCD (TODO: FST option)
+    dut.set('option', 'trace', True)  # enable VCD
 
     result = None
 

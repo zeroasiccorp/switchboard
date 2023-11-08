@@ -32,15 +32,21 @@ class SB_base {
         deinit();
     }
 
-    void init(std::string uri) {
-        init(uri.c_str());
+    void init(std::string uri, size_t capacity = 0, bool fresh = false) {
+        init(uri.c_str(), capacity, fresh);
     }
 
-    void init(const char* uri, size_t capacity = 0) {
+    void init(const char* uri, size_t capacity = 0, bool fresh = false) {
         // Default to one page of capacity
         if (capacity == 0) {
             capacity = spsc_capacity(getpagesize());
         }
+
+        // delete old queue if "fresh" is set
+        if (fresh) {
+            spsc_remove_shmfile(uri);
+        }
+
         m_q = spsc_open(uri, capacity);
         m_active = true;
     }

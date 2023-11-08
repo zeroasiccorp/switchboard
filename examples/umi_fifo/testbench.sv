@@ -42,7 +42,7 @@ module testbench (
         .valid(udev_resp_valid)
     );
 
-    wire nreset;
+    reg nreset = 1'b0;
 
     umi_fifo #(
         .DW(DW),
@@ -75,14 +75,9 @@ module testbench (
         .vss(1'b0)
     );
 
-    reg [7:0] nreset_vec = 8'h00;
     always @(posedge clk) begin
-        nreset_vec <= {nreset_vec[6:0], 1'b1};
+        nreset <= 1'b1;
     end
-
-    // TODO: investigate reset sequencing issue
-
-    assign nreset = nreset_vec[7];
 
     // Initialize UMI
 

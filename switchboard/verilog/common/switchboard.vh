@@ -25,7 +25,7 @@
         /* verilator lint_on IGNOREDRETURN */                   \
     end                                                         \
                                                                 \
-    queue_to_sb_sim #(.DW(dw)) prefix``_rx (                    \
+    queue_to_umi_sim #(.DW(dw)) prefix``_rx (                   \
         .clk(clk),                                              \
         .data(prefix``_req_data),                               \
         .srcaddr(prefix``_req_srcaddr),                         \
@@ -34,7 +34,7 @@
         .ready(prefix``_req_ready),                             \
         .valid(prefix``_req_valid)                              \
     );                                                          \
-    sb_to_queue_sim #(.DW(dw)) prefix``_tx (                    \
+    umi_to_queue_sim #(.DW(dw)) prefix``_tx (                   \
         .clk(clk),                                              \
         .data(prefix``_resp_data),                              \
         .srcaddr(prefix``_resp_srcaddr),                        \

@@ -373,13 +373,13 @@ struct PySbRxPcie {
 
 class PySbTx {
   public:
-    PySbTx(std::string uri = "") {
-        init(uri);
+    PySbTx(std::string uri = "", bool fresh = false) {
+        init(uri, fresh);
     }
 
-    void init(std::string uri) {
+    void init(std::string uri, bool fresh = false) {
         if (uri != "") {
-            m_tx.init(uri.c_str());
+            m_tx.init(uri, 0, fresh);
         }
     }
 
@@ -431,13 +431,13 @@ class PySbTx {
 
 class PySbRx {
   public:
-    PySbRx(std::string uri = "") {
-        init(uri);
+    PySbRx(std::string uri = "", bool fresh = false) {
+        init(uri, fresh);
     }
 
-    void init(std::string uri) {
+    void init(std::string uri, bool fresh = false) {
         if (uri != "") {
-            m_rx.init(uri.c_str());
+            m_rx.init(uri, 0, fresh);
         }
     }
 
@@ -505,16 +505,16 @@ static inline void progressbar_done(void) {
 
 class PyUmi {
   public:
-    PyUmi(std::string tx_uri = "", std::string rx_uri = "") {
-        init(tx_uri, rx_uri);
+    PyUmi(std::string tx_uri = "", std::string rx_uri = "", bool fresh = false) {
+        init(tx_uri, rx_uri, fresh);
     }
 
-    void init(std::string tx_uri, std::string rx_uri) {
+    void init(std::string tx_uri, std::string rx_uri, bool fresh = false) {
         if (tx_uri != "") {
-            m_tx.init(tx_uri.c_str());
+            m_tx.init(tx_uri, 0, fresh);
         }
         if (rx_uri != "") {
-            m_rx.init(rx_uri.c_str());
+            m_rx.init(rx_uri, 0, fresh);
         }
     }
 
@@ -768,7 +768,6 @@ class PyUmi {
         umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals);
 
         // check that the response makes sense
-        // TODO: replace with the atomic response opcode
         umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr);
 
         // return the result of the operation
@@ -818,12 +817,12 @@ PYBIND11_MODULE(_switchboard, m) {
         .def(py::self != py::self);
 
     py::class_<PySbTx>(m, "PySbTx")
-        .def(py::init<std::string>(), py::arg("uri") = "")
+        .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
         .def("init", &PySbTx::init)
         .def("send", &PySbTx::send, py::arg("py_packet"), py::arg("blocking") = true);
 
     py::class_<PySbRx>(m, "PySbRx")
-        .def(py::init<std::string>(), py::arg("uri") = "")
+        .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
         .def("init", &PySbRx::init)
         .def("recv", &PySbRx::recv, py::arg("blocking") = true);
 
@@ -840,7 +839,8 @@ PYBIND11_MODULE(_switchboard, m) {
             py::arg("bar_num") = 0, py::arg("bdf") = "");
 
     py::class_<PyUmi>(m, "PyUmi")
-        .def(py::init<std::string, std::string>(), py::arg("tx_uri") = "", py::arg("rx_uri") = "")
+        .def(py::init<std::string, std::string, bool>(), py::arg("tx_uri") = "",
+            py::arg("rx_uri") = "", py::arg("fresh") = false)
         .def("init", &PyUmi::init)
         .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking") = true)
         .def("recv", &PyUmi::recv, py::arg("blocking") = true)

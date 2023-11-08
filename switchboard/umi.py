@@ -18,7 +18,7 @@ from .gpio import UmiGpio
 class UmiTxRx:
     def __init__(self, tx_uri: str = None, rx_uri: str = None,
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
-        max_bytes: int = None):
+        max_bytes: int = None, fresh: bool = False):
         """
         Args:
             tx_uri (str, optional): Name of the switchboard queue that
@@ -49,7 +49,7 @@ class UmiTxRx:
         if rx_uri is None:
             rx_uri = ""
 
-        self.umi = PyUmi(tx_uri, rx_uri)
+        self.umi = PyUmi(tx_uri, rx_uri, fresh)
 
         if srcaddr is not None:
             # convert srcaddr default to a dictionary if necessary
@@ -115,7 +115,7 @@ class UmiTxRx:
             umi=self
         )
 
-    def init_queues(self, tx_uri=None, rx_uri=None):
+    def init_queues(self, tx_uri: str = None, rx_uri: str = None, fresh: bool = False):
         """
         Args:
             tx_uri (str, optional): Name of the switchboard queue that
@@ -132,7 +132,7 @@ class UmiTxRx:
         if rx_uri is None:
             rx_uri = ""
 
-        self.umi.init(tx_uri, rx_uri)
+        self.umi.init(tx_uri, rx_uri, fresh)
 
     def send(self, p, blocking=True) -> bool:
         """

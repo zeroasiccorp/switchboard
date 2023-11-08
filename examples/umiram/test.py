@@ -9,19 +9,12 @@
 import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import (SbDut, UmiTxRx, delete_queue, verilator_run,
-    binary_run)
+from switchboard import SbDut, UmiTxRx, verilator_run, binary_run
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def python_intf(from_client, to_client):
-    # instantiate TX and RX queues.  note that these can be instantiated without
-    # specifying a URI, in which case the URI can be specified later via the
-    # "init" method
-
-    umi = UmiTxRx(from_client, to_client)
-
+def python_intf(umi):
     print("### WRITES ###")
 
     # 1 byte
@@ -119,22 +112,16 @@ def main(mode='python', fast=False):
     # build the simulator
     verilator_bin = build_testbench(fast=fast)
 
-    # clean up old queues if present
-    from_client = 'to_rtl.q'
-    to_client = 'from_rtl.q'
-    queues = [from_client, to_client]
-
-    for q in queues:
-        delete_queue(q)
+    # create queues
+    umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
 
     # launch the simulation
     verilator_run(verilator_bin, plusargs=['trace'])
 
     if mode == 'python':
-        python_intf(from_client=from_client, to_client=to_client)
+        python_intf(umi)
     elif mode == 'cpp':
-        client = binary_run(THIS_DIR / 'client')
-        client.wait()
+        binary_run(THIS_DIR / 'client').wait()
     else:
         raise ValueError(f'Invalid mode: {mode}')
 
