@@ -17,7 +17,7 @@ import argparse
 import numpy as np
 from switchboard import PySbRx, PySbTx, PySbPacket
 
-SB_PACKET_SIZE_BYTES = 40
+SB_PACKET_SIZE_BYTES = 60
 
 
 def conn_closed(conn):
