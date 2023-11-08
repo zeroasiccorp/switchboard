@@ -16,7 +16,7 @@ If you haven't already cloned this repo and installed the switchboard Python pac
 
 ## Structure
 
-The RTL structure of this example is a Verilog module, `testbench` (`testbench.sv`), that instantiates UMI memory, `umiram` (`../common/verilog/umiram.sv`).  Within `testbench`, the UMI `udev_req` and `udev_resp` ports of `umiram` are terminated using the `umi_rx_sim` and `umi_tx_sim` modules provided by switchboard.
+The RTL structure of this example is a Verilog module, `testbench` (`testbench.sv`), that instantiates UMI memory, `umiram` (`../common/verilog/umiram.sv`).  Within `testbench`, the UMI `udev_req` and `udev_resp` ports of `umiram` are terminated using the `queue_to_sb_sim` and `sb_to_queue_sim` modules provided by switchboard.
 
 A Verilator simulation is built using `testbench` as the top level.  When it runs, UMI packets flow into `udev_req` from a switchboard queue, `client2rtl.q`, and flow out from `udev_resp` into a switchboard queue, `rtl2client.q`.  These queues will show up on your computer as ordinary files, each representing a region of shared memory.
 
@@ -41,10 +41,10 @@ In the sections that follow, we'll go into the different components of this exam
 
 ## testbench.sv
 
-The main purpose of the top-level module, `testbench`, is to instantiate the DUT and connect its UMI ports to switchboard-provided "end caps": `umi_rx_sim` and `umi_tx_sim`.  `umi_rx_sim` receives UMI packets from outside of the Verilog simulation and drives them into the DUT, while `umi_tx_sim` drives UMI packets to the outside world that are provided by the DUT.  As you can see in the file, there is a one-to-one mapping of all interface pins on these modules to signals on the DUT.
+The main purpose of the top-level module, `testbench`, is to instantiate the DUT and connect its UMI ports to switchboard-provided "end caps": `queue_to_sb_sim` and `sb_to_queue_sim`.  `queue_to_sb_sim` receives UMI packets from outside of the Verilog simulation and drives them into the DUT, while `sb_to_queue_sim` drives UMI packets to the outside world that are provided by the DUT.  As you can see in the file, there is a one-to-one mapping of all interface pins on these modules to signals on the DUT.
 
 ```verilog
-umi_rx_sim rx_i (
+queue_to_sb_sim rx_i (
     .clk(clk),
     .data(udev_req_data),
     .srcaddr(udev_req_srcaddr),
@@ -53,7 +53,7 @@ umi_rx_sim rx_i (
     .ready(udev_req_ready),
     .valid(udev_req_valid)
 );
-umi_tx_sim tx_i (
+sb_to_queue_sim tx_i (
     .clk(clk),
     .data(udev_resp_data),
     .srcaddr(udev_resp_srcaddr),
@@ -77,13 +77,13 @@ end
 
 There is nothing special about these names; they can be any legal file name.  The main important thing is that the names used match up to the names used in the SW driver.  For example, since the DUT is expecting to receive UMI packets from `client2rtl.q`, the Python script should be configured to send packets to `client2rtl.q`.  The switchboard queues are ordinary files, and they may stick around after a simulation - for that reason, you may want to give them a globbable name so you can do things like `rm *.q`, or add `*.q` to `.gitignore`.
 
-In looking through `testbench.sv`, you may haved noticed that `umi_rx_sim` has a parameter called `VALID_MODE_DEFAULT`, and `umi_tx_sim` has a parameter called `READY_MODE_DEFAULT`.  These control the ready/valid signaling style used by the switchboard modules.  All of the styles are legal in terms of the UMI specification, but can help catch different kinds of hardware bugs.
+In looking through `testbench.sv`, you may haved noticed that `queue_to_sb_sim` has a parameter called `VALID_MODE_DEFAULT`, and `sb_to_queue_sim` has a parameter called `READY_MODE_DEFAULT`.  These control the ready/valid signaling style used by the switchboard modules.  All of the styles are legal in terms of the UMI specification, but can help catch different kinds of hardware bugs.
 
-* `VALID_MODE_DEFAULT` on `umi_rx_sim`
+* `VALID_MODE_DEFAULT` on `queue_to_sb_sim`
     * `0` means to always set `valid` to `0` after completing a transaction.  This means that if there is a steady stream of data being driven out and `ready` is kept asserted, `valid` will alternate between `0` and `1`.
     * `1` means to try to keep `valid` asserted as much as possible, so if there is a constant stream of data being driven out and `ready` is kept asserted, `valid` will remain asserted.
     * `2` means to flip a coin before deciding to drive out the next packet.  This causes the `valid` line to have a random pattern if there is a constant stream of data to be driven and `ready` is kept asserted.
-* `READY_MODE_DEFAULT` on `umi_tx_sim`
+* `READY_MODE_DEFAULT` on `sb_to_queue_sim`
     * `0` means to hold off on asserting `ready` until `valid` has been asserted.
     * `1` means to assert `ready` as much as possible, so if `valid` is held high, `ready` will remain asserted as long as more packets can be pushed into the switchboard queue (i.e., as long as the SW driver isn't backpressuring)
     * `2` means to flip a coin on each cycle to determine if `ready` will be asserted in that cycle (provided that there is room in the switchboard queue)
@@ -94,7 +94,7 @@ This is a Python script that builds the Verilator simulator, launches it, and in
 
 ### Simulator build
 
-The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `umi_rx_sim` and `umi_tx_sim` modules in your testbench.  Besides instantiating an `SbDut` rather than a `Chip`, `build_testbench()` follows the conventional SC build script structure of instantiating the object, configuring it with inputs, build options, and a flow, and executing `dut.run()`.
+The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  Besides instantiating an `SbDut` rather than a `Chip`, `build_testbench()` follows the conventional SC build script structure of instantiating the object, configuring it with inputs, build options, and a flow, and executing `dut.run()`.
 
 ### Simulator interaction
 
@@ -114,7 +114,7 @@ The interface of the `write()` command is `write(addr, data)`, where
 * `addr` is a 64-bit UMI address
 * `data` is a numpy scalar or array.  For example, `data` could be `np.uint32(0xDEADBEEF)` or `np.arange(64, dtype=np.uint8)`.
 
-The numpy data type determines the `SIZE` for the UMI transaction (e.g., `0` for `np.uint8`, `1` for `np.uint16`, etc.).  The `LEN` for a UMI transaction is `0` for a scalar, and `len(data)-1` for an array.  If `data` is more than 32B (the data bus width provided by `umi_tx_sim` and `umi_rx_sim`), multiple UMI transactions will automatically be generated within the `write()` command.  This means that you are generally free to write arbitrary binary blobs, without having to worry about bus widths.
+The numpy data type determines the `SIZE` for the UMI transaction (e.g., `0` for `np.uint8`, `1` for `np.uint16`, etc.).  The `LEN` for a UMI transaction is `0` for a scalar, and `len(data)-1` for an array.  If `data` is more than 32B (the data bus width provided by `sb_to_queue_sim` and `queue_to_sb_sim`), multiple UMI transactions will automatically be generated within the `write()` command.  This means that you are generally free to write arbitrary binary blobs, without having to worry about bus widths.
 
 #### read()
 

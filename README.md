@@ -84,12 +84,12 @@ rxp = rx.recv()
 
 In other words, we create an SB output port (`tx`) and an SB input port (`rx`).  An SB packet is then created (`txp`) and sent via the output port.  Finally, a new SB packet is received from the input port.
 
-To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [switchboard/examples/python/testbench.sv](switchboard/examples/python/testbench.sv).  The core logic is the instantiation of `sb_rx_sim` (SB input port) and `sb_tx_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`client2rtl.q`) and similarly the Python input port is matched to the Verilog output port (`rtl2client.q`).
+To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [switchboard/examples/python/testbench.sv](switchboard/examples/python/testbench.sv).  The core logic is the instantiation of `queue_to_sb_sim` (SB input port) and `sb_to_queue_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`client2rtl.q`) and similarly the Python input port is matched to the Verilog output port (`rtl2client.q`).
 
 ```verilog
 // ...
 
-sb_rx_sim rx_i (
+queue_to_sb_sim rx_i (
     .clk(clk),
     .data(sb_rx_data),
     .dest(sb_rx_dest),
@@ -98,7 +98,7 @@ sb_rx_sim rx_i (
     .valid(sb_rx_valid)
 );
 
-sb_tx_sim tx_i (
+sb_to_queue_sim tx_i (
     .clk(clk),
     .data(sb_tx_data),
     .dest(sb_tx_dest),
@@ -124,7 +124,7 @@ We encourage you to explore the other examples, which demonstrate simulation wit
 
 ## Build automation
 
-We also provide build automation powered by [SiliconCompiler](https://github.com/siliconcompiler/siliconcompiler) that makes it easy to build RTL simulations with switchboard infrastructure (`sb_rx_sim`, `sb_tx_sim`, etc.).  This is mainly important because Verilog DPI and VPI are used under the hood, requiring certain flags to be passed to the RTL simulator during the build.  Using our build automation lets you focus on specifying RTL sources, without having to deal with these details.
+We also provide build automation powered by [SiliconCompiler](https://github.com/siliconcompiler/siliconcompiler) that makes it easy to build RTL simulations with switchboard infrastructure (`queue_to_sb_sim`, `sb_to_queue_sim`, etc.).  This is mainly important because Verilog DPI and VPI are used under the hood, requiring certain flags to be passed to the RTL simulator during the build.  Using our build automation lets you focus on specifying RTL sources, without having to deal with these details.
 
 As an example, we return to [examples/python](examples/python) to look at how the `build_testbench` function is implemented.  The basic logic for a Verilator build is:
 

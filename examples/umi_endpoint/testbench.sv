@@ -22,7 +22,7 @@ module testbench (
     wire [AW-1:0] udev_resp_srcaddr;
     wire [DW-1:0] udev_resp_data;
 
-    umi_rx_sim rx_i (
+    queue_to_umi_sim rx_i (
         .clk(clk),
         .data(udev_req_data),
         .srcaddr(udev_req_srcaddr),
@@ -32,7 +32,7 @@ module testbench (
         .valid(udev_req_valid)
     );
 
-    umi_tx_sim tx_i (
+    umi_to_queue_sim tx_i (
         .clk(clk),
         .data(udev_resp_data),
         .srcaddr(udev_resp_srcaddr),

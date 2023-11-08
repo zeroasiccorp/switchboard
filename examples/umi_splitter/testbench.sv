@@ -36,7 +36,7 @@ module testbench (
         .*
     );
 
-    umi_rx_sim rx (
+    queue_to_umi_sim rx (
         .clk(clk),
         .data(umi_in_data),
         .srcaddr(umi_in_srcaddr),
@@ -46,7 +46,7 @@ module testbench (
         .valid(umi_in_valid)
     );
 
-    umi_tx_sim tx0 (
+    umi_to_queue_sim tx0 (
         .clk(clk),
         .data(umi_resp_out_data),
         .srcaddr(umi_resp_out_srcaddr),
@@ -56,7 +56,7 @@ module testbench (
         .valid(umi_resp_out_valid)
     );
 
-    umi_tx_sim tx1 (
+    umi_to_queue_sim tx1 (
         .clk(clk),
         .data(umi_req_out_data),
         .srcaddr(umi_req_out_srcaddr),
