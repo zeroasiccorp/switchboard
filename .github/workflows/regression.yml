@@ -13,10 +13,6 @@ jobs:
   verilator:
     name: Verilator
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.8", "3.9", "3.10", "3.11"]
     container:
       image: ghcr.io/zeroasiccorp/sbtest:0.0.10
       credentials:
@@ -28,15 +24,6 @@ jobs:
         with:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: true
-
-      - name: Update apt cache
-        run: apt-get update && apt-get install lsb-release
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-          cache: pip
 
       - name: Install Switchboard Python package
         run: |
@@ -65,10 +52,6 @@ jobs:
   fpga_sim:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.8", "3.9", "3.10", "3.11"]
     container:
       image: ghcr.io/zeroasiccorp/sbtest:0.0.10
       credentials:
@@ -80,12 +63,6 @@ jobs:
         with:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: true
-
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-          cache: pip
 
       - name: Install Switchboard Python package
         run: |
