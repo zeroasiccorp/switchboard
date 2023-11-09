@@ -119,7 +119,7 @@ FPGA side.
 
 ## Dependencies
 
-- Several modules require https://github.com/alexforencich/verilog-axi, see the submodule in `examples/deps/` for a supported version.
+- Several modules require https://github.com/alexforencich/verilog-axi. A supported version exists as a submodule under `switchboard/deps/verilog-axi`.
 - If the `DEBUG` macro is defined, you must configure a Xilinx ILA module `ila_0` with the following probe widths:
     - `probe0 [0:0]`
     - `probe1 [63:0]`
