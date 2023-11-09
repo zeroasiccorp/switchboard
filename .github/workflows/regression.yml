@@ -29,6 +29,9 @@ jobs:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: true
 
+      - name: Update apt cache
+        run: apt-get update
+
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
