@@ -13,6 +13,10 @@ jobs:
   verilator:
     name: Verilator
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11"]
     container:
       image: ghcr.io/zeroasiccorp/sbtest:0.0.10
       credentials:
@@ -25,9 +29,15 @@ jobs:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: true
 
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
       - name: Install Switchboard Python package
         run: |
-          pip3 install .[test]
+          MAKEFLAGS=-j$(nproc) pip3 install .[test]
 
       - name: Add SSH key
         uses: ./.github/actions/add-ssh-key
@@ -52,6 +62,10 @@ jobs:
   fpga_sim:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11"]
     container:
       image: ghcr.io/zeroasiccorp/sbtest:0.0.10
       credentials:
@@ -64,9 +78,15 @@ jobs:
           token: ${{ secrets.ZA_TOKEN }}
           submodules: true
 
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
       - name: Install Switchboard Python package
         run: |
-          pip3 install .
+          MAKEFLAGS=-j$(nproc) pip3 install .
 
       - name: Add SSH key
         uses: ./.github/actions/add-ssh-key
