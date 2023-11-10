@@ -7,11 +7,11 @@ Switchboard provides a Python interface for reading from and writing to RTL desi
 If you haven't already cloned this repo and installed the switchboard Python package, please do that first.  We recommend installing switchboard in a virtual env, conda env, etc. to keep things tidy.
 
 ```shell
-> git clone https://github.com/zeroasiccorp/switchboard.git
-> cd switchboard
-> git submodule update --init --recursive
-> pip install --upgrade pip
-> pip install -e .
+$ git clone https://github.com/zeroasiccorp/switchboard.git
+$ cd switchboard
+$ git submodule update --init --recursive
+$ pip install --upgrade pip
+$ pip install -e .
 ```
 
 ## Structure
@@ -94,7 +94,7 @@ This is a Python script that builds the Verilator simulator, launches it, and in
 
 ### Simulator build
 
-The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  Besides instantiating an `SbDut` rather than a `Chip`, `build_testbench()` follows the conventional SC build script structure of instantiating the object, configuring it with inputs, build options, and a flow, and executing `dut.run()`.
+The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  `input()` is used to specific RTL sources, and include directories/libraries are specified with `add()`.  After that point, the simulator is built with `build()`; the `fast` option indicates whether a simulator should be rebuilt if it already exists.
 
 ### Simulator interaction
 
@@ -133,16 +133,9 @@ If `num_or_dtype` is a data type, then a single word of that data type will be r
 
 The `UmiTxRx` object provides other methods for interaction over UMI, such as `atomic()`.  This will be covered in a future tutorial.
 
-#### delete_queue()
+#### fresh=True
 
-You may have noticed the lines
-
-```python
-for q in [client2rtl, rtl2client]:
-    delete_queue(q)
-```
-
-near the top of `test.py`.  switchboard queues are not automatically deleted, so it's important to make sure that any old queues are cleared out before launching a new simulation.  Sometimes it is convenient to auto-delete queues as part of the teardown process for a verification environment.
+You may have noticed the option `fresh=True` when creating the `UmiTxRx` object.  switchboard queues are not automatically deleted at the end of a simulation, so it's important to make sure that any old queues are cleared out before launching a new simulation.  The option `fresh=True` does this; the only rule is that `UmiTxRx` objects must be created before launching a simulation.  At some point, `fresh=True` will be made the default (it's not at the moment for backwards-compatibility reasons).
 
 ## Makefile
 
