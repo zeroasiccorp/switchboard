@@ -14,10 +14,10 @@ jobs:
     name: Verilator
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:0.0.10
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.11
       credentials:
-         username: ${{ secrets.ZA_ACTOR }}
-         password: ${{ secrets.ZA_TOKEN }}
+         username: ${{ secrets.za_actor }}
+         password: ${{ secrets.za_token }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -53,7 +53,7 @@ jobs:
     name: FPGA queue simulation
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:0.0.10
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.11
       credentials:
          username: ${{ secrets.ZA_ACTOR }}
          password: ${{ secrets.ZA_TOKEN }}
