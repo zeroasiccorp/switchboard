@@ -41,20 +41,16 @@ jobs:
     name: Lint Verilog Code
 
     runs-on: ubuntu-latest
-
+    container:
+      image: ghcr.io/zeroasiccorp/sbtest:0.0.11
+      credentials:
+         username: ${{ secrets.za_actor }}
+         password: ${{ secrets.za_token }}
     timeout-minutes: 5
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
-
-      - name: Set up Verible
-        run: |
-          apt-get update && apt-get install -y wget
-          wget https://github.com/chipsalliance/verible/releases/download/v0.0-3303-gd87f2420/verible-v0.0-3303-gd87f2420-linux-static-x86_64.tar.gz
-          tar xzf verible-v*.tar.gz
-          rm verible-v*.tar.gz
-          mv verible-v* verible
 
       - name: Lint with Verible
         run: |
@@ -70,7 +66,7 @@ jobs:
             -or -name "picorv32.v" \
           \) > files.txt
           cat files.txt
-          ./verible/bin/verible-verilog-lint \
+          verible-verilog-lint \
             --rules_config verible_lint.txt \
             `cat files.txt`
 
