@@ -94,7 +94,7 @@ This is a Python script that builds the Verilator simulator, launches it, and in
 
 ### Simulator build
 
-The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  `input()` is used to specific RTL sources, and include directories/libraries are specified with `add()`.  After that point, the simulator is built with `build()`; the `fast` option indicates whether a simulator should be rebuilt if it already exists.
+The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  `input()` is used to specify RTL sources, and include directories/libraries are specified with `add()`.  After that point, the simulator is built with `build()`; the `fast` option indicates whether a simulator should be rebuilt if it already exists.
 
 ### Simulator interaction
 
