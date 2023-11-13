@@ -27,7 +27,7 @@ def main(fast=False):
     txp = PySbPacket(
         destination=123456789,
         flags=1,
-        data=np.array([(i & 0xff) for i in range(32)], dtype=np.uint8)
+        data=np.arange(32, dtype=np.uint8)
     )
 
     # send the packet
@@ -48,11 +48,11 @@ def main(fast=False):
 
     # check that the received data
 
-    success = (rxp.data == (txp.data + 1)).all()
+    success = np.array_equal(rxp.data, txp.data + 1)
 
     # stop simulation
 
-    tx.send(PySbPacket(data=np.array([0xff for _ in range(32)], dtype=np.uint8)))
+    tx.send(PySbPacket(data=np.array([0xff] * 32, dtype=np.uint8)))
     chip.wait()
 
     # declare test as having passed for regression testing purposes

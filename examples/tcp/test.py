@@ -5,7 +5,7 @@
 
 import sys
 import numpy as np
-from switchboard import PySbPacket, PySbTx, PySbRx, binary_run
+from switchboard import PySbPacket, PySbTx, PySbRx, start_tcp_bridge
 
 
 def main(rxq='rx.q', txq='tx.q'):
@@ -22,7 +22,7 @@ def main(rxq='rx.q', txq='tx.q'):
     txp = PySbPacket(
         destination=123456789,
         flags=1,
-        data=np.array([(i & 0xff) for i in range(32)], dtype=np.uint8)
+        data=np.arange(32, dtype=np.uint8)
     )
 
     # send the packet
@@ -43,7 +43,7 @@ def main(rxq='rx.q', txq='tx.q'):
 
     # check that the received data
 
-    success = (rxp.data == txp.data).all()
+    success = np.array_equal(rxp.data, txp.data)
 
     # declare test as having passed for regression testing purposes
 
@@ -53,23 +53,6 @@ def main(rxq='rx.q', txq='tx.q'):
     else:
         print("FAIL")
         sys.exit(1)
-
-
-def start_tcp_bridge(mode, tx=None, rx=None, host=None, port=None, quiet=True):
-    args = []
-    args += ['--mode', mode]
-    if tx is not None:
-        args += ['--tx', tx]
-    if rx is not None:
-        args += ['--rx', rx]
-    if host is not None:
-        args += ['--host', host]
-    if port is not None:
-        args += ['--port', port]
-    if quiet:
-        args += ['-q']
-
-    return binary_run(bin='sbtcp', args=args)
 
 
 if __name__ == '__main__':

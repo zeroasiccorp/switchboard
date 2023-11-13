@@ -160,6 +160,10 @@ def run_client(sbrx, sbtx, host, port, quiet=False, should_yield=True):
     Connect to a server, retrying until a connection is made.
     """
 
+    # initialize TX/RX if needed
+    sbrx = convert_to_queue(sbrx, 'sbrx', PySbRx)
+    sbtx = convert_to_queue(sbtx, 'sbtx', PySbTx)
+
     if not quiet:
         print('Waiting for server', end='', flush=True)
     while True:
@@ -183,6 +187,10 @@ def run_server(sbrx, sbtx, host, port, quiet=False, should_yield=True, run_once=
     """
     Accepts client connections in a loop until Ctrl-C is pressed.
     """
+
+    # initialize TX/RX if needed
+    sbrx = convert_to_queue(sbrx, 'sbrx', PySbRx)
+    sbtx = convert_to_queue(sbtx, 'sbtx', PySbTx)
 
     # create the server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -212,27 +220,13 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    # initialize RX
-
-    if args.rx != "":
-        sbrx = PySbRx(args.rx)
-    else:
-        sbrx = None
-
-    # initialize TX
-
-    if args.tx != "":
-        sbtx = PySbTx(args.tx)
-    else:
-        sbtx = None
-
     # main logic
 
     if args.mode == 'server':
-        run_server(sbrx=sbrx, sbtx=sbtx, host=args.host, port=args.port,
+        run_server(sbrx=args.rx, sbtx=args.tx, host=args.host, port=args.port,
             quiet=args.q, should_yield=(not args.noyield), run_once=args.run_once)
     elif args.mode == 'client':
-        run_client(sbrx=sbrx, sbtx=sbtx, host=args.host, port=args.port,
+        run_client(sbrx=args.rx, sbtx=args.tx, host=args.host, port=args.port,
             quiet=args.q, should_yield=(not args.noyield))
     else:
         raise ValueError(f"Invalid mode: {args.mode}")
@@ -251,6 +245,43 @@ def bytes2sb(b):
     # construct a Switchboard packet from a bytes object
     arr = np.frombuffer(b, dtype=np.uint32)
     return PySbPacket(arr[0], arr[1], arr[2:].view(np.uint8))
+
+
+def convert_to_queue(q, name, cls):
+    if isinstance(q, cls) or (q is None):
+        # note that None is passed through
+        return q
+    elif isinstance(q, str):
+        if q == "":
+            return None
+        else:
+            return cls(q)
+    else:
+        raise TypeError(f'{name} must be a string or {cls.__name__}; got {type(q)}')
+
+
+def start_tcp_bridge(mode, tx=None, rx=None, host='localhost', port=5555, quiet=True):
+    kwargs = dict(
+        sbrx=rx,
+        sbtx=tx,
+        host=host,
+        port=port,
+        quiet=quiet
+    )
+
+    if mode == 'server':
+        target = run_server
+    elif mode == 'client':
+        target = run_client
+    else:
+        raise ValueError(f"Invalid mode: {mode}")
+
+    import multiprocessing
+
+    p = multiprocessing.Process(target=target, kwargs=kwargs, daemon=True)
+    p.start()
+
+    return p
 
 
 def get_parser():

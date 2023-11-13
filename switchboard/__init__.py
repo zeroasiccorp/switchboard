@@ -16,3 +16,4 @@ from .sbdut import SbDut
 from .loopback import umi_loopback
 from .bitvector import BitVector
 from .uart_xactor import uart_xactor
+from .sbtcp import start_tcp_bridge

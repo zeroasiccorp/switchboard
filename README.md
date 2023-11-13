@@ -126,26 +126,23 @@ We encourage you to explore the other examples, which demonstrate simulation wit
 
 We also provide build automation powered by [SiliconCompiler](https://github.com/siliconcompiler/siliconcompiler) that makes it easy to build RTL simulations with switchboard infrastructure (`queue_to_sb_sim`, `sb_to_queue_sim`, etc.).  This is mainly important because Verilog DPI and VPI are used under the hood, requiring certain flags to be passed to the RTL simulator during the build.  Using our build automation lets you focus on specifying RTL sources, without having to deal with these details.
 
-As an example, we return to [examples/python](examples/python) to look at how the `build_testbench` function is implemented.  The basic logic for a Verilator build is:
+As an example, we return to [examples/python](examples/python).  The basic logic for a Verilator build is:
 
 ```python
-from switchboard import SbDut, verilator_run
+from switchboard import SbDut
 
-dut = SbDut('name-of-top-level-module')
+dut = SbDut('name-of-top-level-module', default_main=True)
 
 dut.input('path/to/file/1')
 dut.input('path/to/file/2')
 ...
 
-dut.run()
-vexe = dut.find_result('vexe', step='compile')
+dut.build()
 
-verilator_run(vexe)
+dut.simulate()
 ```
 
-In other words, create an `SbDut` object, `input()` files, `run()` it to compile the Verilator simulator, and use `verilator_run()` to start the simulator.  `SbDut` is a subclass of `siliconcompiler.Chip`, which allows you to invoke a range of features to control the simulator build, such as specifying include paths and `` `define `` macros.  More information about `siliconcompiler.Chip` can be found [here](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html#siliconcompiler.core.Chip).
-
-Once you have the `vexe` path, you could run it directly with `subprocess.run`.  However, `verilator_run` provides some additional features that are convenient, such as making sure that the simulation stops when the program exits.  It also provides a mechanism for passing plusargs to the RTL simulation.
+In other words, create an `SbDut` object, `input()` files, `build()` it to compile the Verilator simulator, and use `simulate()` to start the simulator.  `SbDut` is a subclass of `siliconcompiler.Chip`, which allows you to invoke a range of features to control the simulator build, such as specifying include paths and `` `define `` macros.  More information about `siliconcompiler.Chip` can be found [here](https://docs.siliconcompiler.com/en/stable/reference_manual/core_api.html#siliconcompiler.core.Chip).
 
 
 ## Packet format
@@ -175,7 +172,7 @@ In addition to supporting data movement directly through SB packets, we provide 
 ```python
 from switchboard import UmiTxRx
 
-umi = UmiTxRx(from_client, to_client)
+umi = UmiTxRx(from_client, to_client, fresh=True)
 
 wrbuf = np.array([elem1, elem2, ...], dtype)
 umi.write(wraddr, wrbuf)
