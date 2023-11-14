@@ -1,6 +1,6 @@
 # umiram tutorial
 
-Switchboard provides a Python interface for reading from and writing to RTL designs using UMI.  This tutorial shows how to create such a setup, using a simple UMI memory design as an example.  You'll learn how to instantiate switchboard Verilog modules that connect to the DUT, and how to interact with the DUT from Python.
+Switchboard provides a Python interface for reading from and writing to RTL designs using [UMI](https://github.com/zeroasiccorp/umi).  This tutorial shows how to create such a setup, using a simple UMI memory design as an example.  You'll learn how to instantiate switchboard Verilog modules that connect to the DUT, and how to interact with the DUT from Python.
 
 ## Installation
 
@@ -9,20 +9,20 @@ If you haven't already cloned this repo and installed the switchboard Python pac
 ```shell
 $ git clone https://github.com/zeroasiccorp/switchboard.git
 $ cd switchboard
-$ git submodule update --init --recursive
+$ git submodule update --init
 $ pip install --upgrade pip
 $ pip install -e .
 ```
 
 ## Structure
 
-The RTL structure of this example is a Verilog module, `testbench` (`testbench.sv`), that instantiates UMI memory, `umiram` (`../common/verilog/umiram.sv`).  Within `testbench`, the UMI `udev_req` and `udev_resp` ports of `umiram` are terminated using the `queue_to_sb_sim` and `sb_to_queue_sim` modules provided by switchboard.
+The RTL structure of this example is a Verilog module, [testbench](testbench.sv), that instantiates UMI memory, [umiram](../common/verilog/umiram.sv).  Within `testbench`, the UMI `udev_req` and `udev_resp` ports of `umiram` are terminated using the `queue_to_sb_sim` and `sb_to_queue_sim` modules provided by switchboard.
 
-A Verilator simulation is built using `testbench` as the top level.  When it runs, UMI packets flow into `udev_req` from a switchboard queue, `client2rtl.q`, and flow out from `udev_resp` into a switchboard queue, `rtl2client.q`.  These queues will show up on your computer as ordinary files, each representing a region of shared memory.
+A Verilator simulation is built using `testbench` as the top level.  When it runs, UMI packets flow into `udev_req` from a switchboard queue, `to_rtl.q`, and flow out from `udev_resp` into a switchboard queue, `from_rtl.q`.  These queues will show up on your computer as ordinary files, each representing a region of shared memory.
 
-In the Python script `test.py`, a UMI driver is instantiated that sends packets to `client2rtl.q` and receives them from `rtl2client.q`.  `write()` and `read()` methods provided by the driver allow numpy arrays and scalars to be written to and read from the DUT, with each operation mapping to one or more UMI operations with automatically calculated `SIZE` and `LEN` parameters.
+In the Python script [test.py](test.py), a UMI driver is instantiated that sends packets to `to_rtl.q` and receives them from `from_rtl.q`.  `write()` and `read()` methods provided by the driver allow [numpy](https://numpy.org) arrays and scalars to be written to and read from the DUT, with each operation mapping to one or more UMI operations with automatically calculated [SIZE](https://github.com/zeroasiccorp/umi#332-transaction-word-size-size20) and [LEN](https://github.com/zeroasiccorp/umi#333-transaction-length-len70) parameters.
 
-<img width="473" alt="image" src="https://github.com/zeroasiccorp/switchboard/assets/19254098/88a388a9-77af-411d-b645-b2c35e39f662">
+<img width="473" alt="image" src="https://github.com/zeroasiccorp/switchboard/assets/19254098/a7b65f14-40a5-480e-a297-5f5acf983f3e">
 
 These operations are automated by the Python script.  If you haven't already, `cd` into this folder, and then execute `test.py`.  You should see the following output, after the Verilator build completes:
 
@@ -35,6 +35,7 @@ Read: 0xbaadf00d
 Read: 0xb0bacafe
 Read: 0xdeadbeef
 Read: 0xbaadd00dcafeface
+...
 ```
 
 In the sections that follow, we'll go into the different components of this example, to give a sense of how they might be modified for your own use.
@@ -70,14 +71,14 @@ Another important part of `testbench.sv` are the lines where these end caps are 
 
 ```verilog
 initial begin
-    rx_i.init("client2rtl.q");
-    tx_i.init("rtl2client.q");
+    rx_i.init("to_rtl.q");
+    tx_i.init("from_rtl.q");
 end
 ```
 
-There is nothing special about these names; they can be any legal file name.  The main important thing is that the names used match up to the names used in the SW driver.  For example, since the DUT is expecting to receive UMI packets from `client2rtl.q`, the Python script should be configured to send packets to `client2rtl.q`.  The switchboard queues are ordinary files, and they may stick around after a simulation - for that reason, you may want to give them a globbable name so you can do things like `rm *.q`, or add `*.q` to `.gitignore`.
+There is nothing special about these names; all legal file names can be used, as long as they match up to the names used in the SW driver.  For example, since the DUT is expecting to receive UMI packets from `to_rtl.q`, the Python script should be configured to send packets to `to_rtl.q`.  The switchboard queues are ordinary files, and they may stick around after a simulation - for that reason, you may want to give them a globbable name so you can do things like `rm *.q`, or add `*.q` to `.gitignore`.
 
-In looking through `testbench.sv`, you may haved noticed that `queue_to_sb_sim` has a parameter called `VALID_MODE_DEFAULT`, and `sb_to_queue_sim` has a parameter called `READY_MODE_DEFAULT`.  These control the ready/valid signaling style used by the switchboard modules.  All of the styles are legal in terms of the UMI specification, but can help catch different kinds of hardware bugs.
+In looking through [testbench.sv](testbench.sv), you may haved noticed that `queue_to_sb_sim` has a parameter called `VALID_MODE_DEFAULT`, and `sb_to_queue_sim` has a parameter called `READY_MODE_DEFAULT`.  These control the ready/valid signaling style used by the switchboard modules.  All of the styles are legal in terms of the UMI specification, but can help catch different kinds of hardware bugs.
 
 * `VALID_MODE_DEFAULT` on `queue_to_sb_sim`
     * `0` means to always set `valid` to `0` after completing a transaction.  This means that if there is a steady stream of data being driven out and `ready` is kept asserted, `valid` will alternate between `0` and `1`.
@@ -94,7 +95,7 @@ This is a Python script that builds the Verilator simulator, launches it, and in
 
 ### Simulator build
 
-The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  `input()` is used to specify RTL sources, and include directories/libraries are specified with `add()`.  After that point, the simulator is built with `build()`; the `fast` option indicates whether a simulator should be rebuilt if it already exists.
+The logic for building the Verilator simulator is found in `build_testbench()`.  As a convenience, `switchboard` provides a class called `SbDut` that inherits from `siliconcompiler.Chip` and abstracts away switchboard-specific setup required for using the `queue_to_sb_sim` and `sb_to_queue_sim` modules in your testbench.  `input()` is used to specify RTL sources, and include directories/libraries are specified with `add()`.  The simulator is built with `build()`; when `fast=True`, the simulator binary will not be rebuilt if it already exists.
 
 ### Simulator interaction
 
@@ -103,10 +104,10 @@ The basic steps to interact with a simulator are to (1) create a `UmiTxRx` objec
 The `UmiTxRx` constructor accepts two arguments `tx_uri` and `rx_uri`.  Hence, when we write
 
 ```python
-umi = UmiTxRx(client2rtl, rtl2client)
+umi = UmiTxRx('to_rtl.q', 'from_rtl.q')
 ```
 
-this means, "send UMI packets to the queue called `client2rtl`, and receive UMI packets from the queue called `rtl2client`".  This matches up well with the way that these queues were defined in `testbench.sv`, since the DUT is expecting to receive UMI packets from `client2rtl` and send them to `rtl2client`.
+this means, "send UMI packets to the queue called `to_rtl.q`, and receive UMI packets from the queue called `from_rtl.q`".  This matches up with the way that these queues were defined in [testbench.sv](testbench.sv), since the DUT is expecting to receive UMI packets from `to_rtl.q` and send them to `from_rtl.q`.
 
 #### write()
 
