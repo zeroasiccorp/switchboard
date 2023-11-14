@@ -7,10 +7,11 @@ Welcome to Switchboard's documentation!
 =======================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
+    :maxdepth: 3
+    :caption: Contents:
+    
+    index
+    switchboard
 
 Indices and tables
 ==================
