@@ -16,7 +16,7 @@ def main(fast=False):
     dut = build_testbench(fast=fast)
 
     # create queues
-    umi = UmiTxRx("client2rtl.q", "rtl2client.q", fresh=True)
+    umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
 
     # launch the simulation
     dut.simulate()
