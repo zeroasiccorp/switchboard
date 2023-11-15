@@ -47,7 +47,7 @@ module testbench (
         .valid(udev_resp_valid)
     );
 
-    wire nreset;
+    reg nreset = 1'b0;
     wire [(IWIDTH-1):0] gpio_in;
     wire [(OWIDTH-1):0] gpio_out;
 
@@ -61,12 +61,9 @@ module testbench (
         .*
     );
 
-    reg [7:0] nreset_vec = 8'h00;
     always @(posedge clk) begin
-        nreset_vec <= {nreset_vec[6:0], 1'b1};
+        nreset <= 1'b1;
     end
-
-    assign nreset = nreset_vec[7];
 
     // operations
 
@@ -80,8 +77,8 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("client2rtl.q");
-        tx_i.init("rtl2client.q");
+        rx_i.init("to_rtl.q");
+        tx_i.init("from_rtl.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 
