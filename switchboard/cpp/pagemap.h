@@ -1,8 +1,7 @@
-/*
- * Linux user-space virt-to-phys mapper.
- *
- * Copyright (C) 2022 Zero ASIC.
- */
+// Linux user-space virt-to-phys mapper
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 #ifndef PAGEMAP_H_
 #define PAGEMAP_H_

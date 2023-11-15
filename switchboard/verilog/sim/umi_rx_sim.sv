@@ -1,5 +1,7 @@
-// wrapper module for backwards compatibility
-// will eventually be removed
+// Wrapper module for backwards compatibility (will eventually be removed)
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none
 

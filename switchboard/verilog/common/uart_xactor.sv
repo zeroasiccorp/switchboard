@@ -1,9 +1,9 @@
-//
-// UMI/UART Transactor.
-// Copyright (c) 2023 Zero ASIC.
-//
-// Written by Edgar E. Iglesias.
-//
+// UMI/UART Transactor
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
+// Written by Edgar E. Iglesias
 
 `default_nettype none
 

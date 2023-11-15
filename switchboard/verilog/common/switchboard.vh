@@ -1,7 +1,7 @@
 // Swithboard utility macros.
-//
-// Copyright 2023 (C) Zero ASIC.
-//
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `ifndef SWITCHBOARD_VH_
 `define SWITCHBOARD_VH_

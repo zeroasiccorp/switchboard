@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 # Simple example illustrating the Switchboard Python binding
-# Copyright (C) 2023 Zero ASIC
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import sys
 import numpy as np
