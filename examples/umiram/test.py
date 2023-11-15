@@ -4,7 +4,8 @@
 # Both C++ and Python-based interactions are shown, however Switchboard can be
 # used entirely from Python (and we generally recommend doing this.)
 
-# Copyright (C) 2023 Zero ASIC
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import numpy as np
 from pathlib import Path

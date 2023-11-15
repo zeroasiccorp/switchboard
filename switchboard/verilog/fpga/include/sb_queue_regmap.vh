@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 // System regs
 localparam [31:0] ID_VERSION_REG = 32'h0000_0000; // ro
 localparam [31:0] CAPABILITY_REG = 32'h0000_0004; // ro

@@ -1,6 +1,8 @@
-/*
- * Switchboard TLM transactor driver.
- */
+// Switchboard TLM transactor driver
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 #ifndef __SWITCHBOARD_TLM_HPP__
 #define __SWITCHBOARD_TLM_HPP__
 

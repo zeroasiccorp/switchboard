@@ -1,5 +1,7 @@
 # Setup script for the Switchboard Python module
-# Copyright (C) 2023 Zero ASIC
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
