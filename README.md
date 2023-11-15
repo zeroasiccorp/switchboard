@@ -235,7 +235,7 @@ The queue implementation in C is in [switchboard/cpp/spsc_queue.h](switchboard/c
 
 ## License
 
-[MIT License](LICENSE)
+[Apache 2.0](LICENSE)
 
 
 ## Contributing
