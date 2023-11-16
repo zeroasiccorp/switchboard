@@ -19,7 +19,7 @@ def main(tool="verilator"):
     dut.build(fast=True)
 
     # clean up old queues if present
-    delete_queues(["client2rtl.q", "rtl2client.q"])
+    delete_queues(["to_rtl.q", "from_rtl.q"])
 
     # start client and chip
     # this order yields a smaller waveform file
