@@ -15,4 +15,6 @@ Other examples of using switchboard to interact with UMI-based RTL modules inclu
 
 If you're interested in using SW modeling for an interface other than UMI, check out the [minimal](minimal) example.  This demonstrates how to read and write data payloads from C++, and use these payloads to interact with a running RTL simulation.  It's also an example of how to switch between the Verilator and Icarus Verilog simulators (summary: set `tool='icarus'` or `tool='verilator'` when you instantiate `SbDut`).
 
+The [python](python) example is similar to the [minimal](minimal) example, except that the interaction with RTL is driven with Python instead of from C++.  This is often a convenient way to get started with test development, later moving some of the implementation to C++ if needed for performance reasons.
+
 We also provide a mechanism for bridging switchboard connections over TCP, which may be useful if you're running a simulation or FPGA-based emulator on one machine, but want to interact with it from another machine.  The [tcp example](tcp) shows how to set this up; it's mostly a matter of calling `start_tcp_bridge` on the server and client sides.
