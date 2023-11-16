@@ -3,9 +3,13 @@
 
 SBDIR := $(shell switchboard --path)
 
-.PHONY: cpp
-cpp: client
-	./test.py
+.PHONY: verilator
+verilator: client
+	./test.py --tool verilator
+
+.PHONY: icarus
+icarus: client
+	./test.py --tool icarus
 
 client: client.cc $(SBDIR)/cpp/switchboard.hpp
 	g++ -std=c++11 -I$(SBDIR)/cpp $< -o $@

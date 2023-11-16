@@ -2,13 +2,13 @@
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 module testbench (
-    `ifndef __ICARUS__
+    `ifdef VERILATOR
         input clk
     `endif
 );
     // clock
 
-    `ifdef __ICARUS__
+    `ifndef VERILATOR
 
         reg clk;
         always begin

@@ -11,9 +11,9 @@ from argparse import ArgumentParser
 from switchboard import UmiTxRx, SbDut
 
 
-def main(fast=False):
+def main(fast=False, tool='verilator'):
     # build the simulator
-    dut = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast, tool=tool)
 
     # create queues
     umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
@@ -75,8 +75,8 @@ def main(fast=False):
     assert val64 == 0xBAADD00DCAFEFACE
 
 
-def build_testbench(fast=False):
-    dut = SbDut(default_main=True)
+def build_testbench(fast=False, tool='verilator'):
+    dut = SbDut(tool=tool, default_main=True)
 
     EX_DIR = Path('..').resolve()
 
@@ -94,6 +94,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(fast=args.fast)
+    main(fast=args.fast, tool=args.tool)

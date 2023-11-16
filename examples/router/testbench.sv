@@ -2,8 +2,24 @@
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 module testbench (
-    input clk
+    `ifdef VERILATOR
+        input clk
+    `endif
 );
+    // clock
+
+    `ifndef VERILATOR
+
+        reg clk;
+        always begin
+            clk = 1'b0;
+            #5;
+            clk = 1'b1;
+            #5;
+        end
+
+    `endif
+
     // SB RX port
 
     wire [255:0] sb_rx_data;

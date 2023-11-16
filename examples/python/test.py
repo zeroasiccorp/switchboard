@@ -11,9 +11,9 @@ from argparse import ArgumentParser
 from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 
-def main(fast=False):
+def main(fast=False, tool='verilator'):
     # build the simulator
-    dut = SbDut(default_main=True)
+    dut = SbDut(tool=tool, default_main=True)
     dut.input('testbench.sv')
     dut.build(fast=fast)
 
@@ -71,6 +71,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(fast=args.fast)
+    main(fast=args.fast, tool=args.tool)
