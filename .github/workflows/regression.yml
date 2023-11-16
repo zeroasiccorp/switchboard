@@ -45,10 +45,10 @@ jobs:
         working-directory: examples
         run: pytest --durations=0 -s
 
-      - name: Run torture tests
+      - name: Run tests
         working-directory: tests
         run: |
-          make torture > out.log
+          make > out.log
           cat out.log
           grep -Fxq "PASS" out.log
 

@@ -136,14 +136,14 @@ It is also possible to run specific tests locally.
 - To run Python-based tests (requires [Verilator](https://www.veripool.org/verilator/) and [Icarus Verilog](https://github.com/steveicarus/iverilog)):
 ```sh
 $ cd examples
-$ pytest --durations=0 -s
+$ pytest -s
 $ cd ..
 ```
 
 - To run C-based tests:
 ```sh
 $ cd tests
-$ make torture
+$ make
 $ cd ..
 ```
 
