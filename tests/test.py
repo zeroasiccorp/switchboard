@@ -19,7 +19,6 @@ SHMEM_DIR = THIS_DIR
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', action='store_true')
-    parser.add_argument('--mode', type=str, default='queue')
     parser.add_argument('--test', type=str, default='hello')
     parser.add_argument('--iterations', type=int, default=None)
     args = parser.parse_args()
@@ -29,12 +28,7 @@ def main():
         if args.test == 'bandwidth':
             args.iterations = 50000000
         elif args.test == 'latency':
-            if args.mode == 'queue':
-                args.iterations = 5000000
-            elif args.mode == 'tcp':
-                args.iterations = 50000
-            else:
-                raise Exception(f'Invalid mode: {args.mode}')
+            args.iterations = 5000000
 
     # provide unique queue numbers
     queue_counter = itertools.count(start=5555)
@@ -50,18 +44,10 @@ def main():
     else:
         raise Exception(f'Unknown test: {args.test}')
 
-    # split ports based on communication mode
+    # split ports
     tx = [None, None]
-    if args.mode == 'queue':
-        tx[0] = rx[1]
-        tx[1] = rx[0]
-    elif args.mode == 'tcp':
-        if rx[1] is not None:
-            tx[0] = next(queue_counter)
-        if rx[0] is not None:
-            tx[1] = next(queue_counter)
-    else:
-        raise Exception(f'Unknown mode: {args.mode}')
+    tx[0] = rx[1]
+    tx[1] = rx[0]
 
     # clean up old queues if present
     for port in set(rx + tx):
@@ -71,14 +57,6 @@ def main():
                 os.remove(filename)
             except OSError:
                 pass
-
-    # start bridge programs if relevant
-    if args.mode == 'tcp':
-        # start server
-        p = start_bridge(is_server=True, rx_port=tx[0], tx_port=rx[0], verbose=args.verbose)
-
-        # start client
-        start_bridge(is_server=False, rx_port=tx[1], tx_port=rx[1], verbose=args.verbose)
 
     # run the specific test of interest
     if args.test == 'hello':
@@ -99,25 +77,6 @@ def main():
         p.wait()
     else:
         raise Exception(f'Unknown test: {args.test}')
-
-
-def start_bridge(is_server=False, rx_port=None, tx_port=None,
-    tcp_addr='127.0.0.1', tcp_port=7777, verbose=False):
-
-    # set defaults
-    if rx_port is None:
-        rx_port = -1
-    if tx_port is None:
-        tx_port = -1
-
-    args = []
-    args += ['-s' if is_server else '-c']
-    args += [rx_port]
-    args += [tx_port]
-    args += [tcp_addr]
-    args += [tcp_port]
-
-    return run_cmd(TOP_DIR / 'cpp' / 'tcp-bridge', *args, auto_exit=True, verbose=verbose)
 
 
 def run_cmd(path, *args, auto_exit=True, verbose=False):

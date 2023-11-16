@@ -6,6 +6,8 @@ include $(TOPDIR)/Rules.mk
 
 MODE ?= queue
 
+test: torture
+
 TARGETS += hello.out
 TARGETS += bandwidth.out
 TARGETS += latency.out
@@ -18,32 +20,20 @@ all: $(TARGETS)
 CPPFLAGS += -MMD
 
 .PHONY: hello
-hello: hello.out $(MODE)
-	./test.py --test hello --mode $(MODE)
+hello: hello.out
+	./test.py --test hello
 
 .PHONY: bandwidth
-bandwidth: bandwidth.out $(MODE)
-	./test.py --test bandwidth --mode $(MODE)
+bandwidth: bandwidth.out
+	./test.py --test bandwidth
 
 .PHONY: latency
-latency: latency.out $(MODE)
-	./test.py --test latency --mode $(MODE)
+latency: latency.out
+	./test.py --test latency
 
 .PHONY: torture
 torture: torture.out
 	./$<
-
-.PHONY: tcp
-tcp:
-	make -C ../cpp tcp-bridge
-
-.PHONY: queue
-queue:
-
-# other tests
-.PHONY: umistr
-umistr: umistr.out
-	./umistr.out
 
 .PHONY: clean
 clean:
