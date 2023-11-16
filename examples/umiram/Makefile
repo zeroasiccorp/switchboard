@@ -3,9 +3,13 @@
 
 SBDIR := $(shell switchboard --path)
 
-.PHONY: python
-python:
-	./test.py --mode python
+.PHONY: verilator
+verilator:
+	./test.py --tool verilator
+
+.PHONY: icarus
+icarus:
+	./test.py --tool icarus
 
 .PHONY: cpp
 cpp: client

@@ -12,9 +12,9 @@ from switchboard import SbDut, delete_queues, binary_run
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(mode="verilator"):
+def main(tool="verilator"):
     # build the simulator
-    dut = SbDut(tool=mode, default_main=True)
+    dut = SbDut(tool=tool, default_main=True)
     dut.input('testbench.sv')
     dut.build(fast=True)
 
@@ -34,7 +34,8 @@ def main(mode="verilator"):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('mode', default='verilator')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(mode=args.mode)
+    main(tool=args.tool)

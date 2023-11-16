@@ -18,7 +18,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['minimal', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
     ['umi_mem_cpp', None, None],
-    ['umiram', None, 'python'],
+    ['umiram', None, 'verilator'],
     ['umiram', None, 'cpp'],
     ['python', 'PASS!', None],
     ['router', 'PASS!', None],
