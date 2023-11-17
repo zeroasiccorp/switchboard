@@ -1,3 +1,3 @@
 [submodule "switchboard/deps/verilog-axi"]
 	path = switchboard/deps/verilog-axi
-	url = git@github.com:alexforencich/verilog-axi.git
+	url = https://github.com/alexforencich/verilog-axi.git

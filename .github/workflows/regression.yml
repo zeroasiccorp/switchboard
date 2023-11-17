@@ -18,24 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/zeroasiccorp/sbtest:latest
-      credentials:
-         username: ${{ secrets.za_actor }}
-         password: ${{ secrets.za_token }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.ZA_TOKEN }}
           submodules: true
 
       - name: Install Switchboard Python package
         run: |
           pip3 install .[test]
-
-      - name: Add SSH key
-        uses: ./.github/actions/add-ssh-key
-        with:
-          ssh-key: ${{ secrets.ZA_SSH_KEY }}
 
       - name: Get dependencies for running tests
         working-directory: examples
@@ -57,24 +48,15 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/zeroasiccorp/sbtest:latest
-      credentials:
-         username: ${{ secrets.ZA_ACTOR }}
-         password: ${{ secrets.ZA_TOKEN }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.ZA_TOKEN }}
           submodules: true
 
       - name: Install Switchboard Python package
         run: |
           pip3 install .
-
-      - name: Add SSH key
-        uses: ./.github/actions/add-ssh-key
-        with:
-          ssh-key: ${{ secrets.ZA_SSH_KEY }}
 
       - name: Get dependencies for running tests
         working-directory: examples

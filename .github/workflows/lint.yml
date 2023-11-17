@@ -46,9 +46,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/zeroasiccorp/sbtest:latest
-      credentials:
-         username: ${{ secrets.za_actor }}
-         password: ${{ secrets.za_token }}
     timeout-minutes: 5
 
     steps:

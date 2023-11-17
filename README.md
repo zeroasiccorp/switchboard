@@ -22,7 +22,7 @@ This package is directly installable with pip.  We recommended installation in a
 
 ```shell
 $ pip install --upgrade pip
-$ pip install git+ssh://git@github.com/zeroasiccorp/switchboard.git
+$ pip install git+https://github.com/zeroasiccorp/switchboard.git
 ```
 
 If you're a switchboard developer, or want to run the examples below, we instead recommend cloning the repo and installing it in-place (`-e`).
