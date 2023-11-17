@@ -1,17 +1,17 @@
 [
     {
         "name": "umi",
-        "url": "git@github.com:zeroasiccorp/umi.git",
+        "url": "https://github.com/zeroasiccorp/umi.git",
         "commit": "05bba6305fbc347a637b778aa4ad0a088ec5a0e9"
     },
     {
         "name": "lambdalib",
-        "url": "git@github.com:siliconcompiler/lambdalib.git",
+        "url": "https://github.com/siliconcompiler/lambdalib.git",
         "commit": "e376b13db46a321e9ffb139895754455c5242b0e"
     },
     {
         "name": "libsystemctlm-soc",
-        "url": "git@github.com:Xilinx/libsystemctlm-soc.git",
+        "url": "https://github.com/Xilinx/libsystemctlm-soc.git",
         "commit": "670d73c"
     }
 ]
