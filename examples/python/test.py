@@ -18,8 +18,8 @@ def main(fast=False, tool='verilator'):
     dut.build(fast=fast)
 
     # create queues
-    tx = PySbTx('client2rtl.q', fresh=True)
-    rx = PySbRx('rtl2client.q', fresh=True)
+    tx = PySbTx('to_rtl.q', fresh=True)
+    rx = PySbRx('from_rtl.q', fresh=True)
 
     # start chip simulation
     chip = dut.simulate()

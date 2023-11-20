@@ -73,8 +73,8 @@ To get a sense of how this works, open the Python script [switchboard/examples/p
 ```python
 from switchboard import PySbPacket, PySbTx, PySbRx
 ...
-tx = PySbTx("client2rtl.q")
-rx = PySbRx("rtl2client.q")
+tx = PySbTx("to_rtl.q")
+rx = PySbRx("from_rtl.q")
 ...
 txp = PySbPacket(...)
 tx.send(txp)
@@ -84,7 +84,7 @@ rxp = rx.recv()
 
 In other words, we create an SB output port (`tx`) and an SB input port (`rx`).  An SB packet is then created (`txp`) and sent via the output port.  Finally, a new SB packet is received from the input port.
 
-To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [switchboard/examples/python/testbench.sv](switchboard/examples/python/testbench.sv).  The core logic is the instantiation of `queue_to_sb_sim` (SB input port) and `sb_to_queue_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`client2rtl.q`) and similarly the Python input port is matched to the Verilog output port (`rtl2client.q`).
+To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [switchboard/examples/python/testbench.sv](switchboard/examples/python/testbench.sv).  The core logic is the instantiation of `queue_to_sb_sim` (SB input port) and `sb_to_queue_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`to_rtl.q`) and similarly the Python input port is matched to the Verilog output port (`from_rtl.q`).
 
 ```verilog
 // ...
@@ -110,16 +110,16 @@ sb_to_queue_sim tx_i (
 // ...
 
 initial begin
-    rx_i.init("client2rtl.q");
-    tx_i.init("rtl2client.q");
+    rx_i.init("to_rtl.q");
+    tx_i.init("from_rtl.q");
 end
 
 // ...
 ```
 
-Using the same name for two ports is what establishes a connection between them.  You can use any name that you like for a SB connection, as long as it is a valid file name.  The reason is that SB connections are visible as files on your file system.  After this example runs, it will leave behind files called `client2rtl.q` and `rtl2client.q`.  It's convenient to name SB connections in a way that is amenable to pattern matching, so that you can do things like `rm *.q` to clean up old connections.
+Using the same name for two ports is what establishes a connection between them.  You can use any name that you like for a SB connection, as long as it is a valid file name.  The reason is that SB connections are visible as files on your file system.  After this example runs, it will leave behind files called `to_rtl.q` and `from_rtl.q`.  It's convenient to name SB connections in a way that is amenable to pattern matching, so that you can do things like `rm *.q` to clean up old connections.
 
-We encourage you to explore the other examples, which demonstrate simulation with Icarus Verilog and switchboard's C++ library (`minimal`), bridging SB connections via TCP (`tcp`), and switchboard's UMI abstraction (`umiram`).
+We encourage you to explore the other examples, which demonstrate simulation with Icarus Verilog and switchboard's C++ library ([minimal](examples/minimal)), bridging SB connections via TCP ([tcp](examples/tcp)), and switchboard's UMI abstraction ([umiram](examples/umiram)).
 
 
 ## Build automation
