@@ -1,8 +1,24 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 `default_nettype none
 
 module testbench (
-    input clk
+    `ifdef VERILATOR
+        input clk
+    `endif
 );
+    `ifndef VERILATOR
+
+        reg clk;
+        always begin
+            clk = 1'b0;
+            #5;
+            clk = 1'b1;
+            #5;
+        end
+
+    `endif
 
     parameter integer DW=256;
     parameter integer AW=64;
@@ -42,7 +58,7 @@ module testbench (
         .valid(udev_resp_valid)
     );
 
-    wire nreset;
+    reg nreset = 1'b0;
     wire [AW-1:0] loc_addr;
     wire          loc_write;
     wire          loc_read;
@@ -61,12 +77,9 @@ module testbench (
         .*
     );
 
-    reg [7:0] nreset_vec = 8'h00;
     always @(posedge clk) begin
-        nreset_vec <= {nreset_vec[6:0], 1'b1};
+        nreset <= 1'b1;
     end
-
-    assign nreset = nreset_vec[7];
 
     // memory backing
 
@@ -88,8 +101,8 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("client2rtl.q");
-        tx_i.init("rtl2client.q");
+        rx_i.init("to_rtl.q");
+        tx_i.init("from_rtl.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 

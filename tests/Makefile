@@ -1,7 +1,12 @@
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 TOPDIR=..
 include $(TOPDIR)/Rules.mk
 
 MODE ?= queue
+
+test: torture
 
 TARGETS += hello.out
 TARGETS += bandwidth.out
@@ -15,35 +20,24 @@ all: $(TARGETS)
 CPPFLAGS += -MMD
 
 .PHONY: hello
-hello: hello.out $(MODE)
-	./test.py --test hello --mode $(MODE)
+hello: hello.out
+	./test.py --test hello
 
 .PHONY: bandwidth
-bandwidth: bandwidth.out $(MODE)
-	./test.py --test bandwidth --mode $(MODE)
+bandwidth: bandwidth.out
+	./test.py --test bandwidth
 
 .PHONY: latency
-latency: latency.out $(MODE)
-	./test.py --test latency --mode $(MODE)
+latency: latency.out
+	./test.py --test latency
 
 .PHONY: torture
 torture: torture.out
 	./$<
-
-.PHONY: tcp
-tcp:
-	make -C ../cpp tcp-bridge
-
-.PHONY: queue
-queue:
-
-# other tests
-.PHONY: umistr
-umistr: umistr.out
-	./umistr.out
 
 .PHONY: clean
 clean:
 	rm -f $(TARGETS)
 	rm -f $(TARGETS:.out=.d)
 	rm -f queue-*
+	rm -rf *.out.dSYM

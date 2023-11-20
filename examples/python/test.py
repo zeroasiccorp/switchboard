@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 # Simple example illustrating the Switchboard Python binding
-# Copyright (C) 2023 Zero ASIC
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import sys
 import numpy as np
@@ -9,15 +11,15 @@ from argparse import ArgumentParser
 from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 
-def main(fast=False):
+def main(fast=False, tool='verilator'):
     # build the simulator
-    dut = SbDut(default_main=True)
+    dut = SbDut(tool=tool, default_main=True)
     dut.input('testbench.sv')
     dut.build(fast=fast)
 
     # create queues
-    tx = PySbTx('client2rtl.q', fresh=True)
-    rx = PySbRx('rtl2client.q', fresh=True)
+    tx = PySbTx('to_rtl.q', fresh=True)
+    rx = PySbRx('from_rtl.q', fresh=True)
 
     # start chip simulation
     chip = dut.simulate()
@@ -69,6 +71,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(fast=args.fast)
+    main(fast=args.fast, tool=args.tool)

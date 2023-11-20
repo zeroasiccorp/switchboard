@@ -1,6 +1,7 @@
 # General utilities for running tests.
 
-# Copyright (C) 2023 Zero ASIC
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import numpy as np
 import contextlib

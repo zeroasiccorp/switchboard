@@ -2,7 +2,8 @@
 
 # Command-line tool that bridges Switchboard packets over TCP.
 
-# Copyright (C) 2023 Zero ASIC
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 # reference for setting up Python TCP connections:
 # https://realpython.com/python-sockets/#echo-client-and-server

@@ -1,11 +1,14 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 module testbench (
-    `ifndef __ICARUS__
+    `ifdef VERILATOR
         input clk
     `endif
 );
     // clock
 
-    `ifdef __ICARUS__
+    `ifndef VERILATOR
 
         reg clk;
         always begin
@@ -73,8 +76,8 @@ module testbench (
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("client2rtl.q");
-        tx_i.init("rtl2client.q");
+        rx_i.init("to_rtl.q");
+        tx_i.init("from_rtl.q");
         /* verilator lint_on IGNOREDRETURN */
     end
 

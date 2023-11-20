@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 
 # Example illustrating how to interact with the umi_fifo module
-# Copyright (C) 2023 Zero ASIC
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import UmiTxRx, random_umi_packet, SbDut
 
 
-def main(n=3, fast=False):
+def main(n=3, fast=False, tool='verilator'):
     # build the simulator
-    dut = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast, tool=tool)
 
     # create queues
-    umi = UmiTxRx('client2rtl.q', 'rtl2client.q', fresh=True)
+    umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
 
     # launch the simulation
     dut.simulate()
@@ -43,8 +45,8 @@ def main(n=3, fast=False):
                     n_recv += 1
 
 
-def build_testbench(fast=False):
-    dut = SbDut(default_main=True)
+def build_testbench(fast=False, tool='verilator'):
+    dut = SbDut(tool=tool, default_main=True)
 
     EX_DIR = Path('..').resolve()
 
@@ -65,6 +67,8 @@ if __name__ == '__main__':
         ' transactions to send into the FIFO during the test.')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(n=args.n, fast=args.fast)
+    main(n=args.n, fast=args.fast, tool=args.tool)

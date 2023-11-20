@@ -1,8 +1,8 @@
-/*
- * Switchboard PCIe ping example.
- *
- * Copyright (C) 2022 Zero ASIC.
- */
+// Switchboard PCIe ping example.
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 """
 UMI/UART Transactor.
 """
+
 import numpy as np
 
 

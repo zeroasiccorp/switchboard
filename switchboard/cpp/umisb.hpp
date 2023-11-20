@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 #ifndef __UMISB_HPP__
 #define __UMISB_HPP__
 

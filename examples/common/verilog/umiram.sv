@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 `default_nettype none
 
 module umiram #(
@@ -22,7 +25,7 @@ module umiram #(
     output     [CW-1:0] udev_resp_cmd,
     output reg [AW-1:0] udev_resp_dstaddr='d0,
     output     [AW-1:0] udev_resp_srcaddr,
-    output     [DW-1:0] udev_resp_data
+    output reg [DW-1:0] udev_resp_data='d0
 );
 
     `include "umi_messages.vh"

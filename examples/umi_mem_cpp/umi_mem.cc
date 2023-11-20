@@ -1,5 +1,7 @@
 // Fast software model large memory (2 GB), useful for booting Linux
-// Copyright (C) 2023 Zero ASIC
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 #include <cinttypes>
 #include <stdexcept>

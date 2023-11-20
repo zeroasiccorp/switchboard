@@ -1,3 +1,6 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 #include "switchboard.hpp"
 
 #define NBYTES 32
@@ -8,8 +11,8 @@ int main() {
 
     // initialize connections
 
-    tx.init("client2rtl.q");
-    rx.init("rtl2client.q");
+    tx.init("to_rtl.q");
+    rx.init("from_rtl.q");
 
     // form packet
 

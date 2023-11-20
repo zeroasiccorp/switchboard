@@ -1,4 +1,5 @@
-# Copyright (C) 2023 Zero ASIC
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 # in the future, there may be some functions implemented directly in Python
 # for now, though, all of the functionality is implemented in C++

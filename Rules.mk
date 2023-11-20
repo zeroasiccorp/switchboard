@@ -1,7 +1,7 @@
 # General Makefile rules
-#
-# Copyright (C) 2022 Zero ASIC. 
-#
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 SBDIR := $(shell switchboard --path)
 CPPFLAGS += -I$(SBDIR)/cpp

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 # Example illustrating how to interact with the umi_endpoint module
-# Copyright (C) 2023 Zero ASIC
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import random
 from pathlib import Path
@@ -9,12 +11,12 @@ from argparse import ArgumentParser
 from switchboard import UmiTxRx, SbDut
 
 
-def main(fast=False):
+def main(fast=False, tool='verilator'):
     # build the simulator
-    dut = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast, tool=tool)
 
     # create queues
-    umi = UmiTxRx("client2rtl.q", "rtl2client.q", fresh=True)
+    umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
 
     # launch the simulation
     dut.simulate()
@@ -68,8 +70,8 @@ def main(fast=False):
     print('PASS!')
 
 
-def build_testbench(fast=False):
-    dut = SbDut(default_main=True)
+def build_testbench(fast=False, tool='verilator'):
+    dut = SbDut(tool=tool, default_main=True)
 
     EX_DIR = Path('..').resolve()
 
@@ -86,6 +88,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(fast=args.fast)
+    main(fast=args.fast, tool=args.tool)

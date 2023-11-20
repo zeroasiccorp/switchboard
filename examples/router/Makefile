@@ -1,8 +1,15 @@
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 SBDIR := $(shell switchboard --path)
 
-.PHONY: cpp
-cpp: client $(SBDIR)/cpp/router
-	./test.py
+.PHONY: verilator
+verilator: client $(SBDIR)/cpp/router
+	./test.py --tool verilator
+
+.PHONY: icarus
+icarus: client $(SBDIR)/cpp/router
+	./test.py --tool icarus
 
 $(SBDIR)/cpp/router:
 	make -C $(SBDIR)/cpp router

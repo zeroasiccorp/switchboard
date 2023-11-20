@@ -1,6 +1,8 @@
-/*
- * SPSC queue randomized torture tests.
- */
+// SPSC queue randomized torture tests
+
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 #include <inttypes.h>
 #include <pthread.h>
 #include <stdint.h>

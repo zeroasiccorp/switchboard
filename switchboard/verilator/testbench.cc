@@ -1,3 +1,9 @@
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
+// modified from examples/make_tracing_c/sim_main.cpp in https://github.com/verilator/verilator,
+// by Wilson Snyder (2017), released as Creative Commons Public Domain
+
 // For Ctrl-C handling
 #include <signal.h>
 

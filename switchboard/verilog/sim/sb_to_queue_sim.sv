@@ -5,6 +5,9 @@
 // ready_mode=1: ready remains asserted as long as an outbound packet is not stuck
 // ready_mode=2: ready toggles randomly as long as an outbound packet is not stuck
 
+// Copyright (c) 2023 Zero ASIC Corporation
+// This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 `default_nettype none
 
 module sb_to_queue_sim #(

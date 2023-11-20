@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
 # Example illustrating how to interact with the umi_splitter module
-# Copyright (C) 2023 Zero ASIC
+
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from pathlib import Path
 from argparse import ArgumentParser
-from switchboard import UmiTxRx, random_umi_packet, SbDut, UmiCmd, umi_opcode
+from switchboard import UmiTxRx, random_umi_packet, SbDut
 
 
-def main(n=3, fast=False):
+def main(n=3, fast=False, tool='verilator'):
     # build the simulator
-    dut = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast, tool=tool)
 
     # create queues
     umi_in = UmiTxRx("in.q", "", fresh=True)
@@ -23,43 +25,44 @@ def main(n=3, fast=False):
     dut.simulate()
 
     # main loop
-    tx_req_list = []
-    tx_resp_list = []
-    rx_list = [[], []]
+    tx_rep = []
+    tx_req = []
+    n_sent = 0
+    n_recv = 0
 
-    while (((len(tx_req_list) + len(tx_resp_list)) < n)
-           or ((len(rx_list[0]) + len(rx_list[1])) < n)):
-        # send a packet with a certain probability
-        if (len(tx_req_list) + len(tx_resp_list)) < n:
-            txp = random_umi_packet(opcode=[UmiCmd.UMI_REQ_WRITE, UmiCmd.UMI_RESP_READ])
+    while (n_sent < n) or (n_recv < n):
+        # try to send a random packet
+        if n_sent < n:
+            txp = random_umi_packet()
             if umi_in.send(txp, blocking=False):
                 print('* IN *')
                 print(str(txp))
-                if umi_opcode(txp.cmd) == UmiCmd.UMI_RESP_READ:
-                    tx_resp_list.append(txp)
-                else:
-                    tx_req_list.append(txp)
 
-        # receive a packet
-        if (len(rx_list[0]) + len(rx_list[1])) < n:
-            for i in range(2):
+                if (txp.cmd & 1) == 0:
+                    # replies have the lsb of cmd set to "0"
+                    tx_rep.append(txp)
+                else:
+                    # requests have the lsb of cmd set to "1"
+                    tx_req.append(txp)
+
+                n_sent += 1
+
+        # try to receive from both outputs
+        if n_recv < n:
+            for i, txq in enumerate([tx_rep, tx_req]):
                 rxp = umi_out[i].recv(blocking=False)
                 if rxp is not None:
                     print(f'* OUT #{i} *')
                     print(str(rxp))
-                    rx_list[i].append(rxp)
 
-    for list0, list1 in [[tx_resp_list, rx_list[0]], [tx_req_list, rx_list[1]]]:
-        assert len(list0) == len(list1)
-        for txp, rxp in zip(list0, list1):
-            assert txp.cmd == rxp.cmd
-            assert txp.dstaddr == rxp.dstaddr
-            assert txp.srcaddr == rxp.srcaddr
-            assert (txp.data == rxp.data).all()
+                    assert txq[0] == rxp
+                    txq.pop(0)
+
+                    n_recv += 1
 
 
-def build_testbench(fast=False):
-    dut = SbDut(default_main=True)
+def build_testbench(fast=False, tool='verilator'):
+    dut = SbDut(tool=tool, default_main=True)
 
     EX_DIR = Path('..').resolve()
 
@@ -80,6 +83,8 @@ if __name__ == '__main__':
         ' transactions to send into the FIFO during the test.')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(n=args.n, fast=args.fast)
+    main(n=args.n, fast=args.fast, tool=args.tool)

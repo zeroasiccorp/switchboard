@@ -4,7 +4,8 @@
 # Both C++ and Python-based interactions are shown, however Switchboard can be
 # used entirely from Python (and we generally recommend doing this.)
 
-# Copyright (C) 2023 Zero ASIC
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import numpy as np
 from pathlib import Path
@@ -82,8 +83,8 @@ def python_intf(umi):
     assert val2 == 0xCD
 
 
-def build_testbench(fast=False):
-    dut = SbDut('testbench', default_main=True, trace_type='fst')
+def build_testbench(fast=False, tool='verilator'):
+    dut = SbDut('testbench', tool=tool, default_main=True, trace_type='fst')
 
     EX_DIR = Path('..').resolve()
 
@@ -97,9 +98,9 @@ def build_testbench(fast=False):
     return dut
 
 
-def main(mode='python', fast=False):
+def main(mode='python', fast=False, tool='verilator'):
     # build the simulator
-    dut = build_testbench(fast=fast)
+    dut = build_testbench(fast=fast, tool=tool)
 
     # create queues
     umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
@@ -117,9 +118,12 @@ def main(mode='python', fast=False):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--mode', default='python')
+    parser.add_argument('--mode', default='python', choices=['python', 'cpp'],
+        help='Programming language used for the test stimulus.')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
+    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
+        help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(mode=args.mode, fast=args.fast)
+    main(mode=args.mode, fast=args.fast, tool=args.tool)

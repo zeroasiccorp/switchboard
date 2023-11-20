@@ -1,3 +1,6 @@
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 # can run locally with: "act --rm pull_request"
 # see https://github.com/nektos/act
 
@@ -42,10 +45,10 @@ jobs:
         working-directory: examples
         run: pytest --durations=0 -s
 
-      - name: Run torture tests
+      - name: Run tests
         working-directory: tests
         run: |
-          make torture > out.log
+          make > out.log
           cat out.log
           grep -Fxq "PASS" out.log
 

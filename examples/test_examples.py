@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2023 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 import pytest
 from pathlib import Path
 
@@ -15,7 +18,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['minimal', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
     ['umi_mem_cpp', None, None],
-    ['umiram', None, 'python'],
+    ['umiram', None, 'verilator'],
     ['umiram', None, 'cpp'],
     ['python', 'PASS!', None],
     ['router', 'PASS!', None],
