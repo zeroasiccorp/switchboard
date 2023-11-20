@@ -38,7 +38,7 @@ root_doc = 'index'
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
-# don't include docstrings from the parent class
 autodoc_inherit_docstrings = False
-# Show types only in descriptions, not in signatures
 autodoc_typehints = "description"
+# include __init__ docstrings
+autoclass_content = "both" 
