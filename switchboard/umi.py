@@ -22,14 +22,18 @@ class UmiTxRx:
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
         max_bytes: int = None, fresh: bool = False):
         """
-        Args:
-            tx_uri (str, optional): Name of the switchboard queue that
+        Parameters
+        ----------
+        tx_uri: str, optional
+            Name of the switchboard queue that
             write() and send() will send UMI packets to.  Defaults to
             None, meaning "unused".
-            rx_uri (str, optional): Name of the switchboard queue that
+        rx_uri: str, optional
+            Name of the switchboard queue that
             read() and recv() will receive UMI packets from.  Defaults
             to None, meaning "unused".
-            srcaddr (int, optional): Default srcaddr to use for reads,
+        srcaddr: int, optional
+            Default srcaddr to use for reads,
             ack'd writes, and atomics.  Defaults to 0.  Can also be
             provided as a dictionary with separate defaults for each
             type of transaction: srcaddr={'read': 0x1234, 'write':
@@ -37,10 +41,12 @@ class UmiTxRx:
             with a dictionary, all keys are optional.  Transactions
             that are not specified in the dictionary will default
             to a srcaddr of 0.
-            posted (bool, optional): If True, default to using posted
+        posted: bool, optional
+            If True, default to using posted
             (i.e., non-ack'd) writes.  This can be overridden on a
             transaction-by-transaction basis.  Defaults to False.
-            max_bytes (int, optional): Default maximum number of bytes
+        max_bytes: int, optional
+            Default maximum number of bytes
             to use in each UMI transaction.  Can be overridden on a
             transaction-by-transaction basis.  Defaults to 32 bytes.
         """
@@ -94,15 +100,26 @@ class UmiTxRx:
         """
         Returns an object for communicating with umi_gpio modules.
 
-        Args:
-            iwidth (int): Width of GPIO input (bits). Defaults to 32.
-            owidth (int): Width of GPIO output (bits). Defaults to 32.
-            init (int): Default value of GPIO output. Defaults to 0.
-            dstaddr (int): Base address of the GPIO device. Defaults to 0.
-            srcaddr (int): Source address to which responses should be routed. Defaults to 0.
-            posted (bool): Whether writes should be sent as posted. Defaults to False.
-            max_bytes (int): Maximum number of bytes in a single transaction to umi_gpio.
-        Returns:
+        Parameters
+        ----------
+        iwidth: int
+            Width of GPIO input (bits). Defaults to 32.
+        owidth: int
+            Width of GPIO output (bits). Defaults to 32.
+        init: int
+            Default value of GPIO output. Defaults to 0.
+        dstaddr: int
+            Base address of the GPIO device. Defaults to 0.
+        srcaddr: int
+            Source address to which responses should be routed. Defaults to 0.
+        posted: bool
+            Whether writes should be sent as posted. Defaults to False.
+        max_bytes: int
+            Maximum number of bytes in a single transaction to umi_gpio.
+
+        Returns
+        -------
+        UmiGpio
             UmiGpio object with .i (input) and .o (output) attributes
         """
 
@@ -119,11 +136,14 @@ class UmiTxRx:
 
     def init_queues(self, tx_uri: str = None, rx_uri: str = None, fresh: bool = False):
         """
-        Args:
-            tx_uri (str, optional): Name of the switchboard queue that
+        Parameters
+        ----------
+        tx_uri: str, optional
+            Name of the switchboard queue that
             write() and send() will send UMI packets to.  Defaults to
             None, meaning "unused".
-            rx_uri (str, optional): Name of the switchboard queue that
+        rx_uri: str, optional
+            Name of the switchboard queue that
             read() and recv() will receive UMI packets from.  Defaults
             to None, meaning "unused".
         """
