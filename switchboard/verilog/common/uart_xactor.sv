@@ -71,6 +71,13 @@ module uart_xactor
 
    assign loc_ready = 1;
 
+   wire rxfifo_full;
+   wire rxfifo_empty;
+   wire [7:0] rxfifo_dout;
+
+   wire txfifo_full;
+   wire txfifo_empty;
+
    wire [31:0] reg_sr = {16'b0,
                          6'b0, txfifo_full, txfifo_empty,
                          6'b0, rxfifo_full, rxfifo_empty};
@@ -97,21 +104,16 @@ module uart_xactor
    localparam STATE_STOP  = 8;
    localparam STATE_STOP2 = 9;
 
-   wire clk_en = clk_i == 0;
    reg [$clog2(UART_CLKDIV):0] clk_i;
    reg [$clog2(STATE_STOP):0]  rx_state;
    reg [8-1:0]                 rx_data;
    reg                         reset_sync;
 
+   wire                        clk_en = (clk_i == 0);
    wire [8-1:0]                rx_next_data = {rx_pad, rx_data[7:1]};
    wire                        rx_next_data_en = clk_en && rx_state == STATE_STOP;
 
-   wire rxfifo_full;
-   wire rxfifo_empty;
-   wire [7:0] rxfifo_dout;
-
-   wire txfifo_full;
-   wire txfifo_empty;
+   reg tx_xmit;
    wire txfifo_read = ~tx_xmit && ~txfifo_empty;
    wire [7:0] txfifo_dout;
 
@@ -210,7 +212,6 @@ module uart_xactor
    reg [$clog2(STATE_STOP2):0] tx_state;
    reg [8-1:0]                 tx_data;
 
-   reg tx_xmit;
    reg tx;
    assign tx_pad = tx;
    always @(posedge clk or negedge nreset) begin
