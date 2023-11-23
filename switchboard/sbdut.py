@@ -11,16 +11,16 @@ automatically configured to abstract away setup of files that are required by al
 testbenches.
 """
 
+import importlib
 import subprocess
 
 from .switchboard import path as sb_path
 from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
+from .util import plusargs_to_args, binary_run
 from .warn import warn_future
 
 import siliconcompiler
-from siliconcompiler.tools.verilator import compile
-
 from siliconcompiler.flows import dvflow
 
 SB_DIR = sb_path()
@@ -33,7 +33,8 @@ class SbDut(siliconcompiler.Chip):
         tool: str = 'verilator',
         default_main: bool = None,
         trace: bool = True,
-        trace_type: str = 'vcd'
+        trace_type: str = 'vcd',
+        module: str = None
     ):
         """
         Parameters
@@ -49,9 +50,6 @@ class SbDut(siliconcompiler.Chip):
         super().__init__(design)
 
         # input validation
-
-        if tool not in ('verilator', 'icarus'):
-            raise ValueError('Invalid tool, expected one of "verilator" or "icarus"')
 
         if trace_type not in ('vcd', 'fst'):
             raise ValueError('Invalid trace_type, expected one of "vcd" or "fst"')
@@ -82,31 +80,47 @@ class SbDut(siliconcompiler.Chip):
         if trace:
             self.set('option', 'trace', True)
 
-        if tool == 'verilator':
-            self._configure_verilator(default_main=default_main)
-        elif tool == 'icarus':
+        if tool == 'icarus':
             self._configure_icarus()
+        else:
+            if module is None:
+                if tool == 'verilator':
+                    module = 'siliconcompiler'
+                else:
+                    raise ValueError('Must specify the "module" argument,'
+                        ' which is the name of the module containing the'
+                        ' SiliconCompiler driver for this simulator.')
 
-    def _configure_verilator(self, default_main: bool = False):
+            self._configure_dpi(module=module, default_main=default_main)
+
+    def _configure_dpi(
+        self,
+        module: str,
+        default_main: bool = False
+    ):
         self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
 
-        if default_main:
+        if default_main and (self.tool == 'verilator'):
             self.input(SB_DIR / 'verilator' / 'testbench.cc')
 
         c_flags = ['-Wno-unknown-warning-option']
         c_includes = [SB_DIR / 'cpp']
         ld_flags = ['-pthread']
 
-        self.set('tool', 'verilator', 'task', 'compile', 'var', 'cflags', c_flags)
-        self.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', c_includes)
-        self.set('tool', 'verilator', 'task', 'compile', 'var', 'ldflags', ld_flags)
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags', c_flags)
+        self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', c_includes)
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ld_flags)
 
-        if self.trace:
+        if self.trace and (self.tool == 'verilator'):
             self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', self.trace_type)
 
-        # Set up flow that runs Verilator compile
+        self.set('option', 'libext', ['v', 'sv'])
+
+        # Set up flow that compiles RTL
         # TODO: this will be built into SC
         self.set('option', 'flow', 'simflow')
+
+        compile = importlib.import_module(f'{module}.tools.{self.tool}.compile')
         self.node('simflow', 'compile', compile)
 
     def _configure_icarus(self):
@@ -119,12 +133,10 @@ class SbDut(siliconcompiler.Chip):
         self.set('option', 'to', 'compile')
 
     def find_sim(self):
-        if self.tool == 'verilator':
-            result_kind = 'vexe'
-        elif self.tool == 'icarus':
+        if self.tool == 'icarus':
             result_kind = 'vvp'
         else:
-            raise ValueError('Invalid tool, expected one of "verilator" or "icarus"')
+            result_kind = 'vexe'
 
         return self.find_result(result_kind, step='compile')
 
@@ -184,14 +196,7 @@ class SbDut(siliconcompiler.Chip):
 
         p = None
 
-        if self.tool == 'verilator':
-            # make sure that the simulator was built with tracing enabled
-            if trace and not self.trace:
-                raise ValueError('Verilator simulator was built without tracing'
-                    ' enabled.  Please set trace=True in the SbDut and try again.')
-
-            p = verilator_run(sim, plusargs=plusargs)
-        elif self.tool == 'icarus':
+        if self.tool == 'icarus':
             # retrieve the location of the VPI binary
             vpi = icarus_find_vpi(cwd=cwd)
             assert vpi is not None, 'Could not find Switchboard VPI binary.'
@@ -207,7 +212,16 @@ class SbDut(siliconcompiler.Chip):
                 extra_args=extra_args
             )
         else:
-            raise ValueError('Invalid tool, expected one of "verilator" or "icarus"')
+            # make sure that the simulator was built with tracing enabled
+            if trace and not self.trace:
+                raise ValueError('Simulator was built without tracing enabled.'
+                    '  Please set trace=True in the SbDut and try again.')
+
+            if self.tool == 'verilator':
+                p = verilator_run(sim, plusargs=plusargs)
+            else:
+                args = plusargs_to_args(plusargs)
+                p = binary_run(sim, args=args)
 
         # return a Popen object that one can wait() on
 
