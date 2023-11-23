@@ -1,5 +1,5 @@
 switchboard.icarus module
-======================
+=========================
 
 .. automodule:: switchboard.icarus
    :autosummary:

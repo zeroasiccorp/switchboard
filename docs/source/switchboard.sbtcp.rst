@@ -1,5 +1,5 @@
 switchboard.sbtcp module
-======================
+========================
 
 .. automodule:: switchboard.sbtcp
    :autosummary:

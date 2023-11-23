@@ -3,6 +3,14 @@
 # Copyright (c) 2023 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+"""Class inheriting from the SiliconCompiler Chip class that can be used for building a
+Switchboard-based testbench.
+
+This class is meant to be interacted with like a regular Chip object, but it has some parameters
+automatically configured to abstract away setup of files that are required by all Switchboard
+testbenches.
+"""
+
 import subprocess
 
 from .switchboard import path as sb_path
@@ -19,19 +27,6 @@ SB_DIR = sb_path()
 
 
 class SbDut(siliconcompiler.Chip):
-    """Class inheriting from the SiliconCompiler Chip class that can be used for building a
-    Switchboard-based testbench.
-
-    This class is meant to be interacted with like a regular Chip object, but it has some parameters
-    automatically configured to abstract away setup of files that are required by all Switchboard
-    testbenches.
-
-    Args:
-        design (string): Name of the top level chip design module.
-        tool (string, optional): Which tool to use to compile simulator.  Options are "verilator" or
-        "icarus".
-    """
-
     def __init__(
         self,
         design: str = 'testbench',
@@ -40,6 +35,15 @@ class SbDut(siliconcompiler.Chip):
         trace: bool = True,
         trace_type: str = 'vcd'
     ):
+        """
+        Parameters
+        ----------
+        design: string
+            Name of the top level chip design module.
+        tool: string, optional
+            Which tool to use to compile simulator.  Options are "verilator" or
+            "icarus".
+        """
         # call the super constructor
 
         super().__init__(design)

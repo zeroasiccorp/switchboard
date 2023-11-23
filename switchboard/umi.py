@@ -348,6 +348,8 @@ class UmiTxRx:
     def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=None,
         max_bytes=32, qos=0, prot=0, check_alignment=True):
         """
+        Parameters
+        ----------
         addr: int
             The 64-bit address read from
 

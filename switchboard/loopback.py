@@ -19,21 +19,29 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
     Performs a loopback test by sending packets into a block and checking that
     the packets received back are equivalent under the UMI split/merge rules.
 
-    Args:
-        umi: UmiTxRx object
-        packets: Can be a number, a list of packets, or a generator.
-          * If this is a number, it represents the number of packets to send,
-            which are generated with random_umi_packet. Any remaining arguments
-            are passed directly to random_umi_packet.
-          * If this is an iterable (list, tuple, etc.), then it represents a list
-            of packets to use for the test.  This is helpful if you want to use a very
-            specific sequence of transactions.
-          * This can also be an iterator, which might be convenient if you want to
-            send a very large number of packets without having to store them
-            all in memory at once, e.g. (random_umi_packet() for _ in range(1000000))
+    Parameters
+    ----------
+    umi: UmiTxRx
+    packets: 
+        Can be a number, a list of packets, or a generator.
 
-    Raises:
-        Exception: _description_
+        - If this is a number, it represents the number of packets to send,
+          which are generated with random_umi_packet. Any remaining arguments
+          are passed directly to random_umi_packet.
+        - If this is an iterable (list, tuple, etc.), then it represents a list
+          of packets to use for the test.  This is helpful if you want to use a very
+          specific sequence of transactions.
+        - This can also be an iterator, which might be convenient if you want to
+          send a very large number of packets without having to store them
+          all in memory at once, e.g. (random_umi_packet() for _ in range(1000000))
+
+    Raises
+    ------
+    ValueError
+        If the number of packets is not positive or if the `packets` argument is empty
+    Exception
+        If a received packet does not match the corresponding transmitted packet
+
     """
 
     if isinstance(packets, Integral):

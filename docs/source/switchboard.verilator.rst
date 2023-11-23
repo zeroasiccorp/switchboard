@@ -1,5 +1,5 @@
 switchboard.verilator module
-======================
+============================
 
 .. automodule:: switchboard.verilator
    :autosummary:

@@ -1,5 +1,5 @@
 switchboard.loopback module
-======================
+===========================
 
 .. automodule:: switchboard.loopback
    :autosummary:

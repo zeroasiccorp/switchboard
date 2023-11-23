@@ -1,5 +1,5 @@
 switchboard.sbdut module
-======================
+========================
 
 .. automodule:: switchboard.sbdut
    :autosummary:

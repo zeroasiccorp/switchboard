@@ -1,5 +1,5 @@
 switchboard.bitvector module
-======================
+============================
 
 .. automodule:: switchboard.bitvector
    :autosummary:

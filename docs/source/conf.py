@@ -41,4 +41,4 @@ html_static_path = ['_static']
 autodoc_inherit_docstrings = False
 autodoc_typehints = "description"
 # include __init__ docstrings
-autoclass_content = "both" 
+autoclass_content = "both"

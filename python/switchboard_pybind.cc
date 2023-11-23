@@ -791,6 +791,128 @@ void delete_queues(const std::vector<std::string>& uri_list) {
     }
 }
 
+// doc strings for important/commonly used pybind functions below
+char *PySbTx_init_docstring = "Parameters\n"
+                              "----------\n"
+                              "uri: str\n"
+                              "\tName of the queue for the Tx object\n"
+                              "fresh: bool, optional\n"
+                              "\tIf True, the queue specified by the `uri` parameter"
+                              " will get cleared before executing the simulation.";
+
+char *PySbTx_send_docstring = "Parameters\n"
+                              "----------\n"
+                              "py_packet: PySbPacket\n"
+                              "\tUMI packet to send\n"
+                              "blocking: bool, optional\n"
+                              "\tIf true, the function will pause execution until the"
+                              " packet has been successfully sent.";
+
+char *PySbRx_init_docstring = "Parameters\n"
+                              "----------\n"
+                              "uri: str"
+                              "\tName of the queue for the Rx object\n"
+                              "fresh: bool, optional\n"
+                              "\tIf True, the queue specified by the `uri` parameter"
+                              " will get cleared before executing the simulation.";
+
+char *PySbRx_recv_docstring = "Parameters\n"
+                              "----------\n"
+                              "blocking: bool, optional\n"
+                              "\tIf true, the function will pause execution until a packet"
+                              "can be read. If false, the function will return None if a packet"
+                              "cannot be read immediately\n"
+                              "Returns\n"
+                              "-------\n"
+                              "PySbPacket\n"
+                              "\tReturns a UMI packet. If `blocking` is false, None will be returned"
+                              " If a packet cannot be read immediately.";
+
+char *PyUmi_init_docstring = "Parameters\n"
+                             "----------\n"
+                             "tx_uri: str, optional\n"
+                             "\tName of the switchboard queue that write() and send() will send UMI packets to."
+							 " Defaults to None, meaning “unused”.\n"
+                             "rx_uri: str, optional\n"
+							 "\tName of the switchboard queue that read() and recv() will receive UMI packets from."
+							 " Defaults to None, meaning “unused”.\n"
+                             "fresh: bool, optional\n"
+							 "\tIf true, the `tx_uri` and `rx_uri` will be cleared prior to running";
+
+char *PyUmi_send_docstring =  "Parameters\n"
+                              "----------\n"
+                              "py_packet: PySbPacket\n"
+                              "\tUMI packet to send\n"
+                              "blocking: bool, optional\n"
+                              "\tIf true, the function will pause execution until the"
+                              " packet has been successfully sent.";
+
+char *PyUmi_recv_docstring = "Parameters\n"
+                              "----------\n"
+                              "blocking: bool, optional\n"
+                              "\tIf true, the function will pause execution until a packet"
+                              "can be read. If false, the function will return None if a packet"
+                              "cannot be read immediately\n"
+                              "Returns\n"
+                              "-------\n"
+                              "PySbPacket\n"
+                              "\tReturns a UMI packet. If `blocking` is false, None will be returned"
+                              " If a packet cannot be read immediately.";
+
+char *PyUmi_write_docstring = "Parameters\n"
+                              "----------\n"                              
+                              "data: np.uint8, np.uint16, np.uint32, np.uint64, or np.array\n"
+                              "\tCan be either a numpy integer type (e.g., np.uint32) or an numpy"
+                              " array of integer types (np.uint8, np.uin16, np.uint32, np.uint64, etc.)."
+                              " The `data` input may contain more than `max_bytes`, in which case"
+                              " the write will automatically be split into multiple transactions.\n"
+                              "max_bytes: int, optional\n"
+                              "\tIndicates the maximum number of bytesthat can be used for any" 
+                              " individual UMI transaction in bytes. Currently, the data payload"
+                              " size used by switchboard is 32 bytes, which is reflected in the default"
+                              " value of `max_bytes`.";
+
+char *PyUmi_read_docstring = "Parameters\n"
+                             "----------\n"
+                             "addr: int\n"
+                             "\tThe 64-bit address read from\n"
+                             "num_or_dtype: int or numpy integer datatype\n"
+                             "\tIf a plain int, `num_or_datatype` specifies the number of bytes to be read."
+                             "If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatype"
+                             "specifies the data type to be returned.\n"
+                             "dtype: numpy integer datatype, optional\n"
+                             "\tIf num_or_dtype is a plain integer, the value returned by this function"
+                             "will be a numpy array of type `dtype`.  On the other hand, if num_or_dtype"
+                             "is a numpy datatype, the value returned will be a scalar of that datatype.\n"
+                             "srcaddr: int, optional\n"
+                             "\tThe UMI source address used for the read transaction. This"
+                             "is sometimes needed to make sure that reads get routed to the right place.\n"
+                             "max_bytes: int, optional\n"
+                             "\tIndicates the maximum number of bytes that can be used for any individual"
+                             "UMI transaction. `num_or_dtype` can be larger than `max_bytes`, in which"
+                             "case the read will automatically be split into multiple transactions. Currently,"
+                             "the data payload size used by switchboard is 32 bytes, which is reflected in the"
+                             "default value of `max_bytes`.";
+
+char *PyUmi_atomic_docstring = "Parameters\n"
+                               "----------\n"
+                               "addr: int\n"
+                               "\t64-bit address atomic operation will be applied to.\n"
+                               "data: np.uint8, np.uint16, np.uint32, np.uint64\n"
+                               "\tmust so that the size of the atomic operation can be determined.\n"
+                               "opcode: str or switchboard.UmiAtomic value\n"
+                               "\tSupported string values are 'add', 'and', 'or', 'xor', 'max', 'min',"
+                               " 'minu', 'maxu', and 'swap' (case-insensitive).\n"
+                               "srcaddr: int, optional\n"
+                               "\tThe UMI source address used for the atomic transaction. This"
+                               " is sometimes needed to make sure the response get routed to the right place.\n"
+                               "Returns\n"
+                               "-------\n"
+                               "np.uint8, np.uint16, np.uint32, np.uint64\n"
+                               "\tThe value returned by this function is the original value at addr,"
+                               " immediately before the atomic operation is applied.  The numpy dtype of the"
+                               " returned value will be the same as for `data`.";
+
 // Python bindings follow below.  There is some duplication of information in the default
 // values for functions, but this is unavoidable for pybind.  Note also that the "toString"
 // method of various classes is bound to "__str__", which has a special meaning in Python.
@@ -824,13 +946,13 @@ PYBIND11_MODULE(_switchboard, m) {
 
     py::class_<PySbTx>(m, "PySbTx")
         .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
-        .def("init", &PySbTx::init)
-        .def("send", &PySbTx::send, py::arg("py_packet"), py::arg("blocking") = true);
+        .def("init", &PySbTx::init, PySbTx_init_docstring, py::arg("uri") = "", py::arg("fresh") = false)
+        .def("send", &PySbTx::send, PySbTx_send_docstring, py::arg("py_packet"), py::arg("blocking") = true);
 
     py::class_<PySbRx>(m, "PySbRx")
         .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
-        .def("init", &PySbRx::init)
-        .def("recv", &PySbRx::recv, py::arg("blocking") = true);
+        .def("init", &PySbRx::init, PySbRx_init_docstring, py::arg("uri") = "", py::arg("fresh") = false)
+        .def("recv", &PySbRx::recv, PySbRx_recv_docstring, py::arg("blocking") = true);
 
     py::class_<PySbTxPcie>(m, "PySbTxPcie")
         .def(py::init<std::string, int, int, std::string>(), py::arg("uri") = "",
@@ -847,16 +969,17 @@ PYBIND11_MODULE(_switchboard, m) {
     py::class_<PyUmi>(m, "PyUmi")
         .def(py::init<std::string, std::string, bool>(), py::arg("tx_uri") = "",
             py::arg("rx_uri") = "", py::arg("fresh") = false)
-        .def("init", &PyUmi::init)
-        .def("send", &PyUmi::send, py::arg("py_packet"), py::arg("blocking") = true)
-        .def("recv", &PyUmi::recv, py::arg("blocking") = true)
-        .def("write", &PyUmi::write, py::arg("addr"), py::arg("data"), py::arg("srcaddr") = 0,
+        .def("init", &PyUmi::init, PyUmi_init_docstring, py::arg("tx_uri") = "",
+            py::arg("rx_uri") = "", py::arg("fresh") = false)
+        .def("send", &PyUmi::send, PyUmi_send_docstring, py::arg("py_packet"), py::arg("blocking") = true)
+        .def("recv", &PyUmi::recv, PyUmi_recv_docstring, py::arg("blocking") = true)
+        .def("write", &PyUmi::write, PyUmi_write_docstring, py::arg("addr"), py::arg("data"), py::arg("srcaddr") = 0,
             py::arg("max_bytes") = 32, py::arg("posted") = false, py::arg("qos") = 0,
             py::arg("prot") = 0, py::arg("progressbar") = false)
-        .def("read", &PyUmi::read, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem") = 1,
+        .def("read", &PyUmi::read, PyUmi_read_docstring, py::arg("addr"), py::arg("num"), py::arg("bytes_per_elem") = 1,
             py::arg("srcaddr") = 0, py::arg("max_bytes") = 32, py::arg("qos") = 0,
             py::arg("prot") = 0)
-        .def("atomic", &PyUmi::atomic, py::arg("addr"), py::arg("data"), py::arg("opcode"),
+        .def("atomic", &PyUmi::atomic, PyUmi_atomic_docstring, py::arg("addr"), py::arg("data"), py::arg("opcode"),
             py::arg("srcaddr") = 0, py::arg("qos") = 0, py::arg("prot") = 0);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str,

@@ -1,5 +1,5 @@
 switchboard.util module
-======================
+=======================
 
 .. automodule:: switchboard.util
    :autosummary:
