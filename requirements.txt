@@ -16,3 +16,9 @@ siliconcompiler
 #:test
 pytest >=7,<8
 pytest-timeout
+
+# Docs dependencies
+#:docs
+sphinx
+sphinx-rtd-theme
+autodocsumm

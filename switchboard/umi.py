@@ -22,14 +22,18 @@ class UmiTxRx:
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
         max_bytes: int = None, fresh: bool = False):
         """
-        Args:
-            tx_uri (str, optional): Name of the switchboard queue that
+        Parameters
+        ----------
+        tx_uri: str, optional
+            Name of the switchboard queue that
             write() and send() will send UMI packets to.  Defaults to
             None, meaning "unused".
-            rx_uri (str, optional): Name of the switchboard queue that
+        rx_uri: str, optional
+            Name of the switchboard queue that
             read() and recv() will receive UMI packets from.  Defaults
             to None, meaning "unused".
-            srcaddr (int, optional): Default srcaddr to use for reads,
+        srcaddr: int, optional
+            Default srcaddr to use for reads,
             ack'd writes, and atomics.  Defaults to 0.  Can also be
             provided as a dictionary with separate defaults for each
             type of transaction: srcaddr={'read': 0x1234, 'write':
@@ -37,12 +41,17 @@ class UmiTxRx:
             with a dictionary, all keys are optional.  Transactions
             that are not specified in the dictionary will default
             to a srcaddr of 0.
-            posted (bool, optional): If True, default to using posted
+        posted: bool, optional
+            If True, default to using posted
             (i.e., non-ack'd) writes.  This can be overridden on a
             transaction-by-transaction basis.  Defaults to False.
-            max_bytes (int, optional): Default maximum number of bytes
+        max_bytes: int, optional
+            Default maximum number of bytes
             to use in each UMI transaction.  Can be overridden on a
             transaction-by-transaction basis.  Defaults to 32 bytes.
+        fresh: bool, optional
+           If True, the queue specified by the uri parameter will get
+           cleared before executing the simulation.
         """
 
         if tx_uri is None:
@@ -94,15 +103,26 @@ class UmiTxRx:
         """
         Returns an object for communicating with umi_gpio modules.
 
-        Args:
-            iwidth (int): Width of GPIO input (bits). Defaults to 32.
-            owidth (int): Width of GPIO output (bits). Defaults to 32.
-            init (int): Default value of GPIO output. Defaults to 0.
-            dstaddr (int): Base address of the GPIO device. Defaults to 0.
-            srcaddr (int): Source address to which responses should be routed. Defaults to 0.
-            posted (bool): Whether writes should be sent as posted. Defaults to False.
-            max_bytes (int): Maximum number of bytes in a single transaction to umi_gpio.
-        Returns:
+        Parameters
+        ----------
+        iwidth: int
+            Width of GPIO input (bits). Defaults to 32.
+        owidth: int
+            Width of GPIO output (bits). Defaults to 32.
+        init: int
+            Default value of GPIO output. Defaults to 0.
+        dstaddr: int
+            Base address of the GPIO device. Defaults to 0.
+        srcaddr: int
+            Source address to which responses should be routed. Defaults to 0.
+        posted: bool
+            Whether writes should be sent as posted. Defaults to False.
+        max_bytes: int
+            Maximum number of bytes in a single transaction to umi_gpio.
+
+        Returns
+        -------
+        UmiGpio
             UmiGpio object with .i (input) and .o (output) attributes
         """
 
@@ -119,13 +139,19 @@ class UmiTxRx:
 
     def init_queues(self, tx_uri: str = None, rx_uri: str = None, fresh: bool = False):
         """
-        Args:
-            tx_uri (str, optional): Name of the switchboard queue that
+        Parameters
+        ----------
+        tx_uri: str, optional
+            Name of the switchboard queue that
             write() and send() will send UMI packets to.  Defaults to
             None, meaning "unused".
-            rx_uri (str, optional): Name of the switchboard queue that
+        rx_uri: str, optional
+            Name of the switchboard queue that
             read() and recv() will receive UMI packets from.  Defaults
             to None, meaning "unused".
+        fresh: bool, optional
+           If True, the queue specified by the uri parameter will get
+           cleared before executing the simulation.
         """
 
         if tx_uri is None:
@@ -140,6 +166,19 @@ class UmiTxRx:
         """
         Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket)
         Returns True if the packet was sent successfully, else False.
+
+        Parameters
+        ----------
+        p: PyUmiPacket
+            The UMI packet that will be sent
+        blocking: bool, optional
+            If True, the program will pause execution until a response to the write request
+            is received.
+
+        Returns
+        -------
+        bool
+            Returns true if the `p` was sent successfully
         """
 
         return self.umi.send(p, blocking)
@@ -147,27 +186,67 @@ class UmiTxRx:
     def recv(self, blocking=True) -> PyUmiPacket:
         """
         Wait for and return a UMI packet if blocking=True, otherwise return a
-        UMI packet if one can be read immediately, and None otherwise.  The return
-        type (if not None) is a PyUmiPacket.
+        UMI packet if one can be read immediately, and None otherwise.
+
+        Parameters
+        ----------
+        blocking: bool, optional
+            If True, the function will wait until a UMI packet can be read.
+            If False, a None type will be returned if no UMI packet can be read
+            immediately.
+
+        Returns
+        -------
+        PyUmiPacket
+            If `blocking` is True, a PyUmiPacket is always returned. If `blocking` is
+            False, a PyUmiPacket object will be returned if one can be read immediately.
+            Otherwise, a None type will be returned.
         """
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, srcaddr=None, max_bytes=None,
+    def write(self, addr, data, srcaddr=None, max_bytes=32,
         posted=None, qos=0, prot=0, progressbar=False, check_alignment=True):
         """
-        Writes the provided data to the given 64-bit address.  Data can be either
-        a numpy integer type (e.g., np.uint32) or an numpy array of integer types
-        (np.uint8, np.uin16, np.uint32, np.uint64, etc.).
+        Writes the provided data to the given 64-bit address.
 
-        The "max_bytes" argument (optional) indicates the maximum number of bytes
-        that can be used for any individual UMI transaction, in bytes.
+        Parameters
+        ----------
+        addr: int
+            64-bit address that will be written to
 
-        The "data" input may contain more than "max_bytes", in which case
-        the write will automatically be split into multiple transactions.
+        data: np.uint8, np.uint16, np.uint32, np.uint64, or np.array
+            Can be either a numpy integer type (e.g., np.uint32) or an numpy
+            array of integer types (np.uint8, np.uin16, np.uint32, np.uint64, etc.).
+            The `data` input may contain more than "max_bytes", in which case
+            the write will automatically be split into multiple transactions.
 
-        Currently, the data payload size used by switchboard is 32 bytes,
-        which is reflected in the default value of "max_bytes".
+        srcaddr: int, optional
+            UMI source address used for the write transaction. This is sometimes needed to make
+            the write response gets routed to the right place.
+
+        max_bytes: int, optional
+            Indicates the maximum number of bytesthat can be used for any
+            individual UMI transaction in bytes. Currently, the data payload
+            size used by switchboard is 32 bytes, which is reflected in the default
+            value of "max_bytes".
+
+        posted: bool, optional
+            If True, a write response will be received.
+
+        qos: int, optional
+            4-bit Quality of Service field in UMI Command
+
+        prot: int, optional
+            2-bit protection mode field in UMI command
+
+        progressbar: bool, optional
+            If True, the number of packets written will be displayed via a progressbar
+            in the terminal.
+
+        check_alignment: bool, optional
+            If true, an exception will be raised if the `addr` parameter cannot be aligned based
+            on the size of the `data` parameter
         """
 
         # set defaults
@@ -220,24 +299,46 @@ class UmiTxRx:
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
 
-        The value can be a plain integer or a numpy integer type.  If it's a
-        plain integer, then dtype must be specified, indicating a particular
-        numpy integer type (e.g., np.uint16).  This is so that the size of the
-        UMI transaction can be set appropriately.
+        Parameters
+        ----------
+        addr: int
+            The destination address to write to and read from
 
-        The "mask" argument (optional) allows the user to mask off some bits
-        in the comparison of the data written vs. data read back.  For example,
-        if a user only cares that bit "5" is written to "1", and does not care
-        about the value of other bits read back, they could use mask=1<<5.
+        value: int, np.uint8, np.uint16, np.uint32, or np.uint64
+            The data written to `addr`
 
-        srcaddr is the UMI source address used for the read transaction.  This
-        is sometimes needed to make sure that reads get routed to the right place.
+        mask: int, optional
+            argument (optional) allows the user to mask off some bits
+            in the comparison of the data written vs. data read back.  For example,
+            if a user only cares that bit "5" is written to "1", and does not care
+            about the value of other bits read back, they could use mask=1<<5.
 
-        By default, the write is performed as a posted write, however it is
-        is possible to use an ack'd write by setting posted=False.  In that
-        case, write_srcaddr specifies the srcaddr used for that transaction.
-        If write_srcaddr is None, the default srcaddr for writes will be
-        be used.
+        srcaddr: int, optional
+            The UMI source address used for the read transaction.  This is
+            sometimes needed to make sure that reads get routed to the right place.
+
+        dtype: np.uint8, np.uint16, np.uint32, or np.uint64, optional
+            If `value` is specified as plain integer, then dtype must be specified,
+            indicating a particular numpy integer type. This is so that the size of
+            the UMI transaction can be set appropriately.
+
+        posted: bool, optional
+            By default, the write is performed as a posted write, however it is
+            is possible to use an ack'd write by setting posted=False.
+
+        write_srcaddr: int, optional
+            If `posted`=True, write_srcaddr specifies the srcaddr used for that
+            transaction. If write_srcaddr is None, the default srcaddr for writes
+            will be used.
+
+        check_alignment: bool, optional
+            If true, an exception will be raised if the `addr` parameter cannot be aligned based
+            on the size of the `data` parameter
+
+        Raises
+        ------
+        TypeError
+            If `value` is not an integer type, if `mask` is not an integer type
         """
 
         # set defaults
@@ -279,27 +380,45 @@ class UmiTxRx:
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr, check_alignment=check_alignment)
 
     def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=None,
-        max_bytes=None, qos=0, prot=0, check_alignment=True):
+        max_bytes=32, qos=0, prot=0, check_alignment=True):
         """
-        Reads from the provided 64-bit address.  The "num_or_dtype" argument can be
-        either a plain integer, specifying the number of bytes to be read, or a numpy
-        integer datatype (np.uint8, np.uint16, np.uint32, np.uint64, etc.).
+        Parameters
+        ----------
+        addr: int
+            The 64-bit address read from
 
-        If num_or_dtype is a plain integer, the value returned by this function
-        will be a numpy array of type "dtype".  On the other hand, if num_or_dtype
-        is a numpy datatype, the value returned will be a scalar of that datatype.
+        num_or_dtype: int or numpy integer datatype
+            If a plain int, `num_or_datatype` specifies the number of bytes to be read.
+            If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatype
+            specifies the data type to be returned.
 
-        srcaddr is the UMI source address used for the read transaction.  This
-        is sometimes needed to make sure that reads get routed to the right place.
+        dtype: numpy integer datatype, optional
+            If num_or_dtype is a plain integer, the value returned by this function
+            will be a numpy array of type "dtype".  On the other hand, if num_or_dtype
+            is a numpy datatype, the value returned will be a scalar of that datatype.
 
-        The "max_bytes" argument (optional) indicates the maximum number of bytes
-        that can be used for any individual UMI transaction.
+        srcaddr: int, optional
+           The UMI source address used for the read transaction.  This
+           is sometimes needed to make sure that reads get routed to the right place.
 
-        The number of bytes to be read may be larger than max_bytes, in which
-        case the read will automatically be split into multiple transactions.
+        max_bytes: int, optional
+            Indicates the maximum number of bytes that can be used for any individual
+            UMI transaction. `num_or_dtype` can be larger than `max_bytes`, in which
+            case the read will automatically be split into multiple transactions. Currently,
+            the data payload size used by switchboard is 32 bytes, which is reflected in the
+            default value of "max_bytes".
 
-        Currently, the data payload size used by switchboard is 32 bytes,
-        which is reflected in the default value of "max_bytes".
+        qos: int, optional
+            4-bit Quality of Service field used in the UMI command
+
+        prot: int, optional
+            2-bit Protection mode field used in the UMI command
+
+        Returns
+        -------
+        numpy integer array
+            An array of `num_or_dtype` bytes read from `addr`. The array will have the type
+            specified by `dtype` or `num_or_dtype`
         """
 
         # set defaults
@@ -338,20 +457,39 @@ class UmiTxRx:
 
     def atomic(self, addr, data, opcode, srcaddr=None, qos=0, prot=0):
         """
-        Applies an atomic operation to the provided 64-bit address.  "data" must
-        be a numpy integer type (np.uint8, np.uint16, np.uint32, np.uint64), so that
-        the size of the atomic operation can be determined.
+        Parameters
+        ----------
+        addr: int
+            64-bit address atomic operation will be applied to.
 
-        opcode may be a string or a value drawn from switchboard.UmiAtomic.  Supported
-        string values are 'add', 'and', 'or', 'xor', 'max', 'min', 'minu', 'maxu',
-        and 'swap' (case-insensitive).
+        data: np.uint8, np.uint16, np.uint32, np.uint64
+            must so that the size of the atomic operation can be determined.
 
-        The value returned by this function is the original value at addr,
-        immediately before the atomic operation is applied.  The numpy dtype of the
-        returned value will be the same as for "data".
+        opcode: str or switchboard.UmiAtomic value
+            Supported string values are 'add', 'and', 'or', 'xor', 'max', 'min',
+            'minu', 'maxu', and 'swap' (case-insensitive).
 
-        srcaddr is the UMI source address used for the atomic transaction.  This
-        is sometimes needed to make sure the response get routed to the right place.
+        srcaddr: int, optional
+            The UMI source address used for the atomic transaction.  This
+            is sometimes needed to make sure the response get routed to the right place.
+
+        qos: int, optional
+            4-bit Quality of Service field used in the UMI command
+
+        prot: int, optional
+            2-bit Protection mode field used in the UMI command
+
+        Raises
+        ------
+        TypeError
+            If `value` is not a numpy integer datatype
+
+        Returns
+        -------
+        np.uint8, np.uint16, np.uint32, np.uint64
+            The value returned by this function is the original value at addr,
+            immediately before the atomic operation is applied.  The numpy dtype of the
+            returned value will be the same as for "data".
         """
 
         # set defaults
@@ -482,6 +620,62 @@ def random_umi_packet(
     eof=1,
     max_bytes=32
 ):
+    """
+    Generates a Random UMI packet. All parameters are optional. Parameters that
+    are not explicitly specified will be assigned randomly.
+
+    For more information on the meanings of each parameter, reference
+    `the UMI specification <https://github.com/zeroasiccorp/umi/blob/main/README.md>`_
+
+    Parameters
+    ----------
+    opcode: int, optional
+        Command opcode
+
+    len: int, optional
+        Word transfers per message. (`len`-1 words will be transferred
+        per message)
+
+    size: int, optional
+        Word size ((2^size)-1 bits per word)
+
+    dstaddr: int, optional
+        64-bit destination address used in the UMI packet
+
+    srcaddr: int, optional
+        64-bit source address used in the UMI packet
+
+    data: numpy integer array, optional
+        Values used in the Data field for the UMI packet
+
+    qos: int, optional
+        4-bit Quality of Service field used in the UMI command
+
+    prot: int, optional
+        2-bit Protection mode field used in the UMI command
+
+    ex: int, optional
+        1-bit Exclusive access indicator in the UMI command
+
+    atype: int, optional
+        8-bit field specifying the type of atomic transaction used
+        in the UMI command for an atomic operation
+
+    eom: int, optional
+        1-bit End of Message indicator in UMI command, used to track
+        the transfer of the last word in a message
+
+    eof: int, optional
+        1-bit End of Frame bit in UMI command, used to indicate the
+        last message in a sequence of related UMI transactions
+
+    max_bytes: int, optional
+        The maximum number of bytes included in each UMI packet
+
+    Returns
+    -------
+    """
+
     # input validation
 
     check_int_in_range("max_bytes", max_bytes, min=0, max=32)
