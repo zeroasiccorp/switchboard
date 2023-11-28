@@ -22,7 +22,7 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
     Parameters
     ----------
     umi: UmiTxRx
-    packets: 
+    packets:
         Can be a number, a list of packets, or a generator.
 
         - If this is a number, it represents the number of packets to send,

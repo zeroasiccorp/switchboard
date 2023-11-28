@@ -1,10 +1,7 @@
-.. Switchboard documentation master file, created by
-   sphinx-quickstart on Thu Nov  9 14:01:11 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to Switchboard's documentation!
 =======================================
+
+This page is meant to serve as a reference manual for the various python classes and functions contained in the switchboard package. To get started, reference some of the `examples <https://github.com/zeroasiccorp/switchboard/tree/main/examples>`_ included in the repository.
 
 .. toctree::
     :maxdepth: 3

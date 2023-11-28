@@ -49,6 +49,9 @@ class UmiTxRx:
             Default maximum number of bytes
             to use in each UMI transaction.  Can be overridden on a
             transaction-by-transaction basis.  Defaults to 32 bytes.
+        fresh: bool, optional
+           If True, the queue specified by the uri parameter will get
+           cleared before executing the simulation.
         """
 
         if tx_uri is None:
@@ -146,6 +149,9 @@ class UmiTxRx:
             Name of the switchboard queue that
             read() and recv() will receive UMI packets from.  Defaults
             to None, meaning "unused".
+        fresh: bool, optional
+           If True, the queue specified by the uri parameter will get
+           cleared before executing the simulation.
         """
 
         if tx_uri is None:
@@ -172,7 +178,7 @@ class UmiTxRx:
         Returns
         -------
         bool
-            Returns true if the `p` was sent successfully 
+            Returns true if the `p` was sent successfully
         """
 
         return self.umi.send(p, blocking)
@@ -206,17 +212,41 @@ class UmiTxRx:
 
         Parameters
         ----------
-        data: np.uint8, np.uint16, np.uint32, np.uint64, or np.array 
+        addr: int
+            64-bit address that will be written to
+
+        data: np.uint8, np.uint16, np.uint32, np.uint64, or np.array
             Can be either a numpy integer type (e.g., np.uint32) or an numpy
             array of integer types (np.uint8, np.uin16, np.uint32, np.uint64, etc.).
             The `data` input may contain more than "max_bytes", in which case
             the write will automatically be split into multiple transactions.
 
+        srcaddr: int, optional
+            UMI source address used for the write transaction. This is sometimes needed to make
+            the write response gets routed to the right place.
+
         max_bytes: int, optional
-            Indicates the maximum number of bytesthat can be used for any 
+            Indicates the maximum number of bytesthat can be used for any
             individual UMI transaction in bytes. Currently, the data payload
             size used by switchboard is 32 bytes, which is reflected in the default
             value of "max_bytes".
+
+        posted: bool, optional
+            If True, a write response will be received.
+
+        qos: int, optional
+            4-bit Quality of Service field in UMI Command
+
+        prot: int, optional
+            2-bit protection mode field in UMI command
+
+        progressbar: bool, optional
+            If True, the number of packets written will be displayed via a progressbar
+            in the terminal.
+
+        check_alignment: bool, optional
+            If true, an exception will be raised if the `addr` parameter cannot be aligned based
+            on the size of the `data` parameter
         """
 
         # set defaults
@@ -284,7 +314,7 @@ class UmiTxRx:
             about the value of other bits read back, they could use mask=1<<5.
 
         srcaddr: int, optional
-            The UMI source address used for the read transaction.  This is 
+            The UMI source address used for the read transaction.  This is
             sometimes needed to make sure that reads get routed to the right place.
 
         dtype: np.uint8, np.uint16, np.uint32, or np.uint64, optional
@@ -300,6 +330,10 @@ class UmiTxRx:
             If `posted`=True, write_srcaddr specifies the srcaddr used for that
             transaction. If write_srcaddr is None, the default srcaddr for writes
             will be used.
+
+        check_alignment: bool, optional
+            If true, an exception will be raised if the `addr` parameter cannot be aligned based
+            on the size of the `data` parameter
 
         Raises
         ------
@@ -354,10 +388,10 @@ class UmiTxRx:
             The 64-bit address read from
 
         num_or_dtype: int or numpy integer datatype
-            If a plain int, `num_or_datatype` specifies the number of bytes to be read. 
+            If a plain int, `num_or_datatype` specifies the number of bytes to be read.
             If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatype
             specifies the data type to be returned.
-        
+
         dtype: numpy integer datatype, optional
             If num_or_dtype is a plain integer, the value returned by this function
             will be a numpy array of type "dtype".  On the other hand, if num_or_dtype
@@ -373,6 +407,18 @@ class UmiTxRx:
             case the read will automatically be split into multiple transactions. Currently,
             the data payload size used by switchboard is 32 bytes, which is reflected in the
             default value of "max_bytes".
+
+        qos: int, optional
+            4-bit Quality of Service field used in the UMI command
+
+        prot: int, optional
+            2-bit Protection mode field used in the UMI command
+
+        Returns
+        -------
+        numpy integer array
+            An array of `num_or_dtype` bytes read from `addr`. The array will have the type
+            specified by `dtype` or `num_or_dtype`
         """
 
         # set defaults
@@ -426,6 +472,12 @@ class UmiTxRx:
         srcaddr: int, optional
             The UMI source address used for the atomic transaction.  This
             is sometimes needed to make sure the response get routed to the right place.
+
+        qos: int, optional
+            4-bit Quality of Service field used in the UMI command
+
+        prot: int, optional
+            2-bit Protection mode field used in the UMI command
 
         Raises
         ------
@@ -568,6 +620,62 @@ def random_umi_packet(
     eof=1,
     max_bytes=32
 ):
+    """
+    Generates a Random UMI packet. All parameters are optional. Parameters that
+    are not explicitly specified will be assigned randomly.
+
+    For more information on the meanings of each parameter, reference
+    `the UMI specification <https://github.com/zeroasiccorp/umi/blob/main/README.md>`_
+
+    Parameters
+    ----------
+    opcode: int, optional
+        Command opcode
+
+    len: int, optional
+        Word transfers per message. (`len`-1 words will be transfered
+        per message)
+
+    size: int, optional
+        Word size ((2^size)-1 bits per word)
+
+    dstaddr: int, optional
+        64-bit destination address used in the UMI packet
+
+    srcaddr: int, optional
+        64-bit source address used in the UMI packet
+
+    data: numpy integer array, optional
+        Values used in the Data field for the UMI packet
+
+    qos: int, optional
+        4-bit Quality of Service field used in the UMI command
+
+    prot: int, optional
+        2-bit Protection mode field used in the UMI command
+
+    ex: int, optional
+        1-bit Exclusive access indicator in the UMI command
+
+    atype: int, optional
+        8-bit field specifying the type of atomic transaction used
+        in the UMI command for an atomic operation
+
+    eom: int, optional
+        1-bit End of Message indicator in UMI command, used to track
+        the transfer of the last word in a message
+
+    eof: int, optional
+        1-bit End of Frame bit in UMI command, used to indicate the
+        last message in a sequence of related UMI transactions
+
+    max_bytes: int, optional
+        The maximum number of bytes included in each UMI packet
+
+    Returns
+    -------
+    """
+
     # input validation
 
     check_int_in_range("max_bytes", max_bytes, min=0, max=32)

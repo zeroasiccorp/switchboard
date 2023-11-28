@@ -41,9 +41,24 @@ class SbDut(siliconcompiler.Chip):
         ----------
         design: string
             Name of the top level chip design module.
+
         tool: string, optional
             Which tool to use to compile simulator.  Options are "verilator" or
             "icarus".
+
+        default_main: bool, optional
+            If True, the default testbench.cc will be used and does not need to
+            be provided via the add() function
+
+        trace: bool, optional
+            If true, a waveform dump file will be produced using the file type
+            specified by `trace_type`.
+
+        trace_type: str, optional
+            File type for the waveform dump file. Defaults to vcd.
+
+        module: str, optional
+            module containing the siliconcompiler driver for this object
         """
         # call the super constructor
 
@@ -141,6 +156,17 @@ class SbDut(siliconcompiler.Chip):
         return self.find_result(result_kind, step='compile')
 
     def build(self, cwd: str = None, fast: bool = False):
+        """
+        Parameters
+        ---------
+        cwd: str, optional
+            Working directory for the simulation build
+
+        fast: bool, optional
+            If True, the simulation binary will not be rebuilt if
+            an existing one is found
+        """
+
         if self.tool == 'icarus':
             if (not fast) or (icarus_find_vpi(cwd) is None):
                 icarus_build_vpi(cwd)
@@ -166,6 +192,28 @@ class SbDut(siliconcompiler.Chip):
         cwd: str = None,
         trace: bool = None
     ) -> subprocess.Popen:
+        """
+        Parameters
+        ----------
+        plusargs: str or list or tuple, optional
+            additional arguments to pass to simulator that must be preceded
+            with a +. These are listed after `args`.
+
+        args: str or list or tuple, optional
+            additional arguments to pass to simulator listed before `plusargs` and
+            `extra_args`
+
+        extra_args: str or list or tuple, optional
+            additional arguments to pass to simulator listed after `args` and
+            `plusargs`
+
+        cwd: str, optional
+            working directory where simulation binary is saved
+
+        trace: bool, optional
+            If true, a waveform dump file will be produced
+        """
+
         # set defaults
 
         if plusargs is None:
