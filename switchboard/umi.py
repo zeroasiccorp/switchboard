@@ -633,7 +633,7 @@ def random_umi_packet(
         Command opcode
 
     len: int, optional
-        Word transfers per message. (`len`-1 words will be transfered
+        Word transfers per message. (`len`-1 words will be transferred
         per message)
 
     size: int, optional
