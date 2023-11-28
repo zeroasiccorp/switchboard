@@ -1,5 +1,11 @@
 name: Docs
-on: [push, pull_request, workflow_dispatch]
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
 permissions:
     contents: write
 jobs:
@@ -12,10 +18,8 @@ jobs:
             python-version: '3.11'
       - name: Install switchboard
         run: |
-            pip install --upgrade pip; pip install -e .
-      - name: Install dependencies
-        run: |
-          pip install sphinx sphinx_rtd_theme autodocsumm
+            pip install --upgrade pip
+            pip install -e .[docs]
       - name: Sphinx build
         run: |
           sphinx-build docs/source/ docs/build
