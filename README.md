@@ -1,6 +1,7 @@
 # Switchboard
 
 [![Actions Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/regression.yml/badge.svg?branch=main)](https://github.com/zeroasiccorp/switchboard/actions)
+[![Documentation Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/documentation.yml/badge.svg?branch=main)](https://zeroasiccorp.github.io/switchboard/)
 
 Switchboard (SB) is a framework for communication between distinct hardware models, such as RTL simulations, RTL implemented on FPGAs, and fast SW models.  This makes it possible to simulate large hardware systems in a distributed fashion, using whatever models are available for the different components.
 
