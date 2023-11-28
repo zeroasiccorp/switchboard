@@ -205,7 +205,7 @@ class UmiTxRx:
 
         return self.umi.recv(blocking)
 
-    def write(self, addr, data, srcaddr=None, max_bytes=32,
+    def write(self, addr, data, srcaddr=None, max_bytes=None,
         posted=None, qos=0, prot=0, progressbar=False, check_alignment=True):
         """
         Writes the provided data to the given 64-bit address.
@@ -226,10 +226,9 @@ class UmiTxRx:
             the write response gets routed to the right place.
 
         max_bytes: int, optional
-            Indicates the maximum number of bytesthat can be used for any
-            individual UMI transaction in bytes. Currently, the data payload
-            size used by switchboard is 32 bytes, which is reflected in the default
-            value of "max_bytes".
+            Indicates the maximum number of bytes that can be used for any individual UMI
+            transaction. If not specified, this defaults to the value of `max_bytes`
+            provided in the UmiTxRx constructor, which in turn defaults to 32.
 
         posted: bool, optional
             If True, a write response will be received.
@@ -380,7 +379,7 @@ class UmiTxRx:
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr, check_alignment=check_alignment)
 
     def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=None,
-        max_bytes=32, qos=0, prot=0, check_alignment=True):
+        max_bytes=None, qos=0, prot=0, check_alignment=True):
         """
         Parameters
         ----------
@@ -402,11 +401,9 @@ class UmiTxRx:
            is sometimes needed to make sure that reads get routed to the right place.
 
         max_bytes: int, optional
-            Indicates the maximum number of bytes that can be used for any individual
-            UMI transaction. `num_or_dtype` can be larger than `max_bytes`, in which
-            case the read will automatically be split into multiple transactions. Currently,
-            the data payload size used by switchboard is 32 bytes, which is reflected in the
-            default value of "max_bytes".
+            Indicates the maximum number of bytes that can be used for any individual UMI
+            transaction. If not specified, this defaults to the value of `max_bytes`
+            provided in the UmiTxRx constructor, which in turn defaults to 32.
 
         qos: int, optional
             4-bit Quality of Service field used in the UMI command
