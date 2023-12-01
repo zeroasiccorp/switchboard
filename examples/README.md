@@ -7,9 +7,9 @@ We suggest that you start with the [umiram tutorial](umiram).  This shows how to
 Other examples of using switchboard to interact with UMI-based RTL modules include:
 * [umi_endpoint](umi_endpoint): Module that converts UMI packets to signaling for an SRAM (write enable, read/write address, etc.).
 * [umi_fifo](umi_fifo): Module that buffers UMI packets.
-* [umi_fifo_flex](umi_fifo): Module that serves as an adapter between UMI buses with different data widths, by splitting UMI packets according to [rules in the UMI specification](https://github.com/zeroasiccorp/umi#411-splitting-rules).
+* [umi_fifo_flex](umi_fifo_flex): Module that serves as an adapter between UMI buses with different data widths, by splitting UMI packets according to [rules in the UMI specification](https://github.com/zeroasiccorp/umi#411-splitting-rules).
 * [umi_gpio](umi_gpio): Demonstrates a mechanism for bit-level interaction with RTL through slice accesses in Python.  This can be a convenient mechanism for controlling non-UMI signals.
-* [umi_splitter](umi_gpio): Module that routes UMI packets to one of two destinations according to the address.
+* [umi_splitter](umi_splitter): Module that routes UMI packets to one of two destinations according to the address.
 
 [umi_mem_cpp](umi_mem_cpp) is a bit different: it shows how to model a UMI memory using switchboard's C++ library, without RTL.  The test logic is still driven from Python.
 
