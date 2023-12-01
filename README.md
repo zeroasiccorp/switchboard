@@ -69,7 +69,7 @@ data: [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
 PASS!
 ```
 
-To get a sense of how this works, open the Python script [switchboard/examples/python/test.py](switchboard/examples/python/test.py).  The core logic is essentially:
+To get a sense of how this works, open the Python script [examples/python/test.py](examples/python/test.py).  The core logic is essentially:
 
 ```python
 from switchboard import PySbPacket, PySbTx, PySbRx
@@ -85,7 +85,7 @@ rxp = rx.recv()
 
 In other words, we create an SB output port (`tx`) and an SB input port (`rx`).  An SB packet is then created (`txp`) and sent via the output port.  Finally, a new SB packet is received from the input port.
 
-To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [switchboard/examples/python/testbench.sv](switchboard/examples/python/testbench.sv).  The core logic is the instantiation of `queue_to_sb_sim` (SB input port) and `sb_to_queue_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`to_rtl.q`) and similarly the Python input port is matched to the Verilog output port (`from_rtl.q`).
+To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [examples/python/testbench.sv](examples/python/testbench.sv).  The core logic is the instantiation of `queue_to_sb_sim` (SB input port) and `sb_to_queue_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`to_rtl.q`) and similarly the Python input port is matched to the Verilog output port (`from_rtl.q`).
 
 ```verilog
 // ...
