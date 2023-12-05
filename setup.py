@@ -6,11 +6,11 @@
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-__version__ = "0.0.30"
+__version__ = "0.0.31"
 
-########################################################################
-# parse_reqs() from https://github.com/siliconcompiler/siliconcompiler #
-########################################################################
+#################################################################################
+# parse_reqs, long_desc from https://github.com/siliconcompiler/siliconcompiler #
+#################################################################################
 
 
 def parse_reqs():
@@ -37,6 +37,10 @@ def parse_reqs():
 
     return install_reqs, extras_reqs
 
+
+with open("README.md", "r", encoding="utf-8") as readme:
+    long_desc = readme.read()
+
 ########################################################################
 ########################################################################
 
@@ -58,22 +62,30 @@ ext_modules = [
 install_reqs, extras_req = parse_reqs()
 
 setup(
-    name="switchboard",
-    version=__version__,
-    author="ZeroASIC",
+    name="switchboard-hw",
+    description="A low-latency communication library for RTL simulation and emulation.",
+    long_description=long_desc,
+    long_description_content_type="text/markdown",
+    license='Apache License 2.0',
+    author="Zero ASIC",
     url="https://github.com/zeroasiccorp/switchboard",
-    ext_modules=ext_modules,
-    install_requires=install_reqs,
-    cmdclass={"build_ext": build_ext},
-    zip_safe=False,
+    project_urls={
+        "Documentation": "https://zeroasiccorp.github.io/switchboard/",
+        "Bug Tracker": "https://github.com/zeroasiccorp/switchboard/issues"
+    },
+    version=__version__,
+    packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.7",
-    packages=find_packages(),
+    install_requires=install_reqs,
     extras_require=extras_req,
+    ext_modules=ext_modules,
     entry_points={
         'console_scripts': [
             'sbtcp=switchboard.sbtcp:main',
             'switchboard=switchboard.switchboard:main'
         ]
-    }
+    },
+    cmdclass={"build_ext": build_ext},
+    zip_safe=False,
 )
