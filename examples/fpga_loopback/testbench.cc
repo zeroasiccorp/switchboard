@@ -1,4 +1,4 @@
-// This is a small example showing howto connect an RTL AXI Device
+// This is a small example showing how to connect an RTL AXI Device
 // to a SystemC/TLM simulation using the TLM-2-AXI bridges.
 
 // Copyright (c) 2023 Zero ASIC Corporation
@@ -6,6 +6,7 @@
 
 // Written by Edgar E. Iglesias
 
+#include <signal.h>
 #include <sstream>
 
 #define SC_INCLUDE_DYNAMIC_PROCESSES
@@ -38,7 +39,7 @@ using namespace std;
 
 #include "switchboard_tlm.hpp"
 
-#include "Vloopback.h"
+#include "Vtestbench.h"
 #include <verilated_vcd_sc.h>
 
 using namespace utils;
@@ -65,25 +66,18 @@ SC_MODULE(Top) {
     SBTX_tlm tx;
     SBRX_tlm rx;
 
-    Vloopback dut;
+    Vtestbench dut;
 
     void pull_rst(void) {
         rst.write(0);
-        wait(400, SC_NS);
+        wait(8, SC_NS);
         rst.write(1);
-        wait(400, SC_NS);
+        wait(8, SC_NS);
         rst.write(0);
 
-        wait(400, SC_NS);
-        tx.init("queue-tx");
-        rx.init("queue-rx");
-
-        // test user regs
-        tx.dev_write32(0x8, 0x1);
-        tx.dev_write32(0x40, 0x2);
-
-        assert(tx.dev_read32(0x8) == 0x1);
-        assert(tx.dev_read32(0x40) == 0x2);
+        wait(8, SC_NS);
+        tx.init("to_rtl.q");
+        rx.init("from_rtl.q");
     }
 
     void gen_rst_n(void) {
@@ -93,7 +87,7 @@ SC_MODULE(Top) {
     SC_HAS_PROCESS(Top);
 
     Top(sc_module_name name)
-        : clk("clk", sc_time(1, SC_US)), rst_n("rst_n"), signals_pcim("signals-pcim"),
+        : clk("clk", sc_time(8, SC_NS)), rst_n("rst_n"), signals_pcim("signals-pcim"),
           bridge_pcim("bridge-pcim"), checker_pcim("checker-pcim", AXIPCConfig::all_enabled()),
           bridge_dma("bridge_dma"), signals_ocl("signals-ocl"), bridge_ocl("bridge-ocl"),
           checker_ocl("checker-ocl", AXILitePCConfig::all_enabled()), queue_ic("queue-ic"), tx(0),
@@ -187,14 +181,15 @@ SC_MODULE(Top) {
     }
 };
 
+void signal_callback_handler(int) {
+    sc_stop();
+}
+
 int sc_main(int argc, char* argv[]) {
     Verilated::commandArgs(argc, argv);
     Top top("Top");
 
-    sc_trace_file* trace_fp = sc_create_vcd_trace_file(argv[0]);
-
-    trace(trace_fp, top, "top");
-    top.signals_pcim.Trace(trace_fp);
+    signal(SIGINT, signal_callback_handler);
 
     sc_start(SC_ZERO_TIME);
 
@@ -202,27 +197,31 @@ int sc_main(int argc, char* argv[]) {
     Verilated::traceEverOn(true);
     // If verilator was invoked with --trace argument,
     // and if at run time passed the +trace argument, turn on tracing
+
     VerilatedVcdSc* tfp = NULL;
+    sc_trace_file* trace_fp = NULL;
     const char* flag = Verilated::commandArgsPlusMatch("trace");
     if (flag && 0 == strcmp(flag, "+trace")) {
         tfp = new VerilatedVcdSc;
         top.dut.trace(tfp, 99);
         tfp->open("vlt_dump.vcd");
+
+        trace_fp = sc_create_vcd_trace_file(argv[0]);
+        trace(trace_fp, top, "top");
+        top.signals_pcim.Trace(trace_fp);
     }
 #endif
 
-    sc_start(100, SC_MS);
+    sc_start();
 
-    // TODO: perform actual checking
-    std::cout << "PASS" << std::endl;
-
-    if (trace_fp) {
-        sc_close_vcd_trace_file(trace_fp);
-    }
 #if VM_TRACE
     if (tfp) {
         tfp->close();
         tfp = NULL;
+    }
+    if (trace_fp) {
+        sc_close_vcd_trace_file(trace_fp);
+        trace_fp = NULL;
     }
 #endif
     return 0;

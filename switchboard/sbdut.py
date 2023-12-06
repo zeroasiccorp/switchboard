@@ -34,7 +34,8 @@ class SbDut(siliconcompiler.Chip):
         default_main: bool = None,
         trace: bool = True,
         trace_type: str = 'vcd',
-        module: str = None
+        module: str = None,
+        fpga: bool = False
     ):
         """
         Parameters
@@ -59,6 +60,10 @@ class SbDut(siliconcompiler.Chip):
 
         module: str, optional
             module containing the siliconcompiler driver for this object
+
+        fpga: bool, optional
+            If True, compile using switchboard's library of modules for FPGA emulation,
+            rather than the modules for RTL simulation.
         """
         # call the super constructor
 
@@ -83,11 +88,21 @@ class SbDut(siliconcompiler.Chip):
         self.tool = tool
         self.trace = trace
         self.trace_type = trace_type
+        self.fpga = fpga
 
         # simulator-agnostic settings
 
+        if fpga:
+            # library dirs
+            self.set('option', 'ydir', sb_path() / 'verilog' / 'fpga')
+            self.add('option', 'ydir', sb_path() / 'deps' / 'verilog-axi' / 'rtl')
+
+            # include dirs
+            self.set('option', 'idir', sb_path() / 'verilog' / 'fpga' / 'include')
+
         for opt in ['ydir', 'idir']:
-            self.set('option', opt, sb_path() / 'verilog' / 'sim')
+            if not fpga:
+                self.set('option', opt, sb_path() / 'verilog' / 'sim')
             self.add('option', opt, sb_path() / 'verilog' / 'common')
 
         self.set('option', 'mode', 'sim')
@@ -106,17 +121,28 @@ class SbDut(siliconcompiler.Chip):
                         ' which is the name of the module containing the'
                         ' SiliconCompiler driver for this simulator.')
 
-            self._configure_dpi(module=module, default_main=default_main)
+            self._configure_build(
+                module=module,
+                default_main=default_main,
+                fpga=fpga
+            )
 
-    def _configure_dpi(
+    def _configure_build(
         self,
         module: str,
-        default_main: bool = False
+        default_main: bool = False,
+        fpga: bool = False
     ):
-        self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
+        if not fpga:
+            self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
 
         if default_main and (self.tool == 'verilator'):
             self.input(SB_DIR / 'verilator' / 'testbench.cc')
+
+        if fpga and (self.tool == 'verilator'):
+            self.set('tool', 'verilator', 'task', 'compile', 'file', 'config',
+                sb_path() / 'verilator' / 'config.vlt')
+            self.set('tool', 'verilator', 'task', 'compile', 'warningoff', 'TIMESCALEMOD')
 
         c_flags = ['-Wno-unknown-warning-option']
         c_includes = [SB_DIR / 'cpp']
