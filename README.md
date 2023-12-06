@@ -2,6 +2,8 @@
 
 [![Actions Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/regression.yml/badge.svg?branch=main)](https://github.com/zeroasiccorp/switchboard/actions)
 [![Documentation Status](https://github.com/zeroasiccorp/switchboard/actions/workflows/documentation.yml/badge.svg?branch=main)](https://zeroasiccorp.github.io/switchboard/)
+[![PyPI version](https://badge.fury.io/py/switchboard-hw.svg)](https://badge.fury.io/py/switchboard-hw)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Switchboard (SB) is a framework for communication between distinct hardware models, such as RTL simulations, RTL implemented on FPGAs, and fast SW models.  This makes it possible to simulate large hardware systems in a distributed fashion, using whatever models are available for the different components.
 
@@ -18,14 +20,13 @@ Under the hood, communication happens through shared-memory queues, where an SB 
 
 ## Installation
 
-This package is directly installable with pip.  We recommended installation in a contained environment such as a virtual environment, conda environment, etc.
+The fastest way to install this package is from PyPI:
 
 ```shell
-$ pip install --upgrade pip
-$ pip install git+https://github.com/zeroasiccorp/switchboard.git
+pip install switchboard-hw
 ```
 
-If you're a switchboard developer, or want to run the examples below, we instead recommend cloning the repo and installing it in-place (`-e`).
+However, if you want to run the examples below (or if you're a switchboard developer), clone this repository and install the Python package in-place:
 
 ```shell
 $ git clone https://github.com/zeroasiccorp/switchboard.git
@@ -35,18 +36,18 @@ $ pip install --upgrade pip
 $ pip install -e .
 ```
 
-To run the examples below, first run the following command:
 
+## Examples
+
+Various examples demonstrating the features of switchboard are in the [examples](examples) folder.  If you'd like to run them yourself, please run this command first:
+
+```shell
+./examples/get_deps.py
 ```
-$ ./examples/get_deps.py
-```
 
-This clones some additional repositories that are needed by the examples, but are not needed if you only want to use the switchboard Python package.
+This clones some additional repositories that are needed by the examples.
 
-
-## Example
-
-Various examples demonstrating the features of switchboard are in the [examples](examples) folder.  A good starting point is the [python](examples/python) example, where a Python script sends packets to and receives packets from a Verilator RTL simulation.  The configuration is simple: there is a small RTL simulation that accepts an SB packet, increments the data payload, and transmits the result on its SB output port.  On the other side, a Python script sends an SB packet to the simulation, and checks that the packet it gets back has been incremented.
+A good starting point is the [python](examples/python) example, where a Python script sends packets to and receives packets from a Verilator RTL simulation.  The configuration is simple: there is a small RTL simulation that accepts an SB packet, increments the data payload, and transmits the result on its SB output port.  On the other side, a Python script sends an SB packet to the simulation, and checks that the packet it gets back has been incremented.
 
 <img width="311" alt="image" src="https://user-images.githubusercontent.com/19254098/225485672-1793521d-a9db-4c18-ad61-c22a605f8720.png">
 
