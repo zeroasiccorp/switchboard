@@ -5,7 +5,7 @@
 
 `default_nettype none
 
-module loopback (
+module testbench (
     input wire clk,
     input wire nreset,
 
