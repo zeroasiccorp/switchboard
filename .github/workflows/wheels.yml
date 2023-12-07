@@ -1,13 +1,16 @@
 # Copyright (c) 2023 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+# adapted from:
+# https://github.com/siliconcompiler/siliconcompiler/blob/main/.github/workflows/wheels.yml
+
 name: Wheels Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - published
 
 # Ensure C compilation works on MacOS.
 env:
@@ -60,5 +63,25 @@ jobs:
       with:
         path: wheelhouse/*.whl
         name: switchboard
+        retention-days: 14
 
-  # TODO: 'publish' job once we determine pypi name.
+  publish:
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published' && !contains(github.event.release.body, 'NOPUBLISH')
+
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: switchboard
+        path: dist
+
+    - uses: pypa/gh-action-pypi-publish@v1.4.2
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_DEPLOY }}
+
+    - name: Add wheels to GitHub release artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*.whl
