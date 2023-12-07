@@ -34,30 +34,29 @@ module axi_writer #(
 );
 
     localparam [1:0] STATE_IDLE = 2'd0;
-    localparam [1:0] STATE_WR_ADDR = 2'd1;
-    localparam [1:0] STATE_WR_DATA = 2'd2;
-    localparam [1:0] STATE_WAIT_RESP = 2'd3;
+    localparam [1:0] STATE_WR_ADDR_DATA = 2'd1;
+    localparam [1:0] STATE_WAIT_RESP = 2'd2;
 
     reg [1:0] state = STATE_IDLE;
     reg [1:0] state_next;
+
+    reg awready_seen = 1'b0;
+    reg wready_seen = 1'b0;
 
     always @(*) begin
         state_next = state;
         case (state)
             STATE_IDLE: begin
                 if (wvalid) begin
-                    state_next = STATE_WR_ADDR;
+                    state_next = STATE_WR_ADDR_DATA;
                 end
             end
 
-            STATE_WR_ADDR: begin
-                if (m_axi_awready) begin
-                    state_next = STATE_WR_DATA;
-                end
-            end
-
-            STATE_WR_DATA: begin
-                if (m_axi_wready) begin
+            // m_axi_awready and m_axi_wready may wait for both m_axi_awvalid
+            // and m_axi_wvalid to assert before asserting, so we raise both
+            // valid signals and wait for both ready signals.
+            STATE_WR_ADDR_DATA: begin
+                if ((m_axi_awready || awready_seen) && (m_axi_wready || wready_seen)) begin
                     state_next = STATE_WAIT_RESP;
                 end
             end
@@ -81,6 +80,16 @@ module axi_writer #(
         state <= state_next;
     end
 
+    always @(posedge clk) begin
+        if (state == STATE_IDLE) begin
+            awready_seen <= 1'b0;
+            wready_seen <= 1'b0;
+        end else begin
+            awready_seen <= m_axi_awready || awready_seen;
+            wready_seen <= m_axi_wready || wready_seen;
+        end
+    end
+
     // Pulse wready after we get response
     assign wready = (state == STATE_WAIT_RESP) && (state_next == STATE_IDLE);
 
@@ -88,12 +97,12 @@ module axi_writer #(
     assign m_axi_awaddr = waddr;
     assign m_axi_awlen = 8'b0;
     assign m_axi_awsize = 3'd6;
-    assign m_axi_awvalid = (state == STATE_WR_ADDR);
+    assign m_axi_awvalid = (state == STATE_WR_ADDR_DATA) && (!awready_seen);
 
     assign m_axi_wdata = wdata;
     assign m_axi_wstrb = wstrb;
     assign m_axi_wlast = 1'b1;
-    assign m_axi_wvalid = (state == STATE_WR_DATA);
+    assign m_axi_wvalid = (state == STATE_WR_ADDR_DATA) && (!wready_seen);
 
     assign m_axi_bready = (state == STATE_WAIT_RESP);
 

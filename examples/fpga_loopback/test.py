@@ -12,7 +12,7 @@ from argparse import ArgumentParser
 from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 
-def main(fast=False):
+def main(n=10, fast=False):
     # build the simulator
     dut = build_testbench(fast=fast)
 
@@ -23,42 +23,26 @@ def main(fast=False):
     # launch the simulation
     dut.simulate()
 
-    # form packet to be sent into the simulation.  note that the arguments
-    # to the constructor are all optional, and can all be specified later
-    txp = PySbPacket(
-        destination=123456789,
-        flags=1,
-        data=np.arange(32, dtype=np.uint8)
-    )
+    for _ in range(n):
+        # send a packet with random data
+        destination = np.random.randint(low=0, high=1 << 32, dtype=np.uint32)
+        txdata = np.random.randint(low=0, high=1 << 8, size=(32,), dtype=np.uint8)
+        tx.send(PySbPacket(destination=destination, flags=1, data=txdata))
 
-    # send the packet
+        print(f'Sent: {txdata}')
 
-    tx.send(txp)  # note: blocking by default, can disable with blocking=False
-    print("*** TX packet ***")
-    print(txp)
-    print()
+        # receive the response
+        rxdata = rx.recv().data[:32]
 
-    # receive packet
+        print(f'Received: {rxdata}')
 
-    rxp = rx.recv()  # note: blocking by default, can disable with blocking=False
-    rxp.data = rxp.data[:32]
+        # check the response
+        if not np.array_equal(rxdata, txdata + 1):
+            print("FAIL")
+            sys.exit(1)
 
-    print("*** RX packet ***")
-    print(rxp)
-    print()
-
-    # check received data
-
-    success = np.array_equal(rxp.data, txp.data + 1)
-
-    # declare test as having passed for regression testing purposes
-
-    if success:
-        print("PASS")
-        sys.exit(0)
-    else:
-        print("FAIL")
-        sys.exit(1)
+    print("PASS")
+    sys.exit(0)
 
 
 def build_testbench(fast=False):
@@ -96,8 +80,10 @@ def build_testbench(fast=False):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
+    parser.add_argument('-n', type=int, default=10, help='Number of'
+        ' packets to send during this test.')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
     args = parser.parse_args()
 
-    main(fast=args.fast)
+    main(n=args.n, fast=args.fast)
