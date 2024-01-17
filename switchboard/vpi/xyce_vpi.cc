@@ -22,7 +22,7 @@ PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i = 0; i < 3; i++) {
+        for (size_t i = 0; i < 1; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -32,7 +32,7 @@ PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
-        vpi_get_value(argh[1], &argval);
+        vpi_get_value(argh[0], &argval);
         file = std::string(argval.value.str);
     }
 
@@ -65,7 +65,7 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
-        vpi_get_value(argh[1], &argval);
+        vpi_get_value(argh[0], &argval);
         name = std::string(argval.value.str);
     }
 
@@ -74,7 +74,7 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[2], &argval);
+        vpi_get_value(argh[1], &argval);
         time = argval.value.real;
     }
 
@@ -83,7 +83,7 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[3], &argval);
+        vpi_get_value(argh[2], &argval);
         value = argval.value.real;
     }
 
@@ -116,7 +116,7 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
-        vpi_get_value(argh[1], &argval);
+        vpi_get_value(argh[0], &argval);
         name = std::string(argval.value.str);
     }
 
@@ -125,7 +125,7 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[2], &argval);
+        vpi_get_value(argh[1], &argval);
         time = argval.value.real;
     }
 
@@ -138,7 +138,7 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
         t_vpi_value argval;
         argval.format = vpiRealVal;
         argval.value.real = value;
-        vpi_put_value(argh[3], &argval, NULL, vpiNoDelay);
+        vpi_put_value(argh[2], &argval, NULL, vpiNoDelay);
     }
 
     // clean up

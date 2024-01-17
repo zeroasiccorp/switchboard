@@ -5,7 +5,7 @@
 
 # TODO: replace with SiliconCompiler functionality
 
-from typing import Union
+from typing import Union, List
 from pathlib import Path
 
 from .util import plusargs_to_args, binary_run
@@ -17,15 +17,32 @@ def run(command: list, cwd: str = None) -> str:
     return check_output(command, cwd=cwd, stderr=STDOUT).decode()
 
 
-def icarus_build_vpi(cwd: str = None) -> str:
+def icarus_build_vpi(
+    cwd: str = None,
+    name: str = 'switchboard',
+    cincludes: List[str] = None,
+    ldflags: List[str] = None
+) -> str:
+    if cincludes is None:
+        cincludes = []
+
+    if ldflags is None:
+        ldflags = []
+
     sbdir = sb_path()
-    vpi_cc = sbdir / 'vpi/switchboard_vpi.cc'
-    vpi_flags = f'-I{sbdir}/cpp'
-    return run(['iverilog-vpi', vpi_flags, vpi_cc], cwd)
+    incdirs = cincludes + [f'{sbdir}/cpp']
+
+    cmd = []
+    cmd += ['iverilog-vpi']
+    cmd += [f'-I{incdir}' for incdir in incdirs]
+    cmd += ldflags
+    cmd += [str(sbdir / 'vpi' / f'{name}_vpi.cc')]
+
+    return run(cmd, cwd)
 
 
-def icarus_find_vpi(cwd: Union[str, Path] = None) -> Path:
-    path = Path('switchboard_vpi.vpi')
+def icarus_find_vpi(cwd: Union[str, Path] = None, name: str = 'switchboard') -> Path:
+    path = Path(f'{name}_vpi.vpi')
 
     if cwd is not None:
         path = Path(cwd) / path
@@ -41,12 +58,17 @@ def icarus_run(vvp, plusargs=None, modules=None, extra_args=None, **kwargs):
 
     args += ['-n']
 
+    mdirs = set()
+
     if modules is not None:
         if not isinstance(modules, list):
             raise TypeError('modules must be a list')
         for module in modules:
-            args += [f'-M{Path(module.resolve().parent)}']
+            mdirs.add(str(Path(module.resolve().parent)))
             args += ['-m', Path(module).stem]
+
+    for mdir in mdirs:
+        args += [f'-M{mdir}']
 
     args += [vvp]
     args += plusargs_to_args(plusargs)
@@ -56,4 +78,4 @@ def icarus_run(vvp, plusargs=None, modules=None, extra_args=None, **kwargs):
             raise TypeError('extra_args must be a list')
         args += extra_args
 
-    return binary_run(bin='vvp', args=args, **kwargs)
+    return binary_run(bin='vvp', args=args, **kwargs, print_command=True)

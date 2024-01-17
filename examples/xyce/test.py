@@ -31,4 +31,4 @@ if __name__ == '__main__':
         help='Period of the oversampling clock')
     args = parser.parse_args()
 
-    main(fast=args.fast, tool=args.tool)
+    main(fast=args.fast, period=args.period, tool=args.tool)

@@ -12,16 +12,19 @@ module testbench (
 
         real period = 10e-9;
 
+        integer ignore;
         initial begin
-            $value$plusargs("period=%f", period);
+            ignore = $value$plusargs("period=%f", period);
         end
+
+        // TODO: don't hardcode the timeunit
 
         reg clk;
         always begin
             clk = 1'b0;
-            #(0.5 * period * (10.0 ** (-1.0 * $timeunit)));
+            #(0.5 * period * 1e9);
             clk = 1'b1;
-            #(0.5 * period * (10.0 ** (-1.0 * $timeunit)));
+            #(0.5 * period * 1e9);
         end
 
     `endif

@@ -19,6 +19,7 @@ from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
 from .warn import warn_future
+from .xyce import xyce_flags
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -165,14 +166,9 @@ class SbDut(siliconcompiler.Chip):
         ld_flags = ['-pthread']
 
         if xyce:
-            xyce_prefix = self.find_xyce()            
-            ld_flags += [
-                f'-L{xyce_prefix / "lib"}',
-                '-lxycecinterface'
-            ]
-            c_includes += [
-                f'{xyce_prefix / "include"}'
-            ]
+            xyce_c_includes, xyce_ld_flags = xyce_flags()
+            c_includes += xyce_c_includes
+            ld_flags += xyce_ld_flags
 
         self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags', c_flags)
         self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', c_includes)
@@ -220,8 +216,11 @@ class SbDut(siliconcompiler.Chip):
         """
 
         if self.tool == 'icarus':
-            if (not fast) or (icarus_find_vpi(cwd) is None):
-                icarus_build_vpi(cwd)
+            if (not fast) or (icarus_find_vpi(cwd, name='switchboard') is None):
+                icarus_build_vpi(cwd, name='switchboard')
+            if self.xyce and ((not fast) or (icarus_find_vpi(cwd, name='xyce') is None)):
+                cincludes, ldflags = xyce_flags()
+                icarus_build_vpi(cwd, name='xyce', cincludes=cincludes, ldflags=ldflags)
 
         # if "fast" is set, then we can return early if the
         # simulation binary already exists
@@ -310,9 +309,16 @@ class SbDut(siliconcompiler.Chip):
         p = None
 
         if self.tool == 'icarus':
-            # retrieve the location of the VPI binary
-            vpi = icarus_find_vpi(cwd=cwd)
-            assert vpi is not None, 'Could not find Switchboard VPI binary.'
+            names = ['switchboard']
+            modules = []
+
+            if self.xyce:
+                names.append('xyce')
+
+            for name in names:
+                vpi = icarus_find_vpi(cwd=cwd, name=name)
+                assert vpi is not None, f'Could not find VPI binary "{name}"'
+                modules.append(vpi)
 
             # set the trace format
             if self.trace_type == 'fst' and ('-fst' not in extra_args):
@@ -321,7 +327,7 @@ class SbDut(siliconcompiler.Chip):
             p = icarus_run(
                 sim,
                 plusargs=plusargs,
-                modules=[vpi],
+                modules=modules,
                 extra_args=extra_args
             )
         else:
@@ -339,17 +345,3 @@ class SbDut(siliconcompiler.Chip):
         # return a Popen object that one can wait() on
 
         return p
-
-    @staticmethod
-    def find_xyce():
-        import shutil
-        from pathlib import Path
-
-        xyce = shutil.which('Xyce')
-
-        if not xyce:
-            raise RuntimeError('Xyce install not found')
-
-        xyce_prefix = Path(xyce).parent.parent
-
-        return xyce_prefix
