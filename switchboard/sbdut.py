@@ -35,7 +35,8 @@ class SbDut(siliconcompiler.Chip):
         trace: bool = True,
         trace_type: str = 'vcd',
         module: str = None,
-        fpga: bool = False
+        fpga: bool = False,
+        xyce: bool = True
     ):
         """
         Parameters
@@ -64,6 +65,9 @@ class SbDut(siliconcompiler.Chip):
         fpga: bool, optional
             If True, compile using switchboard's library of modules for FPGA emulation,
             rather than the modules for RTL simulation.
+
+        xyce: bool, optional
+            If True, compile for xyce co-simulation.
         """
         # call the super constructor
 
@@ -89,6 +93,7 @@ class SbDut(siliconcompiler.Chip):
         self.trace = trace
         self.trace_type = trace_type
         self.fpga = fpga
+        self.xyce = xyce
 
         # simulator-agnostic settings
 
@@ -124,17 +129,22 @@ class SbDut(siliconcompiler.Chip):
             self._configure_build(
                 module=module,
                 default_main=default_main,
-                fpga=fpga
+                fpga=fpga,
+                xyce=xyce
             )
 
     def _configure_build(
         self,
         module: str,
         default_main: bool = False,
-        fpga: bool = False
+        fpga: bool = False,
+        xyce: bool = False
     ):
         if not fpga:
             self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
+
+        if xyce:
+            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
 
         if default_main and (self.tool == 'verilator'):
             self.input(SB_DIR / 'verilator' / 'testbench.cc')
@@ -147,6 +157,16 @@ class SbDut(siliconcompiler.Chip):
         c_flags = ['-Wno-unknown-warning-option']
         c_includes = [SB_DIR / 'cpp']
         ld_flags = ['-pthread']
+
+        if xyce:
+            xyce_prefix = self.find_xyce()            
+            ld_flags += [
+                f'-L{xyce_prefix / "lib"}',
+                '-lxycecinterface'
+            ]
+            c_includes += [
+                f'{xyce_prefix / "include"}'
+            ]
 
         self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags', c_flags)
         self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', c_includes)
@@ -300,3 +320,17 @@ class SbDut(siliconcompiler.Chip):
         # return a Popen object that one can wait() on
 
         return p
+
+    @staticmethod
+    def find_xyce():
+        import shutil
+        from pathlib import Path
+
+        xyce = shutil.which('Xyce')
+
+        if not xyce:
+            raise RuntimeError('Xyce install not found')
+
+        xyce_prefix = Path(xyce).parent.parent
+
+        return xyce_prefix
