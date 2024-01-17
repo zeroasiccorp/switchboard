@@ -10,12 +10,18 @@ module testbench (
 
     `ifndef VERILATOR
 
+        real period = 10e-9;
+
+        initial begin
+            $value$plusargs("period=%f", period);
+        end
+
         reg clk;
         always begin
             clk = 1'b0;
-            #5;
+            #(0.5 * period * (10.0 ** (-1.0 * $timeunit)));
             clk = 1'b1;
-            #5;
+            #(0.5 * period * (10.0 ** (-1.0 * $timeunit)));
         end
 
     `endif
@@ -25,18 +31,12 @@ module testbench (
     real in = 0.0;
     real out = 0.0;
 
-    always @(clk) begin
-        xyce_intf_i.advance(5e-9);
-        xyce_intf_i.get("ADC0", out);
-    end
-
     integer bits = 0;
     integer count = 0;
     always @(posedge clk) begin
         if (count + 1 == 10) begin
             count <= 0;
             in = 1.0 - in;
-            xyce_intf_i.put("DAC0", in);
             if (bits + 1 == 10) begin
                 $finish;
             end else begin
@@ -45,6 +45,14 @@ module testbench (
         end else begin
             count <= count + 1;
         end
+    end
+
+    always @(in) begin
+        xyce_intf_i.put("DAC0", in);
+    end
+
+    always @(clk) begin
+        xyce_intf_i.get("ADC0", out);
     end
 
     // Initialize 

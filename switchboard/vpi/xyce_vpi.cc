@@ -3,26 +3,14 @@
 
 #include <vpi_user.h>
 
+#include <string>
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <N_CIR_XyceCInterface.h>
+#include "xyce.hpp"
 
-bool opened = false;
-bool initialized = false;
-static void** xyceObj = NULL;
-
-double sim_time = 0.0;
-
-void cleanupFunction() {
-    if (opened) {
-        xyce_close(xyceObj);
-    }
-
-    if (xyceObj) {
-        free(xyceObj);
-    }
-}
+XyceIntf x;
 
 PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
     (void)userdata; // unused
@@ -40,76 +28,15 @@ PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
     }
 
     // get file
-    char* file;
+    std::string file;
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
         vpi_get_value(argh[1], &argval);
-        file = argval.value.str;
+        file = std::string(argval.value.str);
     }
 
-    // pointer to N_CIR_Xyce object
-    xyceObj = (void **) malloc( sizeof(void* [1]) );
-    atexit(cleanupFunction);
-
-    // xyce command
-    char *argList[] = {
-        (char*)("Xyce"),
-        (char*)("-quiet"),
-        file
-    };
-    int argc = sizeof(argList)/sizeof(argList[0]);
-    char** argv = argList;
-
-    // Open N_CIR_Xyce object
-    xyce_open(xyceObj);
-    opened = true;
-
-    // Initialize N_CIR_Xyce object
-    xyce_initialize(xyceObj, argc, argv);
-    initialized = true;
-
-    // Simulate for a small amount of time
-    double actual_time;
-    xyce_simulateUntil(xyceObj, 1e-10, &actual_time);
-    sim_time = actual_time;
-
-    // clean up
-    vpi_free_object(args_iter);
-
-    // return value unused?
-    return 0;
-}
-
-PLI_INT32 pi_sb_xyce_advance(PLI_BYTE8* userdata){
-    (void)userdata; // unused
-
-    // get arguments
-    vpiHandle args_iter;
-    std::vector<vpiHandle> argh;
-    {
-        vpiHandle systfref;
-        systfref = vpi_handle(vpiSysTfCall, NULL);
-        args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i = 0; i < 3; i++) {
-            argh.push_back(vpi_scan(args_iter));
-        }
-    }
-
-    // get dt
-    double dt;
-    {
-        t_vpi_value argval;
-        argval.format = vpiRealVal;
-        vpi_get_value(argh[1], &argval);
-        file = argval.value.real;
-    }
-
-    if (initialized) {
-        double actual_time;
-        int status = xyce_simulateUntil(xyceObj, sim_time + dt, &actual_time);
-        sim_time = actual_time;
-    }
+    x.init(file);
 
     // clean up
     vpi_free_object(args_iter);
@@ -134,12 +61,21 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     }
 
     // get name
-    char* name;
+    std::string name;
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
         vpi_get_value(argh[1], &argval);
-        name = argval.value.str;
+        name = std::string(argval.value.str);
+    }
+
+    // get time
+    double time;
+    {
+        t_vpi_value argval;
+        argval.format = vpiRealVal;
+        vpi_get_value(argh[2], &argval);
+        time = argval.value.real;
     }
 
     // get value
@@ -147,19 +83,11 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[2], &argval);
+        vpi_get_value(argh[3], &argval);
         value = argval.value.real;
     }
 
-    if (initialized) {
-        double timeArray [] = {sim_time};
-        double voltageArray [] = {value};
-
-        char fullName[100];
-        sprintf(fullName, "YDAC!%s", name);
-
-        xyce_updateTimeVoltagePairs(xyceObj, fullName, 1, timeArray, voltageArray);
-    }
+    x.put(name, time, value);
 
     // clean up
     vpi_free_object(args_iter);
@@ -184,25 +112,33 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
     }
 
     // get name
-    char* name;
+    std::string name;
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
         vpi_get_value(argh[1], &argval);
-        name = argval.value.str;
+        name = std::string(argval.value.str);
     }
 
-    double value;
-    if (initialized) {
-        xyce_obtainResponse(xyceObj, name, &value);
+    // get time
+    double time;
+    {
+        t_vpi_value argval;
+        argval.format = vpiRealVal;
+        vpi_get_value(argh[2], &argval);
+        time = argval.value.real;
     }
+
+    // get value
+    double value;
+    x.get(name, time, &value);
 
     // put value
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
         argval.value.real = value;
-        vpi_put_value(argh[2], &argval, NULL, vpiNoDelay);
+        vpi_put_value(argh[3], &argval, NULL, vpiNoDelay);
     }
 
     // clean up
@@ -225,13 +161,11 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
 // create the PLI registration functions using this macro
 
 VPI_REGISTER_FUNC(pi_sb_xyce_init)
-VPI_REGISTER_FUNC(pi_sb_xyce_advance)
 VPI_REGISTER_FUNC(pi_sb_xyce_put)
 VPI_REGISTER_FUNC(pi_sb_xyce_get)
 
 void (*vlog_startup_routines[])(void) = {
     VPI_REGISTER_FUNC_NAME(pi_sb_xyce_init),
-    VPI_REGISTER_FUNC_NAME(pi_sb_xyce_advance),
     VPI_REGISTER_FUNC_NAME(pi_sb_xyce_put),
     VPI_REGISTER_FUNC_NAME(pi_sb_xyce_get),
     0 // last entry must be 0

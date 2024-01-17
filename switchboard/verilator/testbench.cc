@@ -10,6 +10,11 @@
 // For std::unique_ptr
 #include <memory>
 
+// For changing the clock period
+#include <iostream>
+#include <string>
+#include <cmath>
+
 // Include common routines
 #include <verilated.h>
 
@@ -50,6 +55,20 @@ int main(int argc, char** argv, char** env) {
     // "TOP" will be the hierarchical name of the module.
     const std::unique_ptr<Vtestbench> top{new Vtestbench{contextp.get(), "TOP"}};
 
+    // parse the clock period, if provided
+    double period = 10e-9;
+    const char* flag = contextp->commandArgsPlusMatch("period");
+    if (flag) {
+        std::string full = std::string(flag);
+        if (full.size() > 8) {
+            std::string rest = std::string(flag).substr(8);
+            period = std::stod(rest);
+        }
+    }
+
+    // convert the clock period an integer, scaling by the time precision
+    int period_as_int = period * std::pow(10.0, -1.0 * contextp->timeprecision());
+
     // Set Vtestbench's input signals
     top->clk = 0;
     top->eval();
@@ -66,7 +85,7 @@ int main(int argc, char** argv, char** env) {
         // being used (per thread).  It's faster and clearer to use the
         // newer contextp-> versions.
 
-        contextp->timeInc(1); // 1 timeprecision period passes...
+        contextp->timeInc(period_as_int / 2);
         // Historical note, before Verilator 4.200 a sc_time_stamp()
         // function was required instead of using timeInc.  Once timeInc()
         // is called (with non-zero), the Verilated libraries assume the

@@ -36,7 +36,8 @@ class SbDut(siliconcompiler.Chip):
         trace_type: str = 'vcd',
         module: str = None,
         fpga: bool = False,
-        xyce: bool = True
+        xyce: bool = True,
+        period: float = 10e-9
     ):
         """
         Parameters
@@ -68,6 +69,10 @@ class SbDut(siliconcompiler.Chip):
 
         xyce: bool, optional
             If True, compile for xyce co-simulation.
+
+        period: float, optional
+            If provided, the default period of the clock generated in the testbench,
+            in seconds.
         """
         # call the super constructor
 
@@ -94,6 +99,7 @@ class SbDut(siliconcompiler.Chip):
         self.trace_type = trace_type
         self.fpga = fpga
         self.xyce = xyce
+        self.period = period
 
         # simulator-agnostic settings
 
@@ -236,7 +242,8 @@ class SbDut(siliconcompiler.Chip):
         args=None,
         extra_args=None,
         cwd: str = None,
-        trace: bool = None
+        trace: bool = None,
+        period: float = None
     ) -> subprocess.Popen:
         """
         Parameters
@@ -258,6 +265,10 @@ class SbDut(siliconcompiler.Chip):
 
         trace: bool, optional
             If true, a waveform dump file will be produced
+
+        period: float, optional
+            If provided, the period of the clock generated in the testbench,
+            in seconds.
         """
 
         # set defaults
@@ -274,6 +285,9 @@ class SbDut(siliconcompiler.Chip):
         if trace is None:
             trace = self.trace
 
+        if period is None:
+            period = self.period
+
         # build the simulation if necessary
 
         sim = self.build(cwd=cwd, fast=True)
@@ -285,6 +299,11 @@ class SbDut(siliconcompiler.Chip):
 
         if trace and ('trace' not in plusargs) and ('+trace' not in args):
             plusargs.append('trace')
+
+        if ((period is not None)
+            and ('period' not in plusargs)
+            and not any(elem.startswith('+period') for elem in args)):
+            plusargs.append(('period', period))
 
         # run the simulation
 
