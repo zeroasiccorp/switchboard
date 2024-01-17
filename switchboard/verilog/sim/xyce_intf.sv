@@ -4,13 +4,15 @@
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 module xyce_intf;
-    // TODO: don't hardcode the timeunit
+    timeprecision 1fs;
 
     `ifdef __ICARUS__
         `define SB_EXT_FUNC(x) $``x``
         `define SB_START_FUNC task
         `define SB_END_FUNC endtask
-        `define SB_ABSTIME ($realtime * 1.0e-9)
+
+        timeunit 1s;
+        `define SB_ABSTIME ($realtime)
     `else
         `define SB_EXT_FUNC(x) x
         `define SB_START_FUNC function void

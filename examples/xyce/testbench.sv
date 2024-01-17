@@ -9,24 +9,21 @@ module testbench (
     // clock
 
     `ifndef VERILATOR
+        timeunit 1s;
+        timeprecision 1fs;
 
         real period = 10e-9;
-
-        integer ignore;
         initial begin
-            ignore = $value$plusargs("period=%f", period);
+            $value$plusargs("period=%f", period);
         end
-
-        // TODO: don't hardcode the timeunit
 
         reg clk;
         always begin
             clk = 1'b0;
-            #(0.5 * period * 1e9);
+            #(0.5 * period);
             clk = 1'b1;
-            #(0.5 * period * 1e9);
+            #(0.5 * period);
         end
-
     `endif
 
     xyce_intf xyce_intf_i ();

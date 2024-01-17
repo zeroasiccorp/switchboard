@@ -1,6 +1,6 @@
 # Build and simulation automation built on SiliconCompiler
 
-# Copyright (c) 2023 Zero ASIC Corporation
+# Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 """Class inheriting from the SiliconCompiler Chip class that can be used for building a
@@ -38,7 +38,9 @@ class SbDut(siliconcompiler.Chip):
         module: str = None,
         fpga: bool = False,
         xyce: bool = True,
-        period: float = 10e-9
+        period: float = 10e-9,
+        timeunit: str = None,
+        timeprecision: str = None
     ):
         """
         Parameters
@@ -101,6 +103,8 @@ class SbDut(siliconcompiler.Chip):
         self.fpga = fpga
         self.xyce = xyce
         self.period = period
+        self.timeunit = timeunit
+        self.timeprecision = timeprecision
 
         # simulator-agnostic settings
 
@@ -136,21 +140,19 @@ class SbDut(siliconcompiler.Chip):
             self._configure_build(
                 module=module,
                 default_main=default_main,
-                fpga=fpga,
-                xyce=xyce
+                fpga=fpga
             )
 
     def _configure_build(
         self,
         module: str,
         default_main: bool = False,
-        fpga: bool = False,
-        xyce: bool = False
+        fpga: bool = False
     ):
         if not fpga:
             self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
 
-        if xyce:
+        if self.xyce:
             self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
 
         if default_main and (self.tool == 'verilator'):
@@ -165,7 +167,7 @@ class SbDut(siliconcompiler.Chip):
         c_includes = [SB_DIR / 'cpp']
         ld_flags = ['-pthread']
 
-        if xyce:
+        if self.xyce:
             xyce_c_includes, xyce_ld_flags = xyce_flags()
             c_includes += xyce_c_includes
             ld_flags += xyce_ld_flags
@@ -176,6 +178,21 @@ class SbDut(siliconcompiler.Chip):
 
         if self.trace and (self.tool == 'verilator'):
             self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', self.trace_type)
+
+        if self.tool == 'verilator':
+            timeunit = self.timeunit
+            timeprecision = self.timeprecision
+
+            if (timeunit is not None) or (timeprecision is not None):
+                if timeunit is None:
+                    timeunit = '1ps'  # default from Verilator documentation
+
+                if timeprecision is None:
+                    timeprecision = '1ps'  # default from Verilator documentation
+
+                timescale = f'{timeunit}/{timeprecision}'
+                self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
+                self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
 
         self.set('option', 'libext', ['v', 'sv'])
 
