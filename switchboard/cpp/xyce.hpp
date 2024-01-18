@@ -2,8 +2,8 @@
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,15 +26,11 @@ class XyceIntf {
 
     void init(std::string file) {
         // pointer to N_CIR_Xyce object
-        m_xyceObj = (void **) malloc( sizeof(void* [1]) );
+        m_xyceObj = (void**)malloc(sizeof(void* [1]));
 
         // xyce command
-        char *argList[] = {
-            (char*)("Xyce"),
-            (char*)("-quiet"),
-            (char*)file.c_str()
-        };
-        int argc = sizeof(argList)/sizeof(argList[0]);
+        char* argList[] = {(char*)("Xyce"), (char*)("-quiet"), (char*)file.c_str()};
+        int argc = sizeof(argList) / sizeof(argList[0]);
         char** argv = argList;
 
         // Open N_CIR_Xyce object
@@ -67,13 +63,8 @@ class XyceIntf {
         if (m_initialized) {
             std::string fullName = "YDAC!" + name;
 
-            xyce_updateTimeVoltagePairs(
-                m_xyceObj,
-                (char*)fullName.c_str(),
-                m_time[name].size(),
-                m_time[name].data(),
-                m_value[name].data()
-            );
+            xyce_updateTimeVoltagePairs(m_xyceObj, (char*)fullName.c_str(), m_time[name].size(),
+                m_time[name].data(), m_value[name].data());
         }
     }
 

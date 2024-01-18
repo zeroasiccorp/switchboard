@@ -27,7 +27,7 @@ module xyce_intf;
         );
         import "DPI-C" function void pi_sb_xyce_get (
             input string name,
-            input real t, 
+            input real t,
             output real value
         );
     `endif

@@ -55,7 +55,7 @@ module testbench (
         xyce_intf_i.get("ADC0", out);
     end
 
-    // Initialize 
+    // Initialize
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */

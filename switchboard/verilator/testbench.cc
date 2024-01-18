@@ -11,9 +11,9 @@
 #include <memory>
 
 // For changing the clock period
+#include <cmath>
 #include <iostream>
 #include <string>
-#include <cmath>
 
 // Include common routines
 #include <verilated.h>
@@ -66,8 +66,7 @@ int main(int argc, char** argv, char** env) {
         // the prefix, and the argument must start with the prefix,
         // ignoring the last character of the prefix, which can be
         // anything (typically "=" or "+")
-        if ((full.size() >= (len + 1))
-            && (full.substr(0, len - 1) == prefix.substr(0, len - 1))) {
+        if ((full.size() >= (len + 1)) && (full.substr(0, len - 1) == prefix.substr(0, len - 1))) {
             std::string rest = std::string(flag).substr(len);
             period = std::stod(rest);
         }

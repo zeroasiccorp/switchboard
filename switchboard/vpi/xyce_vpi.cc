@@ -165,8 +165,7 @@ VPI_REGISTER_FUNC(pi_sb_xyce_put)
 VPI_REGISTER_FUNC(pi_sb_xyce_get)
 
 void (*vlog_startup_routines[])(void) = {
-    VPI_REGISTER_FUNC_NAME(pi_sb_xyce_init),
-    VPI_REGISTER_FUNC_NAME(pi_sb_xyce_put),
+    VPI_REGISTER_FUNC_NAME(pi_sb_xyce_init), VPI_REGISTER_FUNC_NAME(pi_sb_xyce_put),
     VPI_REGISTER_FUNC_NAME(pi_sb_xyce_get),
     0 // last entry must be 0
 };
