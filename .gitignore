@@ -36,6 +36,7 @@ compile_flags.txt
 results.xml
 obj_dir
 .pytest_cache
+*.mt0
 
 # queues
 queue-*

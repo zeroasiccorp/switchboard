@@ -10,6 +10,11 @@
 // For std::unique_ptr
 #include <memory>
 
+// For changing the clock period
+#include <cmath>
+#include <iostream>
+#include <string>
+
 // Include common routines
 #include <verilated.h>
 
@@ -50,6 +55,28 @@ int main(int argc, char** argv, char** env) {
     // "TOP" will be the hierarchical name of the module.
     const std::unique_ptr<Vtestbench> top{new Vtestbench{contextp.get(), "TOP"}};
 
+    // parse the clock period, if provided
+    double period = 10e-9;
+    const char* flag = contextp->commandArgsPlusMatch("period");
+    if (flag) {
+        std::string full = std::string(flag);
+        std::string prefix = "+period=";
+        size_t len = prefix.size();
+        // match requirements: there must be at least one character after
+        // the prefix, and the argument must start with the prefix,
+        // ignoring the last character of the prefix, which can be
+        // anything (typically "=" or "+")
+        if ((full.size() >= (len + 1)) && (full.substr(0, len - 1) == prefix.substr(0, len - 1))) {
+            std::string rest = std::string(flag).substr(len);
+            period = std::stod(rest);
+        }
+    }
+
+    // convert the clock period an integer, scaling by the time precision
+    uint64_t iperiod = std::round(period * std::pow(10.0, -1.0 * contextp->timeprecision()));
+    uint64_t duration0 = iperiod / 2;
+    uint64_t duration1 = iperiod - duration0;
+
     // Set Vtestbench's input signals
     top->clk = 0;
     top->eval();
@@ -59,26 +86,11 @@ int main(int argc, char** argv, char** env) {
 
     // Main loop
     while (!(contextp->gotFinish() || got_sigint)) {
-        // Historical note, before Verilator 4.200 Verilated::gotFinish()
-        // was used above in place of contextp->gotFinish().
-        // Most of the contextp-> calls can use Verilated:: calls instead;
-        // the Verilated:: versions just assume there's a single context
-        // being used (per thread).  It's faster and clearer to use the
-        // newer contextp-> versions.
-
-        contextp->timeInc(1); // 1 timeprecision period passes...
-        // Historical note, before Verilator 4.200 a sc_time_stamp()
-        // function was required instead of using timeInc.  Once timeInc()
-        // is called (with non-zero), the Verilated libraries assume the
-        // new API, and sc_time_stamp() will no longer work.
-
-        // Toggle a fast (time/2 period) clock
-        top->clk = !top->clk;
-
-        // Evaluate model
-        // (If you have multiple models being simulated in the same
-        // timestep then instead of eval(), call eval_step() on each, then
-        // eval_end_step() on each. See the manual.)
+        contextp->timeInc(duration0);
+        top->clk = 1;
+        top->eval();
+        contextp->timeInc(duration1);
+        top->clk = 0;
         top->eval();
     }
 

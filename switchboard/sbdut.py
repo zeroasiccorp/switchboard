@@ -1,6 +1,6 @@
 # Build and simulation automation built on SiliconCompiler
 
-# Copyright (c) 2023 Zero ASIC Corporation
+# Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 """Class inheriting from the SiliconCompiler Chip class that can be used for building a
@@ -19,6 +19,7 @@ from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
 from .warn import warn_future
+from .xyce import xyce_flags
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -35,7 +36,12 @@ class SbDut(siliconcompiler.Chip):
         trace: bool = True,
         trace_type: str = 'vcd',
         module: str = None,
-        fpga: bool = False
+        fpga: bool = False,
+        xyce: bool = False,
+        frequency: float = 100e6,
+        period: float = None,
+        timeunit: str = None,
+        timeprecision: str = None
     ):
         """
         Parameters
@@ -64,6 +70,13 @@ class SbDut(siliconcompiler.Chip):
         fpga: bool, optional
             If True, compile using switchboard's library of modules for FPGA emulation,
             rather than the modules for RTL simulation.
+
+        xyce: bool, optional
+            If True, compile for xyce co-simulation.
+
+        period: float, optional
+            If provided, the default period of the clock generated in the testbench,
+            in seconds.
         """
         # call the super constructor
 
@@ -89,6 +102,14 @@ class SbDut(siliconcompiler.Chip):
         self.trace = trace
         self.trace_type = trace_type
         self.fpga = fpga
+        self.xyce = xyce
+
+        if (period is None) and (frequency is not None):
+            period = 1 / frequency
+        self.period = period
+
+        self.timeunit = timeunit
+        self.timeprecision = timeprecision
 
         # simulator-agnostic settings
 
@@ -136,6 +157,9 @@ class SbDut(siliconcompiler.Chip):
         if not fpga:
             self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
 
+        if self.xyce:
+            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
+
         if default_main and (self.tool == 'verilator'):
             self.input(SB_DIR / 'verilator' / 'testbench.cc')
 
@@ -148,12 +172,32 @@ class SbDut(siliconcompiler.Chip):
         c_includes = [SB_DIR / 'cpp']
         ld_flags = ['-pthread']
 
+        if self.xyce:
+            xyce_c_includes, xyce_ld_flags = xyce_flags()
+            c_includes += xyce_c_includes
+            ld_flags += xyce_ld_flags
+
         self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags', c_flags)
         self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', c_includes)
         self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ld_flags)
 
         if self.trace and (self.tool == 'verilator'):
             self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', self.trace_type)
+
+        if self.tool == 'verilator':
+            timeunit = self.timeunit
+            timeprecision = self.timeprecision
+
+            if (timeunit is not None) or (timeprecision is not None):
+                if timeunit is None:
+                    timeunit = '1ps'  # default from Verilator documentation
+
+                if timeprecision is None:
+                    timeprecision = '1ps'  # default from Verilator documentation
+
+                timescale = f'{timeunit}/{timeprecision}'
+                self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
+                self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
 
         self.set('option', 'libext', ['v', 'sv'])
 
@@ -194,8 +238,11 @@ class SbDut(siliconcompiler.Chip):
         """
 
         if self.tool == 'icarus':
-            if (not fast) or (icarus_find_vpi(cwd) is None):
-                icarus_build_vpi(cwd)
+            if (not fast) or (icarus_find_vpi(cwd, name='switchboard') is None):
+                icarus_build_vpi(cwd, name='switchboard')
+            if self.xyce and ((not fast) or (icarus_find_vpi(cwd, name='xyce') is None)):
+                cincludes, ldflags = xyce_flags()
+                icarus_build_vpi(cwd, name='xyce', cincludes=cincludes, ldflags=ldflags)
 
         # if "fast" is set, then we can return early if the
         # simulation binary already exists
@@ -216,7 +263,9 @@ class SbDut(siliconcompiler.Chip):
         args=None,
         extra_args=None,
         cwd: str = None,
-        trace: bool = None
+        trace: bool = None,
+        period: float = None,
+        frequency: float = None
     ) -> subprocess.Popen:
         """
         Parameters
@@ -238,6 +287,10 @@ class SbDut(siliconcompiler.Chip):
 
         trace: bool, optional
             If true, a waveform dump file will be produced
+
+        period: float, optional
+            If provided, the period of the clock generated in the testbench,
+            in seconds.
         """
 
         # set defaults
@@ -254,6 +307,12 @@ class SbDut(siliconcompiler.Chip):
         if trace is None:
             trace = self.trace
 
+        if (period is None) and (frequency is not None):
+            period = 1 / frequency
+
+        if period is None:
+            period = self.period
+
         # build the simulation if necessary
 
         sim = self.build(cwd=cwd, fast=True)
@@ -266,14 +325,26 @@ class SbDut(siliconcompiler.Chip):
         if trace and ('trace' not in plusargs) and ('+trace' not in args):
             plusargs.append('trace')
 
+        if ((period is not None)
+            and ('period' not in plusargs)
+            and not any(elem.startswith('+period') for elem in args)):
+            plusargs.append(('period', period))
+
         # run the simulation
 
         p = None
 
         if self.tool == 'icarus':
-            # retrieve the location of the VPI binary
-            vpi = icarus_find_vpi(cwd=cwd)
-            assert vpi is not None, 'Could not find Switchboard VPI binary.'
+            names = ['switchboard']
+            modules = []
+
+            if self.xyce:
+                names.append('xyce')
+
+            for name in names:
+                vpi = icarus_find_vpi(cwd=cwd, name=name)
+                assert vpi is not None, f'Could not find VPI binary "{name}"'
+                modules.append(vpi)
 
             # set the trace format
             if self.trace_type == 'fst' and ('-fst' not in extra_args):
@@ -282,7 +353,7 @@ class SbDut(siliconcompiler.Chip):
             p = icarus_run(
                 sim,
                 plusargs=plusargs,
-                modules=[vpi],
+                modules=modules,
                 extra_args=extra_args
             )
         else:
