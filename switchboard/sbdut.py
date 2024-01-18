@@ -37,7 +37,7 @@ class SbDut(siliconcompiler.Chip):
         trace_type: str = 'vcd',
         module: str = None,
         fpga: bool = False,
-        xyce: bool = True,
+        xyce: bool = False,
         frequency: float = 100e6,
         period: float = None,
         timeunit: str = None,
