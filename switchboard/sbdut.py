@@ -38,7 +38,8 @@ class SbDut(siliconcompiler.Chip):
         module: str = None,
         fpga: bool = False,
         xyce: bool = True,
-        period: float = 10e-9,
+        frequency: float = 100e6,
+        period: float = None,
         timeunit: str = None,
         timeprecision: str = None
     ):
@@ -102,7 +103,11 @@ class SbDut(siliconcompiler.Chip):
         self.trace_type = trace_type
         self.fpga = fpga
         self.xyce = xyce
+
+        if (period is None) and (frequency is not None):
+            period = 1 / frequency
         self.period = period
+
         self.timeunit = timeunit
         self.timeprecision = timeprecision
 
@@ -259,7 +264,8 @@ class SbDut(siliconcompiler.Chip):
         extra_args=None,
         cwd: str = None,
         trace: bool = None,
-        period: float = None
+        period: float = None,
+        frequency: float = None
     ) -> subprocess.Popen:
         """
         Parameters
@@ -300,6 +306,9 @@ class SbDut(siliconcompiler.Chip):
 
         if trace is None:
             trace = self.trace
+
+        if (period is None) and (frequency is not None):
+            period = 1 / frequency
 
         if period is None:
             period = self.period
