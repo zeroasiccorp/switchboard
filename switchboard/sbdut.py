@@ -354,7 +354,7 @@ class SbDut(siliconcompiler.Chip):
                 sim,
                 plusargs=plusargs,
                 modules=modules,
-                extra_args=extra_args
+                extra_args=args + extra_args
             )
         else:
             # make sure that the simulator was built with tracing enabled
@@ -363,10 +363,16 @@ class SbDut(siliconcompiler.Chip):
                     '  Please set trace=True in the SbDut and try again.')
 
             if self.tool == 'verilator':
-                p = verilator_run(sim, plusargs=plusargs)
+                p = verilator_run(
+                    sim,
+                    plusargs=plusargs,
+                    args=args
+                )
             else:
-                args = plusargs_to_args(plusargs)
-                p = binary_run(sim, args=args)
+                p = binary_run(
+                    sim,
+                    args=plusargs_to_args(plusargs) + args
+                )
 
         # return a Popen object that one can wait() on
 
