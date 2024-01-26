@@ -15,12 +15,16 @@ module queue_to_sb_sim #(
     parameter integer DW=416
 ) (
     input clk,
-    output reg [DW-1:0] data='b0,
+    output [DW-1:0] data,
     output reg [31:0] dest=32'b0,
     output reg last=1'b0,
     input ready,
     output reg valid=1'b0
 );
+    // corresponds to UMI DW=256
+    // 32b (cmd) + 64b (srcaddr) + 64b (dstaddr) + 256b = 416b
+    localparam SBDW = 416;
+
     `ifdef __ICARUS__
         `define SB_EXT_FUNC(x) $``x``
         `define SB_START_FUNC task
@@ -34,7 +38,7 @@ module queue_to_sb_sim #(
 
         import "DPI-C" function void pi_sb_rx_init(output int id,
             input string uri, input int width);
-        import "DPI-C" function void pi_sb_recv(input int id, output bit [DW-1:0] rdata,
+        import "DPI-C" function void pi_sb_recv(input int id, output bit [SBDW-1:0] rdata,
             output bit [31:0] rdest, output bit rlast, output int success);
     `endif
 
@@ -50,9 +54,12 @@ module queue_to_sb_sim #(
 
     integer success = 0;
 
-    `SB_VAR_BIT [DW-1:0] rdata;
+    `SB_VAR_BIT [SBDW-1:0] rdata;
     `SB_VAR_BIT [31:0] rdest;
     `SB_VAR_BIT rlast;
+
+    `SB_VAR_BIT [SBDW-1:0] data_padded = 'b0;
+    assign data = data_padded[DW-1:0];
 
     initial begin
         rdata = 'b0;
@@ -94,7 +101,7 @@ module queue_to_sb_sim #(
                     valid <= 1'b0;
                 end else begin
                     valid <= 1'b1;
-                    data <= rdata;
+                    data_padded <= rdata;
                     dest <= rdest;
                     last <= rlast;
                 end
@@ -123,7 +130,7 @@ module queue_to_sb_sim #(
                     valid <= 1'b0;
                 end else begin
                     valid <= 1'b1;
-                    data <= rdata;
+                    data_padded <= rdata;
                     dest <= rdest;
                     last <= rlast;
                 end

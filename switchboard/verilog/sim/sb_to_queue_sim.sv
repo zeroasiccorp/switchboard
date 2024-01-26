@@ -21,6 +21,10 @@ module sb_to_queue_sim #(
     output reg ready=1'b0,
     input valid
 );
+    // corresponds to UMI DW=256
+    // 32b (cmd) + 64b (srcaddr) + 64b (dstaddr) + 256b = 416b
+    localparam SBDW = 416;
+
     `ifdef __ICARUS__
         `define SB_EXT_FUNC(x) $``x``
         `define SB_START_FUNC task
@@ -32,7 +36,7 @@ module sb_to_queue_sim #(
 
         import "DPI-C" function void pi_sb_tx_init (output int id,
             input string uri, input int width);
-        import "DPI-C" function void pi_sb_send (input int id, input bit [DW-1:0] sdata,
+        import "DPI-C" function void pi_sb_send (input int id, input bit [SBDW-1:0] sdata,
             input bit [31:0] sdest, input bit slast, output int success);
     `endif
 
@@ -49,7 +53,16 @@ module sb_to_queue_sim #(
     integer success = 0;
     reg pending = 1'b0;
 
-    reg [DW-1:0] sdata = 'b0;
+    wire [SBDW-1:0] data_padded;
+    generate
+        if (SBDW > DW) begin
+            assign data_padded = {{(SBDW-DW){1'b0}}, data};
+        end else begin
+            assign data_padded = data;
+        end
+    endgenerate
+
+    reg [SBDW-1:0] sdata = 'b0;
     reg [31:0] sdest = 32'b0;
     reg slast = 1'b0;
 
@@ -72,7 +85,7 @@ module sb_to_queue_sim #(
             // unless the queue they're trying to push to is full.
             if (id != -1) begin
                 /* verilator lint_off IGNOREDRETURN */
-                `SB_EXT_FUNC(pi_sb_send)(id, data, dest, last, success);
+                `SB_EXT_FUNC(pi_sb_send)(id, data_padded, dest, last, success);
                 /* verilator lint_on IGNOREDRETURN */
             end else begin
                 success = 32'd0;
@@ -86,7 +99,7 @@ module sb_to_queue_sim #(
             if (success == 32'd0) begin
                 pending <= 1'b1;
                 ready <= 1'b0;
-                sdata <= data;
+                sdata <= data_padded;
                 sdest <= dest;
                 slast <= last;
             end else begin
