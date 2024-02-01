@@ -92,11 +92,21 @@ template <typename T> std::string umi_transaction_as_str(T& x) {
     return stream.str();
 }
 
+// function to print a warning or throw an error
+
+static inline void umisb_error_or_warn(std::string const& msg, bool error = true) {
+    if (error) {
+        throw std::runtime_error(msg);
+    } else {
+        std::cerr << "Warning: " << msg << std::endl;
+    }
+}
+
 // function for checking if requests and replies match up as expected
 
 template <typename T>
 void umisb_check_resp(T& resp, uint32_t opcode, uint32_t size, uint32_t to_ack,
-    uint64_t expected_addr) {
+    uint64_t expected_addr, bool error = true) {
 
     uint32_t resp_opcode = umi_opcode(resp.cmd);
     uint32_t resp_size = umi_size(resp.cmd);
@@ -105,26 +115,32 @@ void umisb_check_resp(T& resp, uint32_t opcode, uint32_t size, uint32_t to_ack,
     // check that the response makes sense
 
     if (resp_opcode != opcode) {
-        std::cerr << "Warning: got " << umi_opcode_to_str(resp_opcode) << " (expected "
-                  << umi_opcode_to_str(opcode) << ")" << std::endl;
+        std::ostringstream oss;
+        oss << "Got " << umi_opcode_to_str(resp_opcode) << " (expected "
+            << umi_opcode_to_str(opcode) << ")";
+        umisb_error_or_warn(oss.str(), error);
     }
 
     if (resp_size != size) {
-        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode) << " response SIZE is "
-                  << std::to_string(resp_size) << " (expected " << std::to_string(size) << ")"
-                  << std::endl;
+        std::ostringstream oss;
+        oss << umi_opcode_to_str(resp_opcode) << " response SIZE is " << std::to_string(resp_size)
+            << " (expected " << std::to_string(size) << ")";
+        umisb_error_or_warn(oss.str(), error);
     }
 
     if ((resp_len + 1) > to_ack) {
-        std::cerr << "Warning: " << umi_opcode_to_str(resp_opcode) << " response LEN is "
-                  << std::to_string(resp_len) << " (expected no more than "
-                  << std::to_string(to_ack - 1) << ")" << std::endl;
+        std::ostringstream oss;
+        oss << umi_opcode_to_str(resp_opcode) << " response LEN is " << std::to_string(resp_len)
+            << " (expected no more than " << std::to_string(to_ack - 1) << ")";
+        umisb_error_or_warn(oss.str(), error);
     }
 
     if (resp.dstaddr != expected_addr) {
-        std::cerr << "Warning: dstaddr in " << umi_opcode_to_str(resp_opcode) << " response is "
-                  << std::to_string(resp.dstaddr) << " (expected " << std::to_string(expected_addr)
-                  << ")" << std::endl;
+        std::ostringstream oss;
+        oss << "dstaddr in " << umi_opcode_to_str(resp_opcode) << " response is "
+            << std::to_string(resp.dstaddr) << " (expected " << std::to_string(expected_addr)
+            << ")";
+        umisb_error_or_warn(oss.str(), error);
     }
 }
 

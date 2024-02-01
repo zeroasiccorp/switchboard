@@ -20,7 +20,7 @@ from .gpio import UmiGpio
 class UmiTxRx:
     def __init__(self, tx_uri: str = None, rx_uri: str = None,
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
-        max_bytes: int = None, fresh: bool = False):
+        max_bytes: int = None, fresh: bool = False, error: bool = True):
         """
         Parameters
         ----------
@@ -52,6 +52,8 @@ class UmiTxRx:
         fresh: bool, optional
            If True, the queue specified by the uri parameter will get
            cleared before executing the simulation.
+        error: bool, optional
+            If True, error out upon receiving an unexpected UMI response.
         """
 
         if tx_uri is None:
@@ -89,6 +91,7 @@ class UmiTxRx:
             max_bytes = 32
 
         self.default_max_bytes = max_bytes
+        self.default_error = error
 
     def gpio(
         self,
@@ -206,7 +209,8 @@ class UmiTxRx:
         return self.umi.recv(blocking)
 
     def write(self, addr, data, srcaddr=None, max_bytes=None,
-        posted=None, qos=0, prot=0, progressbar=False, check_alignment=True):
+        posted=None, qos=0, prot=0, progressbar=False, check_alignment=True,
+        error=None):
         """
         Writes the provided data to the given 64-bit address.
 
@@ -246,6 +250,9 @@ class UmiTxRx:
         check_alignment: bool, optional
             If true, an exception will be raised if the `addr` parameter cannot be aligned based
             on the size of the `data` parameter
+
+        error: bool, optional
+            If True, error out upon receiving an unexpected UMI response.
         """
 
         # set defaults
@@ -264,6 +271,11 @@ class UmiTxRx:
             posted = self.default_posted
 
         posted = bool(posted)
+
+        if error is None:
+            error = self.default_error
+
+        error = bool(error)
 
         # format the data to be written
 
@@ -290,10 +302,10 @@ class UmiTxRx:
 
         # perform write
         self.umi.write(addr, write_data, srcaddr, max_bytes,
-                       posted, qos, prot, progressbar)
+            posted, qos, prot, progressbar, error)
 
     def write_readback(self, addr, value, mask=None, srcaddr=None, dtype=None,
-        posted=True, write_srcaddr=None, check_alignment=True):
+        posted=True, write_srcaddr=None, check_alignment=True, error=None):
         """
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
@@ -334,6 +346,9 @@ class UmiTxRx:
             If true, an exception will be raised if the `addr` parameter cannot be aligned based
             on the size of the `data` parameter
 
+        error: bool, optional
+            If True, error out upon receiving an unexpected UMI response.
+
         Raises
         ------
         TypeError
@@ -373,13 +388,15 @@ class UmiTxRx:
 
         # write, then read repeatedly until the value written is observed
         self.write(addr, value, srcaddr=write_srcaddr, posted=posted,
-            check_alignment=check_alignment)
-        rdval = self.read(addr, value.dtype, srcaddr=srcaddr, check_alignment=check_alignment)
+            check_alignment=check_alignment, error=error)
+        rdval = self.read(addr, value.dtype, srcaddr=srcaddr,
+            check_alignment=check_alignment, error=error)
         while ((rdval & mask) != (value & mask)):
-            rdval = self.read(addr, value.dtype, srcaddr=srcaddr, check_alignment=check_alignment)
+            rdval = self.read(addr, value.dtype, srcaddr=srcaddr,
+                check_alignment=check_alignment, error=error)
 
     def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=None,
-        max_bytes=None, qos=0, prot=0, check_alignment=True):
+        max_bytes=None, qos=0, prot=0, check_alignment=True, error=None):
         """
         Parameters
         ----------
@@ -411,6 +428,9 @@ class UmiTxRx:
         prot: int, optional
             2-bit Protection mode field used in the UMI command
 
+        error: bool, optional
+            If True, error out upon receiving an unexpected UMI response.
+
         Returns
         -------
         numpy integer array
@@ -430,6 +450,11 @@ class UmiTxRx:
 
         srcaddr = int(srcaddr)
 
+        if error is None:
+            error = self.default_error
+
+        error = bool(error)
+
         if isinstance(num_or_dtype, (type, np.dtype)):
             num = 1
             bytes_per_elem = np.dtype(num_or_dtype).itemsize
@@ -442,17 +467,15 @@ class UmiTxRx:
             if not addr_aligned(addr=addr, align=size):
                 raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
-        extra_args = []
-        extra_args += [qos, prot]
-
-        result = self.umi.read(addr, num, bytes_per_elem, srcaddr, max_bytes, *extra_args)
+        result = self.umi.read(addr, num, bytes_per_elem, srcaddr, max_bytes,
+            qos, prot, error)
 
         if isinstance(num_or_dtype, (type, np.dtype)):
             return result.view(num_or_dtype)[0]
         else:
             return result
 
-    def atomic(self, addr, data, opcode, srcaddr=None, qos=0, prot=0):
+    def atomic(self, addr, data, opcode, srcaddr=None, qos=0, prot=0, error=None):
         """
         Parameters
         ----------
@@ -476,6 +499,9 @@ class UmiTxRx:
         prot: int, optional
             2-bit Protection mode field used in the UMI command
 
+        error: bool, optional
+            If True, error out upon receiving an unexpected UMI response.
+
         Raises
         ------
         TypeError
@@ -496,12 +522,14 @@ class UmiTxRx:
 
         srcaddr = int(srcaddr)
 
+        if error is None:
+            error = self.default_error
+
+        error = bool(error)
+
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
             opcode = getattr(UmiAtomic, f'UMI_REQ_ATOMIC{opcode.upper()}')
-
-        extra_args = []
-        extra_args += [qos, prot]
 
         # format the data for sending
         if isinstance(data, np.integer):
@@ -509,7 +537,7 @@ class UmiTxRx:
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, *extra_args)
+            result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, qos, prot, error)
             return result.view(data.dtype)[0]
         else:
             raise TypeError("The data provided to atomic should be of a numpy integer type"
