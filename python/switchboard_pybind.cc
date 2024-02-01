@@ -543,7 +543,7 @@ class PyUmi {
 
     void write(uint64_t addr, py::array data, uint64_t srcaddr = 0,
         uint32_t max_bytes = UMI_PACKET_DATA_BYTES, bool posted = false, uint32_t qos = 0,
-        uint32_t prot = 0, bool progressbar = false) {
+        uint32_t prot = 0, bool progressbar = false, bool error = true) {
 
         // write data to the given address.  data can be of any length,
         // including greater than the length of a header packet and
@@ -627,7 +627,7 @@ class PyUmi {
                 UmiTransaction resp(0, 0, 0, NULL, 0);
                 if (umisb_recv<UmiTransaction>(resp, m_rx, false)) {
                     // check that the response makes sense
-                    umisb_check_resp(resp, UMI_RESP_WRITE, size, to_ack, expected_addr);
+                    umisb_check_resp(resp, UMI_RESP_WRITE, size, to_ack, expected_addr, error);
 
                     // update ack status
                     to_ack -= (umi_len(resp.cmd) + 1);
@@ -648,7 +648,8 @@ class PyUmi {
     }
 
     py::array read(uint64_t addr, uint32_t num, size_t bytes_per_elem, uint64_t srcaddr = 0,
-        uint32_t max_bytes = UMI_PACKET_DATA_BYTES, uint32_t qos = 0, uint32_t prot = 0) {
+        uint32_t max_bytes = UMI_PACKET_DATA_BYTES, uint32_t qos = 0, uint32_t prot = 0,
+        bool error = true) {
 
         // read "num" bytes from the given address.  "num" may be any value,
         // including greater than the length of a header packet, and values
@@ -718,7 +719,7 @@ class PyUmi {
                 if (umisb_recv<UmiTransaction>(resp, m_rx, false)) {
                     // check that the reply makes sense
                     umisb_check_resp<UmiTransaction>(resp, UMI_RESP_READ, size, to_recv,
-                        expected_addr);
+                        expected_addr, error);
 
                     // update pointers
                     ptr += (umi_len(resp.cmd) + 1) << umi_size(resp.cmd);
@@ -735,7 +736,7 @@ class PyUmi {
     }
 
     py::array atomic(uint64_t addr, py::array_t<uint8_t> data, uint32_t opcode,
-        uint64_t srcaddr = 0, uint32_t qos = 0, uint32_t prot = 0) {
+        uint64_t srcaddr = 0, uint32_t qos = 0, uint32_t prot = 0, bool error = true) {
         // input validation
 
         uint32_t num = data.nbytes();
@@ -768,7 +769,7 @@ class PyUmi {
         umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals);
 
         // check that the response makes sense
-        umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr);
+        umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr, error);
 
         // return the result of the operation
         return resp.data;
@@ -888,9 +889,8 @@ char* PyUmi_write_docstring =
     "progressbar: bool, optional\n"
     "\tIf True, the number of packets written will be displayed via a progressbar"
     "in the terminal.\n"
-    "check_alignment: bool, optional\n"
-    "\tIf true, an exception will be raised if the `addr` parameter cannot be aligned based"
-    "on the size of the `data` parameter";
+    "error: bool, optional\n"
+    "\tIf true, error out upon receiving an unexpected UMI response.\n";
 
 char* PyUmi_read_docstring =
     "Parameters\n"
@@ -917,7 +917,9 @@ char* PyUmi_read_docstring =
     "qos: int, optional\n"
     "\t4-bit Quality of Service field in UMI Command\n"
     "prot: int, optional\n"
-    "\t2-bit protection mode field in UMI command\n";
+    "\t2-bit protection mode field in UMI command\n"
+    "error: bool, optional\n"
+    "\tIf true, error out upon receiving an unexpected UMI response.\n";
 
 char* PyUmi_atomic_docstring =
     "Parameters\n"
@@ -936,6 +938,8 @@ char* PyUmi_atomic_docstring =
     "\t4-bit Quality of Service field in UMI Command\n"
     "prot: int, optional\n"
     "\t2-bit protection mode field in UMI command\n"
+    "error: bool, optional\n"
+    "\tIf true, error out upon receiving an unexpected UMI response.\n"
     "Returns\n"
     "-------\n"
     "np.uint8, np.uint16, np.uint32, np.uint64\n"
@@ -1009,12 +1013,14 @@ PYBIND11_MODULE(_switchboard, m) {
         .def("recv", &PyUmi::recv, PyUmi_recv_docstring, py::arg("blocking") = true)
         .def("write", &PyUmi::write, PyUmi_write_docstring, py::arg("addr"), py::arg("data"),
             py::arg("srcaddr") = 0, py::arg("max_bytes") = 32, py::arg("posted") = false,
-            py::arg("qos") = 0, py::arg("prot") = 0, py::arg("progressbar") = false)
+            py::arg("qos") = 0, py::arg("prot") = 0, py::arg("progressbar") = false,
+            py::arg("error") = true)
         .def("read", &PyUmi::read, PyUmi_read_docstring, py::arg("addr"), py::arg("num"),
             py::arg("bytes_per_elem") = 1, py::arg("srcaddr") = 0, py::arg("max_bytes") = 32,
-            py::arg("qos") = 0, py::arg("prot") = 0)
+            py::arg("qos") = 0, py::arg("prot") = 0, py::arg("error") = true)
         .def("atomic", &PyUmi::atomic, PyUmi_atomic_docstring, py::arg("addr"), py::arg("data"),
-            py::arg("opcode"), py::arg("srcaddr") = 0, py::arg("qos") = 0, py::arg("prot") = 0);
+            py::arg("opcode"), py::arg("srcaddr") = 0, py::arg("qos") = 0, py::arg("prot") = 0,
+            py::arg("error") = true);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str,
         "Returns a string representation of a UMI opcode");
