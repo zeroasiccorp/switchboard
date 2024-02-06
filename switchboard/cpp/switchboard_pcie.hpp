@@ -77,7 +77,6 @@ class SB_pcie {
         int reset_retry = 0;
         uint32_t r;
 
-        // TODO Validate the ID and version regs.
         r = dev_read32(REG_ID);
         D(printf("SB pcie ID=%x\n", r));
         if (r >> 16 != REG_ID_FPGA) {
@@ -90,7 +89,6 @@ class SB_pcie {
 
         // Reset the device.
         dev_write32(qoffset + REG_RESET, 0x1);
-        // TODO: timeout/yield?
         D(printf("Read reset state\n"));
         while (dev_read32(qoffset + REG_STATUS) != 0x1) {
             if (reset_retry++ >= MAX_RETRY) {
