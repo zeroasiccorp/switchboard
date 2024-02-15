@@ -88,7 +88,9 @@ module sb_to_queue_sim #(
                 `SB_EXT_FUNC(pi_sb_send)(id, data_padded, dest, last, success);
                 /* verilator lint_on IGNOREDRETURN */
             end else begin
+                /* verilator lint_off BLKSEQ */
                 success = 32'd0;
+                /* verilator lint_on BLKSEQ */
             end
 
             // if the send was not successful, mark it pending. ready cannot be asserted
@@ -123,7 +125,9 @@ module sb_to_queue_sim #(
                 `SB_EXT_FUNC(pi_sb_send)(id, sdata, sdest, slast, success);
                 /* verilator lint_on IGNOREDRETURN */
             end else begin
+                /* verilator lint_off BLKSEQ */
                 success = 32'd0;
+                /* verilator lint_on BLKSEQ */
             end
 
             // if the re-send was unsuccessful, we have to keep ready de-asserted,

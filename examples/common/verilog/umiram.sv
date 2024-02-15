@@ -129,6 +129,8 @@ module umiram #(
 
     integer i;
 
+    /* verilator lint_off BLKSEQ */
+
     function [ATOMIC_WIDTH-1:0] atomic_op(input [ATOMIC_WIDTH-1:0] a,
         input [ATOMIC_WIDTH-1:0] b, input [2:0] size, input [7:0] atype);
 
@@ -175,6 +177,8 @@ module umiram #(
         end
     endfunction
 
+    /* verilator lint_on BLKSEQ */
+
     reg [ATOMIC_WIDTH-1:0] a_atomic;
     reg [ATOMIC_WIDTH-1:0] b_atomic;
     reg [ATOMIC_WIDTH-1:0] y_atomic;
@@ -194,16 +198,22 @@ module umiram #(
                     udev_resp_data[i*8 +: 8] <= mem[(i+udev_req_dstaddr[31:0])*8 +: 8];
                     if (req_cmd_atomic) begin
                         // blocking assignment
+                        /* verilator lint_off BLKSEQ */
                         a_atomic[i*8 +: 8] = mem[(i+udev_req_dstaddr[31:0])*8 +: 8];
+                        /* verilator lint_on BLKSEQ */
                     end
                 end
                 if (req_cmd_atomic) begin
                     for (i=0; i<nbytes; i=i+1) begin
                         // blocking assignment
+                        /* verilator lint_off BLKSEQ */
                         b_atomic[i*8 +: 8] = udev_req_data[i*8 +: 8];
+                        /* verilator lint_on BLKSEQ */
                     end
                     // blocking assignment
+                    /* verilator lint_off BLKSEQ */
                     y_atomic = atomic_op(a_atomic, b_atomic, req_size, req_atype);
+                    /* verilator lint_on BLKSEQ */
                     for (i=0; i<nbytes; i=i+1) begin
                         mem[(i+udev_req_dstaddr[31:0])*8 +: 8] <= y_atomic[i*8 +: 8];
                     end

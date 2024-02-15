@@ -93,7 +93,9 @@ module queue_to_sb_sim #(
                     `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
                     /* verilator lint_on IGNOREDRETURN */
                 end else begin
+                    /* verilator lint_off BLKSEQ */
                     success = 32'd0;
+                    /* verilator lint_on BLKSEQ */
                 end
 
                 // if a packet was received, mark the output as valid
@@ -122,7 +124,9 @@ module queue_to_sb_sim #(
                     `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
                     /* verilator lint_on IGNOREDRETURN */
                 end else begin
+                    /* verilator lint_off BLKSEQ */
                     success = 32'd0;
+                    /* verilator lint_on BLKSEQ */
                 end
 
                 // if a packet was received, mark the output as valid

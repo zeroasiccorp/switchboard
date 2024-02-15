@@ -14,6 +14,8 @@ testbenches.
 import importlib
 import subprocess
 
+from typing import List
+
 from .switchboard import path as sb_path
 from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
@@ -41,7 +43,8 @@ class SbDut(siliconcompiler.Chip):
         frequency: float = 100e6,
         period: float = None,
         timeunit: str = None,
-        timeprecision: str = None
+        timeprecision: str = None,
+        warnings: List[str] = None
     ):
         """
         Parameters
@@ -77,6 +80,11 @@ class SbDut(siliconcompiler.Chip):
         period: float, optional
             If provided, the default period of the clock generated in the testbench,
             in seconds.
+
+        warnings: List[str], optional
+            If provided, a list of tool-specific warnings to enable.  If not provided, a default
+            set of warnings will be included.  Warnings can be disabled by setting this argument
+            to an empty list.
         """
         # call the super constructor
 
@@ -103,6 +111,7 @@ class SbDut(siliconcompiler.Chip):
         self.trace_type = trace_type
         self.fpga = fpga
         self.xyce = xyce
+        self.warnings = warnings
 
         if (period is None) and (frequency is not None):
             period = 1 / frequency
@@ -167,6 +176,16 @@ class SbDut(siliconcompiler.Chip):
             self.set('tool', 'verilator', 'task', 'compile', 'file', 'config',
                 sb_path() / 'verilator' / 'config.vlt')
             self.set('tool', 'verilator', 'task', 'compile', 'warningoff', 'TIMESCALEMOD')
+
+        # enable specific warnings that aren't included by default
+        if self.tool == 'verilator':
+            if self.warnings is None:
+                warnings = ['BLKSEQ']
+            else:
+                warnings = self.warnings
+
+            for warning in warnings:
+                self.set('tool', 'verilator', 'task', 'compile', 'option', f'-Wwarn-{warning}')
 
         c_flags = ['-Wno-unknown-warning-option']
         c_includes = [SB_DIR / 'cpp']
