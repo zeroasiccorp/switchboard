@@ -6,7 +6,7 @@
 from setuptools import setup, find_packages
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 
-__version__ = "0.0.36"
+__version__ = "0.0.37"
 
 #################################################################################
 # parse_reqs, long_desc from https://github.com/siliconcompiler/siliconcompiler #
