@@ -15,6 +15,7 @@ import importlib
 import subprocess
 
 from typing import List
+from pathlib import Path
 
 from .switchboard import path as sb_path
 from .verilator import verilator_run
@@ -22,6 +23,7 @@ from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
 from .warn import warn_future
 from .xyce import xyce_flags
+from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -396,3 +398,37 @@ class SbDut(siliconcompiler.Chip):
         # return a Popen object that one can wait() on
 
         return p
+
+    def ams(self, filename, inputs=None, outputs=None, name=None):
+        # set defaults
+
+        if inputs is None:
+            inputs = []
+
+        if outputs is None:
+            outputs = []
+
+        if name is None:
+            subckts = parse_spice_subckts(filename)
+            name = subckts[0]['name']
+
+        wrapper_dir = Path('build') / 'wrappers'
+        wrapper_dir.mkdir(exist_ok=True, parents=True)
+
+        spice_wrapper = make_ams_spice_wrapper(
+            name=name,
+            filename=filename,
+            inputs=inputs,
+            outputs=outputs,
+            dir=wrapper_dir
+        )
+
+        verilog_wrapper = make_ams_verilog_wrapper(
+            name=name,
+            filename=spice_wrapper,
+            inputs=inputs,
+            outputs=outputs,
+            dir=wrapper_dir
+        )
+
+        self.input(verilog_wrapper)

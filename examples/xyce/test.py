@@ -12,7 +12,15 @@ from switchboard import SbDut
 def main(fast=False, period=10e-9, tool='verilator'):
     # build the simulator
     dut = SbDut(tool=tool, default_main=True, xyce=True)
+
     dut.input('testbench.sv')
+
+    dut.ams(
+        'rc.cir',
+        inputs=[('in', 0.0, 1.0)],
+        outputs=[('out', 0.2, 0.8)]
+    )
+
     dut.build(fast=fast)
 
     # start chip simulation
