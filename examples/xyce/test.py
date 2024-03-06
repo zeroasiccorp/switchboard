@@ -15,10 +15,25 @@ def main(fast=False, period=10e-9, tool='verilator'):
 
     dut.input('testbench.sv')
 
+    vdd = 1.0
+    vss = 0.0
+
+    params = dict(
+        vol=vss,
+        voh=vdd,
+        vil=(0.8 * vss) + (0.2 * vdd),
+        vih=(0.2 * vss) + (0.8 * vdd)
+    )
+
     dut.input_analog(
-        'rc.cir',
-        inputs=[dict(name='in', vol=0.0, voh=1.0)],
-        outputs=[dict(name='out', vil=0.2, vih=0.8)]
+        'mycircuit.cir',
+        pins=[
+            dict(name='a', type='input', **params),
+            dict(name='b[1:0]', type='input', **params),
+            dict(name='y', type='output', **params),
+            dict(name='z[1:0]', type='output', **params),
+            dict(name='vss', type='constant', value=vss)
+        ]
     )
 
     dut.build(fast=fast)

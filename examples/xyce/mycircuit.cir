@@ -1,0 +1,30 @@
+* Example illustrating features of the mixed-signal interface
+
+* Copyright (c) 2024 Zero ASIC Corporation
+* This code is licensed under Apache License 2.0 (see LICENSE for details)
+
+*** RC ***
+
+.SUBCKT rc a y vss
+
+Rin a y 10k
+Cout y vss 10p
+
+.ENDS
+
+*** MYCIRCUIT ***
+
+.SUBCKT mycircuit a y b[0] b[1] z[0] z[1] vss
+
+* RC circuit
+Xrc a y vss rc
+
+* Resistor divider pass-through
+R0 b[0] z[0] 1k
+R1 z[0] vss 10k
+
+* Resistor divider pass-through
+R2 b[1] z[1] 1k
+R3 z[1] vss 10k
+
+.ENDS

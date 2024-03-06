@@ -399,18 +399,38 @@ class SbDut(siliconcompiler.Chip):
 
         return p
 
-    def input_analog(self, filename, inputs=None, outputs=None, name=None):
+    def input_analog(self, filename, pins=None, name=None, check_name=True):
         # set defaults
 
-        if inputs is None:
-            inputs = []
-
-        if outputs is None:
-            outputs = []
+        if pins is None:
+            pins = []
 
         if name is None:
+            # guess the name of the subcircuit from the filename
+            guessed = True
+            name = Path(filename).stem
+        else:
+            guessed = False
+
+        if check_name:
+            # make sure that a subcircuit matching the provided or guessed
+            # name exists in the file provided.  this is not foolproof, since
+            # the SPICE parser is minimal and won't consider things like
+            # .INCLUDE.  hence, this feature can be disabled by setting
+            # check_name=False
+
             subckts = parse_spice_subckts(filename)
-            name = subckts[0]['name']
+
+            for subckt in subckts:
+                if name.lower() == name.lower():
+                    break
+            else:
+                if guessed:
+                    raise Exception(f'Inferred subckt named "{name}" from the filename,'
+                        ' however a corresponding subckt definition was not found.  Please'
+                        ' specify a subckt name via the "name" argument.')
+                else:
+                    raise Exception(f'Could not find a subckt definition for "{name}".')
 
         wrapper_dir = Path('build') / 'wrappers'
         wrapper_dir.mkdir(exist_ok=True, parents=True)
@@ -418,16 +438,14 @@ class SbDut(siliconcompiler.Chip):
         spice_wrapper = make_ams_spice_wrapper(
             name=name,
             filename=filename,
-            inputs=inputs,
-            outputs=outputs,
+            pins=pins,
             dir=wrapper_dir
         )
 
         verilog_wrapper = make_ams_verilog_wrapper(
             name=name,
             filename=spice_wrapper,
-            inputs=inputs,
-            outputs=outputs,
+            pins=pins,
             dir=wrapper_dir
         )
 

@@ -44,38 +44,45 @@ def parse_spice_subckts(filename):
     return subckts
 
 
-def is_bus(name):
-    return '[' in name
+def parse_bus(name):
+    # example: signalName[msb:lsb] -> returns (signalName, msb, lsb)
+
+    matches = re.match(r'(\w+)\[(\d+):(\d+)\]', name)
+
+    if matches is not None:
+        groups = matches.groups()
+
+        prefix = groups[0]
+        msb = int(groups[1])
+        lsb = int(groups[2])
+
+        return (prefix, msb, lsb)
+    else:
+        return None
 
 
 def split_apart_bus(signal):
     assert 'name' in signal, 'AMS signal must have a name.'
 
-    # example: signalName[msb:lsb]
-
     name = signal['name']
 
-    m = re.match(r'(.*)\[([0-9]+):([0-9]+)\]$', name)
+    bus = parse_bus(name)
 
-    if m is not None:
-        prefix = signal.copy()
-        prefix['name'] = m.groups()[0]
-
-        msb = int(m.groups()[1])
-        lsb = int(m.groups()[2])
+    if bus is not None:
+        prefix, msb, lsb = bus
 
         retval = []
 
-        for subsignal in split_apart_bus(prefix):
-            for k in range(lsb, msb + 1):
-                subsignal = signal.copy()
-                subsignal['indices'] = subsignal['indices'] + (k,)
-                retval.append(subsignal)
+        for k in range(lsb, msb + 1):
+            subsignal = signal.copy()
+            subsignal['name'] = prefix
+            subsignal['index'] = k
+            retval.append(subsignal)
 
         return retval
     else:
         signal = signal.copy()
-        signal['indices'] = ()
+        signal['index'] = None
         return [signal]
 
 
@@ -88,7 +95,7 @@ def regularize_ams_input(input, vol=0.0, voh=1.0, tr=5e-9, tf=5e-9):
         'voh': input.get('voh', voh),
         'tr': input.get('tr', tr),
         'tf': input.get('tf', tf),
-        'indices': input.get('indices', ())
+        'index': input.get('index', None)
     }
 
 
@@ -99,7 +106,7 @@ def regularize_ams_output(output, vil=0.2, vih=0.8):
         'name': output['name'],
         'vil': output.get('vil', vil),
         'vih': output.get('vih', vih),
-        'indices': output.get('indices', ())
+        'index': output.get('index', None)
     }
 
 
@@ -120,22 +127,42 @@ def regularize_ams_outputs(outputs, **kwargs):
 
 
 def spice_ext_name(signal):
-    return signal['name'] + ''.join(f'[{i}]' for i in signal['indices'])
+    if signal['index'] is None:
+        return signal['name']
+    else:
+        return f'{signal["name"]}[{signal["index"]}]'
 
 
 def spice_int_name(signal):
-    return signal['name'] + ''.join(f'_{i}_' for i in signal['indices'])
+    if signal['index'] is None:
+        return signal['name']
+    else:
+        return f'{signal["name"]}_IDX_{signal["index"]}'
 
 
 def vlog_ext_name(signal):
-    return signal['name'] + ''.join(f'[{i}]' for i in signal['indices'])
+    if signal['index'] is None:
+        return signal['name']
+    else:
+        return f'{signal["name"]}[{signal["index"]}]'
 
 
 def vlog_int_name(signal):
-    return signal['name'] + ''.join(f'_{i}_' for i in signal['indices'])
+    if signal['index'] is None:
+        return signal['name']
+    else:
+        return f'{signal["name"]}_IDX_{signal["index"]}'
 
 
-def make_ams_spice_wrapper(name, filename, inputs, outputs, dir, nl='\n'):
+def make_ams_spice_wrapper(name, filename, pins, dir, nl='\n'):
+    # split apart pins into inputs, outputs, and constants
+
+    inputs = [pin for pin in pins if pin.get('type', None) == 'input']
+    outputs = [pin for pin in pins if pin.get('type', None) == 'output']
+    constants = [pin for pin in pins if pin.get('type', None) == 'constant']
+
+    # start building up the wrapper text
+
     text = []
 
     text += [f'* SPICE wrapper for module "{name}"']
@@ -220,6 +247,15 @@ def make_ams_spice_wrapper(name, filename, inputs, outputs, dir, nl='\n'):
             ext_name = spice_ext_name(output)
             text += [f'.MEASURE TRAN SB_ADC_{int_name.upper()} EQN V({ext_name})']
 
+    if len(constants) > 0:
+        text += ['']
+        text += ['* Constant signals']
+
+        for constant in constants:
+            const_name = constant['name']
+            value = constant['value']
+            text += [f'V{const_name} {const_name} 0 {value}']
+
     text += ['']
     text += ['.TRAN 0 1']
 
@@ -236,7 +272,9 @@ def make_ams_spice_wrapper(name, filename, inputs, outputs, dir, nl='\n'):
     return outfile.resolve()
 
 
-def make_ams_verilog_wrapper(name, filename, inputs, outputs, dir, nl='\n', tab='    '):
+def make_ams_verilog_wrapper(name, filename, pins, dir, nl='\n', tab='    '):
+    # start building up the wrapper text
+
     text = []
 
     text += [f'// Verilog wrapper for module "{name}"']
@@ -246,13 +284,26 @@ def make_ams_verilog_wrapper(name, filename, inputs, outputs, dir, nl='\n', tab=
 
     ios = []
 
+    for pin in pins:
+        type = pin.get('type', None)
+        if type in {'input', 'output'}:
+            pin_name = pin['name']
+
+            bus = parse_bus(pin_name)
+
+            if bus is not None:
+                prefix, msb, lsb = bus
+                ios += [f'{type} [{msb}:{lsb}] {prefix}']
+            else:
+                ios += [f'{type} {pin_name}']
+
     ios += ['input SB_CLK']
 
-    for input in inputs:
-        ios += [f'input {input["name"]}']
+    # split apart pins into inputs and outputs.  constants are ignored here,
+    # since they are tied off in the spice netlist
 
-    for output in outputs:
-        ios += [f'output {output["name"]}']
+    inputs = [pin for pin in pins if pin.get('type', None) == 'input']
+    outputs = [pin for pin in pins if pin.get('type', None) == 'output']
 
     inputs = regularize_ams_inputs(inputs)
     outputs = regularize_ams_outputs(outputs)
