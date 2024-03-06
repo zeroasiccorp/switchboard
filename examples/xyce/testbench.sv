@@ -53,7 +53,7 @@ module testbench (
     rc rc_i (
         .in(in),
         .out(out),
-        .clk(clk)
+        .SB_CLK(clk)
     );
 
     // Waveform probing

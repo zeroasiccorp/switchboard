@@ -399,7 +399,7 @@ class SbDut(siliconcompiler.Chip):
 
         return p
 
-    def ams(self, filename, inputs=None, outputs=None, name=None):
+    def input_analog(self, filename, inputs=None, outputs=None, name=None):
         # set defaults
 
         if inputs is None:

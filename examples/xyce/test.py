@@ -15,10 +15,10 @@ def main(fast=False, period=10e-9, tool='verilator'):
 
     dut.input('testbench.sv')
 
-    dut.ams(
+    dut.input_analog(
         'rc.cir',
-        inputs=[('in', 0.0, 1.0)],
-        outputs=[('out', 0.2, 0.8)]
+        inputs=[dict(name='in', vol=0.0, voh=1.0)],
+        outputs=[dict(name='out', vil=0.2, vih=0.8)]
     )
 
     dut.build(fast=fast)
