@@ -425,7 +425,9 @@ class SbDut(siliconcompiler.Chip):
         Each of these conversions is specified as an entry in the "pins" argument, which is a
         list of dictionaries, each representing a single pin of the SPICE subcircuit.  Each
         dictionary may have the following keys:
-        * "name": name of the pin (string, required)
+        * "name": name of the pin.  Bus notation may be used, e.g. "myBus[7:0]".  In that case,
+        it is expected that the SPICE subcircuit has pins corresponding to each bit in the bus,
+        e.g. "myBus[0]", "myBus[1]", etc.
         * "type": direction of the pin.  May be "input", "output", or "constant".  If "constant",
         then this pin will not show up the Verilog module definition to be instantiated in user
         code.  Instead, the SPICE subcircuit pin with that name will be tied off to a fixed
