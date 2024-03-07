@@ -399,7 +399,7 @@ class SbDut(siliconcompiler.Chip):
 
         return p
 
-    def input_analog(self, filename, pins=None, name=None, check_name=True):
+    def input_analog(self, filename, pins=None, name=None, check_name=True, dir=None):
         # set defaults
 
         if pins is None:
@@ -432,21 +432,21 @@ class SbDut(siliconcompiler.Chip):
                 else:
                     raise Exception(f'Could not find a subckt definition for "{name}".')
 
-        wrapper_dir = Path('build') / 'wrappers'
-        wrapper_dir.mkdir(exist_ok=True, parents=True)
+        if dir is None:
+            dir = Path(filename).resolve().parent
 
         spice_wrapper = make_ams_spice_wrapper(
             name=name,
             filename=filename,
             pins=pins,
-            dir=wrapper_dir
+            dir=dir
         )
 
         verilog_wrapper = make_ams_verilog_wrapper(
             name=name,
             filename=spice_wrapper,
             pins=pins,
-            dir=wrapper_dir
+            dir=dir
         )
 
         self.input(verilog_wrapper)
