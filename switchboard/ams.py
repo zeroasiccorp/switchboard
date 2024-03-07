@@ -5,10 +5,31 @@
 
 
 import re
+from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 
 
-def parse_spice_subckts(filename):
+def parse_spice_subckts(filename: str) -> List[Dict[str, Any]]:
+    """
+    Reads the contents of a SPICE file and returns a list of the subcircuit
+    definitions that are found.  Parsing capability is currently limited and
+    does not take into account .INCLUDE statements.
+
+    Parameters
+    ----------
+    filename: str
+        The path of the file to read from.
+
+    Returns
+    -------
+    list of dictionaries
+        A list of dictionaries, each representing a SPICE subcircuit.  The keys
+        in each dictionary are "name" and "pins".  The "name" key maps to a
+        string that contains the name of the circuit, while "pins" maps to a
+        list of strings, each representing a pin in the subcircuit.  The order
+        of pins in that list matches the order in the subcircuit definition.
+    """
+
     subckts = []
 
     with open(filename, 'r') as f:
@@ -44,7 +65,29 @@ def parse_spice_subckts(filename):
     return subckts
 
 
-def parse_bus(name):
+def parse_bus(name: str) -> Optional[Tuple[str, int, int]]:
+    """
+    Tries to parse a signal name as a bus, returning a tuple representing
+    the bus: (signalName, msb, lsb).  If the signal name isn't a bus, the
+    function returns None.
+
+    Example:
+    parse_bus("mySignal[42:34]") -> ("mySignal", 42, 34)
+    parse_bus("anotherSignal") -> None
+
+    Parameters
+    ----------
+    name: str
+        The signal name to parse.
+
+    Returns
+    -------
+    tuple with three values, or None
+        A tuple with three values: (signalName, msb, lsb).  "signalName" is a
+        string, while "msb" and "lsb" are integers.  If the provided signal
+        name isn't a bus, the function returns None.
+    """
+
     # example: signalName[msb:lsb] -> returns (signalName, msb, lsb)
 
     matches = re.match(r'(\w+)\[(\d+):(\d+)\]', name)
@@ -61,7 +104,25 @@ def parse_bus(name):
         return None
 
 
-def split_apart_bus(signal):
+def split_apart_bus(signal: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Converts a dictionary representing a signal into a list of signals,
+    each representing one bit in the bus.  If the signal isn't a bus,
+    the function returns a list with one element, the original signal.
+
+    Parameters
+    ----------
+    signal: Dict[str, Any]
+        The signal to split apart into bits.
+
+    Returns
+    -------
+    list of dictionaries
+        A list of dictionaries, with each dictionary representing a
+        single bit in the bus.  The format of each of these dictionaries
+        is the same as the format of the dictionary provided as input.
+    """
+
     assert 'name' in signal, 'AMS signal must have a name.'
 
     name = signal['name']
@@ -88,7 +149,43 @@ def split_apart_bus(signal):
         return [signal]
 
 
-def regularize_ams_input(input, vol=0.0, voh=1.0, tr=5e-9, tf=5e-9):
+def regularize_ams_input(
+    input: Dict[str, Any],
+    vol: float = 0.0,
+    voh: float = 1.0,
+    tr: float = 5e-9,
+    tf: float = 5e-9
+) -> Dict[str, Any]:
+    """
+    Fills in missing values in a dictionary representing an input signal.
+
+    Parameters
+    ----------
+    input: Dict[str, Any]
+        The signal to regularize.
+    vol: float
+        Default real-number voltage to pass to the SPICE subcircuit input
+        when the digital value provided is "0".  If already defined in
+        "input", this argument is ignored.
+    voh: float
+        Default real-number voltage to pass to the SPICE subcircuit input
+        when the digital value provided is "1".  If already defined in
+        "input", this argument is ignored.
+    tr: float
+        Default time taken in the SPICE simulation to transition from a low
+        value to a high value.  If already defined in "input", this argument
+        is ignored.
+    tf: float
+        Default time taken in the SPICE simulation to transition from a high
+        value to a low value.  If already defined in "input", this argument
+        is ignored.
+
+    Returns
+    -------
+    dictionary
+        A dictionary with missing values filled in with defaults.
+    """
+
     assert 'name' in input, 'AMS input must have a name.'
 
     return {
@@ -101,7 +198,29 @@ def regularize_ams_input(input, vol=0.0, voh=1.0, tr=5e-9, tf=5e-9):
     }
 
 
-def regularize_ams_output(output, vil=0.2, vih=0.8):
+def regularize_ams_output(output: str, vil: float = 0.2, vih: float = 0.8):
+    """
+    Fills in missing values in a dictionary representing an output signal.
+
+    Parameters
+    ----------
+    output: Dict[str, Any]
+        The signal to regularize.
+    vil: float
+        Default low voltage threshold, below which the real-number voltage
+        from the SPICE simulation is considered to be a logical "0".  If
+        already defined in "output", this argument is ignored.
+    vih: float
+        Default high voltage threshold, above which the real-number voltage
+        from the SPICE simulation is considered to be a logical "1".  If
+        already defined in "output", this argument is ignored.
+
+    Returns
+    -------
+    dictionary
+        A dictionary with missing values filled in with defaults.
+    """
+
     assert 'name' in output, 'AMS output must have a name.'
 
     return {
@@ -113,7 +232,22 @@ def regularize_ams_output(output, vil=0.2, vih=0.8):
     }
 
 
-def regularize_ams_inputs(inputs, **kwargs):
+def regularize_ams_inputs(inputs: List[Dict[str, Any]], **kwargs) -> List[Dict[str, Any]]:
+    """
+    Fills in missing values in a list of signals, splitting apart buses into
+    individual bits as they are encountered.
+
+    Parameters
+    ----------
+    inputs: List[Dict[str, Any]]
+        List of signals, represented as dictionaries.
+
+    Returns
+    -------
+    list of dictionaries
+        List of signals, represented as dictionaries.
+    """
+
     return [
         regularize_ams_input(subinput, **kwargs)
         for input in inputs
@@ -121,7 +255,22 @@ def regularize_ams_inputs(inputs, **kwargs):
     ]
 
 
-def regularize_ams_outputs(outputs, **kwargs):
+def regularize_ams_outputs(outputs: List[Dict[str, Any]], **kwargs) -> List[Dict[str, Any]]:
+    """
+    Fills in missing values in a list of signals, splitting apart buses into
+    individual bits as they are encountered.
+
+    Parameters
+    ----------
+    outputs: List[Dict[str, Any]]
+        List of signals, represented as dictionaries.
+
+    Returns
+    -------
+    list of dictionaries
+        List of signals, represented as dictionaries.
+    """
+
     return [
         regularize_ams_output(suboutput, **kwargs)
         for output in outputs
@@ -129,35 +278,122 @@ def regularize_ams_outputs(outputs, **kwargs):
     ]
 
 
-def spice_ext_name(signal):
+def spice_ext_name(signal: Dict[str, Any]) -> str:
+    """
+    Returns the name of a signal as it should be referenced as
+    a port on a SPICE subcircuit.
+
+    Parameters
+    ----------
+    signal: Dict[str, Any]
+        Signal represented as a dictionary
+
+    Returns
+    -------
+    string
+        Signal name to be used in a SPICE file.
+    """
+
     if signal['index'] is None:
         return signal['name']
     else:
         return f'{signal["name"]}[{signal["index"]}]'
 
 
-def spice_int_name(signal):
+def spice_int_name(signal: Dict[str, Any]) -> str:
+    """
+    Returns the name of a signal as it should be referenced as
+    a signal within a SPICE subcircuit, avoiding special bus
+    characters.
+
+    Parameters
+    ----------
+    signal: Dict[str, Any]
+        Signal represented as a dictionary
+
+    Returns
+    -------
+    string
+        Signal name to be used in a SPICE file.
+    """
+
     if signal['index'] is None:
         return signal['name']
     else:
         return f'{signal["name"]}_IDX_{signal["index"]}'
 
 
-def vlog_ext_name(signal):
+def vlog_ext_name(signal: Dict[str, Any]) -> str:
+    """
+    Returns the name of a signal as it should be referenced as
+    a port on a Verilog module.
+
+    Parameters
+    ----------
+    signal: Dict[str, Any]
+        Signal represented as a dictionary
+
+    Returns
+    -------
+    string
+        Signal name to be used in a Verilog file.
+    """
+
     if signal['index'] is None:
         return signal['name']
     else:
         return f'{signal["name"]}[{signal["index"]}]'
 
 
-def vlog_int_name(signal):
+def vlog_int_name(signal: Dict[str, Any]) -> str:
+    """
+    Returns the name of a signal as it should be referenced as
+    a signal within a Verilog module, avoiding special bus
+    characters.
+
+    Parameters
+    ----------
+    signal: Dict[str, Any]
+        Signal represented as a dictionary
+
+    Returns
+    -------
+    string
+        Signal name to be used in a Verilog file.
+    """
+
     if signal['index'] is None:
         return signal['name']
     else:
         return f'{signal["name"]}_IDX_{signal["index"]}'
 
 
-def make_ams_spice_wrapper(name, filename, pins, dir, nl='\n'):
+def make_ams_spice_wrapper(
+    name: str,
+    filename: str,
+    pins: List[Dict[str, Any]],
+    dir: str,
+    nl: str = '\n'
+):
+    """
+    Writes a SPICE file that wraps the SPICE subcircuit defined in filename.
+    The wrapper contains ADCs and DACs for interaction between a Verilog
+    simulation and SPICE simulation.
+
+    Parameters
+    ----------
+    name: str
+        Name of the SPICE subcircuit to be wrapped
+    filename: str
+        Path to the file where the SPICE subcircuit is defined
+    pins: List[Dict[str, Any]]
+        List of pins on the SPICE subcircuit, each represented as a dictionary.
+    dir: str
+        Path to the directory where the SPICE wrapper should be written.
+    nl: str
+        String/character to be used for indicating newlines.
+    """
+
     # split apart pins into inputs, outputs, and constants
 
     inputs = [pin for pin in pins if pin.get('type', None) == 'input']
@@ -275,7 +511,35 @@ def make_ams_spice_wrapper(name, filename, pins, dir, nl='\n'):
     return outfile.resolve()
 
 
-def make_ams_verilog_wrapper(name, filename, pins, dir, nl='\n', tab='    '):
+def make_ams_verilog_wrapper(
+    name: str,
+    filename: str,
+    pins: List[Dict[str, Any]],
+    dir: str,
+    nl: str = '\n',
+    tab: str = '    '
+):
+    """
+    Writes a Verilog file that contains a module definition matching the SPICE
+    subcircuit in the provided file.  The module definition uses VPI/DPI to
+    interact with the Xyce.
+
+    Parameters
+    ----------
+    name: str
+        Name of the SPICE subcircuit to be wrapped
+    filename: str
+        Path to the file where the SPICE subcircuit is defined
+    pins: List[Dict[str, Any]]
+        List of pins on the SPICE subcircuit, each represented as a dictionary.
+    dir: str
+        Path to the directory where the SPICE wrapper should be written.
+    nl: str
+        String/character to be used to for indicating newlines.
+    nl: str
+        String/character to be used for tabs.
+    """
+
     # start building up the wrapper text
 
     text = []

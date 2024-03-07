@@ -14,7 +14,7 @@ testbenches.
 import importlib
 import subprocess
 
-from typing import List
+from typing import List, Dict, Any
 from pathlib import Path
 
 from .switchboard import path as sb_path
@@ -408,7 +408,66 @@ class SbDut(siliconcompiler.Chip):
 
         return p
 
-    def input_analog(self, filename, pins=None, name=None, check_name=True, dir=None):
+    def input_analog(
+        self,
+        filename: str,
+        pins: List[Dict[str, Any]] = None,
+        name: str = None,
+        check_name: bool = True,
+        dir: str = None
+    ):
+        """
+        Specifies a SPICE subcircuit to be used in a mixed-signal simulation.  This involves
+        providing the path to the SPICE file containing the subcircuit definition and describing
+        how real-valued outputs in the SPICE subcircuit should be converted to binary values in
+        the Verilog simulation (and vice versa for subcircuit inputs).
+
+        Each of these conversions is specified as an entry in the "pins" argument, which is a
+        list of dictionaries, each representing a single pin of the SPICE subcircuit.  Each
+        dictionary may have the following keys:
+        * "name": name of the pin (string, required)
+        * "type": direction of the pin.  May be "input", "output", or "constant".  If "constant",
+        then this pin will not show up the Verilog module definition to be instantiated in user
+        code.  Instead, the SPICE subcircuit pin with that name will be tied off to a fixed
+        voltage specified in the "value" field (below).
+        * "vil": low voltage threshold, below which a real-number voltage from the SPICE
+        simulation is considered to be a logical "0".
+        * "vih": high voltage threshold, above which a real-number voltage from the SPICE
+        simulation is considered to be a logical "1".
+        * "vol": real-number voltage to pass to a SPICE subcircuit input when the digital value
+        driven is "0".
+        * "voh": real-number voltage to pass to a SPICE subcircuit input when the digital value
+        driven is "1".
+        * "tr": time taken in the SPICE simulation to transition from a logic "0" value to a
+        logic "1" value.
+        * "tf": time taken in the SPICE simulation to transition from a logic "1" value to a
+        logic "0" value.
+        * "initial": initial value of a SPICE subcircuit pin.  Currently only implemented for
+        subcircuit outputs.  This is sometimes helpful, because there is a slight delay between
+        t=0 and the time when the SPICE simulation reports values for its outputs.  Specifying
+        "initial" for subcircuit outputs prevents the corresponding digital signals from being
+        driven to "X" at t=0.
+
+        Parameters
+        ----------
+        filename: str
+            The path of the SPICE file containing the subcircuit definition.
+        pins: List[Dict[str, Any]]
+            List of dictionaries, each describing a pin of the subcircuit.
+        name: str
+            Name of the SPICE subcircuit that will be instantiated in the mixed-signal simulation.
+            If not provided, Switchboard guesses that the name is filename stem.  For example,
+            if filename="myCircuit.cir", then Switchboard will guess that the subcircuit name
+            is "myCircuit"
+        check_name: bool
+            If True (default), Switchboard parses the provided file to make sure that there
+            is a subcircuit definition matching the given name.
+        dir: str
+            Running a mixed-signal simulation involves creating SPICE and Verilog wrappers.  This
+            argument specifies the directory where those wrappers should be written.  If not
+            provided, defaults to the directory where filename is located.
+        """
+
         # automatically configures for Xyce co-simulation if not already configured
 
         self._configure_xyce()
