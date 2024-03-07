@@ -206,13 +206,13 @@ def make_ams_spice_wrapper(name, filename, pins, dir, nl='\n'):
         dac_models = {}
         dac_mapping = {}
 
+        text += ['']
+        text += ['* DAC models']
+
         for input in inputs:
             input_name = spice_ext_name(input)
             tr = input['tr']
             tf = input['tf']
-
-            text += ['']
-            text += ['* DAC models']
 
             if (tr, tf) not in dac_models:
                 dac_name = f'amsDac{dac_counter}'
