@@ -77,6 +77,8 @@ def split_apart_bus(signal):
             subsignal = signal.copy()
             subsignal['name'] = prefix
             subsignal['index'] = k
+            if signal.get('initial', None) is not None:
+                subsignal['initial'] = (signal['initial'] >> k) & 1
             retval.append(subsignal)
 
         return retval
@@ -106,6 +108,7 @@ def regularize_ams_output(output, vil=0.2, vih=0.8):
         'name': output['name'],
         'vil': output.get('vil', vil),
         'vih': output.get('vih', vih),
+        'initial': output.get('initial', None),
         'index': output.get('index', None)
     }
 
@@ -348,10 +351,15 @@ def make_ams_verilog_wrapper(name, filename, pins, dir, nl='\n', tab='    '):
             analog = f'SB_ADC_{int_name.upper()}'
             cmp = f'SB_CMP_{int_name.upper()}'
 
+            if output.get('initial', None) is not None:
+                initial = f" = 1'b{output['initial']}"
+            else:
+                initial = ''
+
             text += [
                 '',
                 tab + f'real {analog};',
-                tab + f'reg {cmp};',
+                tab + f'reg {cmp}{initial};',
                 tab + f'assign {ext_name} = {cmp};'
             ]
 
