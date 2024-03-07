@@ -112,7 +112,7 @@ class SbDut(siliconcompiler.Chip):
         self.trace = trace
         self.trace_type = trace_type
         self.fpga = fpga
-        self.xyce = xyce
+        self.xyce = False  # is set True by _configure_xyce
         self.warnings = warnings
 
         if (period is None) and (frequency is not None):
@@ -159,6 +159,9 @@ class SbDut(siliconcompiler.Chip):
                 fpga=fpga
             )
 
+        if xyce:
+            self._configure_xyce()
+
     def _configure_build(
         self,
         module: str,
@@ -167,9 +170,6 @@ class SbDut(siliconcompiler.Chip):
     ):
         if not fpga:
             self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
-
-        if self.xyce:
-            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
 
         if default_main and (self.tool == 'verilator'):
             self.input(SB_DIR / 'verilator' / 'testbench.cc')
@@ -189,18 +189,10 @@ class SbDut(siliconcompiler.Chip):
             for warning in warnings:
                 self.set('tool', 'verilator', 'task', 'compile', 'option', f'-Wwarn-{warning}')
 
-        c_flags = ['-Wno-unknown-warning-option']
-        c_includes = [SB_DIR / 'cpp']
-        ld_flags = ['-pthread']
-
-        if self.xyce:
-            xyce_c_includes, xyce_ld_flags = xyce_flags()
-            c_includes += xyce_c_includes
-            ld_flags += xyce_ld_flags
-
-        self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags', c_flags)
-        self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', c_includes)
-        self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ld_flags)
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags',
+            ['-Wno-unknown-warning-option'])
+        self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', [SB_DIR / 'cpp'])
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
 
         if self.trace and (self.tool == 'verilator'):
             self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', self.trace_type)
@@ -237,6 +229,23 @@ class SbDut(siliconcompiler.Chip):
         self.use(dvflow)
         self.set('option', 'flow', 'dvflow')
         self.set('option', 'to', 'compile')
+
+    def _configure_xyce(self):
+        if self.xyce:
+            # already configured, so return early
+            return
+
+        if self.tool != 'icarus':
+            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
+
+            xyce_c_includes, xyce_ld_flags = xyce_flags()
+
+            self.add('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', xyce_c_includes)
+            self.add('tool', self.tool, 'task', 'compile', 'var', 'ldflags', xyce_ld_flags)
+
+        # indicate that build is configured for Xyce.  for Icarus simulation, this flag is used
+        # to determine whether a VPI object should be built for Xyce
+        self.xyce = True
 
     def find_sim(self):
         if self.tool == 'icarus':
@@ -400,6 +409,10 @@ class SbDut(siliconcompiler.Chip):
         return p
 
     def input_analog(self, filename, pins=None, name=None, check_name=True, dir=None):
+        # automatically configures for Xyce co-simulation if not already configured
+
+        self._configure_xyce()
+
         # set defaults
 
         if pins is None:
