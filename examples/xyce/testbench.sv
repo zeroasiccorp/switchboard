@@ -6,7 +6,7 @@ module testbench (
         input clk
     `endif
 );
-    // clock
+    // Generate oversampling clock if not using Verilator
 
     `ifndef VERILATOR
         timeunit 1s;
@@ -26,44 +26,43 @@ module testbench (
         end
     `endif
 
-    xyce_intf xyce_intf_i ();
+    // Generate a waveform to pass into the analog model
 
-    real in = 0.0;
-    real out = 0.0;
+    reg a = 1'b0;
+    reg [1:0] b = 2'd1;
 
-    integer bits = 0;
     integer count = 0;
+    integer flips = 0;
+
     always @(posedge clk) begin
         if (count + 1 == 10) begin
             count <= 0;
-            in = 1.0 - in;
-            if (bits + 1 == 10) begin
+            a <= ~a;
+            b <= b + 2'd1;
+            if (flips + 1 == 10) begin
                 $finish;
             end else begin
-                bits <= bits + 1;
+                flips <= flips + 1;
             end
         end else begin
             count <= count + 1;
         end
     end
 
-    always @(in) begin
-        xyce_intf_i.put("DAC0", in);
-    end
+    // Instantiate analog model
 
-    always @(clk) begin
-        xyce_intf_i.get("ADC0", out);
-    end
+    wire y;
+    wire [1:0] z;
 
-    // Initialize
+    mycircuit mycircuit_i (
+        .a(a),
+        .b(b),
+        .y(y),
+        .z(z),
+        .SB_CLK(clk)
+    );
 
-    initial begin
-        /* verilator lint_off IGNOREDRETURN */
-        xyce_intf_i.init("rc.cir");
-        /* verilator lint_on IGNOREDRETURN */
-    end
-
-    // Waveforms
+    // Waveform probing
 
     initial begin
         if ($test$plusargs("trace")) begin

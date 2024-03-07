@@ -10,13 +10,43 @@ from switchboard import SbDut
 
 
 def main(fast=False, period=10e-9, tool='verilator'):
-    # build the simulator
-    dut = SbDut(tool=tool, default_main=True, xyce=True)
+    # create the simulator object
+
+    dut = SbDut(tool=tool, default_main=True)
+
     dut.input('testbench.sv')
+
+    # specify the analog subcircuit
+
+    vdd = 1.0
+
+    params = dict(
+        vol=0,
+        voh=vdd,
+        vil=0.2 * vdd,
+        vih=0.8 * vdd
+    )
+
+    dut.input_analog(
+        'mycircuit.cir',
+        pins=[
+            dict(name='a', type='input', **params),
+            dict(name='b[1:0]', type='input', **params),
+            dict(name='y', type='output', **params),
+            dict(name='z[1:0]', type='output', **params),
+            dict(name='vss', type='constant', value=0)
+        ]
+    )
+
+    # build the simulator
+
     dut.build(fast=fast)
 
-    # start chip simulation
+    # start the simulator
+
     chip = dut.simulate(period=period)
+
+    # wait for the simulation to complete
 
     chip.wait()
 

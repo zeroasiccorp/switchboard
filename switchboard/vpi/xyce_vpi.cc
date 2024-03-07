@@ -3,14 +3,16 @@
 
 #include <vpi_user.h>
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "xyce.hpp"
 
-XyceIntf x;
+static std::vector<std::unique_ptr<XyceIntf>> xyceIntfs;
 
 PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
     (void)userdata; // unused
@@ -22,7 +24,7 @@ PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i = 0; i < 1; i++) {
+        for (size_t i = 0; i < 2; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
     }
@@ -32,11 +34,20 @@ PLI_INT32 pi_sb_xyce_init(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
-        vpi_get_value(argh[0], &argval);
+        vpi_get_value(argh[1], &argval);
         file = std::string(argval.value.str);
     }
 
-    x.init(file);
+    xyceIntfs.push_back(std::unique_ptr<XyceIntf>(new XyceIntf()));
+    xyceIntfs.back()->init(file);
+
+    // put ID
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        argval.value.integer = xyceIntfs.size() - 1;
+        vpi_put_value(argh[0], &argval, NULL, vpiNoDelay);
+    }
 
     // clean up
     vpi_free_object(args_iter);
@@ -55,9 +66,18 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i = 0; i < 3; i++) {
+        for (size_t i = 0; i < 4; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
+    }
+
+    // get ID
+    int id;
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        vpi_get_value(argh[0], &argval);
+        id = argval.value.integer;
     }
 
     // get name
@@ -65,7 +85,7 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
-        vpi_get_value(argh[0], &argval);
+        vpi_get_value(argh[1], &argval);
         name = std::string(argval.value.str);
     }
 
@@ -74,7 +94,7 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[1], &argval);
+        vpi_get_value(argh[2], &argval);
         time = argval.value.real;
     }
 
@@ -83,11 +103,11 @@ PLI_INT32 pi_sb_xyce_put(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[2], &argval);
+        vpi_get_value(argh[3], &argval);
         value = argval.value.real;
     }
 
-    x.put(name, time, value);
+    xyceIntfs[id]->put(name, time, value);
 
     // clean up
     vpi_free_object(args_iter);
@@ -106,9 +126,18 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
         vpiHandle systfref;
         systfref = vpi_handle(vpiSysTfCall, NULL);
         args_iter = vpi_iterate(vpiArgument, systfref);
-        for (size_t i = 0; i < 3; i++) {
+        for (size_t i = 0; i < 4; i++) {
             argh.push_back(vpi_scan(args_iter));
         }
+    }
+
+    // get ID
+    int id;
+    {
+        t_vpi_value argval;
+        argval.format = vpiIntVal;
+        vpi_get_value(argh[0], &argval);
+        id = argval.value.integer;
     }
 
     // get name
@@ -116,7 +145,7 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiStringVal;
-        vpi_get_value(argh[0], &argval);
+        vpi_get_value(argh[1], &argval);
         name = std::string(argval.value.str);
     }
 
@@ -125,20 +154,20 @@ PLI_INT32 pi_sb_xyce_get(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
-        vpi_get_value(argh[1], &argval);
+        vpi_get_value(argh[2], &argval);
         time = argval.value.real;
     }
 
     // get value
     double value;
-    x.get(name, time, &value);
+    xyceIntfs[id]->get(name, time, &value);
 
     // put value
     {
         t_vpi_value argval;
         argval.format = vpiRealVal;
         argval.value.real = value;
-        vpi_put_value(argh[2], &argval, NULL, vpiNoDelay);
+        vpi_put_value(argh[3], &argval, NULL, vpiNoDelay);
     }
 
     // clean up

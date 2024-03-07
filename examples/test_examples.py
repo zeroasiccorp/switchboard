@@ -28,7 +28,9 @@ THIS_DIR = Path(__file__).resolve().parent
     ['umi_gpio', None, None],
     ['umi_fifo', None, None],
     ['umi_fifo_flex', None, None],
-    ['umi_splitter', None, None]
+    ['umi_splitter', None, None],
+    ['xyce', None, 'verilator'],
+    ['xyce', None, 'icarus']
 ])
 def test_make(path, expected, target):
     cmd = ['make']

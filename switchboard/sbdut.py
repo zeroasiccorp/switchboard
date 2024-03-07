@@ -14,7 +14,8 @@ testbenches.
 import importlib
 import subprocess
 
-from typing import List
+from typing import List, Dict, Any
+from pathlib import Path
 
 from .switchboard import path as sb_path
 from .verilator import verilator_run
@@ -22,6 +23,7 @@ from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
 from .warn import warn_future
 from .xyce import xyce_flags
+from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -110,7 +112,7 @@ class SbDut(siliconcompiler.Chip):
         self.trace = trace
         self.trace_type = trace_type
         self.fpga = fpga
-        self.xyce = xyce
+        self.xyce = False  # is set True by _configure_xyce
         self.warnings = warnings
 
         if (period is None) and (frequency is not None):
@@ -157,6 +159,9 @@ class SbDut(siliconcompiler.Chip):
                 fpga=fpga
             )
 
+        if xyce:
+            self._configure_xyce()
+
     def _configure_build(
         self,
         module: str,
@@ -165,9 +170,6 @@ class SbDut(siliconcompiler.Chip):
     ):
         if not fpga:
             self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
-
-        if self.xyce:
-            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
 
         if default_main and (self.tool == 'verilator'):
             self.input(SB_DIR / 'verilator' / 'testbench.cc')
@@ -187,18 +189,10 @@ class SbDut(siliconcompiler.Chip):
             for warning in warnings:
                 self.set('tool', 'verilator', 'task', 'compile', 'option', f'-Wwarn-{warning}')
 
-        c_flags = ['-Wno-unknown-warning-option']
-        c_includes = [SB_DIR / 'cpp']
-        ld_flags = ['-pthread']
-
-        if self.xyce:
-            xyce_c_includes, xyce_ld_flags = xyce_flags()
-            c_includes += xyce_c_includes
-            ld_flags += xyce_ld_flags
-
-        self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags', c_flags)
-        self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', c_includes)
-        self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ld_flags)
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags',
+            ['-Wno-unknown-warning-option'])
+        self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', [SB_DIR / 'cpp'])
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
 
         if self.trace and (self.tool == 'verilator'):
             self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', self.trace_type)
@@ -235,6 +229,23 @@ class SbDut(siliconcompiler.Chip):
         self.use(dvflow)
         self.set('option', 'flow', 'dvflow')
         self.set('option', 'to', 'compile')
+
+    def _configure_xyce(self):
+        if self.xyce:
+            # already configured, so return early
+            return
+
+        if self.tool != 'icarus':
+            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
+
+            xyce_c_includes, xyce_ld_flags = xyce_flags()
+
+            self.add('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', xyce_c_includes)
+            self.add('tool', self.tool, 'task', 'compile', 'var', 'ldflags', xyce_ld_flags)
+
+        # indicate that build is configured for Xyce.  for Icarus simulation, this flag is used
+        # to determine whether a VPI object should be built for Xyce
+        self.xyce = True
 
     def find_sim(self):
         if self.tool == 'icarus':
@@ -396,3 +407,120 @@ class SbDut(siliconcompiler.Chip):
         # return a Popen object that one can wait() on
 
         return p
+
+    def input_analog(
+        self,
+        filename: str,
+        pins: List[Dict[str, Any]] = None,
+        name: str = None,
+        check_name: bool = True,
+        dir: str = None
+    ):
+        """
+        Specifies a SPICE subcircuit to be used in a mixed-signal simulation.  This involves
+        providing the path to the SPICE file containing the subcircuit definition and describing
+        how real-valued outputs in the SPICE subcircuit should be converted to binary values in
+        the Verilog simulation (and vice versa for subcircuit inputs).
+
+        Each of these conversions is specified as an entry in the "pins" argument, which is a
+        list of dictionaries, each representing a single pin of the SPICE subcircuit.  Each
+        dictionary may have the following keys:
+        * "name": name of the pin.  Bus notation may be used, e.g. "myBus[7:0]".  In that case,
+        it is expected that the SPICE subcircuit has pins corresponding to each bit in the bus,
+        e.g. "myBus[0]", "myBus[1]", etc.
+        * "type": direction of the pin.  May be "input", "output", or "constant".  If "constant",
+        then this pin will not show up the Verilog module definition to be instantiated in user
+        code.  Instead, the SPICE subcircuit pin with that name will be tied off to a fixed
+        voltage specified in the "value" field (below).
+        * "vil": low voltage threshold, below which a real-number voltage from the SPICE
+        simulation is considered to be a logical "0".
+        * "vih": high voltage threshold, above which a real-number voltage from the SPICE
+        simulation is considered to be a logical "1".
+        * "vol": real-number voltage to pass to a SPICE subcircuit input when the digital value
+        driven is "0".
+        * "voh": real-number voltage to pass to a SPICE subcircuit input when the digital value
+        driven is "1".
+        * "tr": time taken in the SPICE simulation to transition from a logic "0" value to a
+        logic "1" value.
+        * "tf": time taken in the SPICE simulation to transition from a logic "1" value to a
+        logic "0" value.
+        * "initial": initial value of a SPICE subcircuit pin.  Currently only implemented for
+        subcircuit outputs.  This is sometimes helpful, because there is a slight delay between
+        t=0 and the time when the SPICE simulation reports values for its outputs.  Specifying
+        "initial" for subcircuit outputs prevents the corresponding digital signals from being
+        driven to "X" at t=0.
+
+        Parameters
+        ----------
+        filename: str
+            The path of the SPICE file containing the subcircuit definition.
+        pins: List[Dict[str, Any]]
+            List of dictionaries, each describing a pin of the subcircuit.
+        name: str
+            Name of the SPICE subcircuit that will be instantiated in the mixed-signal simulation.
+            If not provided, Switchboard guesses that the name is filename stem.  For example,
+            if filename="myCircuit.cir", then Switchboard will guess that the subcircuit name
+            is "myCircuit"
+        check_name: bool
+            If True (default), Switchboard parses the provided file to make sure that there
+            is a subcircuit definition matching the given name.
+        dir: str
+            Running a mixed-signal simulation involves creating SPICE and Verilog wrappers.  This
+            argument specifies the directory where those wrappers should be written.  If not
+            provided, defaults to the directory where filename is located.
+        """
+
+        # automatically configures for Xyce co-simulation if not already configured
+
+        self._configure_xyce()
+
+        # set defaults
+
+        if pins is None:
+            pins = []
+
+        if name is None:
+            # guess the name of the subcircuit from the filename
+            guessed = True
+            name = Path(filename).stem
+        else:
+            guessed = False
+
+        if check_name:
+            # make sure that a subcircuit matching the provided or guessed
+            # name exists in the file provided.  this is not foolproof, since
+            # the SPICE parser is minimal and won't consider things like
+            # .INCLUDE.  hence, this feature can be disabled by setting
+            # check_name=False
+
+            subckts = parse_spice_subckts(filename)
+
+            for subckt in subckts:
+                if name.lower() == name.lower():
+                    break
+            else:
+                if guessed:
+                    raise Exception(f'Inferred subckt named "{name}" from the filename,'
+                        ' however a corresponding subckt definition was not found.  Please'
+                        ' specify a subckt name via the "name" argument.')
+                else:
+                    raise Exception(f'Could not find a subckt definition for "{name}".')
+
+        if dir is None:
+            dir = Path(filename).resolve().parent
+
+        spice_wrapper = make_ams_spice_wrapper(
+            name=name,
+            filename=filename,
+            pins=pins,
+            dir=dir
+        )
+
+        verilog_wrapper = make_ams_verilog_wrapper(
+            name=name,
+            filename=spice_wrapper,
+            pins=pins,
+            dir=dir
+        )
+
+        self.input(verilog_wrapper)
