@@ -37,18 +37,14 @@ module sb_axil_m #(
     input  wire                  m_axil_rvalid,
     output wire                  m_axil_rready
 );
-    localparam TOTAL_WIDTH = 416;
-
     // AW channel
-
-    wire [(TOTAL_WIDTH - ADDR_WIDTH - 3 - 1):0] aw_unused;
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(TOTAL_WIDTH)
+        .DW(ADDR_WIDTH + 3)
     ) aw_channel (
         .clk(clk),
-        .data({aw_unused, m_axil_awprot, m_axil_awaddr}),
+        .data({m_axil_awprot, m_axil_awaddr}),
         .dest(),
         .last(),
         .valid(m_axil_awvalid),
@@ -57,14 +53,12 @@ module sb_axil_m #(
 
     // W channel
 
-    wire [(TOTAL_WIDTH - DATA_WIDTH - STRB_WIDTH - 1):0] w_unused;
-
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(TOTAL_WIDTH)
+        .DW(DATA_WIDTH + STRB_WIDTH)
     ) w_channel (
         .clk(clk),
-        .data({w_unused, m_axil_wstrb, m_axil_wdata}),
+        .data({m_axil_wstrb, m_axil_wdata}),
         .dest(),
         .last(),
         .valid(m_axil_wvalid),
@@ -73,14 +67,12 @@ module sb_axil_m #(
 
     // B channel
 
-    wire [(TOTAL_WIDTH - 2 - 1):0] b_unused;
-
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(TOTAL_WIDTH)
+        .DW(2)
     ) b_channel (
         .clk(clk),
-        .data({b_unused, m_axil_bresp}),
+        .data(m_axil_bresp),
         .dest(),
         .last(),
         .valid(m_axil_bvalid),
@@ -89,14 +81,12 @@ module sb_axil_m #(
 
     // AR channel
 
-    wire [(TOTAL_WIDTH - ADDR_WIDTH - 3 - 1):0] ar_unused;
-
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(TOTAL_WIDTH)
+        .DW(ADDR_WIDTH + 3)
     ) ar_channel (
         .clk(clk),
-        .data({ar_unused, m_axil_arprot, m_axil_araddr}),
+        .data({m_axil_arprot, m_axil_araddr}),
         .dest(),
         .last(),
         .valid(m_axil_arvalid),
@@ -105,14 +95,12 @@ module sb_axil_m #(
 
     // R channel
 
-    wire [(TOTAL_WIDTH - DATA_WIDTH - 2 - 1):0] r_unused;
-
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(TOTAL_WIDTH)
+        .DW(DATA_WIDTH + 2)
     ) r_channel (
         .clk(clk),
-        .data({r_unused, m_axil_rresp, m_axil_rdata}),
+        .data({m_axil_rresp, m_axil_rdata}),
         .dest(),
         .last(),
         .valid(m_axil_rvalid),

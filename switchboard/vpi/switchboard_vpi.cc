@@ -162,8 +162,11 @@ PLI_INT32 pi_sb_recv(PLI_BYTE8* userdata) {
         argval.format = vpiVectorVal;
         s_vpi_vecval vecval[SB_DATA_SIZE / 4];
         argval.value.vector = vecval;
-        int nwords = rxwidth[id] / 4;
-        for (int i = 0; i < nwords; i++) {
+
+        // determine the number of 32-bit words (rounding up)
+        int num_words = (rxwidth[id] + 3) / 4;
+
+        for (int i = 0; i < num_words; i++) {
             argval.value.vector[i].aval = *((uint32_t*)(&p.data[i * 4]));
             argval.value.vector[i].bval = 0;
         }
@@ -229,8 +232,11 @@ PLI_INT32 pi_sb_send(PLI_BYTE8* userdata) {
         // store data
         argval.format = vpiVectorVal;
         vpi_get_value(argh[1], &argval);
-        int nwords = txwidth[id] / 4;
-        for (int i = 0; i < nwords; i++) {
+
+        // determine the number of 32-bit words (rounding up)
+        int num_words = (txwidth[id] + 3) / 4;
+
+        for (int i = 0; i < num_words; i++) {
             *((uint32_t*)(&p.data[i * 4])) = argval.value.vector[i].aval;
         }
 
