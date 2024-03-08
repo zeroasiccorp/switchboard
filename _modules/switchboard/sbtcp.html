@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.sbtcp &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=828725f0"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../switchboard.html">switchboard package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">switchboard.sbtcp</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for switchboard.sbtcp</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Command-line tool that bridges Switchboard packets over TCP.</span>
+
+<span class="c1"># Copyright (c) 2023 Zero ASIC Corporation</span>
+<span class="c1"># This code is licensed under Apache License 2.0 (see LICENSE for details)</span>
+
+<span class="c1"># reference for setting up Python TCP connections:</span>
+<span class="c1"># https://realpython.com/python-sockets/#echo-client-and-server</span>
+
+<span class="c1"># reference for non-blocking socket programming:</span>
+<span class="c1"># https://stackoverflow.com/a/16745561</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">switchboard</span> <span class="kn">import</span> <span class="n">PySbRx</span><span class="p">,</span> <span class="n">PySbTx</span><span class="p">,</span> <span class="n">PySbPacket</span>
+
+<span class="n">SB_PACKET_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">60</span>
+
+
+<div class="viewcode-block" id="conn_closed">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.conn_closed">[docs]</a>
+<span class="k">def</span> <span class="nf">conn_closed</span><span class="p">(</span><span class="n">conn</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if connection is closed by peeking into the read buffer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">buf</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">MSG_PEEK</span> <span class="o">|</span> <span class="n">socket</span><span class="o">.</span><span class="n">MSG_DONTWAIT</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Read of zero means connection was closed.</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EAGAIN</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EWOULDBLOCK</span><span class="p">:</span>
+            <span class="c1"># Some other error, re-raise since this was not expected.</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="c1"># Connection seems to be alive.</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="run_tcp_bridge">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.run_tcp_bridge">[docs]</a>
+<span class="k">def</span> <span class="nf">run_tcp_bridge</span><span class="p">(</span><span class="n">sbrx</span><span class="p">,</span> <span class="n">sbtx</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sends packets received from PySbRx &quot;sbrx&quot; to TCP connection &quot;conn&quot;,</span>
+<span class="sd">    and sends packets received from &quot;conn&quot; to PySbTx &quot;sbtx&quot;.  Runs</span>
+<span class="sd">    continuously until the connection breaks.</span>
+
+<span class="sd">    The optional argument &quot;should_yield&quot; indicates if the bridge</span>
+<span class="sd">    should yield when there is no activity, or when congestion is</span>
+<span class="sd">    detected.  The default is that yielding does occur, so that</span>
+<span class="sd">    the bridge doesn&#39;t use unnecessary CPU resources.  However,</span>
+<span class="sd">    this will increase latency as compared to the case where</span>
+<span class="sd">    there is no explicit yielding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># set connection to non-blocking, allowing SB and TCP</span>
+    <span class="c1"># send/recv operations to be fully interleaved</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">setblocking</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># packets in progress of being sent/received</span>
+    <span class="n">tcp_data_to_send</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">([])</span>
+    <span class="n">data_rx_from_tcp</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">([])</span>
+
+    <span class="c1"># continue bridging until the connection isn&#39;t alive anymore</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1">#############</span>
+        <span class="c1"># SB -&gt; TCP #</span>
+        <span class="c1">#############</span>
+
+        <span class="n">sb2tcp_votes_to_yield</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">sbrx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># get a new packet if needed</span>
+            <span class="k">if</span> <span class="n">tcp_data_to_send</span> <span class="o">==</span> <span class="nb">bytes</span><span class="p">([]):</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">sbrx</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># convert the packet to a bytes object</span>
+                    <span class="n">tcp_data_to_send</span> <span class="o">=</span> <span class="n">sb2bytes</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># no data to pass on to TCP, so indicate</span>
+                    <span class="c1"># that we may want to yield to other threads</span>
+                    <span class="n">sb2tcp_votes_to_yield</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># if there is a new packet to send along try to send a chunk of it</span>
+            <span class="c1"># in a non-blocking fashion</span>
+            <span class="k">if</span> <span class="n">tcp_data_to_send</span> <span class="o">!=</span> <span class="nb">bytes</span><span class="p">([]):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">tcp_data_to_send</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">err</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">err</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EAGAIN</span> <span class="ow">or</span> <span class="n">err</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EWOULDBLOCK</span><span class="p">:</span>
+                        <span class="c1"># couldn&#39;t send anything over TCP, so indicate</span>
+                        <span class="c1"># that we may want to yield to other threads</span>
+                        <span class="n">sb2tcp_votes_to_yield</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># connection is not alive anymore</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">tcp_data_to_send</span> <span class="o">=</span> <span class="n">tcp_data_to_send</span><span class="p">[</span><span class="n">n</span><span class="p">:]</span>
+            <span class="k">if</span> <span class="n">conn_closed</span><span class="p">(</span><span class="n">conn</span><span class="p">):</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># there is no channel for receiving SB packets</span>
+            <span class="n">sb2tcp_votes_to_yield</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1">#############</span>
+        <span class="c1"># TCP -&gt; SB #</span>
+        <span class="c1">#############</span>
+
+        <span class="n">tcp2sb_votes_to_yield</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># receive data from TCP and send it to a SB queue</span>
+        <span class="k">if</span> <span class="n">sbtx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># receive more data from TCP if needed</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_rx_from_tcp</span><span class="p">)</span> <span class="o">!=</span> <span class="n">SB_PACKET_SIZE_BYTES</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">b</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">SB_PACKET_SIZE_BYTES</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">err</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">err</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EAGAIN</span> <span class="ow">or</span> <span class="n">err</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EWOULDBLOCK</span><span class="p">:</span>
+                        <span class="c1"># couldn&#39;t receive anything over TCP, so indicate</span>
+                        <span class="c1"># that we may want to yield to other threads</span>
+                        <span class="n">tcp2sb_votes_to_yield</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># connection is not alive anymore</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">data_rx_from_tcp</span> <span class="o">+=</span> <span class="n">b</span>
+
+            <span class="c1"># try to send a Switchboard packet to a queue if we have one to send</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_rx_from_tcp</span><span class="p">)</span> <span class="o">==</span> <span class="n">SB_PACKET_SIZE_BYTES</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">sbtx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">bytes2sb</span><span class="p">(</span><span class="n">data_rx_from_tcp</span><span class="p">),</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                    <span class="n">data_rx_from_tcp</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">([])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># couldn&#39;t send a packet to a Switchboard queue, so indicate</span>
+                    <span class="c1"># that we may want to yield to other threads</span>
+                    <span class="n">tcp2sb_votes_to_yield</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># there is no channel for transmitting SB packets</span>
+            <span class="n">tcp2sb_votes_to_yield</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1">############</span>
+        <span class="c1"># yielding #</span>
+        <span class="c1">############</span>
+
+        <span class="c1"># yield if nothing is happening or it looks like we&#39;re blocked</span>
+        <span class="c1"># due to backpressure</span>
+
+        <span class="k">if</span> <span class="n">sb2tcp_votes_to_yield</span> <span class="ow">and</span> <span class="n">tcp2sb_votes_to_yield</span> <span class="ow">and</span> <span class="n">should_yield</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_client">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.run_client">[docs]</a>
+<span class="k">def</span> <span class="nf">run_client</span><span class="p">(</span><span class="n">sbrx</span><span class="p">,</span> <span class="n">sbtx</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Connect to a server, retrying until a connection is made.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># initialize TX/RX if needed</span>
+    <span class="n">sbrx</span> <span class="o">=</span> <span class="n">convert_to_queue</span><span class="p">(</span><span class="n">sbrx</span><span class="p">,</span> <span class="s1">&#39;sbrx&#39;</span><span class="p">,</span> <span class="n">PySbRx</span><span class="p">)</span>
+    <span class="n">sbtx</span> <span class="o">=</span> <span class="n">convert_to_queue</span><span class="p">(</span><span class="n">sbtx</span><span class="p">,</span> <span class="s1">&#39;sbtx&#39;</span><span class="p">,</span> <span class="n">PySbTx</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Waiting for server&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">conn</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+            <span class="k">break</span>
+        <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># communicate with the server</span>
+    <span class="n">run_tcp_bridge</span><span class="p">(</span><span class="n">sbrx</span><span class="o">=</span><span class="n">sbrx</span><span class="p">,</span> <span class="n">sbtx</span><span class="o">=</span><span class="n">sbtx</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="n">should_yield</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_server">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.run_server">[docs]</a>
+<span class="k">def</span> <span class="nf">run_server</span><span class="p">(</span><span class="n">sbrx</span><span class="p">,</span> <span class="n">sbtx</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">run_once</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Accepts client connections in a loop until Ctrl-C is pressed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># initialize TX/RX if needed</span>
+    <span class="n">sbrx</span> <span class="o">=</span> <span class="n">convert_to_queue</span><span class="p">(</span><span class="n">sbrx</span><span class="p">,</span> <span class="s1">&#39;sbrx&#39;</span><span class="p">,</span> <span class="n">PySbRx</span><span class="p">)</span>
+    <span class="n">sbtx</span> <span class="o">=</span> <span class="n">convert_to_queue</span><span class="p">(</span><span class="n">sbtx</span><span class="p">,</span> <span class="s1">&#39;sbtx&#39;</span><span class="p">,</span> <span class="n">PySbTx</span><span class="p">)</span>
+
+    <span class="c1"># create the server socket</span>
+    <span class="n">server_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+    <span class="n">server_socket</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SOL_SOCKET</span><span class="p">,</span>
+        <span class="n">socket</span><span class="o">.</span><span class="n">SO_REUSEADDR</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># allow port to be reused immediately</span>
+    <span class="n">server_socket</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+    <span class="n">server_socket</span><span class="o">.</span><span class="n">listen</span><span class="p">()</span>
+
+    <span class="c1"># accept client connections in a loop</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># accept a client</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Waiting for client...&#39;</span><span class="p">)</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">server_socket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Done.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># communicate with that client</span>
+        <span class="n">run_tcp_bridge</span><span class="p">(</span><span class="n">sbrx</span><span class="o">=</span><span class="n">sbrx</span><span class="p">,</span> <span class="n">sbtx</span><span class="o">=</span><span class="n">sbtx</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="n">should_yield</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">run_once</span><span class="p">):</span>
+            <span class="k">break</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># parse command-line arguments</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># main logic</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;server&#39;</span><span class="p">:</span>
+        <span class="n">run_server</span><span class="p">(</span><span class="n">sbrx</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rx</span><span class="p">,</span> <span class="n">sbtx</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">tx</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="n">quiet</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">noyield</span><span class="p">),</span> <span class="n">run_once</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">run_once</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;client&#39;</span><span class="p">:</span>
+        <span class="n">run_client</span><span class="p">(</span><span class="n">sbrx</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rx</span><span class="p">,</span> <span class="n">sbtx</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">tx</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="n">quiet</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">should_yield</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">noyield</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid mode: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sb2bytes">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.sb2bytes">[docs]</a>
+<span class="k">def</span> <span class="nf">sb2bytes</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="c1"># construct a bytes object from a Switchboard packet</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">flags</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">),</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+    <span class="p">))</span>
+    <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="bytes2sb">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.bytes2sb">[docs]</a>
+<span class="k">def</span> <span class="nf">bytes2sb</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+    <span class="c1"># construct a Switchboard packet from a bytes object</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">PySbPacket</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="convert_to_queue">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.convert_to_queue">[docs]</a>
+<span class="k">def</span> <span class="nf">convert_to_queue</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">q</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># note that None is passed through</span>
+        <span class="k">return</span> <span class="n">q</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">q</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> must be a string or </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">; got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="start_tcp_bridge">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.start_tcp_bridge">[docs]</a>
+<span class="k">def</span> <span class="nf">start_tcp_bridge</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">tx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5555</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">sbrx</span><span class="o">=</span><span class="n">rx</span><span class="p">,</span>
+        <span class="n">sbtx</span><span class="o">=</span><span class="n">tx</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">quiet</span><span class="o">=</span><span class="n">quiet</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;server&#39;</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">run_server</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;client&#39;</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">run_client</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid mode: </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="kn">import</span> <span class="nn">multiprocessing</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+
+
+<div class="viewcode-block" id="get_parser">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.get_parser">[docs]</a>
+<span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--rx&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;URI of the Switchboard queue used in&quot;</span>
+        <span class="s2">&quot; the SB -&gt; TCP direction.  Optional.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--tx&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;URI of the Switchboard queue used in&quot;</span>
+        <span class="s2">&quot; the TCP -&gt; SB direction.  Optional.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--mode&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;server&quot;</span><span class="p">,</span> <span class="s2">&quot;client&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Indicates if this program should act as a TCP server or client.  In each pair&quot;</span>
+        <span class="s2">&quot; of TCP bridge programs, one must be a server and the other must be a client.&quot;</span>
+        <span class="s2">&quot;  The server will run forever, accepting a new client connection after&quot;</span>
+        <span class="s2">&quot; the previous client connection terminates.  However, the client only runs&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5555</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;TCP port used for&quot;</span>
+        <span class="s2">&quot; sending and receiving packets.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IP address or hostname&quot;</span>
+        <span class="s2">&quot; used sending/receiving packets.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-q&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Quiet mode: doesn&#39;t print anything.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--noyield&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Reduces latency by keeping the&quot;</span>
+        <span class="s2">&quot; CPU busy even when there is no packet activity, or when packets are blocked&quot;</span>
+        <span class="s2">&quot; due to backpressure.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--run-once&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Process only one connection in server mode, then exit.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
