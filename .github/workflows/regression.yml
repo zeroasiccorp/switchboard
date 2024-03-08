@@ -54,6 +54,12 @@ jobs:
         run: |
           pip3 install .
 
+      - name: Setup GIT to pull from https
+        working-directory: examples
+        run: |
+          git config --global --add url."https://github.com/".insteadOf git@github.com:
+
+
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga_loopback
         run: |
