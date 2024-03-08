@@ -11,6 +11,8 @@ import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import SbDut, UmiTxRx, binary_run
+import umi
+
 
 THIS_DIR = Path(__file__).resolve().parent
 
@@ -90,8 +92,9 @@ def build_testbench(fast=False, tool='verilator'):
 
     dut.input('testbench.sv')
     dut.input(EX_DIR / 'common' / 'verilog' / 'umiram.sv')
-    for option in ['ydir', 'idir']:
-        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
+
+    dut.use(umi)
+    dut.add('option', 'library', 'umi')
 
     dut.build(fast=fast)
 
