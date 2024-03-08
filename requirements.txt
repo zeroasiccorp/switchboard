@@ -17,6 +17,10 @@ siliconcompiler
 pytest >=7,<9
 pytest-timeout
 
+# Examples dependencies
+#:examples
+umi @ git+https://github.com/zeroasiccorp/umi.git@ab0920ec84948204ce944e6c146239abb4a7bfd6
+
 # Docs dependencies
 #:docs
 sphinx

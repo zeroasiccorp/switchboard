@@ -44,7 +44,7 @@ $ pip install -e .
 Various examples demonstrating the features of switchboard are in the [examples](examples) folder.  If you'd like to run them yourself, please run this command first:
 
 ```shell
-./examples/get_deps.py
+$ pip install -e .[examples]
 ```
 
 This clones some additional repositories that are needed by the examples.
