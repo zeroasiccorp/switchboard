@@ -15,6 +15,8 @@ THIS_DIR = Path(__file__).resolve().parent
 
 
 @pytest.mark.parametrize('path,expected,target', [
+    ['axil', 'PASS!', 'verilator'],
+    ['axil', 'PASS!', 'icarus'],
     ['minimal', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
     ['umi_mem_cpp', None, None],

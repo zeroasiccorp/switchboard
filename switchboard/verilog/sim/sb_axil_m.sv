@@ -10,8 +10,8 @@ module sb_axil_m #(
     parameter STRB_WIDTH = (DATA_WIDTH/8),
 
     // Switchboard settings
-    parameter integer VALID_MODE_DEFAULT=1,
-    parameter integer READY_MODE_DEFAULT=1
+    parameter integer VALID_MODE_DEFAULT=0,
+    parameter integer READY_MODE_DEFAULT=0
 ) (
     input wire clk,
 
