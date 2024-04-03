@@ -30,7 +30,7 @@ module testbench (
     assign rst = rst_vec[7];
 
     localparam DATA_WIDTH = 32;
-    localparam ADDR_WIDTH = 16;
+    localparam ADDR_WIDTH = 8;
     localparam STRB_WIDTH = (DATA_WIDTH/8);
 
     wire [ADDR_WIDTH-1:0] axil_awaddr;
@@ -55,7 +55,10 @@ module testbench (
 
     // Switchboard module
 
-    sb_axil_m sb_axil_m_i (
+    sb_axil_m #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) sb_axil_m_i (
         .clk(clk),
         .m_axil_awaddr(axil_awaddr),
         .m_axil_awprot(axil_awprot),
@@ -80,7 +83,10 @@ module testbench (
 
     // DUT
 
-    axil_ram axil_ram_i (
+    axil_ram #(
+        .DATA_WIDTH(DATA_WIDTH),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) axil_ram_i (
         .clk(clk),
         .rst(rst),
         .s_axil_awaddr(axil_awaddr),
@@ -103,6 +109,15 @@ module testbench (
         .s_axil_rvalid(axil_rvalid),
         .s_axil_rready(axil_rready)
     );
+
+    localparam VALID_ADDR_WIDTH = ADDR_WIDTH - $clog2(STRB_WIDTH);
+
+    initial begin
+        // initialize memory to zeros for easy comparison against a behavioral model
+        for (int i=0; i<2**VALID_ADDR_WIDTH; i=i+1) begin
+            axil_ram_i.mem[i] = 0;
+        end
+    end
 
     // Initialize Switchboard
 

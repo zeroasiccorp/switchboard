@@ -7,61 +7,62 @@
 
 import sys
 import random
+import numpy as np
 
+from math import ceil, log2
 from argparse import ArgumentParser
 from switchboard import SbDut, AxiLiteTxRx
 
 
-def main(n=3, fast=False, tool='verilator'):
+def main(n=100, fast=False, tool='verilator', max_bytes=10):
     # build the simulator
     dut = build_testbench(fast=fast, tool=tool)
 
     # create the queues
-    axil = AxiLiteTxRx('axil')
+    axil = AxiLiteTxRx('axil', data_width=32, addr_width=8)
 
     # launch the simulation
     dut.simulate()
 
     # run the test: write to random addresses and read back in a random order
 
-    model = {}
-
     addr_bytes = axil.addr_width // 8
-    data_bytes = axil.data_width // 8
 
-    for _ in range(n):
-        # generate a random write transaction, observing that memory addresses
-        # increment by the number of bytes in a data word.  for example, if
-        # addr_width=16 and data_width=32, there are 4 bytes in a data word.
-        # hence, addresses 0-3 all refer to the same slot in memory. same for
-        # addresses 4-7, 8-11, etc.
-
-        addr = random.randint(0, ((1 << axil.addr_width) // data_bytes) - 1) * data_bytes
-        data = random.randint(0, (1 << axil.data_width) - 1)
-
-        # update local memory model
-        model[addr] = data
-
-        # perform the write
-        axil.write(addr=addr, data=data)
-        print(f'Wrote addr=0x{addr:0{addr_bytes * 2}x} data=0x{data:0{data_bytes * 2}x}')
-
-    # shuffle the addresses to read back in a random order
-
-    addresses = list(model.keys())
-    random.shuffle(addresses)
+    valid_addr_width = axil.addr_width - ceil(log2(addr_bytes))
+    model = np.zeros((1 << valid_addr_width,), dtype=np.uint8)
 
     success = True
 
-    for addr in addresses:
-        # perform the read
-        data = axil.read(addr=addr)
-        print(f'Read addr=0x{addr:0{addr_bytes * 2}x} data=0x{data:0{data_bytes * 2}x}')
+    for _ in range(n):
+        addr = random.randint(0, (1 << valid_addr_width) - 1)
+        size = random.randint(1, min(max_bytes, (1 << valid_addr_width) - addr))
 
-        # check the result
-        if data != model[addr]:
-            print('MISMATCH')
-            success = False
+        if random.random() < 0.5:
+            #########
+            # write #
+            #########
+
+            data = np.random.randint(0, 255, size=size, dtype=np.uint8)
+
+            # perform the write
+            axil.write(addr, data)
+            print(f'Wrote addr=0x{addr:0{addr_bytes * 2}x} data={data}')
+
+            # update local memory model
+            model[addr:addr + size] = data
+        else:
+            ########
+            # read #
+            ########
+
+            # perform the read
+            data = axil.read(addr, size)
+            print(f'Read addr=0x{addr:0{addr_bytes * 2}x} data={data}')
+
+            # check against the model
+            if not np.array_equal(data, model[addr:addr + size]):
+                print('MISMATCH')
+                success = False
 
     if success:
         print("PASS!")
@@ -93,12 +94,14 @@ def build_testbench(fast=False, tool='verilator'):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-n', type=int, default=3, help='Number of'
+    parser.add_argument('-n', type=int, default=100, help='Number of'
         ' words to write as part of the test.')
+    parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
+        ' number of bytes in any single read/write.')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
     parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
         help='Name of the simulator to use.')
     args = parser.parse_args()
 
-    main(n=args.n, fast=args.fast, tool=args.tool)
+    main(n=args.n, fast=args.fast, tool=args.tool, max_bytes=args.max_bytes)

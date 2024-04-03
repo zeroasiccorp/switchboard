@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from math import floor
+from math import floor, ceil, log2
 from numbers import Integral
 
 from _switchboard import PySbPacket, PySbTx, PySbRx
@@ -57,7 +57,9 @@ class AxiLiteTxRx:
         assert isinstance(addr_width, Integral), 'addr_width must be an integer'
 
         # check that data width is a multiple of a byte
-        assert data_width % 8 == 0, 'data_width must be a multiple of 8'
+        data_width_choices = [8, 16, 32, 64, 128, 256, 512, 1024]
+        assert data_width in data_width_choices, \
+            f'data_width must be in {data_width_choices}'
 
         # check that data and address widths are supported
         SBDW = 416
@@ -84,9 +86,8 @@ class AxiLiteTxRx:
     def write(
         self,
         addr: Integral,
-        data: Integral,
+        data,
         prot: Integral = None,
-        strb: Integral = None,
         resp_expected: str = None
     ):
         """
@@ -95,16 +96,12 @@ class AxiLiteTxRx:
         addr: int
             Address to write to
 
-        data: Integral
+        data: np.uint8, np.uint16, np.uint32, np.uint64, or np.array
             Data to write
 
         prot: Integral
             Value of PROT for this transaction.  Defaults to the value provided in the
             AxiLiteTxRx constructor if not provided, which in turn defaults to 0.
-
-        strb: Integral
-            Value of STRB for this transaction.  If not provided, defaults to a full-width
-            write (i.e., all bits in STRB set to "1")
 
         resp_expected: str, optional
             Response to expect for this transaction.  Options are 'OKAY', 'EXOKAY', 'SLVERR',
@@ -121,70 +118,115 @@ class AxiLiteTxRx:
 
         # set defaults
 
-        if strb is None:
-            strb = (1 << (self.data_width // 8)) - 1
-
         if prot is None:
             prot = self.default_prot
 
         if resp_expected is None:
             resp_expected = self.default_resp_expected
 
-        # make sure everything is an int
+        # check/standardize data types
 
         assert isinstance(addr, Integral), 'addr must be an integer'
         addr = int(addr)
 
-        assert isinstance(data, Integral), 'data must be an integer'
-        data = int(data)
-
         assert isinstance(prot, Integral), 'prot must be an integer'
         prot = int(prot)
 
-        assert isinstance(strb, Integral), 'strb must be an integer'
-        strb = int(strb)
+        if isinstance(data, np.ndarray):
+            if data.ndim == 0:
+                write_data = np.atleast_1d(data)
+            elif data.ndim == 1:
+                write_data = data
+            else:
+                raise ValueError(f'Can only write 1D arrays (got ndim={data.ndim})')
+
+            if not np.issubdtype(write_data.dtype, np.integer):
+                raise ValueError('Can only write integer dtypes such as uint8, uint16, etc.'
+                    f'  (got dtype "{data.dtype}")')
+        elif isinstance(data, np.integer):
+            write_data = np.array(data, ndmin=1, copy=False)
+        else:
+            raise TypeError(f"Unknown data type: {type(data)}")
+
+        write_data = write_data.view(np.uint8)
+        bytes_to_send = write_data.size
 
         # range validation
 
         assert 0 <= addr < (1 << self.addr_width), 'addr out of range'
-        assert 0 <= data < (1 << self.data_width), 'data out of range'
+        assert addr + bytes_to_send <= (1 << self.addr_width), \
+            "transaction exceeds the address space."
+
         assert 0 <= prot < (1 << 3), 'prot out of range'
-        assert 0 <= strb < (1 << self.strb_width), 'strb out of range'
 
-        # write address
+        # loop until all data is sent
+        # TODO: move to C++?
 
-        pack = (prot << self.addr_width) | addr
-        pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
-        pack = np.frombuffer(pack, dtype=np.uint8)
-        pack = PySbPacket(data=pack, flags=1, destination=0)
-        self.aw.send(pack)
+        bytes_sent = 0
 
-        # write data
+        data_bytes = self.data_width // 8
+        strb_bytes = (self.strb_width + 7) // 8
 
-        pack = (strb << self.data_width) | data
-        pack = pack.to_bytes((self.data_width + self.strb_width + 7) // 8, 'little')
-        pack = np.frombuffer(pack, dtype=np.uint8)
-        pack = PySbPacket(data=pack, flags=1, destination=0)
-        self.w.send(pack)
+        addr_mask = (1 << self.addr_width) - 1
+        addr_mask >>= ceil(log2(data_bytes))
+        addr_mask <<= ceil(log2(data_bytes))
 
-        # wait for response
-        pack = self.b.recv()
-        pack = pack.data.tobytes()
-        pack = int.from_bytes(pack, 'little')
+        while bytes_sent < bytes_to_send:
+            # find the offset into the data bus for this cycle.  bytes below
+            # the offset will have write strobe de-asserted.
+            offset = addr % data_bytes
 
-        # decode the response
-        resp = decode_resp(pack & 0b11)
+            # determine how many bytes we're sending in this cycle
+            bytes_this_cycle = min(bytes_to_send - bytes_sent, data_bytes - offset)
 
-        # check the response if desired
-        if resp_expected is not None:
-            assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
+            # extract those bytes from the whole input data array, picking
+            # up where we left off from the last iteration
+            data_this_cycle = data[bytes_sent:bytes_sent + bytes_this_cycle]
 
-        # return the reponse
+            # calculate strobe value based on the offset and number
+            # of bytes that we're writing.
+            strb = ((1 << bytes_this_cycle) - 1) << offset
+            strb = strb.to_bytes(strb_bytes, 'little')
+            strb = np.frombuffer(strb, dtype=np.uint8)
+
+            # transmit the write address
+            pack = (prot << self.addr_width) | (addr & addr_mask)
+            pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
+            pack = np.frombuffer(pack, dtype=np.uint8)
+            pack = PySbPacket(data=pack, flags=1, destination=0)
+            self.aw.send(pack)
+
+            # write data and strobe
+            pack = np.empty((data_bytes + strb_bytes,), dtype=np.uint8)
+            pack[offset:offset + bytes_this_cycle] = data_this_cycle
+            pack[data_bytes:data_bytes + strb_bytes] = strb
+            pack = PySbPacket(data=pack, flags=1, destination=0)
+            self.w.send(pack)
+
+            # wait for response
+            pack = self.b.recv()
+            pack = pack.data.tobytes()
+            pack = int.from_bytes(pack, 'little')
+
+            # decode the response
+            resp = decode_resp(pack & 0b11)
+
+            # check the response if desired
+            if resp_expected is not None:
+                assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
+
+            # increment pointers
+            bytes_sent += bytes_this_cycle
+            addr += bytes_this_cycle
+
+        # return the last reponse
         return resp
 
     def read(
         self,
         addr: Integral,
+        num_or_dtype,
+        dtype=np.uint8,
         prot: Integral = None,
         resp_expected: str = None
     ):
@@ -193,6 +235,16 @@ class AxiLiteTxRx:
         ----------
         addr: int
             Address to read from
+
+        num_or_dtype: int or numpy integer datatype
+            If a plain int, `num_or_datatype` specifies the number of bytes to be read.
+            If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatype
+            specifies the data type to be returned.
+
+        dtype: numpy integer datatype, optional
+            If num_or_dtype is a plain integer, the value returned by this function
+            will be a numpy array of type "dtype".  On the other hand, if num_or_dtype
+            is a numpy datatype, the value returned will be a scalar of that datatype.
 
         prot: Integral
             Value of PROT for this transaction.  Defaults to the value provided in the
@@ -218,7 +270,7 @@ class AxiLiteTxRx:
         if resp_expected is None:
             resp_expected = self.default_resp_expected
 
-        # make sure everything is an int
+        # check/standardize data types
 
         assert isinstance(addr, Integral), 'addr must be an integer'
         addr = int(addr)
@@ -226,33 +278,63 @@ class AxiLiteTxRx:
         assert isinstance(prot, Integral), 'prot must be an integer'
         prot = int(prot)
 
+        if isinstance(num_or_dtype, (type, np.dtype)):
+            bytes_to_read = np.dtype(num_or_dtype).itemsize
+        else:
+            bytes_to_read = num_or_dtype * np.dtype(dtype).itemsize
+
         # range validation
 
         assert 0 <= addr < (1 << self.addr_width), 'addr out of range'
+        assert addr + bytes_to_read <= (1 << self.addr_width), \
+            "transaction exceeds the address space."
+
         assert 0 <= prot < (1 << 3), 'prot out of range'
 
-        # read address
-        pack = (prot << self.addr_width) | addr
-        pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
-        pack = np.frombuffer(pack, dtype=np.uint8)
-        pack = PySbPacket(data=pack, flags=1, destination=0)
-        self.ar.send(pack)
+        # loop until all data is read
+        # TODO: move to C++?
 
-        # wait for response
-        pack = self.r.recv()
-        pack = pack.data.tobytes()
-        pack = int.from_bytes(pack, 'little')
+        bytes_read = 0
+        data_bytes = self.data_width // 8
 
-        # split apart the result into data and a response code
-        data = pack & ((1 << self.data_width) - 1)
-        resp = (pack >> self.data_width) & 0b11
+        addr_mask = (1 << self.addr_width) - 1
+        addr_mask >>= ceil(log2(data_bytes))
+        addr_mask <<= ceil(log2(data_bytes))
 
-        # check the reponse
-        if resp_expected is not None:
-            resp = decode_resp(resp)
-            assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
+        retval = np.empty((bytes_to_read,), dtype=np.uint8)
 
-        return data
+        while bytes_read < bytes_to_read:
+            # find the offset into the data bus for this cycle
+            offset = addr % data_bytes
+
+            # determine what data we're reading this cycle
+            bytes_this_cycle = min(bytes_to_read - bytes_read, data_bytes - offset)
+
+            # transmit read address
+            pack = (prot << self.addr_width) | (addr & addr_mask)
+            pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
+            pack = np.frombuffer(pack, dtype=np.uint8)
+            pack = PySbPacket(data=pack, flags=1, destination=0)
+            self.ar.send(pack)
+
+            # wait for response
+            pack = self.r.recv()
+            data = pack.data[offset:offset + bytes_this_cycle]
+            resp = pack.data[data_bytes] & 0b11
+
+            # check the reponse
+            if resp_expected is not None:
+                resp = decode_resp(resp)
+                assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
+
+            # add this data to the return value
+            retval[bytes_read:bytes_read + bytes_this_cycle] = data
+
+            # increment pointers
+            bytes_read += bytes_this_cycle
+            addr += bytes_this_cycle
+
+        return retval
 
 
 def decode_resp(resp: Integral):
