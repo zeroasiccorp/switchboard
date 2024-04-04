@@ -21,8 +21,11 @@ module queue_to_sb_sim #(
     input ready,
     output reg valid=1'b0
 );
-    // corresponds to UMI DW=256
+    // SBDW value corresponds to UMI DW=256
     // 32b (cmd) + 64b (srcaddr) + 64b (dstaddr) + 256b = 416b
+
+    // SBDW must be a multiple of 32 (constrained by VPI driver,
+    // which transfers data in 32-bit chunks)
     localparam SBDW = 416;
 
     `ifdef __ICARUS__
@@ -48,7 +51,7 @@ module queue_to_sb_sim #(
 
     `SB_START_FUNC init(input string uri);
         /* verilator lint_off IGNOREDRETURN */
-        `SB_EXT_FUNC(pi_sb_rx_init)(id, uri, DW/8);
+        `SB_EXT_FUNC(pi_sb_rx_init)(id, uri, (DW + 7)/8);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
 
