@@ -25,3 +25,6 @@ parameter-name-style=localparam_style:CamelCase|ALL_CAPS
 
 # allow $test$plusargs
 -plusarg-assignment
+
+# need to waive this to allow macro usage (e.g., examples/axil/testbench.sv)
+-module-port
