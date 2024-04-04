@@ -337,7 +337,7 @@ class AxiLiteTxRx:
         if isinstance(num_or_dtype, (type, np.dtype)):
             return retval.view(num_or_dtype)[0]
         else:
-            return retval
+            return retval.view(dtype)
 
 
 def decode_resp(resp: Integral):
