@@ -15,24 +15,24 @@ THIS_DIR = Path(__file__).resolve().parent
 
 
 @pytest.mark.parametrize('path,expected,target', [
+    ['axil', 'PASS!', 'icarus'],  
     ['axil', 'PASS!', 'verilator'],
-    ['axil', 'PASS!', 'icarus'],
-    ['minimal', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
-    ['umi_mem_cpp', None, None],
-    ['umiram', None, 'verilator'],
-    ['umiram', None, 'cpp'],
+    ['minimal', 'PASS!', 'verilator'],
     ['python', 'PASS!', None],
     ['router', 'PASS!', None],
     ['stream', 'PASS!', None],
     ['tcp', 'PASS!', None],
     ['umi_endpoint', None, None],
-    ['umi_gpio', None, None],
     ['umi_fifo', None, None],
     ['umi_fifo_flex', None, None],
+    ['umi_gpio', None, None],
+    ['umi_mem_cpp', None, None],
     ['umi_splitter', None, None],
-    ['xyce', None, 'verilator'],
-    ['xyce', None, 'icarus']
+    ['umiram', None, 'cpp'],
+    ['umiram', None, 'verilator'],
+    ['xyce', None, 'icarus'],
+    ['xyce', None, 'verilator']
 ])
 def test_make(path, expected, target):
     cmd = ['make']
