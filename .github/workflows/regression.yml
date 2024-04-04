@@ -27,10 +27,7 @@ jobs:
       - name: Install Switchboard Python package
         run: |
           pip3 install .[test]
-
-      - name: Get dependencies for running tests
-        working-directory: examples
-        run: python3 get_deps.py
+          pip3 install -r examples/requirements.txt
 
       - name: Run pytest
         working-directory: examples
@@ -58,9 +55,11 @@ jobs:
         run: |
           pip3 install .
 
-      - name: Get dependencies for running tests
+      - name: Setup GIT to pull from https
         working-directory: examples
-        run: python3 get_deps.py
+        run: |
+          git config --global --add url."https://github.com/".insteadOf git@github.com:
+
 
       - name: Run FPGA loopback simulation
         working-directory: examples/fpga_loopback

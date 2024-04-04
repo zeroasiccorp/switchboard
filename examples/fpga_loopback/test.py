@@ -7,7 +7,6 @@
 
 import sys
 import numpy as np
-from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
@@ -64,12 +63,17 @@ def build_testbench(fast=False):
     dut.set('tool', tool, 'task', 'compile', 'var', 'pins_bv', '2')
 
     # libsystemctlm-soc configuration
+    dut.register_package_source(
+        'libsystemctlm-soc',
+        'git+https://github.com/Xilinx/libsystemctlm-soc.git',
+        '670d73c'
+    )
 
-    LIBSYSTEMCTLM_SOC = Path('../deps/libsystemctlm-soc').resolve()
-
-    dut.add('tool', tool, 'task', 'compile', 'dir', 'cincludes', LIBSYSTEMCTLM_SOC)
-    dut.add('tool', tool, 'task', 'compile', 'dir', 'cincludes', LIBSYSTEMCTLM_SOC / 'tests')
-    dut.input(LIBSYSTEMCTLM_SOC / 'trace' / 'trace.cc')
+    dut.add('tool', tool, 'task', 'compile', 'dir', 'cincludes', '.',
+            package='libsystemctlm-soc')
+    dut.add('tool', tool, 'task', 'compile', 'dir', 'cincludes', 'tests',
+            package='libsystemctlm-soc')
+    dut.input('trace/trace.cc', package='libsystemctlm-soc')
 
     # build the simulator
 

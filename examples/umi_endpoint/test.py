@@ -6,9 +6,9 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import numpy as np
-from pathlib import Path
 from argparse import ArgumentParser
 from switchboard import UmiTxRx, SbDut
+import umi
 
 
 def main(fast=False, tool='verilator'):
@@ -78,12 +78,11 @@ def main(fast=False, tool='verilator'):
 def build_testbench(fast=False, tool='verilator'):
     dut = SbDut(tool=tool, default_main=True)
 
-    EX_DIR = Path('..').resolve()
-
     dut.input('testbench.sv')
-    for option in ['ydir', 'idir']:
-        dut.add('option', option, EX_DIR / 'deps' / 'umi' / 'umi' / 'rtl')
-        dut.add('option', option, EX_DIR / 'deps' / 'lambdalib' / 'stdlib' / 'rtl')
+
+    dut.use(umi)
+    dut.add('option', 'library', 'umi')
+    dut.add('option', 'library', 'lambdalib_stdlib')
 
     dut.build(fast=fast)
 
