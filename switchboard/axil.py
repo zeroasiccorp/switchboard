@@ -181,7 +181,7 @@ class AxiLiteTxRx:
 
             # extract those bytes from the whole input data array, picking
             # up where we left off from the last iteration
-            data_this_cycle = data[bytes_sent:bytes_sent + bytes_this_cycle]
+            data_this_cycle = write_data[bytes_sent:bytes_sent + bytes_this_cycle]
 
             # calculate strobe value based on the offset and number
             # of bytes that we're writing.
@@ -334,7 +334,10 @@ class AxiLiteTxRx:
             bytes_read += bytes_this_cycle
             addr += bytes_this_cycle
 
-        return retval
+        if isinstance(num_or_dtype, (type, np.dtype)):
+            return retval.view(num_or_dtype)[0]
+        else:
+            return retval
 
 
 def decode_resp(resp: Integral):
