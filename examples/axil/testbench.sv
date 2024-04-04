@@ -27,7 +27,7 @@ module testbench (
     localparam DATA_WIDTH = 32;
     localparam ADDR_WIDTH = 8;
 
-    `SB_AXIL_WIRES(axil, DATA_WIDTH, ADDR_WIDTH)
+    `SB_AXIL_WIRES(axil, DATA_WIDTH, ADDR_WIDTH);
 
     // Instantiate DUT
 
@@ -44,7 +44,13 @@ module testbench (
 
     // Instantiate switchboard module
 
-    `SB_AXIL_M(sb_axil_m_i, axil, axil, DATA_WIDTH, ADDR_WIDTH)
+    `SB_AXIL_M(sb_axil_m_i, axil, DATA_WIDTH, ADDR_WIDTH);
+
+    initial begin
+        /* verilator lint_off IGNOREDRETURN */
+        sb_axil_m_i.init("axil");
+        /* verilator lint_on IGNOREDRETURN */
+    end
 
     // Initialize RAM to zeros for easy comparison against a behavioral model
 

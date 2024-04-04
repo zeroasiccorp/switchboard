@@ -6,9 +6,6 @@
 `ifndef SWITCHBOARD_VH_
 `define SWITCHBOARD_VH_
 
-// ref: https://stackoverflow.com/a/15376637
-`define STRINGIFY(x) `"x`"
-
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)       \
         wire prefix``_valid;                            \
         wire [cw - 1 : 0] prefix``_cmd;                 \
@@ -66,7 +63,7 @@
     wire [((dw))-1:0]     signal``_rdata;                       \
     wire [1:0]            signal``_rresp;                       \
     wire                  signal``_rvalid;                      \
-    wire                  signal``_rready;
+    wire                  signal``_rready
 
 `define SB_AXIL_CONNECT(a, b)                                   \
         .a``_awaddr(b``_awaddr),                                \
@@ -89,7 +86,7 @@
         .a``_rvalid(b``_rvalid),                                \
         .a``_rready(b``_rready)
 
-`define SB_AXIL_M(mod, signal, queue, dw, aw)                   \
+`define SB_AXIL_M(mod, signal, dw, aw)                          \
     sb_axil_m #(                                                \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw)                                         \
@@ -114,11 +111,6 @@
         .m_axil_rresp(signal``_rresp),                          \
         .m_axil_rvalid(signal``_rvalid),                        \
         .m_axil_rready(signal``_rready)                         \
-    );                                                          \
-    initial begin                                               \
-        /* verilator lint_off IGNOREDRETURN */                  \
-        sb_axil_m_i.init(`STRINGIFY(queue));                    \
-        /* verilator lint_on IGNOREDRETURN */                   \
-    end
+    )
 
 `endif
