@@ -15,7 +15,7 @@ THIS_DIR = Path(__file__).resolve().parent
 
 
 @pytest.mark.parametrize('path,expected,target', [
-    ['axil', 'PASS!', 'icarus'],  
+    ['axil', 'PASS!', 'icarus'],
     ['axil', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
     ['minimal', 'PASS!', 'verilator'],
