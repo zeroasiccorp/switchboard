@@ -69,7 +69,7 @@ $ git submodule update --init
 - Retrieve dependencies for running examples
 
 ```sh
-$ pip install -e .[examples]
+$ pip install -r examples/requirements.txt
 ```
 
 - Add fork as a remote to push your work to (external contributors only)
@@ -95,7 +95,8 @@ $ python3 -m pip install --upgrade pip setuptools
 
 - Install the development dependencies
 ```sh
-$ python3 -m pip install -e .[test,examples]
+$ python3 -m pip install -e .[test]
+$ python3 -m pip install -r examples/requirements.txt
 ```
 
 ## Start coding

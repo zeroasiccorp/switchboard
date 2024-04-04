@@ -26,7 +26,8 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          pip3 install .[test,examples]
+          pip3 install .[test]
+          pip3 install -r examples/requirements.txt
 
       - name: Run pytest
         working-directory: examples
