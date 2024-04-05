@@ -90,7 +90,8 @@ class AxiTxRx:
         addr: Integral,
         data,
         prot: Integral = None,
-        resp_expected: str = None
+        burst: bool = True,
+        resp_expected: str = None,
     ):
         """
         Parameters
@@ -167,7 +168,7 @@ class AxiTxRx:
         bytes_sent = 0
 
         data_bytes = self.data_width // 8
-        strb_bytes = (self.strb_width + 1 + 7) // 8
+        data = np.empty((data_bytes,), dtype=np.uint8)
 
         addr_mask = (1 << self.addr_width) - 1
         addr_mask >>= ceil(log2(data_bytes))
@@ -183,38 +184,24 @@ class AxiTxRx:
 
             # extract those bytes from the whole input data array, picking
             # up where we left off from the last iteration
-            data_this_cycle = write_data[bytes_sent:bytes_sent + bytes_this_cycle]
+            data[offset:offset + bytes_this_cycle] = \
+                write_data[bytes_sent:bytes_sent + bytes_this_cycle]
 
             # calculate strobe value based on the offset and number
             # of bytes that we're writing.
             strb = ((1 << bytes_this_cycle) - 1) << offset
-            strb = strb.to_bytes(strb_bytes, 'little')
-            strb = np.frombuffer(strb, dtype=np.uint8)
 
             # transmit the write address
-            pack = (prot << self.addr_width) | (addr & addr_mask)
-            pack = pack.to_bytes(
-                (self.addr_width + 3 + self.id_width + 8 + 3 + 2 + 1 + 4 + 7) // 8,
-                'little'
-            )
-            pack = np.frombuffer(pack, dtype=np.uint8)
-            pack = PySbPacket(data=pack, flags=1, destination=0)
-            self.aw.send(pack)
+            self.aw.send(self.pack_addr(addr & addr_mask, prot=prot))
 
             # write data and strobe
-            pack = np.empty((data_bytes + strb_bytes,), dtype=np.uint8)
-            pack[offset:offset + bytes_this_cycle] = data_this_cycle
-            pack[data_bytes:data_bytes + strb_bytes] = strb
-            pack = PySbPacket(data=pack, flags=1, destination=0)
-            self.w.send(pack)
+            self.w.send(self.pack_w(data, strb=strb))
 
             # wait for response
-            pack = self.b.recv()
-            pack = pack.data.tobytes()
-            pack = int.from_bytes(pack, 'little')
+            resp, id = self.unpack_b(self.b.recv())
 
             # decode the response
-            resp = decode_resp(pack & 0b11)
+            resp = decode_resp(resp)
 
             # check the response if desired
             if resp_expected is not None:
@@ -233,6 +220,7 @@ class AxiTxRx:
         num_or_dtype,
         dtype=np.uint8,
         prot: Integral = None,
+        burst: bool = True,
         resp_expected: str = None
     ):
         """
@@ -316,19 +304,11 @@ class AxiTxRx:
             bytes_this_cycle = min(bytes_to_read - bytes_read, data_bytes - offset)
 
             # transmit read address
-            pack = (prot << self.addr_width) | (addr & addr_mask)
-            pack = pack.to_bytes(
-                (self.addr_width + 3 + self.id_width + 8 + 3 + 2 + 1 + 4 + 7) // 8,
-                'little'
-            )
-            pack = np.frombuffer(pack, dtype=np.uint8)
-            pack = PySbPacket(data=pack, flags=1, destination=0)
-            self.ar.send(pack)
+            self.ar.send(self.pack_addr(addr & addr_mask, prot=prot))
 
             # wait for response
-            pack = self.r.recv()
-            data = pack.data[offset:offset + bytes_this_cycle]
-            resp = pack.data[data_bytes] & 0b11
+            data, resp, id, last = self.unpack_r(self.r.recv())
+            data = data[offset:offset + bytes_this_cycle]
 
             # check the reponse
             if resp_expected is not None:
@@ -346,6 +326,109 @@ class AxiTxRx:
             return retval.view(num_or_dtype)[0]
         else:
             return retval.view(dtype)
+
+    def pack_addr(self, addr, prot=0, id=0, len=0, size=0, burst=0b01, lock=0, cache=0):
+        pack = 0
+
+        # cache
+        pack = (pack << 4) | (cache & 0b1111)
+
+        # lock
+        pack = (pack << 1) | (lock & 0b1)
+
+        # burst
+        pack = (pack << 2) | (burst & 0b11)
+
+        # size
+        pack = (pack << 3) | (size & 0b111)
+
+        # len
+        pack = (pack << 8) | (len & 0xff)
+
+        # id
+        pack = (pack << self.id_width) | (id & ((1 << self.id_width) - 1))
+
+        # prot
+        pack = (pack << 3) | (prot & 0b111)
+
+        # addr
+        pack = (pack << self.addr_width) | (addr & ((1 << self.addr_width) - 1))
+
+        # convert to byte array
+        pack = pack.to_bytes(
+            (self.addr_width + 3 + self.id_width + 8 + 3 + 2 + 1 + 4 + 7) // 8,
+            'little'
+        )
+
+        # convert to a numpy array
+        pack = np.frombuffer(pack, dtype=np.uint8)
+
+        # convert to an SB packet
+        pack = PySbPacket(data=pack, flags=1, destination=0)
+
+        return pack
+
+    def pack_w(self, data, strb=None, last=1):
+        if strb is None:
+            strb = (1 << self.strb_width) - 1
+
+        # pack non-data signals together
+        rest = 0
+        rest = (rest << 1) | (last & 1)
+        rest = (rest << self.strb_width) | (strb & ((1 << self.strb_width) - 1))
+        rest = rest.to_bytes(rest, 'little')
+        rest = np.frombuffer(rest, dtype=np.uint8)
+
+        # figure out how many bytes the data + rest of the signals take up
+        data_bytes = self.data_width // 8
+        rest_bytes = (self.strb_width + 1 + 7) // 8
+
+        # pack everything together in a numpy array
+        pack = np.empty((data_bytes + rest_bytes,), dtype=np.uint8)
+        pack[:data_bytes] = data
+        pack[data_bytes:] = strb
+
+        # convert to an SB packet
+        pack = PySbPacket(data=pack, flags=1, destination=0)
+
+        return pack
+
+    def unpack_b(self, pack):
+        pack = pack.data.tobytes()
+        pack = int.from_bytes(pack, 'little')
+
+        # resp
+        resp = pack & 0b11
+        pack >>= 2
+
+        # id
+        id = pack & ((1 << self.id_width) - 1)
+        pack >>= self.id_width
+
+        return resp, id
+
+    def unpack_r(self, pack):
+        data_bytes = self.data_width // 8
+
+        data = pack.data[:data_bytes]
+        rest = pack.data[data_bytes:]
+
+        rest = rest.tobytes()
+        rest = int.from_bytes(rest, 'little')
+
+        # resp
+        resp = rest & 0b11
+        rest >>= 2
+
+        # id
+        id = rest & ((1 << self.id_width) - 1)
+        rest >>= self.id_width
+
+        # last
+        last = rest & 0b1
+        rest >>= 1
+
+        return data, resp, id, last
 
 
 def decode_resp(resp: Integral):
