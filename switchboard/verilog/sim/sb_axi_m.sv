@@ -58,47 +58,39 @@ module sb_axi_m #(
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(ADDR_WIDTH + 3)
+        .DW(ADDR_WIDTH + 3 + ID_WIDTH + 8 + 3 + 2 + 1 + 4)
     ) aw_channel (
         .clk(clk),
-        .data({m_axi_awprot, m_axi_awaddr}),
+        .data({m_axi_awcache, m_axi_awlock, m_axi_awburst, m_axi_awsize,
+            m_axi_awlen, m_axi_awid, m_axi_awprot, m_axi_awaddr}),
         .dest(),
         .last(),
         .valid(m_axi_awvalid),
         .ready(m_axi_awready)
     );
 
-    assign m_axi_awid = 0;
-    assign m_axi_awlen = 0;
-    assign m_axi_awsize = 0;
-    assign m_axi_awburst = 0;
-    assign m_axi_awlock = 0;
-    assign m_axi_awcache = 0;
-
     // W channel
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(DATA_WIDTH + STRB_WIDTH)
+        .DW(DATA_WIDTH + STRB_WIDTH + 1)
     ) w_channel (
         .clk(clk),
-        .data({m_axi_wstrb, m_axi_wdata}),
+        .data({m_axi_wlast, m_axi_wstrb, m_axi_wdata}),
         .dest(),
         .last(),
         .valid(m_axi_wvalid),
         .ready(m_axi_wready)
     );
 
-    assign m_axi_wlast = 0;
-
     // B channel
 
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(2)
+        .DW(2 + ID_WIDTH)
     ) b_channel (
         .clk(clk),
-        .data(m_axi_bresp),
+        .data({m_axi_bid, m_axi_bresp}),
         .dest(),
         .last(),
         .valid(m_axi_bvalid),
@@ -109,31 +101,25 @@ module sb_axi_m #(
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(ADDR_WIDTH + 3)
+        .DW(ADDR_WIDTH + 3 + ID_WIDTH + 8 + 3 + 2 + 1 + 4)
     ) ar_channel (
         .clk(clk),
-        .data({m_axi_arprot, m_axi_araddr}),
+        .data({m_axi_arcache, m_axi_arlock, m_axi_arburst, m_axi_arsize,
+            m_axi_arlen, m_axi_arid, m_axi_arprot, m_axi_araddr}),
         .dest(),
         .last(),
         .valid(m_axi_arvalid),
         .ready(m_axi_arready)
     );
 
-    assign m_axi_arid = 0;
-    assign m_axi_arlen = 0;
-    assign m_axi_arsize = 0;
-    assign m_axi_arburst = 0;
-    assign m_axi_arlock = 0;
-    assign m_axi_arcache = 0;
-
     // R channel
 
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(DATA_WIDTH + 2)
+        .DW(DATA_WIDTH + 2 + ID_WIDTH + 1)
     ) r_channel (
         .clk(clk),
-        .data({m_axi_rresp, m_axi_rdata}),
+        .data({m_axi_rlast, m_axi_rid, m_axi_rresp, m_axi_rdata}),
         .dest(),
         .last(),
         .valid(m_axi_rvalid),

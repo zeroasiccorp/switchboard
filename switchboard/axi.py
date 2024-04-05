@@ -167,7 +167,7 @@ class AxiTxRx:
         bytes_sent = 0
 
         data_bytes = self.data_width // 8
-        strb_bytes = (self.strb_width + 7) // 8
+        strb_bytes = (self.strb_width + 1 + 7) // 8
 
         addr_mask = (1 << self.addr_width) - 1
         addr_mask >>= ceil(log2(data_bytes))
@@ -193,7 +193,10 @@ class AxiTxRx:
 
             # transmit the write address
             pack = (prot << self.addr_width) | (addr & addr_mask)
-            pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
+            pack = pack.to_bytes(
+                (self.addr_width + 3 + self.id_width + 8 + 3 + 2 + 1 + 4 + 7) // 8,
+                'little'
+            )
             pack = np.frombuffer(pack, dtype=np.uint8)
             pack = PySbPacket(data=pack, flags=1, destination=0)
             self.aw.send(pack)
@@ -314,7 +317,10 @@ class AxiTxRx:
 
             # transmit read address
             pack = (prot << self.addr_width) | (addr & addr_mask)
-            pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
+            pack = pack.to_bytes(
+                (self.addr_width + 3 + self.id_width + 8 + 3 + 2 + 1 + 4 + 7) // 8,
+                'little'
+            )
             pack = np.frombuffer(pack, dtype=np.uint8)
             pack = PySbPacket(data=pack, flags=1, destination=0)
             self.ar.send(pack)
