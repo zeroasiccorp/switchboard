@@ -20,6 +20,8 @@ class AxiTxRx:
         addr_width: int = 16,
         id_width: int = 8,
         prot: int = 0,
+        size: int = None,
+        max_beats: int = 256,
         resp_expected: str = 'OKAY',
         queue_suffix: str = '.q'
     ):
@@ -67,11 +69,17 @@ class AxiTxRx:
         assert 0 < data_width <= floor(SBDW / (1 + (1 / 8))), 'data_width out of range'
         assert 0 < addr_width <= SBDW - 3, 'addr_width out of range'
 
+        # determine default size
+        if size is None:
+            size = ceil(log2(data_width // 8))
+
         # save settings
         self.data_width = data_width
         self.addr_width = addr_width
         self.id_width = id_width
         self.default_prot = prot
+        self.default_size = size
+        self.default_max_beats = max_beats
         self.default_resp_expected = resp_expected
 
         # create the queues
@@ -90,7 +98,8 @@ class AxiTxRx:
         addr: Integral,
         data,
         prot: Integral = None,
-        burst: bool = True,
+        size: Integral = None,
+        max_beats: Integral = None,
         resp_expected: str = None,
     ):
         """
@@ -123,6 +132,12 @@ class AxiTxRx:
 
         if prot is None:
             prot = self.default_prot
+
+        if size is None:
+            size = self.default_size
+
+        if max_beats is None:
+            max_beats = self.default_max_beats
 
         if resp_expected is None:
             resp_expected = self.default_resp_expected
@@ -171,31 +186,56 @@ class AxiTxRx:
         data = np.empty((data_bytes,), dtype=np.uint8)
 
         addr_mask = (1 << self.addr_width) - 1
-        addr_mask >>= ceil(log2(data_bytes))
-        addr_mask <<= ceil(log2(data_bytes))
+        addr_mask >>= size
+        addr_mask <<= size
+
+        increment_4k = 1 << 12
 
         while bytes_sent < bytes_to_send:
-            # find the offset into the data bus for this cycle.  bytes below
-            # the offset will have write strobe de-asserted.
-            offset = addr % data_bytes
+            top_addr = addr + (bytes_to_send - bytes_sent)
 
-            # determine how many bytes we're sending in this cycle
-            bytes_this_cycle = min(bytes_to_send - bytes_sent, data_bytes - offset)
+            # limit transfer to the longest burst possible
+            longest_burst = max_beats * (1 << size)
+            top_addr = min(top_addr, (addr & addr_mask) + longest_burst)
 
-            # extract those bytes from the whole input data array, picking
-            # up where we left off from the last iteration
-            data[offset:offset + bytes_this_cycle] = \
-                write_data[bytes_sent:bytes_sent + bytes_this_cycle]
+            # don't cross a 4k boundary
+            next_4k_boundary = (addr & (increment_4k - 1)) + increment_4k
+            top_addr = min(top_addr, next_4k_boundary)
 
-            # calculate strobe value based on the offset and number
-            # of bytes that we're writing.
-            strb = ((1 << bytes_this_cycle) - 1) << offset
+            # calculate the number of beats
+            beats = ceil((top_addr - (addr & addr_mask)) / (1 << size))
+            assert beats <= max_beats
 
             # transmit the write address
-            self.aw.send(self.pack_addr(addr & addr_mask, prot=prot))
+            self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size, len=beats - 1))
 
-            # write data and strobe
-            self.w.send(self.pack_w(data, strb=strb))
+            for beat in range(beats):
+                # find the offset into the data bus for this beat.  bytes below
+                # the offset will have write strobe de-asserted.
+                offset = addr - (addr & addr_mask)
+
+                # determine how many bytes we're sending in this cycle
+                bytes_this_beat = min(bytes_to_send - bytes_sent, (1 << size) - offset)
+
+                # extract those bytes from the whole input data array, picking
+                # up where we left off from the last beat
+                data[offset:offset + bytes_this_beat] = \
+                    write_data[bytes_sent:bytes_sent + bytes_this_beat]
+
+                # calculate strobe value based on the offset and number
+                # of bytes that we're writing.
+                strb = ((1 << bytes_this_beat) - 1) << offset
+
+                # write data and strobe
+                if beat == beats - 1:
+                    last = 1
+                else:
+                    last = 0
+                self.w.send(self.pack_w(data, strb=strb, last=last))
+
+                # increment pointers
+                bytes_sent += bytes_this_beat
+                addr += bytes_this_beat
 
             # wait for response
             resp, id = self.unpack_b(self.b.recv())
@@ -207,10 +247,6 @@ class AxiTxRx:
             if resp_expected is not None:
                 assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
 
-            # increment pointers
-            bytes_sent += bytes_this_cycle
-            addr += bytes_this_cycle
-
         # return the last reponse
         return resp
 
@@ -220,7 +256,8 @@ class AxiTxRx:
         num_or_dtype,
         dtype=np.uint8,
         prot: Integral = None,
-        burst: bool = True,
+        size: Integral = None,
+        max_beats: Integral = None,
         resp_expected: str = None
     ):
         """
@@ -260,6 +297,12 @@ class AxiTxRx:
         if prot is None:
             prot = self.default_prot
 
+        if size is None:
+            size = self.default_size
+
+        if max_beats is None:
+            max_beats = self.default_max_beats
+
         if resp_expected is None:
             resp_expected = self.default_resp_expected
 
@@ -288,39 +331,54 @@ class AxiTxRx:
         # TODO: move to C++?
 
         bytes_read = 0
-        data_bytes = self.data_width // 8
 
         addr_mask = (1 << self.addr_width) - 1
-        addr_mask >>= ceil(log2(data_bytes))
-        addr_mask <<= ceil(log2(data_bytes))
+        addr_mask >>= size
+        addr_mask <<= size
+
+        increment_4k = 1 << 12
 
         retval = np.empty((bytes_to_read,), dtype=np.uint8)
 
         while bytes_read < bytes_to_read:
-            # find the offset into the data bus for this cycle
-            offset = addr % data_bytes
+            top_addr = addr + (bytes_to_read - bytes_read)
 
-            # determine what data we're reading this cycle
-            bytes_this_cycle = min(bytes_to_read - bytes_read, data_bytes - offset)
+            # limit transfer to the longest burst possible
+            longest_burst = max_beats * (1 << size)
+            top_addr = min(top_addr, (addr & addr_mask) + longest_burst)
+
+            # don't cross a 4k boundary
+            next_4k_boundary = (addr & (increment_4k - 1)) + increment_4k
+            top_addr = min(top_addr, next_4k_boundary)
+
+            # calculate the number of beats
+            beats = ceil((top_addr - (addr & addr_mask)) / (1 << size))
+            assert beats <= max_beats
 
             # transmit read address
-            self.ar.send(self.pack_addr(addr & addr_mask, prot=prot))
+            self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size, len=beats - 1))
 
-            # wait for response
-            data, resp, id, last = self.unpack_r(self.r.recv())
-            data = data[offset:offset + bytes_this_cycle]
+            for _ in range(beats):
+                # find the offset into the data bus for this beat.  bytes below
+                # the offset will have write strobe de-asserted.
+                offset = addr - (addr & addr_mask)
 
-            # check the reponse
-            if resp_expected is not None:
-                resp = decode_resp(resp)
-                assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
+                # determine how many bytes we're sending in this cycle
+                bytes_this_beat = min(bytes_to_read - bytes_read, (1 << size) - offset)
 
-            # add this data to the return value
-            retval[bytes_read:bytes_read + bytes_this_cycle] = data
+                # wait for response
+                data, resp, id, last = self.unpack_r(self.r.recv())
+                retval[bytes_read:bytes_read + bytes_this_beat] = \
+                    data = data[offset:offset + bytes_this_beat]
 
-            # increment pointers
-            bytes_read += bytes_this_cycle
-            addr += bytes_this_cycle
+                # check the reponse
+                if resp_expected is not None:
+                    resp = decode_resp(resp)
+                    assert resp.upper() == resp_expected.upper(), f'Unexpected response: {resp}'
+
+                # increment pointers
+                bytes_read += bytes_this_beat
+                addr += bytes_this_beat
 
         if isinstance(num_or_dtype, (type, np.dtype)):
             return retval.view(num_or_dtype)[0]

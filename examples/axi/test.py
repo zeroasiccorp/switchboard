@@ -14,12 +14,12 @@ from argparse import ArgumentParser
 from switchboard import SbDut, AxiTxRx
 
 
-def main(n=100, fast=False, tool='verilator', max_bytes=10):
+def main(n=100, fast=False, tool='verilator', max_bytes=10, max_beats=256):
     # build the simulator
     dut = build_testbench(fast=fast, tool=tool)
 
     # create the queues
-    axi = AxiTxRx('axi', data_width=32, addr_width=8, id_width=8)
+    axi = AxiTxRx('axi', data_width=32, addr_width=8, id_width=8, max_beats=max_beats)
 
     # launch the simulation
     dut.simulate()
@@ -100,6 +100,8 @@ if __name__ == '__main__':
         ' words to write as part of the test.')
     parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
         ' number of bytes in any single read/write.')
+    parser.add_argument('--max-beats', type=int, default=256, help='Maximum'
+        ' number of beats to use in AXI transfers.')
     parser.add_argument('--fast', action='store_true', help='Do not build'
         ' the simulator binary if it has already been built.')
     parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
