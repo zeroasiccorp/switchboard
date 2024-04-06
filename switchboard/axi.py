@@ -20,6 +20,7 @@ class AxiTxRx:
         addr_width: int = 16,
         id_width: int = 8,
         prot: int = 0,
+        id: int = 0,
         size: int = None,
         max_beats: int = 256,
         resp_expected: str = 'OKAY',
@@ -39,12 +40,24 @@ class AxiTxRx:
            If True (default), the queue specified by the uri parameter will get cleared
            before executing the simulation.
         data_width: int, optional
-            Width the write and read data buses, in bits.
+            Width of the write and read data buses, in bits.
         addr_width: int, optional
-            Width the write and read address buses, in bits.
+            Width of the write and read address buses, in bits.
+        addr_width: int, optional
+            Width of the write and read IDs, in bits.
         prot: int, optional
             Default value of PROT to use for read and write transactions.  Can be
             overridden on a transaction-by-transaction basis.
+        id: int, option
+            Default ID to use for read/write transactions.
+        size: int, optional
+            AXI SIZE indicating the default width of read/write transactions.  This can
+            be overridden on a transaction-by-transaction basis via the "size" argument.
+            If a value isn't provided here, the default size is set to the full data bus
+            width.
+        max_beats: int, optional
+            Maximum number of beats in a single AXI transaction.  Defaults to 256; set to
+            1 to disable bursting.  Set to 16 for AXI3 compatibility.
         resp_expected: str, optional
             Default response to expect from reads and writes.  Options are 'OKAY',
             'EXOKAY', 'SLVERR', 'DECERR'.  None means "don't check the response".
@@ -78,6 +91,7 @@ class AxiTxRx:
         self.addr_width = addr_width
         self.id_width = id_width
         self.default_prot = prot
+        self.default_id = id
         self.default_size = size
         self.default_max_beats = max_beats
         self.default_resp_expected = resp_expected
@@ -98,6 +112,7 @@ class AxiTxRx:
         addr: Integral,
         data,
         prot: Integral = None,
+        id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
         resp_expected: str = None,
@@ -114,6 +129,19 @@ class AxiTxRx:
         prot: Integral
             Value of PROT for this transaction.  Defaults to the value provided in the
             AxiTxRx constructor if not provided, which in turn defaults to 0.
+
+        id: int, option
+            ID to use for write transactions.  If not provided, defaults to the value
+            given in the constructor, which in turn defaults to 0.
+
+        size: int, optional
+            AXI SIZE indicating the width of write transactions.  If not provided, defaults
+            to the value given in the constructor, which in turn defaults to the full
+            data bus width.
+
+        max_beats: int, optional
+            Maximum number of beats in a single write transaction.  If not provided, defaults
+            to the value given in the constructor, which in turn defaults to 256.
 
         resp_expected: str, optional
             Response to expect for this transaction.  Options are 'OKAY', 'EXOKAY', 'SLVERR',
@@ -132,6 +160,9 @@ class AxiTxRx:
 
         if prot is None:
             prot = self.default_prot
+
+        if id is None:
+            id = self.default_id
 
         if size is None:
             size = self.default_size
@@ -207,7 +238,8 @@ class AxiTxRx:
             assert beats <= max_beats
 
             # transmit the write address
-            self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size, len=beats - 1))
+            self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
+                len=beats - 1, id=id))
 
             for beat in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -256,6 +288,7 @@ class AxiTxRx:
         num_or_dtype,
         dtype=np.uint8,
         prot: Integral = None,
+        id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
         resp_expected: str = None
@@ -280,6 +313,19 @@ class AxiTxRx:
             Value of PROT for this transaction.  Defaults to the value provided in the
             AxiTxRx constructor if not provided, which in turn defaults to 0.
 
+        id: int, option
+            ID to use for read transactions.  If not provided, defaults to the value
+            given in the constructor, which in turn defaults to 0.
+
+        size: int, optional
+            AXI SIZE indicating the width of read transactions.  If not provided, defaults
+            to the value given in the constructor, which in turn defaults to the full
+            data bus width.
+
+        max_beats: int, optional
+            Maximum number of beats in a single read transaction.  If not provided, defaults
+            to the value given in the constructor, which in turn defaults to 256.
+
         resp_expected: str, optional
             Response to expect for this transaction.  Options are 'OKAY', 'EXOKAY', 'SLVERR',
             'DECERR', and None.  None means, "don't check the response". Defaults to the
@@ -296,6 +342,9 @@ class AxiTxRx:
 
         if prot is None:
             prot = self.default_prot
+
+        if id is None:
+            id = self.default_id
 
         if size is None:
             size = self.default_size
@@ -356,7 +405,8 @@ class AxiTxRx:
             assert beats <= max_beats
 
             # transmit read address
-            self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size, len=beats - 1))
+            self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
+                len=beats - 1, id=id))
 
             for _ in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
