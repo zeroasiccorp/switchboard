@@ -146,12 +146,12 @@
         .a``_rvalid(b``_rvalid),                                \
         .a``_rready(b``_rready)
 
-`define SB_AXIL_M(mod, signal, dw, aw)                          \
+`define SB_AXIL_M(mod, signal, clk_signal, dw, aw)              \
     sb_axil_m #(                                                \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw)                                         \
     ) mod (                                                     \
-        .clk(clk),                                              \
+        .clk(clk_signal),                                       \
         .m_axil_awaddr(signal``_awaddr),                        \
         .m_axil_awprot(signal``_awprot),                        \
         .m_axil_awvalid(signal``_awvalid),                      \
@@ -247,13 +247,13 @@
     .a``_rvalid(b``_rvalid),                                    \
     .a``_rready(b``_rready)
 
-`define SB_AXI_M(mod, signal, dw, aw, idw)                      \
-    sb_axi_m #(                                                \
+`define SB_AXI_M(mod, signal, clk_signal, dw, aw, idw)          \
+    sb_axi_m #(                                                 \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw),                                        \
         .ID_WIDTH(idw)                                          \
     ) mod (                                                     \
-        .clk(clk),                                              \
+        .clk(clk_signal),                                       \
         .m_axi_awid(signal``_awid),                             \
         .m_axi_awaddr(signal``_awaddr),                         \
         .m_axi_awlen(signal``_awlen),                           \

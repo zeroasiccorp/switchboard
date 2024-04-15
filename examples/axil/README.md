@@ -23,10 +23,10 @@ In the Verilog implementation, [testbench.sv](testbench.sv) instantiates a switc
 
 ...
 
-`SB_AXIL_M(sb_axil_m_i, axil, DATA_WIDTH, ADDR_WIDTH);
+`SB_AXIL_M(sb_axil_m_i, axil, clk, DATA_WIDTH, ADDR_WIDTH);
 ```
 
-Based on the macro arguments, the module instance is called `sb_axil_m_i` and it connects to AXI-Lite signals starting with the prefix `axil`.  The module is configured to connect to switchboard queues in an `initial` block:
+Based on the macro arguments, the module instance is called `sb_axil_m_i` and it connects to AXI-Lite signals starting with the prefix `axil`, with a clock signal called `clk`.  The module is configured to connect to switchboard queues in an `initial` block:
 
 ```verilog
 initial begin

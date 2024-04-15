@@ -44,7 +44,7 @@ module testbench (
 
     // Instantiate switchboard module
 
-    `SB_AXIL_M(sb_axil_m_i, axil, DATA_WIDTH, ADDR_WIDTH);
+    `SB_AXIL_M(sb_axil_m_i, axil, clk, DATA_WIDTH, ADDR_WIDTH);
 
     initial begin
         /* verilator lint_off IGNOREDRETURN */
