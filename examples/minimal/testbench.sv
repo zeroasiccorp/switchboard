@@ -24,7 +24,7 @@ module testbench (
 
     // SB RX port
 
-    `SB_WIRES(sb_rx, 256);    
+    `SB_WIRES(sb_rx, 256);
     `QUEUE_TO_SB_SIM(rx_i, sb_rx, clk, 256);
 
     // SB TX port
