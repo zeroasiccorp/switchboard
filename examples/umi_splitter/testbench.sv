@@ -3,6 +3,8 @@
 
 `default_nettype none
 
+`include "switchboard.vh"
+
 module testbench (
     `ifdef VERILATOR
         input clk
@@ -25,62 +27,25 @@ module testbench (
 
     `endif
 
-    // UMI Input
-    wire umi_in_valid;
-    wire [CW-1:0] umi_in_cmd;
-    wire [AW-1:0] umi_in_dstaddr;
-    wire [AW-1:0] umi_in_srcaddr;
-    wire [DW-1:0] umi_in_data;
-    wire umi_in_ready;
+    // UMI input
 
-    // UMI Output
-    wire          umi_resp_out_valid;
-    wire [CW-1:0] umi_resp_out_cmd;
-    wire [AW-1:0] umi_resp_out_dstaddr;
-    wire [AW-1:0] umi_resp_out_srcaddr;
-    wire [DW-1:0] umi_resp_out_data;
-    wire          umi_resp_out_ready;
+    `SB_UMI_WIRES(umi_in, DW, CW, AW);
+    `QUEUE_TO_UMI_SIM(rx, umi_in, clk, DW, CW, AW);
 
-    // UMI Output
-    wire          umi_req_out_valid;
-    wire [CW-1:0] umi_req_out_cmd;
-    wire [AW-1:0] umi_req_out_dstaddr;
-    wire [AW-1:0] umi_req_out_srcaddr;
-    wire [DW-1:0] umi_req_out_data;
-    wire          umi_req_out_ready;
+    // UMI output (response)
+
+    `SB_UMI_WIRES(umi_resp_out, DW, CW, AW);
+    `UMI_TO_QUEUE_SIM(tx0, umi_resp_out, clk, DW, CW, AW);
+
+    // UMI output (request)
+
+    `SB_UMI_WIRES(umi_req_out, DW, CW, AW);
+    `UMI_TO_QUEUE_SIM(tx1, umi_req_out, clk, DW, CW, AW);
+
+    // UMI splitter
 
     umi_splitter umi_splitter_i (
         .*
-    );
-
-    queue_to_umi_sim rx (
-        .clk(clk),
-        .data(umi_in_data),
-        .srcaddr(umi_in_srcaddr),
-        .dstaddr(umi_in_dstaddr),
-        .cmd(umi_in_cmd),
-        .ready(umi_in_ready),
-        .valid(umi_in_valid)
-    );
-
-    umi_to_queue_sim tx0 (
-        .clk(clk),
-        .data(umi_resp_out_data),
-        .srcaddr(umi_resp_out_srcaddr),
-        .dstaddr(umi_resp_out_dstaddr),
-        .cmd(umi_resp_out_cmd),
-        .ready(umi_resp_out_ready),
-        .valid(umi_resp_out_valid)
-    );
-
-    umi_to_queue_sim tx1 (
-        .clk(clk),
-        .data(umi_req_out_data),
-        .srcaddr(umi_req_out_srcaddr),
-        .dstaddr(umi_req_out_dstaddr),
-        .cmd(umi_req_out_cmd),
-        .ready(umi_req_out_ready),
-        .valid(umi_req_out_valid)
     );
 
     // Initialize UMI
@@ -101,10 +66,6 @@ module testbench (
             $dumpvars(0, testbench);
         end
     end
-
-    // auto-stop
-
-    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule
 

@@ -6,17 +6,59 @@
 `ifndef SWITCHBOARD_VH_
 `define SWITCHBOARD_VH_
 
+`define SB_UMI_WIRES(signal, dw, cw, aw)                        \
+    wire signal``_valid;                                        \
+    wire [((cw)-1): 0] signal``_cmd;                            \
+    wire [((aw)-1): 0] signal``_dstaddr;                        \
+    wire [((aw)-1): 0] signal``_srcaddr;                        \
+    wire [((dw)-1): 0] signal``_data;                           \
+    wire signal``_ready
+
+// alias for SB_UMI_WIRES, keep for backwards compatibility
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)               \
-        wire prefix``_valid;                                    \
-        wire [cw - 1 : 0] prefix``_cmd;                         \
-        wire [aw - 1 : 0] prefix``_dstaddr;                     \
-        wire [aw - 1 : 0] prefix``_srcaddr;                     \
-        wire [dw - 1 : 0] prefix``_data;                        \
-        wire prefix``_ready
+    `SB_UMI_WIRES(prefix, dw, cw, aw)
+
+`define QUEUE_TO_UMI_SIM(mod, signal, clk_signal, dw, cw, aw)   \
+    queue_to_umi_sim #(                                         \
+        .DW(dw),                                                \
+        .CW(cw),                                                \
+        .AW(aw)                                                 \
+    ) mod (                                                     \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .srcaddr(signal``_srcaddr),                             \
+        .dstaddr(signal``_dstaddr),                             \
+        .cmd(signal``_cmd),                                     \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
+`define UMI_TO_QUEUE_SIM(mod, signal, clk_signal, dw, cw, aw)   \
+    umi_to_queue_sim #(                                         \
+        .DW(dw),                                                \
+        .CW(cw),                                                \
+        .AW(aw)                                                 \
+    ) mod (                                                     \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .srcaddr(signal``_srcaddr),                             \
+        .dstaddr(signal``_dstaddr),                             \
+        .cmd(signal``_cmd),                                     \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
+`define SB_UMI_CONNECT(a, b)                                    \
+    .a``_valid(b``_valid),                                      \
+    .a``_cmd(b``_cmd),                                          \
+    .a``_dstaddr(b``_dstaddr),                                  \
+    .a``_srcaddr(b``_srcaddr),                                  \
+    .a``_data(b``_data),                                        \
+    .a``_ready(b``_ready)
 
 `define SWITCHBOARD_SIM_PORT(prefix, dw)                        \
-    `UMI_PORT_WIRES_WIDTHS(prefix``_req, dw, 32, 64);           \
-    `UMI_PORT_WIRES_WIDTHS(prefix``_resp, dw, 32, 64);          \
+    `SB_UMI_WIRES(prefix``_req, dw, 32, 64);                    \
+    `SB_UMI_WIRES(prefix``_resp, dw, 32, 64);                   \
                                                                 \
     initial begin                                               \
         /* verilator lint_off IGNOREDRETURN */                  \
@@ -25,24 +67,11 @@
         /* verilator lint_on IGNOREDRETURN */                   \
     end                                                         \
                                                                 \
-    queue_to_umi_sim #(.DW(dw)) prefix``_rx (                   \
-        .clk(clk),                                              \
-        .data(prefix``_req_data),                               \
-        .srcaddr(prefix``_req_srcaddr),                         \
-        .dstaddr(prefix``_req_dstaddr),                         \
-        .cmd(prefix``_req_cmd),                                 \
-        .ready(prefix``_req_ready),                             \
-        .valid(prefix``_req_valid)                              \
-    );                                                          \
-    umi_to_queue_sim #(.DW(dw)) prefix``_tx (                   \
-        .clk(clk),                                              \
-        .data(prefix``_resp_data),                              \
-        .srcaddr(prefix``_resp_srcaddr),                        \
-        .dstaddr(prefix``_resp_dstaddr),                        \
-        .cmd(prefix``_resp_cmd),                                \
-        .ready(prefix``_resp_ready),                            \
-        .valid(prefix``_resp_valid)                             \
-    )
+    `QUEUE_TO_UMI_SIM(                                          \
+        prefix``_rx, prefix``_req, clk, dw, 32, 64);            \
+                                                                \
+    `UMI_TO_QUEUE_SIM(                                          \
+        prefix``_tx, prefix``_resp, clk, dw, 32, 64)
 
 `define SB_WIRES(signal, dw)                                    \
     wire [((dw)-1):0] signal``_data;                            \

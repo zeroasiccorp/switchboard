@@ -3,6 +3,8 @@
 
 `default_nettype none
 
+`include "switchboard.vh"
+
 module testbench (
     `ifdef VERILATOR
         input clk
@@ -20,53 +22,22 @@ module testbench (
 
     `endif
 
-    parameter integer DW=256;
+    parameter integer IDW=256;
+    parameter integer ODW=64;
     parameter integer AW=64;
     parameter integer CW=32;
 
-    wire           udev_req_valid;
-    wire           udev_req_ready;
-    wire [CW-1:0]  udev_req_cmd;
-    wire [AW-1:0]  udev_req_dstaddr;
-    wire [AW-1:0]  udev_req_srcaddr;
-    wire [DW-1:0]  udev_req_data;
+    `SB_UMI_WIRES(udev_req, IDW, CW, AW);
+    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, IDW, CW, AW);
 
-    wire          udev_resp_valid;
-    wire          udev_resp_ready;
-    wire [CW-1:0] udev_resp_cmd;
-    wire [AW-1:0] udev_resp_dstaddr;
-    wire [AW-1:0] udev_resp_srcaddr;
-    wire [DW-1:0] udev_resp_data;
+    `SB_UMI_WIRES(udev_resp, ODW, CW, AW);
+    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, ODW, CW, AW);
 
     reg nreset = 1'b0;
 
-    queue_to_umi_sim #(
-        .VALID_MODE_DEFAULT(2)
-    ) rx_i (
-        .clk(clk),
-        .data(udev_req_data),
-        .srcaddr(udev_req_srcaddr),
-        .dstaddr(udev_req_dstaddr),
-        .cmd(udev_req_cmd),
-        .ready(udev_req_ready),
-        .valid(udev_req_valid)
-    );
-
-    umi_to_queue_sim #(
-        .READY_MODE_DEFAULT(2)
-    ) tx_i (
-        .clk(clk),
-        .data(udev_resp_data),
-        .srcaddr(udev_resp_srcaddr),
-        .dstaddr(udev_resp_dstaddr),
-        .cmd(udev_resp_cmd),
-        .ready(udev_resp_ready),
-        .valid(udev_resp_valid)
-    );
-
     umi_fifo_flex #(
-        .IDW(256),
-        .ODW(64)
+        .IDW(IDW),
+        .ODW(ODW)
     ) umi_fifo_flex_i (
         .bypass(1'b0),
         .chaosmode(1'b0),
@@ -75,21 +46,11 @@ module testbench (
         // Input UMI
         .umi_in_clk(clk),
         .umi_in_nreset(nreset),
-        .umi_in_valid(udev_req_valid),
-        .umi_in_cmd(udev_req_cmd),
-        .umi_in_dstaddr(udev_req_dstaddr),
-        .umi_in_srcaddr(udev_req_srcaddr),
-        .umi_in_data(udev_req_data),
-        .umi_in_ready(udev_req_ready),
+        `SB_UMI_CONNECT(umi_in, udev_req),
         // Output UMI
         .umi_out_clk(clk),
         .umi_out_nreset(nreset),
-        .umi_out_valid(udev_resp_valid),
-        .umi_out_cmd(udev_resp_cmd),
-        .umi_out_dstaddr(udev_resp_dstaddr),
-        .umi_out_srcaddr(udev_resp_srcaddr),
-        .umi_out_data(udev_resp_data[63:0]),
-        .umi_out_ready(udev_resp_ready),
+        `SB_UMI_CONNECT(umi_out, udev_resp),
         // Supplies
         .vdd(1'b1),
         .vss(1'b0)
@@ -116,10 +77,6 @@ module testbench (
             $dumpvars(0, testbench);
         end
     end
-
-    // auto-stop
-
-    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule
 

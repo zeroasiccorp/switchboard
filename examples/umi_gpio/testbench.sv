@@ -3,6 +3,8 @@
 
 `default_nettype none
 
+`include "switchboard.vh"
+
 module testbench (
     `ifdef VERILATOR
         input clk
@@ -26,39 +28,11 @@ module testbench (
     parameter integer IWIDTH=384;
     parameter integer OWIDTH=128;
 
-    wire           udev_req_valid;
-    wire           udev_req_ready;
-    wire [CW-1:0]  udev_req_cmd;
-    wire [AW-1:0]  udev_req_dstaddr;
-    wire [AW-1:0]  udev_req_srcaddr;
-    wire [DW-1:0]  udev_req_data;
+    `SB_UMI_WIRES(udev_req, DW, CW, AW);
+    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, DW, CW, AW);
 
-    wire          udev_resp_valid;
-    wire          udev_resp_ready;
-    wire [CW-1:0] udev_resp_cmd;
-    wire [AW-1:0] udev_resp_dstaddr;
-    wire [AW-1:0] udev_resp_srcaddr;
-    wire [DW-1:0] udev_resp_data;
-
-    queue_to_umi_sim rx_i (
-        .clk(clk),
-        .data(udev_req_data),
-        .srcaddr(udev_req_srcaddr),
-        .dstaddr(udev_req_dstaddr),
-        .cmd(udev_req_cmd),
-        .ready(udev_req_ready),
-        .valid(udev_req_valid)
-    );
-
-    umi_to_queue_sim tx_i (
-        .clk(clk),
-        .data(udev_resp_data),
-        .srcaddr(udev_resp_srcaddr),
-        .dstaddr(udev_resp_dstaddr),
-        .cmd(udev_resp_cmd),
-        .ready(udev_resp_ready),
-        .valid(udev_resp_valid)
-    );
+    `SB_UMI_WIRES(udev_resp, DW, CW, AW);
+    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, DW, CW, AW);
 
     reg nreset = 1'b0;
     wire [(IWIDTH-1):0] gpio_in;
@@ -103,10 +77,6 @@ module testbench (
             $dumpvars(0, testbench);
         end
     end
-
-    // auto-stop
-
-    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule
 
