@@ -9,7 +9,6 @@ import sys
 import random
 import numpy as np
 
-from math import ceil, log2
 from argparse import ArgumentParser
 from switchboard import SbDut, AxiTxRx
 
@@ -26,16 +25,15 @@ def main(n=100, fast=False, tool='verilator', max_bytes=10, max_beats=256):
 
     # run the test: write to random addresses and read back in a random order
 
-    addr_bytes = axi.addr_width // 8
+    addr_bytes = (axi.addr_width + 7) // 8
 
-    valid_addr_width = axi.addr_width - ceil(log2(addr_bytes))
-    model = np.zeros((1 << valid_addr_width,), dtype=np.uint8)
+    model = np.zeros((1 << axi.addr_width,), dtype=np.uint8)
 
     success = True
 
     for _ in range(n):
-        addr = random.randint(0, (1 << valid_addr_width) - 1)
-        size = random.randint(1, min(max_bytes, (1 << valid_addr_width) - addr))
+        addr = random.randint(0, (1 << axi.addr_width) - 1)
+        size = random.randint(1, min(max_bytes, (1 << axi.addr_width) - addr))
 
         if random.random() < 0.5:
             #########
@@ -84,10 +82,8 @@ def build_testbench(fast=False, tool='verilator'):
     dut.input('rtl/axi_ram.v', package='verilog-axi')
     dut.input('testbench.sv')
 
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff', 'WIDTHEXPAND')
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff', 'CASEINCOMPLETE')
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff', 'WIDTHTRUNC')
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff', 'TIMESCALEMOD')
+    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
+        ['WIDTHEXPAND', 'CASEINCOMPLETE', 'WIDTHTRUNC', 'TIMESCALEMOD'])
 
     dut.build(fast=fast)
 
