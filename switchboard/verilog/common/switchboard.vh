@@ -44,6 +44,37 @@
         .valid(prefix``_resp_valid)                             \
     )
 
+`define SB_WIRES(signal, dw)                                    \
+    wire [((dw)-1):0] signal``_data;                            \
+    wire [31:0] signal``_dest;                                  \
+    wire signal``_last;                                         \
+    wire signal``_valid;                                        \
+    wire signal``_ready
+
+`define SB_TO_QUEUE_SIM(mod, signal, clk_signal, dw)            \
+    sb_to_queue_sim #(                                          \
+        .DW(dw)                                                 \
+    ) mod (                                                     \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .dest(signal``_dest),                                   \
+        .last(signal``_last),                                   \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
+`define QUEUE_TO_SB_SIM(mod, signal, clk_signal, dw)            \
+    queue_to_sb_sim #(                                          \
+        .DW(dw)                                                 \
+    ) mod (                                                     \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .dest(signal``_dest),                                   \
+        .last(signal``_last),                                   \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
 `define SB_AXIL_WIRES(signal, dw, aw)                           \
     wire [((aw)-1):0]     signal``_awaddr;                      \
     wire [2:0]            signal``_awprot;                      \

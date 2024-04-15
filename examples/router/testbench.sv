@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+`include "switchboard.vh"
+
 module testbench (
     `ifdef VERILATOR
         input clk
@@ -22,39 +24,13 @@ module testbench (
 
     // SB RX port
 
-    wire [255:0] sb_rx_data;
-    wire sb_rx_last;
-    wire sb_rx_valid;
-    wire sb_rx_ready;
+    `SB_WIRES(sb_rx, 256);
+    `QUEUE_TO_SB_SIM(rx_i, sb_rx, clk, 256);
 
     // SB TX port
 
-    wire [255:0] sb_tx_data;
-    wire sb_tx_last;
-    wire sb_tx_valid;
-    wire sb_tx_ready;
-
-    queue_to_sb_sim #(
-        .DW(256)
-    ) rx_i (
-        .clk(clk),
-        .data(sb_rx_data),  // output
-        .dest(),  // unused
-        .last(sb_rx_last),  // output
-        .ready(sb_rx_ready),  // input
-        .valid(sb_rx_valid)  // output
-    );
-
-    sb_to_queue_sim #(
-        .DW(256)
-    ) tx_i (
-        .clk(clk),
-        .data(sb_tx_data),  // input
-        .dest(32'd0),  // input
-        .last(sb_tx_last),  // input
-        .ready(sb_tx_ready), // output
-        .valid(sb_tx_valid)  // input
-    );
+    `SB_WIRES(sb_tx, 256);
+    `SB_TO_QUEUE_SIM(tx_i, sb_tx, clk, 256);
 
     // custom modification of packet
 
