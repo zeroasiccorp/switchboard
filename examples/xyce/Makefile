@@ -3,11 +3,11 @@
 
 .PHONY: verilator
 verilator:
-	./test.py --tool verilator
+	./test.py --tool verilator --trace
 
 .PHONY: icarus
 icarus:
-	./test.py --tool icarus
+	./test.py --tool icarus --trace
 
 .PHONY: clean
 clean:
