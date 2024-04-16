@@ -13,9 +13,6 @@ def main():
     # build the simulator
     dut = build_testbench()
 
-    # get additional command-line arguments
-    args = get_additional_args(dut.get_parser())
-
     # create queues
     umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
 
@@ -26,8 +23,8 @@ def main():
     n_recv = 0
     txq = []
 
-    while (n_sent < args.n) or (n_recv < args.n):
-        if n_sent < args.n:
+    while (n_sent < dut.args.n) or (n_recv < dut.args.n):
+        if n_sent < dut.args.n:
             txp = random_umi_packet()
             if umi.send(txp, blocking=False):
                 print('* TX *')
@@ -35,7 +32,7 @@ def main():
                 txq.append(txp)
                 n_sent += 1
 
-        if n_recv < args.n:
+        if n_recv < dut.args.n:
             rxp = umi.recv(blocking=False)
             if rxp is not None:
                 print('* RX *')
@@ -48,7 +45,12 @@ def main():
 
 
 def build_testbench():
-    dut = SbDut(cmdline=True, default_main=True)
+    extra_args = {
+        '-n': dict(type=int, default=3, help='Number of'
+        ' transactions to send into the FIFO during the test.')
+    }
+
+    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
 
     dut.input('testbench.sv')
 
@@ -60,13 +62,6 @@ def build_testbench():
     dut.build()
 
     return dut
-
-
-def get_additional_args(parser):
-    parser.add_argument('-n', type=int, default=3, help='Number of'
-        ' transactions to send into the FIFO during the test.')
-
-    return parser.parse_args()
 
 
 if __name__ == '__main__':

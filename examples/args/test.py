@@ -10,20 +10,16 @@ from switchboard import SbDut
 
 
 def main():
-    dut = SbDut(cmdline=True, default_main=True)
+    extra_args = {
+        'remainder': dict(nargs=REMAINDER, help='Arguments to pass directly to the simulation.'
+        '  In this case, the simulation accepts plusargs +a+VALUE and +b+VALUE, so you could for'
+        ' example call ./test.py +a+12 +b+23.')
+    }
 
-    parser = dut.get_parser()
-
-    parser.add_argument('remainder', nargs=REMAINDER,
-        help='Arguments to pass directly to the simulation.  In this case, the simulation'
-        ' accepts plusargs +a+VALUE and +b+VALUE, so you could for example call ./test.py'
-        ' +a+12 +b+23.')
-
-    args = parser.parse_args()
-
+    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
     dut.input('testbench.sv')
     dut.build()
-    dut.simulate(args=args.remainder).wait()
+    dut.simulate(args=dut.args.remainder).wait()
 
 
 if __name__ == '__main__':

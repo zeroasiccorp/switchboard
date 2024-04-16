@@ -13,9 +13,6 @@ from switchboard import SbDut, UmiTxRx, binary_run
 import umi
 
 
-THIS_DIR = Path(__file__).resolve().parent
-
-
 def python_intf(umi):
     print("### WRITES ###")
 
@@ -85,7 +82,13 @@ def python_intf(umi):
 
 
 def build_testbench():
-    dut = SbDut('testbench', cmdline=True, default_main=True, trace_type='fst')
+    extra_args = {
+        '--mode': dict(default='python', choices=['python', 'cpp'],
+        help='Programming language used for the test stimulus.')
+    }
+
+    dut = SbDut('testbench', cmdline=True, default_main=True, trace_type='fst',
+        extra_args=extra_args)
 
     EX_DIR = Path('..').resolve()
 
@@ -104,28 +107,18 @@ def main():
     # build the simulator
     dut = build_testbench()
 
-    # get additional command-line arguments
-    args = get_additional_args(dut.get_parser())
-
     # create queues
     umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
 
     # launch the simulation
     dut.simulate()
 
-    if args.mode == 'python':
+    if dut.args.mode == 'python':
         python_intf(umi)
-    elif args.mode == 'cpp':
-        binary_run(THIS_DIR / 'client').wait()
+    elif dut.args.mode == 'cpp':
+        binary_run(Path('client').resolve()).wait()
     else:
-        raise ValueError(f'Invalid mode: {args.mode}')
-
-
-def get_additional_args(parser):
-    parser.add_argument('--mode', default='python', choices=['python', 'cpp'],
-        help='Programming language used for the test stimulus.')
-
-    return parser.parse_args()
+        raise ValueError(f'Invalid mode: {dut.args.mode}')
 
 
 if __name__ == '__main__':

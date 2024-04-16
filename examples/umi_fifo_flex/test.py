@@ -13,9 +13,6 @@ def main():
     # build simulator
     dut = build_testbench()
 
-    # get additional command-line arguments
-    args = get_additional_args(dut.get_parser())
-
     # create queues
     umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
 
@@ -23,11 +20,16 @@ def main():
     dut.simulate()
 
     # randomly write data
-    umi_loopback(umi, args.n)
+    umi_loopback(umi, dut.args.n)
 
 
 def build_testbench():
-    dut = SbDut(cmdline=True, default_main=True)
+    extra_args = {
+        '-n': dict(type=int, default=3, help='Number of'
+        ' transactions to send into the FIFO during the test.')
+    }
+
+    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
 
     dut.input('testbench.sv')
 
@@ -39,13 +41,6 @@ def build_testbench():
     dut.build()
 
     return dut
-
-
-def get_additional_args(parser):
-    parser.add_argument('-n', type=int, default=3, help='Number of'
-        ' transactions to send into the FIFO during the test.')
-
-    return parser.parse_args()
 
 
 if __name__ == '__main__':

@@ -16,11 +16,8 @@ def main():
     # build the simulator
     dut = build_testbench()
 
-    # get additional command-line arguments
-    args = get_additional_args(dut.get_parser())
-
     # create the queues
-    axi = AxiTxRx('axi', data_width=32, addr_width=13, id_width=8, max_beats=args.max_beats)
+    axi = AxiTxRx('axi', data_width=32, addr_width=13, id_width=8, max_beats=dut.args.max_beats)
 
     # launch the simulation
     dut.simulate()
@@ -33,9 +30,9 @@ def main():
 
     success = True
 
-    for _ in range(args.n):
+    for _ in range(dut.args.n):
         addr = random.randint(0, (1 << axi.addr_width) - 1)
-        size = random.randint(1, min(args.max_bytes, (1 << axi.addr_width) - addr))
+        size = random.randint(1, min(dut.args.max_bytes, (1 << axi.addr_width) - addr))
 
         if random.random() < 0.5:
             #########
@@ -73,7 +70,16 @@ def main():
 
 
 def build_testbench():
-    dut = SbDut(cmdline=True, default_main=True)
+    extra_args = {
+        '-n': dict(type=int, default=10000, help='Number of'
+        ' words to write as part of the test.'),
+        '--max-bytes': dict(type=int, default=10, help='Maximum'
+        ' number of bytes in any single read/write.'),
+        '--max-beats': dict(type=int, default=256, help='Maximum'
+        ' number of beats to use in AXI transfers.')
+    }
+
+    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
 
     dut.register_package_source(
         'verilog-axi',
@@ -90,17 +96,6 @@ def build_testbench():
     dut.build()
 
     return dut
-
-
-def get_additional_args(parser):
-    parser.add_argument('-n', type=int, default=10000, help='Number of'
-        ' words to write as part of the test.')
-    parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
-        ' number of bytes in any single read/write.')
-    parser.add_argument('--max-beats', type=int, default=256, help='Maximum'
-        ' number of beats to use in AXI transfers.')
-
-    return parser.parse_args()
 
 
 if __name__ == '__main__':

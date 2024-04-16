@@ -48,7 +48,8 @@ class SbDut(siliconcompiler.Chip):
         timeprecision: str = None,
         warnings: List[str] = None,
         cmdline: bool = False,
-        fast: bool = False
+        fast: bool = False,
+        extra_args: dict = None
     ):
         """
         Parameters
@@ -107,15 +108,55 @@ class SbDut(siliconcompiler.Chip):
         # parse command-line options if desired
 
         if cmdline:
-            parser = self.get_parser()
+            from argparse import ArgumentParser
 
-            args, _ = parser.parse_known_args()
+            parser = ArgumentParser()
 
-            trace = args.trace
-            fast = args.fast
-            tool = args.tool
-            frequency = args.frequency
-            period = args.period
+            if not trace:
+                parser.add_argument('--trace', action='store_true', help='Probe'
+                    ' waveforms during simulation.')
+            else:
+                parser.add_argument('--no-trace', action='store_true', help='Do not'
+                    ' probe waveforms during simulation.  This can improve build time'
+                    ' and run time, but reduces visibility.')
+
+            if not fast:
+                parser.add_argument('--fast', action='store_true', help='Do not build'
+                    ' the simulator binary if it has already been built.')
+            else:
+                parser.add_argument('--rebuild', action='store_true', help='Build the'
+                    ' simulator binary even if it has already been built.')
+
+            parser.add_argument('--tool', choices=['verilator', 'icarus'],
+                default=tool, help='Name of the simulator to use.')
+
+            group = parser.add_mutually_exclusive_group()
+            group.add_argument('--period', type=float, default=period,
+                help='Period of the clk signal in seconds.  Automatically set if'
+                ' --frequency is provided.')
+            group.add_argument('--frequency', type=float, default=frequency,
+                help='Frequency of the clk signal in Hz.  Automatically set if'
+                ' --period is provided.')
+
+            if extra_args is not None:
+                for k, v in extra_args.items():
+                    parser.add_argument(k, **v)
+
+            self.args = parser.parse_args()
+
+            if not trace:
+                trace = self.args.trace
+            else:
+                trace = not self.args.no_trace
+
+            if not fast:
+                fast = self.args.fast
+            else:
+                fast = not self.args.rebuild
+
+            tool = self.args.tool
+            frequency = self.args.frequency
+            period = self.args.period
 
         # input validation
 
@@ -554,20 +595,3 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
-
-    def get_parser(self):
-        from argparse import ArgumentParser
-
-        parser = ArgumentParser()
-        parser.add_argument('--trace', action='store_true')
-        parser.add_argument('--fast', action='store_true')
-        parser.add_argument('--tool', choices=['verilator', 'icarus'],
-            default='verilator')
-
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('--period', type=float, default=None,
-            help='Period of the oversampling clock')
-        group.add_argument('--frequency', type=float, default=100e6,
-            help='Frequency of the oversampling clock')
-
-        return parser
