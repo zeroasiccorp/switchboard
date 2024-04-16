@@ -21,7 +21,6 @@ from .switchboard import path as sb_path
 from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
-from .warn import warn_future
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 
