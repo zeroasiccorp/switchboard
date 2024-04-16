@@ -89,8 +89,7 @@ def build_testbench():
         help='Programming language used for the test stimulus.')
     }
 
-    dut = SbDut('testbench', cmdline=True, default_main=True, trace_type='fst',
-        extra_args=extra_args)
+    dut = SbDut('testbench', cmdline=True, trace_type='fst', extra_args=extra_args)
 
     dut.input('testbench.sv')
     dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')

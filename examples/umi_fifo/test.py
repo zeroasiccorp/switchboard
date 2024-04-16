@@ -50,7 +50,7 @@ def build_testbench():
         ' transactions to send into the FIFO during the test.')
     }
 
-    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
+    dut = SbDut(cmdline=True, extra_args=extra_args)
 
     dut.input('testbench.sv')
 

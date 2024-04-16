@@ -16,7 +16,7 @@ def main():
         ' example call ./test.py +a+12 +b+23.')
     }
 
-    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
+    dut = SbDut(cmdline=True, extra_args=extra_args)
     dut.input('testbench.sv')
     dut.build()
     dut.simulate(args=dut.args.remainder).wait()

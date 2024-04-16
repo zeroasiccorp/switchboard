@@ -15,7 +15,7 @@ THIS_DIR = Path(__file__).resolve().parent
 
 def main():
     # build the simulator
-    dut = SbDut(cmdline=True, default_main=True)
+    dut = SbDut(cmdline=True)
     dut.input('testbench.sv')
     dut.build()
 

@@ -13,7 +13,7 @@ def main():
     # create the simulator object #
     ###############################
 
-    dut = SbDut(cmdline=True, default_main=True)
+    dut = SbDut(cmdline=True)
 
     dut.input('testbench.sv')
 

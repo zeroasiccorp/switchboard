@@ -79,7 +79,7 @@ def build_testbench():
         ' number of beats to use in AXI transfers.')
     }
 
-    dut = SbDut(cmdline=True, default_main=True, extra_args=extra_args)
+    dut = SbDut(cmdline=True, extra_args=extra_args)
 
     dut.register_package_source(
         'verilog-axi',

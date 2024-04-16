@@ -70,7 +70,7 @@ def main():
 
 
 def build_testbench():
-    dut = SbDut(cmdline=True, default_main=True)
+    dut = SbDut(cmdline=True)
 
     dut.input('testbench.sv')
 

@@ -12,7 +12,7 @@ from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 def main():
     # build the simulator
-    dut = SbDut(cmdline=True, default_main=True)
+    dut = SbDut(cmdline=True)
     dut.input('testbench.sv')
     dut.build()
 

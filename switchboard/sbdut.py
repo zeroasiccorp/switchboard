@@ -36,7 +36,7 @@ class SbDut(siliconcompiler.Chip):
         self,
         design: str = 'testbench',
         tool: str = 'verilator',
-        default_main: bool = None,
+        default_main: bool = True,
         trace: bool = True,
         trace_type: str = 'vcd',
         module: str = None,
@@ -162,15 +162,6 @@ class SbDut(siliconcompiler.Chip):
 
         if trace_type not in ('vcd', 'fst'):
             raise ValueError('Invalid trace_type, expected one of "vcd" or "fst"')
-
-        if (tool == 'verilator') and (default_main is None):
-            default_main = False
-            warn_future("default_main isn't provided to the SbDut constructor;"
-                ' defaulting to False.  However, we suggest setting default_main=True'
-                ' and removing any calls to add() that explicitly add a testbench.cc'
-                ' file for Verilator, since that is done automatically when'
-                ' default_main=True.  In the future, the default value for default_main'
-                ' will be True.')
 
         # save settings
 
