@@ -9,33 +9,31 @@ import sys
 import random
 import numpy as np
 
-from math import ceil, log2
 from argparse import ArgumentParser
 from switchboard import SbDut, AxiTxRx
 
 
-def main(n=100, fast=False, tool='verilator', max_bytes=10, max_beats=256):
+def main(n=10000, fast=False, tool='verilator', max_bytes=100, max_beats=256):
     # build the simulator
     dut = build_testbench(fast=fast, tool=tool)
 
     # create the queues
-    axi = AxiTxRx('axi', data_width=32, addr_width=8, id_width=8, max_beats=max_beats)
+    axi = AxiTxRx('axi', data_width=32, addr_width=13, id_width=8, max_beats=max_beats)
 
     # launch the simulation
     dut.simulate()
 
     # run the test: write to random addresses and read back in a random order
 
-    addr_bytes = axi.addr_width // 8
+    addr_bytes = (axi.addr_width + 7) // 8
 
-    valid_addr_width = axi.addr_width - ceil(log2(addr_bytes))
-    model = np.zeros((1 << valid_addr_width,), dtype=np.uint8)
+    model = np.zeros((1 << axi.addr_width,), dtype=np.uint8)
 
     success = True
 
     for _ in range(n):
-        addr = random.randint(0, (1 << valid_addr_width) - 1)
-        size = random.randint(1, min(max_bytes, (1 << valid_addr_width) - addr))
+        addr = random.randint(0, (1 << axi.addr_width) - 1)
+        size = random.randint(1, min(max_bytes, (1 << axi.addr_width) - addr))
 
         if random.random() < 0.5:
             #########
@@ -96,7 +94,7 @@ def build_testbench(fast=False, tool='verilator'):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-n', type=int, default=100, help='Number of'
+    parser.add_argument('-n', type=int, default=10000, help='Number of'
         ' words to write as part of the test.')
     parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
         ' number of bytes in any single read/write.')
