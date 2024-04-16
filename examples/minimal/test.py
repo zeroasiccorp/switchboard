@@ -8,6 +8,8 @@ from pathlib import Path
 
 from switchboard import SbDut, delete_queues, binary_run
 
+THIS_DIR = Path(__file__).resolve().parent
+
 
 def main():
     # build the simulator
@@ -20,7 +22,7 @@ def main():
 
     # start client and chip
     # this order yields a smaller waveform file
-    client = binary_run(Path('client').resolve())
+    client = binary_run(THIS_DIR / 'client')
     time.sleep(1)
     dut.simulate()
 

@@ -8,6 +8,8 @@
 from pathlib import Path
 from switchboard import switchboard, delete_queue, binary_run, SbDut
 
+THIS_DIR = Path(__file__).resolve().parent
+
 
 def main(aq="5555", bq="5556", cq="5557", dq="5558"):
     # build the simulator
@@ -26,7 +28,7 @@ def main(aq="5555", bq="5556", cq="5557", dq="5558"):
     start_router(aq=aq, bq=bq, cq=cq, dq=dq)
 
     # wait for client to complete
-    client = binary_run(Path('client').resolve())
+    client = binary_run(THIS_DIR / 'client')
     client.wait()
 
 
