@@ -25,7 +25,7 @@ module testbench (
     // Declare AXI wires
 
     localparam DATA_WIDTH = 32;
-    localparam ADDR_WIDTH = 8;
+    localparam ADDR_WIDTH = 13;
     localparam ID_WIDTH = 8;
 
     `SB_AXI_WIRES(axi, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH);

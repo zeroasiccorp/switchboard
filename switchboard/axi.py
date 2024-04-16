@@ -115,7 +115,7 @@ class AxiTxRx:
         id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
-        resp_expected: str = None,
+        resp_expected: str = None
     ):
         """
         Parameters
@@ -220,22 +220,27 @@ class AxiTxRx:
         addr_mask >>= size
         addr_mask <<= size
 
+        mask_4k = (1 << self.addr_width) - 1
+        mask_4k >>= 12
+        mask_4k <<= 12
+
         increment_4k = 1 << 12
 
         while bytes_sent < bytes_to_send:
-            top_addr = addr + (bytes_to_send - bytes_sent)
+            top_addr = addr + (bytes_to_send - bytes_sent) - 1
 
             # limit transfer to the longest burst possible
             longest_burst = max_beats * (1 << size)
-            top_addr = min(top_addr, (addr & addr_mask) + longest_burst)
+            top_addr = min(top_addr, (addr & addr_mask) + longest_burst - 1)
 
             # don't cross a 4k boundary
-            next_4k_boundary = (addr & (increment_4k - 1)) + increment_4k
+            next_4k_boundary = (addr & mask_4k) + increment_4k - 1
             top_addr = min(top_addr, next_4k_boundary)
 
             # calculate the number of beats
-            beats = ceil((top_addr - (addr & addr_mask)) / (1 << size))
-            assert beats <= max_beats
+            beats = ceil((top_addr - (addr & addr_mask) + 1) / (1 << size))
+
+            assert 1 <= beats <= max_beats
 
             # transmit the write address
             self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
@@ -385,24 +390,28 @@ class AxiTxRx:
         addr_mask >>= size
         addr_mask <<= size
 
+        mask_4k = (1 << self.addr_width) - 1
+        mask_4k >>= 12
+        mask_4k <<= 12
+
         increment_4k = 1 << 12
 
         retval = np.empty((bytes_to_read,), dtype=np.uint8)
 
         while bytes_read < bytes_to_read:
-            top_addr = addr + (bytes_to_read - bytes_read)
+            top_addr = addr + (bytes_to_read - bytes_read) - 1
 
             # limit transfer to the longest burst possible
             longest_burst = max_beats * (1 << size)
-            top_addr = min(top_addr, (addr & addr_mask) + longest_burst)
+            top_addr = min(top_addr, (addr & addr_mask) + longest_burst - 1)
 
             # don't cross a 4k boundary
-            next_4k_boundary = (addr & (increment_4k - 1)) + increment_4k
+            next_4k_boundary = (addr & mask_4k) + increment_4k - 1
             top_addr = min(top_addr, next_4k_boundary)
 
             # calculate the number of beats
-            beats = ceil((top_addr - (addr & addr_mask)) / (1 << size))
-            assert beats <= max_beats
+            beats = ceil((top_addr - (addr & addr_mask) + 1) / (1 << size))
+            assert 1 <= beats <= max_beats
 
             # transmit read address
             self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
@@ -480,21 +489,21 @@ class AxiTxRx:
         if strb is None:
             strb = (1 << self.strb_width) - 1
 
-        # pack non-data signals together
-        rest = 0
-        rest = (rest << 1) | (last & 1)
-        rest = (rest << self.strb_width) | (strb & ((1 << self.strb_width) - 1))
-        rest = rest.to_bytes(rest, 'little')
-        rest = np.frombuffer(rest, dtype=np.uint8)
-
         # figure out how many bytes the data + rest of the signals take up
         data_bytes = self.data_width // 8
         rest_bytes = (self.strb_width + 1 + 7) // 8
 
+        # pack non-data signals together
+        rest = 0
+        rest = (rest << 1) | (last & 1)
+        rest = (rest << self.strb_width) | (strb & ((1 << self.strb_width) - 1))
+        rest = rest.to_bytes(rest_bytes, 'little')
+        rest = np.frombuffer(rest, dtype=np.uint8)
+
         # pack everything together in a numpy array
         pack = np.empty((data_bytes + rest_bytes,), dtype=np.uint8)
         pack[:data_bytes] = data
-        pack[data_bytes:] = strb
+        pack[data_bytes:] = rest
 
         # convert to an SB packet
         pack = PySbPacket(data=pack, flags=1, destination=0)

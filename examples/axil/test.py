@@ -13,12 +13,12 @@ from argparse import ArgumentParser
 from switchboard import SbDut, AxiLiteTxRx
 
 
-def main(n=100, fast=False, tool='verilator', max_bytes=10):
+def main(n=10000, fast=False, tool='verilator', max_bytes=10):
     # build the simulator
     dut = build_testbench(fast=fast, tool=tool)
 
     # create the queues
-    axil = AxiLiteTxRx('axil', data_width=32, addr_width=8)
+    axil = AxiLiteTxRx('axil', data_width=32, addr_width=13)
 
     # launch the simulation
     dut.simulate()
@@ -91,7 +91,7 @@ def build_testbench(fast=False, tool='verilator'):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('-n', type=int, default=100, help='Number of'
+    parser.add_argument('-n', type=int, default=10000, help='Number of'
         ' words to write as part of the test.')
     parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
         ' number of bytes in any single read/write.')
