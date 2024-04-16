@@ -5,14 +5,16 @@
 # Copyright (c) 2023 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from argparse import ArgumentParser
 from switchboard import UmiTxRx, random_umi_packet, SbDut
 import umi
 
 
-def main(n=3, fast=False, tool='verilator'):
+def main():
     # build the simulator
-    dut = build_testbench(fast=fast, tool=tool)
+    dut = build_testbench()
+
+    # get additional command-line arguments
+    args = get_additional_args(dut.get_parser())
 
     # create queues
     umi_in = UmiTxRx("in.q", "", fresh=True)
@@ -30,9 +32,9 @@ def main(n=3, fast=False, tool='verilator'):
     n_sent = 0
     n_recv = 0
 
-    while (n_sent < n) or (n_recv < n):
+    while (n_sent < args.n) or (n_recv < args.n):
         # try to send a random packet
-        if n_sent < n:
+        if n_sent < args.n:
             txp = random_umi_packet()
             if umi_in.send(txp, blocking=False):
                 print('* IN *')
@@ -48,7 +50,7 @@ def main(n=3, fast=False, tool='verilator'):
                 n_sent += 1
 
         # try to receive from both outputs
-        if n_recv < n:
+        if n_recv < args.n:
             for i, txq in enumerate([tx_rep, tx_req]):
                 rxp = umi_out[i].recv(blocking=False)
                 if rxp is not None:
@@ -61,8 +63,8 @@ def main(n=3, fast=False, tool='verilator'):
                     n_recv += 1
 
 
-def build_testbench(fast=False, tool='verilator'):
-    dut = SbDut(tool=tool, default_main=True)
+def build_testbench():
+    dut = SbDut(cmdline=True, default_main=True)
 
     dut.input('testbench.sv')
 
@@ -71,19 +73,17 @@ def build_testbench(fast=False, tool='verilator'):
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
-    dut.build(fast=fast)
+    dut.build()
 
     return dut
 
 
-if __name__ == '__main__':
-    parser = ArgumentParser()
+def get_additional_args(parser):
     parser.add_argument('-n', type=int, default=3, help='Number of'
         ' transactions to send into the FIFO during the test.')
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
 
-    main(n=args.n, fast=args.fast, tool=args.tool)
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    main()

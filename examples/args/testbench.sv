@@ -23,15 +23,11 @@ module testbench (
     integer a=0, b=0;
 
     initial begin
-        $value$plusargs("a+%d", a);
-        $value$plusargs("b+%d", b);
+        void'($value$plusargs("a+%d", a));
+        void'($value$plusargs("b+%d", b));
 
         $write("a: %0d\n", a);
         $write("b: %0d\n", b);
-
-        $write("$random: %0d\n", $random);
-        $write("$random: %0d\n", $random);
-        $write("$random: %0d\n", $random);
 
         $finish;
     end

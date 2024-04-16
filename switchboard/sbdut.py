@@ -14,7 +14,6 @@ testbenches.
 import importlib
 import subprocess
 
-from argparse import ArgumentParser
 from typing import List, Dict, Any
 from pathlib import Path
 
@@ -108,17 +107,15 @@ class SbDut(siliconcompiler.Chip):
         # parse command-line options if desired
 
         if cmdline:
-            self.parser = ArgumentParser()
-            self.parser.add_argument('--trace', action='store_true')
-            self.parser.add_argument('--fast', action='store_true')
-            self.parser.add_argument('--tool', choices=['verilator', 'icarus'],
-                default='verilator')
+            parser = self.get_parser()
 
-            args = self.parser.parse_known_args()
+            args, _ = parser.parse_known_args()
 
             trace = args.trace
             fast = args.fast
             tool = args.tool
+            frequency = args.frequency
+            period = args.period
 
         # input validation
 
@@ -557,3 +554,20 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
+
+    def get_parser(self):
+        from argparse import ArgumentParser
+
+        parser = ArgumentParser()
+        parser.add_argument('--trace', action='store_true')
+        parser.add_argument('--fast', action='store_true')
+        parser.add_argument('--tool', choices=['verilator', 'icarus'],
+            default='verilator')
+
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('--period', type=float, default=None,
+            help='Period of the oversampling clock')
+        group.add_argument('--frequency', type=float, default=100e6,
+            help='Frequency of the oversampling clock')
+
+        return parser

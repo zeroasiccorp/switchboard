@@ -7,15 +7,14 @@
 
 import sys
 import numpy as np
-from argparse import ArgumentParser
 from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 
-def main(fast=False, tool='verilator'):
+def main():
     # build the simulator
-    dut = SbDut(tool=tool, default_main=True)
+    dut = SbDut(cmdline=True, default_main=True)
     dut.input('testbench.sv')
-    dut.build(fast=fast)
+    dut.build()
 
     # create queues
     tx = PySbTx('to_rtl.q', fresh=True)
@@ -68,11 +67,4 @@ def main(fast=False, tool='verilator'):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
-
-    main(fast=args.fast, tool=args.tool)
+    main()

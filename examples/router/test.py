@@ -6,17 +6,16 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from pathlib import Path
-from argparse import ArgumentParser
 from switchboard import switchboard, delete_queue, binary_run, SbDut
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(aq="5555", bq="5556", cq="5557", dq="5558", tool="verilator", fast=False):
+def main(aq="5555", bq="5556", cq="5557", dq="5558"):
     # build the simulator
-    dut = SbDut(tool=tool, default_main=True)
+    dut = SbDut(cmdline=True, default_main=True)
     dut.input('testbench.sv')
-    dut.build(fast=fast)
+    dut.build()
 
     # clean up old queues if present
     for q in [aq, bq, cq, dq]:
@@ -43,11 +42,4 @@ def start_router(aq, bq, cq, dq):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
-
-    main(fast=args.fast)
+    main()

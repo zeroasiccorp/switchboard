@@ -6,7 +6,7 @@ verilator:
 	./test.py --tool verilator
 
 .PHONY: icarus
-verilator:
+icarus:
 	./test.py --tool icarus
 
 .PHONY: clean

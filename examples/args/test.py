@@ -5,25 +5,26 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from argparse import ArgumentParser, REMAINDER
+from argparse import REMAINDER
 from switchboard import SbDut
 
 
-def main(fast=False, tool='verilator', args=None):
-    dut = SbDut(tool=tool, default_main=True)
+def main():
+    dut = SbDut(cmdline=True, default_main=True)
+
+    parser = dut.get_parser()
+
+    parser.add_argument('remainder', nargs=REMAINDER,
+        help='Arguments to pass directly to the simulation.  In this case, the simulation'
+        ' accepts plusargs +a+VALUE and +b+VALUE, so you could for example call ./test.py'
+        ' +a+12 +b+23.')
+
+    args = parser.parse_args()
+
     dut.input('testbench.sv')
-    dut.build(fast=fast)
-    dut.simulate(args=args).wait()
+    dut.build()
+    dut.simulate(args=args.remainder).wait()
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    parser.add_argument('args', nargs=REMAINDER,
-        help='Arguments to pass directly to the simulation.')
-    args = parser.parse_args()
-
-    main(fast=args.fast, tool=args.tool, args=args.args)
+    main()

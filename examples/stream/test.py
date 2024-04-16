@@ -8,17 +8,16 @@
 import time
 
 from pathlib import Path
-from argparse import ArgumentParser
 from switchboard import delete_queues, binary_run, SbDut
 
 THIS_DIR = Path(__file__).resolve().parent
 
 
-def main(tool="verilator", fast=False):
+def main():
     # build the simulator
-    dut = SbDut(tool=tool, default_main=True)
+    dut = SbDut(cmdline=True, default_main=True)
     dut.input('testbench.sv')
-    dut.build(fast=fast)
+    dut.build()
 
     # clean up old queues if present
     delete_queues(['client2rtl.q', 'rtl2client.q'])
@@ -35,11 +34,4 @@ def main(tool="verilator", fast=False):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
-
     main()

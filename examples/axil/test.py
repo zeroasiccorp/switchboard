@@ -9,13 +9,15 @@ import sys
 import random
 import numpy as np
 
-from argparse import ArgumentParser
 from switchboard import SbDut, AxiLiteTxRx
 
 
-def main(n=10000, fast=False, tool='verilator', max_bytes=10):
+def main():
     # build the simulator
-    dut = build_testbench(fast=fast, tool=tool)
+    dut = build_testbench()
+
+    # get additional command-line arguments
+    args = get_additional_args(dut.get_parser())
 
     # create the queues
     axil = AxiLiteTxRx('axil', data_width=32, addr_width=13)
@@ -31,9 +33,9 @@ def main(n=10000, fast=False, tool='verilator', max_bytes=10):
 
     success = True
 
-    for _ in range(n):
+    for _ in range(args.n):
         addr = random.randint(0, (1 << axil.addr_width) - 1)
-        size = random.randint(1, min(max_bytes, (1 << axil.addr_width) - addr))
+        size = random.randint(1, min(args.max_bytes, (1 << axil.addr_width) - addr))
 
         if random.random() < 0.5:
             #########
@@ -70,8 +72,8 @@ def main(n=10000, fast=False, tool='verilator', max_bytes=10):
         sys.exit(1)
 
 
-def build_testbench(fast=False, tool='verilator'):
-    dut = SbDut(tool=tool, default_main=True)
+def build_testbench():
+    dut = SbDut(cmdline=True, default_main=True)
 
     dut.register_package_source(
         'verilog-axi',
@@ -82,23 +84,24 @@ def build_testbench(fast=False, tool='verilator'):
     dut.input('rtl/axil_ram.v', package='verilog-axi')
     dut.input('testbench.sv')
 
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff', ['WIDTHTRUNC', 'TIMESCALEMOD'])
+    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
+        ['WIDTHTRUNC', 'TIMESCALEMOD'])
 
-    dut.build(fast=fast)
+    dut.build()
 
     return dut
 
 
-if __name__ == '__main__':
-    parser = ArgumentParser()
+def get_additional_args(parser):
     parser.add_argument('-n', type=int, default=10000, help='Number of'
         ' words to write as part of the test.')
     parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
         ' number of bytes in any single read/write.')
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
+    parser.add_argument('--max-beats', type=int, default=256, help='Maximum'
+        ' number of beats to use in AXI transfers.')
 
-    main(n=args.n, fast=args.fast, tool=args.tool, max_bytes=args.max_bytes)
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    main()

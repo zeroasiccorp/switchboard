@@ -17,7 +17,7 @@ def main():
     dut = build_testbench()
 
     # get additional command-line arguments
-    args = get_additional_args(dut.parser)
+    args = get_additional_args(dut.get_parser())
 
     # create the queues
     axi = AxiTxRx('axi', data_width=32, addr_width=13, id_width=8, max_beats=args.max_beats)
@@ -73,7 +73,7 @@ def main():
 
 
 def build_testbench():
-    dut = SbDut(default_main=True, cmdline=True)
+    dut = SbDut(cmdline=True, default_main=True)
 
     dut.register_package_source(
         'verilog-axi',
@@ -93,7 +93,7 @@ def build_testbench():
 
 
 def get_additional_args(parser):
-    parser.add_argument('-n', type=int, default=100, help='Number of'
+    parser.add_argument('-n', type=int, default=10000, help='Number of'
         ' words to write as part of the test.')
     parser.add_argument('--max-bytes', type=int, default=10, help='Maximum'
         ' number of bytes in any single read/write.')

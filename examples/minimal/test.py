@@ -4,17 +4,14 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import time
-from argparse import ArgumentParser
 from pathlib import Path
 
 from switchboard import SbDut, delete_queues, binary_run
 
-THIS_DIR = Path(__file__).resolve().parent
 
-
-def main(tool="verilator"):
+def main():
     # build the simulator
-    dut = SbDut(tool=tool, default_main=True)
+    dut = SbDut(cmdline=True, default_main=True)
     dut.input('testbench.sv')
     dut.build(fast=True)
 
@@ -23,7 +20,7 @@ def main(tool="verilator"):
 
     # start client and chip
     # this order yields a smaller waveform file
-    client = binary_run(THIS_DIR / 'client')
+    client = binary_run(Path('client').resolve())
     time.sleep(1)
     dut.simulate()
 
@@ -33,9 +30,4 @@ def main(tool="verilator"):
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
-
-    main(tool=args.tool)
+    main()
