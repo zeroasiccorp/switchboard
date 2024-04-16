@@ -3,7 +3,7 @@
 // The output gpio_out is "updated" by any write to this module, and the
 // input "gpio_in" is read out by any read from this module.
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 module umi_gpio #(

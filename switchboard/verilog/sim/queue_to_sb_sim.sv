@@ -5,7 +5,7 @@
 // valid_mode=1: valid remains at "1" if there is a continuous stream of incoming data
 // valid_mode=2: valid toggles randomly if there is a continuous stream of incoming data
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none

@@ -2,7 +2,7 @@
 
 # Example illustrating how to interact with the umi_endpoint module
 
-# Copyright (c) 2023 Zero ASIC Corporation
+# Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import numpy as np

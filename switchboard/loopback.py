@@ -1,6 +1,6 @@
 # Loopback test to check the behavior of blocks that split/merge UMI packets
 
-# Copyright (c) 2023 Zero ASIC Corporation
+# Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from numbers import Integral
