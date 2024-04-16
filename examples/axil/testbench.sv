@@ -25,7 +25,7 @@ module testbench (
     // Declare AXI-Lite wires
 
     localparam DATA_WIDTH = 32;
-    localparam ADDR_WIDTH = 8;
+    localparam ADDR_WIDTH = 13;
 
     `SB_AXIL_WIRES(axil, DATA_WIDTH, ADDR_WIDTH);
 
