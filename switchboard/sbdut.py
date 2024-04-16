@@ -14,6 +14,7 @@ testbenches.
 import importlib
 import subprocess
 
+from argparse import ArgumentParser
 from typing import List, Dict, Any
 from pathlib import Path
 
@@ -46,7 +47,9 @@ class SbDut(siliconcompiler.Chip):
         period: float = None,
         timeunit: str = None,
         timeprecision: str = None,
-        warnings: List[str] = None
+        warnings: List[str] = None,
+        cmdline: bool = False,
+        fast: bool = False
     ):
         """
         Parameters
@@ -87,10 +90,35 @@ class SbDut(siliconcompiler.Chip):
             If provided, a list of tool-specific warnings to enable.  If not provided, a default
             set of warnings will be included.  Warnings can be disabled by setting this argument
             to an empty list.
+
+        cmdline: bool, optional
+            If True, accept configuration settings from the command line, such as "--trace",
+            "--tool TOOL", and "--fast".
+
+        fast: bool, optional
+            If True, the simulation binary will not be rebuilt if an existing one is found.
+            The setting here can be overridden when build() is called by setting its argument
+            with the same name.
         """
+
         # call the super constructor
 
         super().__init__(design)
+
+        # parse command-line options if desired
+
+        if cmdline:
+            self.parser = ArgumentParser()
+            self.parser.add_argument('--trace', action='store_true')
+            self.parser.add_argument('--fast', action='store_true')
+            self.parser.add_argument('--tool', choices=['verilator', 'icarus'],
+                default='verilator')
+
+            args = self.parser.parse_known_args()
+
+            trace = args.trace
+            fast = args.fast
+            tool = args.tool
 
         # input validation
 
@@ -114,6 +142,7 @@ class SbDut(siliconcompiler.Chip):
         self.fpga = fpga
         self.xyce = False  # is set True by _configure_xyce
         self.warnings = warnings
+        self.fast = fast
 
         if (period is None) and (frequency is not None):
             period = 1 / frequency
@@ -255,7 +284,7 @@ class SbDut(siliconcompiler.Chip):
 
         return self.find_result(result_kind, step='compile')
 
-    def build(self, cwd: str = None, fast: bool = False):
+    def build(self, cwd: str = None, fast: bool = None):
         """
         Parameters
         ---------
@@ -263,9 +292,13 @@ class SbDut(siliconcompiler.Chip):
             Working directory for the simulation build
 
         fast: bool, optional
-            If True, the simulation binary will not be rebuilt if
-            an existing one is found
+            If True, the simulation binary will not be rebuilt if an existing one
+            is found.  Defaults to the value provided to the SbDut constructor,
+            which in turn defaults to False.
         """
+
+        if fast is None:
+            fast = self.fast
 
         if self.tool == 'icarus':
             if (not fast) or (icarus_find_vpi(cwd, name='switchboard') is None):
