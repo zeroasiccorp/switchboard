@@ -47,9 +47,7 @@ module testbench (
     `SB_AXIL_M(sb_axil_m_i, axil, clk, DATA_WIDTH, ADDR_WIDTH);
 
     initial begin
-        /* verilator lint_off IGNOREDRETURN */
         sb_axil_m_i.init("axil");
-        /* verilator lint_on IGNOREDRETURN */
     end
 
     // Initialize RAM to zeros for easy comparison against a behavioral model

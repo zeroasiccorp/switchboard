@@ -51,11 +51,9 @@ module testbench (
     // Initialize UMI
 
     initial begin
-        /* verilator lint_off IGNOREDRETURN */
         rx.init("in.q");
         tx0.init("out0.q");
         tx1.init("out1.q");
-        /* verilator lint_on IGNOREDRETURN */
     end
 
     // Waveforms

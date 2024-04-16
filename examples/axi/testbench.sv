@@ -49,9 +49,7 @@ module testbench (
     `SB_AXI_M(sb_axi_m_i, axi, clk, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH);
 
     initial begin
-        /* verilator lint_off IGNOREDRETURN */
         sb_axi_m_i.init("axi");
-        /* verilator lint_on IGNOREDRETURN */
     end
 
     // Initialize RAM to zeros for easy comparison against a behavioral model
