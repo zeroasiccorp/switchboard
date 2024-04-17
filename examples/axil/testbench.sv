@@ -36,11 +36,7 @@ module testbench (
 
     // Instantiate switchboard module
 
-    `SB_AXIL_M(sb_axil_m_i, axil, clk, DATA_WIDTH, ADDR_WIDTH);
-
-    initial begin
-        sb_axil_m_i.init("axil");
-    end
+    `SB_AXIL_M(sb_axil_m_i, axil, clk, DATA_WIDTH, ADDR_WIDTH, "axil");
 
     // Initialize RAM to zeros for easy comparison against a behavioral model
 

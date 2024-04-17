@@ -19,10 +19,10 @@ module testbench (
     parameter integer AW=64;
 
     `SB_UMI_WIRES(udev_req, DW, CW, AW);
-    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, DW, CW, AW);
+    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, DW, CW, AW, "to_rtl.q");
 
     `SB_UMI_WIRES(udev_resp, DW, CW, AW);
-    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, DW, CW, AW);
+    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, DW, CW, AW, "from_rtl.q");
 
     reg nreset = 1'b0;
     wire [AW-1:0] loc_addr;
@@ -61,13 +61,6 @@ module testbench (
         end else if (loc_write) begin
             mem[loc_addr[7:0]] <= loc_wrdata[63:0];
         end
-    end
-
-    // Initialize UMI
-
-    initial begin
-        rx_i.init("to_rtl.q");
-        tx_i.init("from_rtl.q");
     end
 
     // Waveforms

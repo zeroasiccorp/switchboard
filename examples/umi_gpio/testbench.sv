@@ -14,17 +14,17 @@ module testbench (
         `SB_CREATE_CLOCK(clk)
     `endif
 
-    parameter integer DW=256;
-    parameter integer AW=64;
-    parameter integer CW=32;
-    parameter integer IWIDTH=384;
-    parameter integer OWIDTH=128;
+    localparam integer DW=256;
+    localparam integer AW=64;
+    localparam integer CW=32;
+    localparam integer IWIDTH=384;
+    localparam integer OWIDTH=128;
 
     `SB_UMI_WIRES(udev_req, DW, CW, AW);
-    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, DW, CW, AW);
+    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, DW, CW, AW, "to_rtl.q");
 
     `SB_UMI_WIRES(udev_resp, DW, CW, AW);
-    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, DW, CW, AW);
+    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, DW, CW, AW, "from_rtl.q");
 
     reg nreset = 1'b0;
     wire [(IWIDTH-1):0] gpio_in;
@@ -51,13 +51,6 @@ module testbench (
 
     assign gpio_in[255:128] = gpio_out[127:0];
     assign gpio_in[383:256] = ~gpio_out[127:0];
-
-    // Initialize UMI
-
-    initial begin
-        rx_i.init("to_rtl.q");
-        tx_i.init("from_rtl.q");
-    end
 
     // Waveforms
 

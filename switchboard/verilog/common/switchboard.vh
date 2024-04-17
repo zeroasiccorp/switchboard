@@ -18,11 +18,12 @@
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)               \
     `SB_UMI_WIRES(prefix, dw, cw, aw)
 
-`define QUEUE_TO_UMI_SIM(mod, signal, clk_signal, dw, cw, aw)   \
+`define QUEUE_TO_UMI_SIM(mod, signal, clk_signal, dw, cw, aw, file="") \
     queue_to_umi_sim #(                                         \
         .DW(dw),                                                \
         .CW(cw),                                                \
-        .AW(aw)                                                 \
+        .AW(aw),                                                \
+        .FILE(file)                                             \
     ) mod (                                                     \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -33,11 +34,12 @@
         .valid(signal``_valid)                                  \
     )
 
-`define UMI_TO_QUEUE_SIM(mod, signal, clk_signal, dw, cw, aw)   \
+`define UMI_TO_QUEUE_SIM(mod, signal, clk_signal, dw, cw, aw, file="") \
     umi_to_queue_sim #(                                         \
         .DW(dw),                                                \
         .CW(cw),                                                \
-        .AW(aw)                                                 \
+        .AW(aw),                                                \
+        .FILE(file)                                             \
     ) mod (                                                     \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -80,9 +82,10 @@
     wire signal``_valid;                                        \
     wire signal``_ready
 
-`define SB_TO_QUEUE_SIM(mod, signal, clk_signal, dw)            \
+`define SB_TO_QUEUE_SIM(mod, signal, clk_signal, dw, file="")   \
     sb_to_queue_sim #(                                          \
-        .DW(dw)                                                 \
+        .DW(dw),                                                \
+        .FILE(file)                                             \
     ) mod (                                                     \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -92,9 +95,10 @@
         .valid(signal``_valid)                                  \
     )
 
-`define QUEUE_TO_SB_SIM(mod, signal, clk_signal, dw)            \
+`define QUEUE_TO_SB_SIM(mod, signal, clk_signal, dw, file="")   \
     queue_to_sb_sim #(                                          \
-        .DW(dw)                                                 \
+        .DW(dw),                                                \
+        .FILE(file)                                             \
     ) mod (                                                     \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -146,10 +150,11 @@
         .a``_rvalid(b``_rvalid),                                \
         .a``_rready(b``_rready)
 
-`define SB_AXIL_M(mod, signal, clk_signal, dw, aw)              \
+`define SB_AXIL_M(mod, signal, clk_signal, dw, aw, file="")     \
     sb_axil_m #(                                                \
         .DATA_WIDTH(dw),                                        \
-        .ADDR_WIDTH(aw)                                         \
+        .ADDR_WIDTH(aw),                                        \
+        .FILE(file)                                             \
     ) mod (                                                     \
         .clk(clk_signal),                                       \
         .m_axil_awaddr(signal``_awaddr),                        \
@@ -247,11 +252,12 @@
     .a``_rvalid(b``_rvalid),                                    \
     .a``_rready(b``_rready)
 
-`define SB_AXI_M(mod, signal, clk_signal, dw, aw, idw)          \
+`define SB_AXI_M(mod, signal, clk_signal, dw, aw, idw, file="") \
     sb_axi_m #(                                                 \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw),                                        \
-        .ID_WIDTH(idw)                                          \
+        .ID_WIDTH(idw),                                         \
+        .FILE(file)                                             \
     ) mod (                                                     \
         .clk(clk_signal),                                       \
         .m_axi_awid(signal``_awid),                             \
@@ -291,8 +297,6 @@
         .m_axi_rready(signal``_rready)                          \
     )
 
-`endif
-
 `define SB_CREATE_CLOCK(clk_signal)                             \
     `ifdef SB_XYCE                                              \
         timeunit 1s;                                            \
@@ -331,3 +335,5 @@
             end                                                 \
         end                                                     \
     `endif
+
+`endif  // SWITCHBOARD_VH_

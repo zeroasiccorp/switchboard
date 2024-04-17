@@ -9,7 +9,8 @@ module umi_rx_sim #(
     parameter integer VALID_MODE_DEFAULT=0,
     parameter integer DW=256,
     parameter integer AW=64,
-    parameter integer CW=32
+    parameter integer CW=32,
+    parameter FILE=""
 ) (
     input clk,
     output [DW-1:0] data,
@@ -32,7 +33,8 @@ module umi_rx_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
         .DW(DW),
         .AW(AW),
-        .CW(CW)
+        .CW(CW),
+        .FILE(FILE)
     ) rx_i (
         .*
     );

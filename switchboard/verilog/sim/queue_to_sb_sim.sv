@@ -12,7 +12,8 @@
 
 module queue_to_sb_sim #(
     parameter integer VALID_MODE_DEFAULT=0,
-    parameter integer DW=416
+    parameter integer DW=416,
+    parameter FILE=""
 ) (
     input clk,
     output [DW-1:0] data,
@@ -144,6 +145,14 @@ module queue_to_sb_sim #(
             end else begin
                 valid <= 1'b0;
             end
+        end
+    end
+
+    // initialize
+
+    initial begin
+        if (FILE != "") begin
+            init(FILE);
         end
     end
 

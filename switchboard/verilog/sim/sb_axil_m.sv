@@ -11,7 +11,8 @@ module sb_axil_m #(
 
     // Switchboard settings
     parameter integer VALID_MODE_DEFAULT=0,
-    parameter integer READY_MODE_DEFAULT=0
+    parameter integer READY_MODE_DEFAULT=0,
+    parameter FILE=""
 ) (
     input wire clk,
 
@@ -152,6 +153,14 @@ module sb_axil_m #(
         r_channel.set_ready_mode(value);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
+
+    // initialize
+
+    initial begin
+        if (FILE != "") begin
+            init(FILE);
+        end
+    end
 
     // clean up macros
 

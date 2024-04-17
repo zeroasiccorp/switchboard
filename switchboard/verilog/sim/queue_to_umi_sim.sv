@@ -7,7 +7,8 @@ module queue_to_umi_sim #(
     parameter integer VALID_MODE_DEFAULT=0,
     parameter integer DW=256,
     parameter integer AW=64,
-    parameter integer CW=32
+    parameter integer CW=32,
+    parameter FILE=""
 ) (
     input clk,
     output [DW-1:0] data,
@@ -20,7 +21,8 @@ module queue_to_umi_sim #(
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(DW+AW+AW+CW)
+        .DW(DW+AW+AW+CW),
+        .FILE(FILE)
     ) rx_i (
         .clk(clk),
         .data({data, srcaddr, dstaddr, cmd}),

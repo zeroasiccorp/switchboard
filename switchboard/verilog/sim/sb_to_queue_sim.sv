@@ -12,7 +12,8 @@
 
 module sb_to_queue_sim #(
     parameter integer READY_MODE_DEFAULT=0,
-    parameter integer DW=416
+    parameter integer DW=416,
+    parameter FILE=""
 ) (
     input clk,
     input [DW-1:0] data,
@@ -164,6 +165,14 @@ module sb_to_queue_sim #(
                 ready <= ($random % 2);
                 /* verilator lint_on WIDTH */
             end
+        end
+    end
+
+    // initialize
+
+    initial begin
+        if (FILE != "") begin
+            init(FILE);
         end
     end
 

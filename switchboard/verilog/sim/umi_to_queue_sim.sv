@@ -7,7 +7,8 @@ module umi_to_queue_sim #(
     parameter integer READY_MODE_DEFAULT=0,
     parameter integer DW=256,
     parameter integer AW=64,
-    parameter integer CW=32
+    parameter integer CW=32,
+    parameter FILE=""
 ) (
     input clk,
     input [DW-1:0] data,
@@ -53,6 +54,14 @@ module umi_to_queue_sim #(
         tx_i.set_ready_mode(value);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
+
+    // initialize
+
+    initial begin
+        if (FILE != "") begin
+            init(FILE);
+        end
+    end
 
     // clean up macros
 

@@ -15,12 +15,12 @@ module testbench (
     // SB RX port
 
     `SB_WIRES(sb_rx, 256);
-    `QUEUE_TO_SB_SIM(rx_i, sb_rx, clk, 256);
+    `QUEUE_TO_SB_SIM(rx_i, sb_rx, clk, 256, "to_rtl.q");
 
     // SB TX port
 
     `SB_WIRES(sb_tx, 256);
-    `SB_TO_QUEUE_SIM(tx_i, sb_tx, clk, 256);
+    `SB_TO_QUEUE_SIM(tx_i, sb_tx, clk, 256, "from_rtl.q");
 
     // custom modification of packet
 
@@ -35,13 +35,6 @@ module testbench (
     assign sb_tx_last = sb_rx_last;
     assign sb_tx_valid = sb_rx_valid;
     assign sb_rx_ready = sb_tx_ready;
-
-    // Initialize UMI
-
-    initial begin
-        rx_i.init("to_rtl.q");
-        tx_i.init("from_rtl.q");
-    end
 
     // Waveforms
 
