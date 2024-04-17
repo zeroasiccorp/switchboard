@@ -152,7 +152,9 @@ module queue_to_sb_sim #(
 
     initial begin
         if (FILE != "") begin
+            /* verilator lint_off IGNOREDRETURN */
             init(FILE);
+            /* verilator lint_on IGNOREDRETURN */
         end
     end
 

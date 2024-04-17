@@ -20,10 +20,10 @@ module testbench (
     parameter integer CW=32;
 
     `SB_UMI_WIRES(udev_req, IDW, CW, AW);
-    `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, IDW, CW, AW, "to_rtl.q");
+    `QUEUE_TO_UMI_SIM(udev_req, IDW, CW, AW, "to_rtl.q");
 
     `SB_UMI_WIRES(udev_resp, ODW, CW, AW);
-    `UMI_TO_QUEUE_SIM(tx_i, udev_resp, clk, ODW, CW, AW, "from_rtl.q");
+    `UMI_TO_QUEUE_SIM(udev_resp, ODW, CW, AW, "from_rtl.q");
 
     reg nreset = 1'b0;
 

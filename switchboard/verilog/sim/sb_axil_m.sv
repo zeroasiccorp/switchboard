@@ -10,8 +10,8 @@ module sb_axil_m #(
     parameter STRB_WIDTH = (DATA_WIDTH/8),
 
     // Switchboard settings
-    parameter integer VALID_MODE_DEFAULT=0,
-    parameter integer READY_MODE_DEFAULT=0,
+    parameter integer VALID_MODE_DEFAULT=1,
+    parameter integer READY_MODE_DEFAULT=1,
     parameter FILE=""
 ) (
     input wire clk,
@@ -158,7 +158,9 @@ module sb_axil_m #(
 
     initial begin
         if (FILE != "") begin
+            /* verilator lint_off IGNOREDRETURN */
             init(FILE);
+            /* verilator lint_on IGNOREDRETURN */
         end
     end
 

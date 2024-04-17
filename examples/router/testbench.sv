@@ -12,15 +12,17 @@ module testbench (
         `SB_CREATE_CLOCK(clk)
     `endif
 
+    localparam integer DW=256;
+
     // SB RX port
 
-    `SB_WIRES(sb_rx, 256);
-    `QUEUE_TO_SB_SIM(rx_i, sb_rx, clk, 256, "queue-5557");
+    `SB_WIRES(sb_rx, DW);
+    `QUEUE_TO_SB_SIM(sb_rx, DW, "queue-5557");
 
     // SB TX port
 
-    `SB_WIRES(sb_tx, 256);
-    `SB_TO_QUEUE_SIM(tx_i, sb_tx, clk, 256, "queue-5558");
+    `SB_WIRES(sb_tx, DW);
+    `SB_TO_QUEUE_SIM(sb_tx, DW, "queue-5558");
 
     // custom modification of packet
 

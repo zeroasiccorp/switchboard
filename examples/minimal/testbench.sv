@@ -12,29 +12,31 @@ module testbench (
         `SB_CREATE_CLOCK(clk)
     `endif
 
+    localparam integer DW=256;
+
     // SB RX port
 
-    `SB_WIRES(sb_rx, 256);
-    `QUEUE_TO_SB_SIM(rx_i, sb_rx, clk, 256, "to_rtl.q");
+    `SB_WIRES(to_rtl, DW);
+    `QUEUE_TO_SB_SIM(to_rtl, DW);
 
     // SB TX port
 
-    `SB_WIRES(sb_tx, 256);
-    `SB_TO_QUEUE_SIM(tx_i, sb_tx, clk, 256, "from_rtl.q");
+    `SB_WIRES(from_rtl, DW);
+    `SB_TO_QUEUE_SIM(from_rtl, DW);
 
     // custom modification of packet
 
     genvar i;
     generate
-        for (i=0; i<32; i=i+1) begin
-            assign sb_tx_data[(i*8) +: 8] = sb_rx_data[(i*8) +: 8] + 8'd1;
+        for (i=0; i<(DW/8); i=i+1) begin
+            assign from_rtl_data[(i*8) +: 8] = to_rtl_data[(i*8) +: 8] + 8'd1;
         end
     endgenerate
 
-    assign sb_tx_dest = sb_rx_dest;
-    assign sb_tx_last = sb_rx_last;
-    assign sb_tx_valid = sb_rx_valid;
-    assign sb_rx_ready = sb_tx_ready;
+    assign from_rtl_dest = to_rtl_dest;
+    assign from_rtl_last = to_rtl_last;
+    assign from_rtl_valid = to_rtl_valid;
+    assign to_rtl_ready = from_rtl_ready;
 
     // Waveforms
 
@@ -43,7 +45,7 @@ module testbench (
     // $finish
 
     always @(posedge clk) begin
-        if (sb_rx_valid && ((&sb_rx_data) == 1'b1)) begin
+        if (to_rtl_valid && ((&to_rtl_data) == 1'b1)) begin
             $finish;
         end
     end

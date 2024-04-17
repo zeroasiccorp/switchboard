@@ -23,7 +23,8 @@ module umi_to_queue_sim #(
 
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(DW+AW+AW+CW)
+        .DW(DW+AW+AW+CW),
+        .FILE(FILE)
     ) tx_i (
         .clk(clk),
         .data({data, srcaddr, dstaddr, cmd}),
@@ -54,14 +55,6 @@ module umi_to_queue_sim #(
         tx_i.set_ready_mode(value);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
-
-    // initialize
-
-    initial begin
-        if (FILE != "") begin
-            init(FILE);
-        end
-    end
 
     // clean up macros
 
