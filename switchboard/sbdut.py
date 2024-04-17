@@ -119,6 +119,9 @@ class SbDut(siliconcompiler.Chip):
                     ' probe waveforms during simulation.  This can improve build time'
                     ' and run time, but reduces visibility.')
 
+            parser.add_argument('--trace-type', type=str, choices=['vcd', 'fst'],
+                default=trace_type, help='File type for waveform probing.')
+
             if not fast:
                 parser.add_argument('--fast', action='store_true', help='Do not build'
                     ' the simulator binary if it has already been built.')
@@ -126,7 +129,7 @@ class SbDut(siliconcompiler.Chip):
                 parser.add_argument('--rebuild', action='store_true', help='Build the'
                     ' simulator binary even if it has already been built.')
 
-            parser.add_argument('--tool', choices=['verilator', 'icarus'],
+            parser.add_argument('--tool', type=str, choices=['verilator', 'icarus'],
                 default=tool, help='Name of the simulator to use.')
 
             group = parser.add_mutually_exclusive_group()
@@ -147,6 +150,8 @@ class SbDut(siliconcompiler.Chip):
                 trace = self.args.trace
             else:
                 trace = not self.args.no_trace
+
+            trace_type = self.args.trace_type
 
             if not fast:
                 fast = self.args.fast
@@ -198,6 +203,9 @@ class SbDut(siliconcompiler.Chip):
 
         if trace:
             self.set('option', 'trace', True)
+
+        if self.trace_type == 'fst':
+            self.set('option', 'define', 'SB_TRACE_FST')
 
         if tool == 'icarus':
             self._configure_icarus()

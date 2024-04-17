@@ -48,11 +48,6 @@ module testbench (
 
     // Waveform probing
 
-    initial begin
-        if ($test$plusargs("trace")) begin
-            $dumpfile("testbench.vcd");
-            $dumpvars(0, testbench);
-        end
-    end
+    `SB_PROBE
 
 endmodule

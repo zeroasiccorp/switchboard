@@ -307,7 +307,7 @@
     real period = 10e-9;                                        \
                                                                 \
     initial begin                                               \
-        $value$plusargs("period=%f", period);                   \
+        void'($value$plusargs("period=%f", period));            \
     end                                                         \
                                                                 \
     reg clk_signal;                                             \
@@ -316,4 +316,16 @@
         `SB_DELAY(0.5 * period);                                \
         clk_signal = 1'b1;                                      \
         `SB_DELAY(0.5 * period);                                \
+    end
+
+`define SB_PROBE                                                \
+    initial begin                                               \
+        if ($test$plusargs("trace")) begin                      \
+            `ifdef SB_TRACE_FST                                 \
+                $dumpfile("testbench.fst");                     \
+            `else                                               \
+                $dumpfile("testbench.vcd");                     \
+            `endif                                              \
+            $dumpvars(0, testbench);                            \
+        end                                                     \
     end

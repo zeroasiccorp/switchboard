@@ -39,12 +39,7 @@ module testbench (
 
     // Waveforms
 
-    initial begin
-        if ($test$plusargs("trace")) begin
-            $dumpfile("testbench.fst");
-            $dumpvars(0, testbench);
-        end
-    end
+    `SB_PROBE
 
 endmodule
 
