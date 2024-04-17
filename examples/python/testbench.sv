@@ -12,7 +12,7 @@ module testbench (
         `SB_CREATE_CLOCK(clk)
     `endif
 
-    localparam DW=256;
+    localparam integer DW=256;
 
     // SB RX port
 
@@ -24,7 +24,7 @@ module testbench (
     `SB_WIRES(from_rtl, DW);
     `SB_TO_QUEUE_SIM(from_rtl, DW);
 
-    // custom modification of packet
+    // loopback with data modification (add "1" to data)
 
     genvar i;
     generate
@@ -38,16 +38,16 @@ module testbench (
     assign from_rtl_valid = to_rtl_valid;
     assign to_rtl_ready = from_rtl_ready;
 
-    // Waveforms
-
-    `SB_SETUP_PROBES
-
-    // $finish
+    // end simulation after receiving a packet of all 1's
 
     always @(posedge clk) begin
         if (to_rtl_valid && ((&to_rtl_data) == 1'b1)) begin
             $finish;
         end
     end
+
+    // Waveforms
+
+    `SB_SETUP_PROBES
 
 endmodule
