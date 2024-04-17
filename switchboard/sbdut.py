@@ -203,6 +203,7 @@ class SbDut(siliconcompiler.Chip):
 
         if trace:
             self.set('option', 'trace', True)
+            self.set('option', 'define', 'SB_TRACE')
 
         if self.trace_type == 'fst':
             self.set('option', 'define', 'SB_TRACE_FST')

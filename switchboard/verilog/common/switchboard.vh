@@ -318,14 +318,16 @@
         `SB_DELAY(0.5 * period);                                \
     end
 
-`define SB_PROBE                                                \
-    initial begin                                               \
-        if ($test$plusargs("trace")) begin                      \
-            `ifdef SB_TRACE_FST                                 \
-                $dumpfile("testbench.fst");                     \
-            `else                                               \
-                $dumpfile("testbench.vcd");                     \
-            `endif                                              \
-            $dumpvars(0, testbench);                            \
+`define SB_SETUP_PROBES                                         \
+    `ifdef SB_TRACE                                             \
+        initial begin                                           \
+            if ($test$plusargs("trace")) begin                  \
+                `ifdef SB_TRACE_FST                             \
+                    $dumpfile("testbench.fst");                 \
+                `else                                           \
+                    $dumpfile("testbench.vcd");                 \
+                `endif                                          \
+                $dumpvars(0, testbench);                        \
+            end                                                 \
         end                                                     \
-    end
+    `endif

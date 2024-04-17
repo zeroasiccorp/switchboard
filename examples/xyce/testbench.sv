@@ -1,6 +1,8 @@
 // Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+`include "switchboard.vh"
+
 module testbench (
     `ifdef VERILATOR
         input clk
@@ -48,6 +50,6 @@ module testbench (
 
     // Waveform probing
 
-    `SB_PROBE
+    `SB_SETUP_PROBES
 
 endmodule

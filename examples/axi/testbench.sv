@@ -66,7 +66,7 @@ module testbench (
 
     // Set up waveform probing
 
-    `SB_PROBE
+    `SB_SETUP_PROBES
 
 endmodule
 

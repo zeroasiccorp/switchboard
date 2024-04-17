@@ -39,7 +39,7 @@ module testbench (
 
     // Waveforms
 
-    `SB_PROBE
+    `SB_SETUP_PROBES
 
 endmodule
 
