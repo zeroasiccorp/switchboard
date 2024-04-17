@@ -45,8 +45,6 @@ module testbench (
 
     // Waveforms
 
-    `SB_PROBE
-
     initial begin
         if ($test$plusargs("trace")) begin
             $dumpfile("testbench.vcd");

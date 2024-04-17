@@ -292,6 +292,8 @@ class SbDut(siliconcompiler.Chip):
             # already configured, so return early
             return
 
+        self.add('option', 'define', 'SB_XYCE')
+
         if self.tool != 'icarus':
             self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
 
