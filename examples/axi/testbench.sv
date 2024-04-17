@@ -11,15 +11,7 @@ module testbench (
     `endif
 );
     `ifndef VERILATOR
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #5;
-            clk = 1'b1;
-            #5;
-        end
-
+        `SB_CREATE_CLOCK(clk)
     `endif
 
     // Declare AXI wires

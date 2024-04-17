@@ -11,20 +11,12 @@ module testbench (
     `endif
 );
     `ifndef VERILATOR
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #5;
-            clk = 1'b1;
-            #5;
-        end
-
+        `SB_CREATE_CLOCK(clk)
     `endif
 
-    parameter integer DW=256;
-    parameter integer AW=64;
-    parameter integer CW=32;
+    localparam integer DW=256;
+    localparam integer AW=64;
+    localparam integer CW=32;
 
     `SB_UMI_WIRES(udev_req, DW, CW, AW);
     `QUEUE_TO_UMI_SIM(rx_i, udev_req, clk, DW, CW, AW);

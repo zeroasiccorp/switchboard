@@ -6,24 +6,8 @@ module testbench (
         input clk
     `endif
 );
-    // Generate oversampling clock if not using Verilator
-
     `ifndef VERILATOR
-        timeunit 1s;
-        timeprecision 1fs;
-
-        real period = 10e-9;
-        initial begin
-            $value$plusargs("period=%f", period);
-        end
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #(0.5 * period);
-            clk = 1'b1;
-            #(0.5 * period);
-        end
+        `SB_CREATE_CLOCK(clk)
     `endif
 
     // Generate a waveform to pass into the analog model

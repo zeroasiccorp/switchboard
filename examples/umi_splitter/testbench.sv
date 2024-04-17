@@ -10,22 +10,13 @@ module testbench (
         input clk
     `endif
 );
-    parameter integer DW=256;
-    parameter integer AW=64;
-    parameter integer CW=32;
-
-    // clock
     `ifndef VERILATOR
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #5;
-            clk = 1'b1;
-            #5;
-        end
-
+        `SB_CREATE_CLOCK(clk)
     `endif
+
+    localparam integer DW=256;
+    localparam integer AW=64;
+    localparam integer CW=32;
 
     // UMI input
 

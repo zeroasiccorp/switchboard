@@ -8,18 +8,8 @@ module testbench (
         input clk
     `endif
 );
-    // clock
-
     `ifndef VERILATOR
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #5;
-            clk = 1'b1;
-            #5;
-        end
-
+        `SB_CREATE_CLOCK(clk)
     `endif
 
     // SB RX port
@@ -54,6 +44,8 @@ module testbench (
     end
 
     // Waveforms
+
+    `SB_PROBE
 
     initial begin
         if ($test$plusargs("trace")) begin

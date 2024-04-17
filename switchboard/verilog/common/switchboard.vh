@@ -292,3 +292,20 @@
     )
 
 `endif
+
+`define SB_CREATE_CLOCK(clk_signal)                             \
+    timeunit 1s;                                                \
+    timeprecision 1fs;                                          \
+                                                                \
+    real period = 10e-9;                                        \
+    initial begin                                               \
+        $value$plusargs("period=%f", period);                   \
+    end                                                         \
+                                                                \
+    reg clk_signal;                                             \
+    always begin                                                \
+        clk_signal = 1'b0;                                      \
+        #(0.5 * period);                                        \
+        clk_signal = 1'b1;                                      \
+        #(0.5 * period);                                        \
+    end
