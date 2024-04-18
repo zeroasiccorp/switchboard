@@ -38,7 +38,7 @@ module testbench (
 
     // Instantiate switchboard module
 
-    `SB_AXI_M(axi, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH);
+    `SB_AXI_M(axi, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH, "axi");
 
     // Initialize RAM to zeros for easy comparison against a behavioral model
 

@@ -21,17 +21,13 @@
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)               \
     `SB_UMI_WIRES(prefix, dw, cw, aw)
 
-`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file=-1, vldmode=1, clk_signal=clk) \
+`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk) \
     queue_to_umi_sim #(                                         \
         .VALID_MODE_DEFAULT(vldmode),                           \
         .DW(dw),                                                \
         .CW(cw),                                                \
         .AW(aw),                                                \
-        .FILE(                                                  \
-            /* verilator lint_off WIDTHEXPAND */                \
-            (file == -1) ? {`STRINGIFY(signal), ".q"} : file    \
-            /* verilator lint_on WIDTHEXPAND */                 \
-        )                                                       \
+        .FILE(file)                                             \
     ) signal``_sb_inst (                                        \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -42,17 +38,13 @@
         .valid(signal``_valid)                                  \
     )
 
-`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file=-1, rdymode=1, clk_signal=clk) \
+`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file, rdymode=1, clk_signal=clk) \
     umi_to_queue_sim #(                                         \
         .READY_MODE_DEFAULT(rdymode),                           \
         .DW(dw),                                                \
         .CW(cw),                                                \
         .AW(aw),                                                \
-        .FILE(                                                  \
-            /* verilator lint_off WIDTHEXPAND */                \
-            (file == -1) ? {`STRINGIFY(signal), ".q"} : file    \
-            /* verilator lint_on WIDTHEXPAND */                 \
-        )                                                       \
+        .FILE(file)                                             \
     ) signal``_sb_inst (                                        \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -84,15 +76,11 @@
     wire signal``_valid;                                        \
     wire signal``_ready
 
-`define SB_TO_QUEUE_SIM(signal, dw, file=-1, rdymode=1, clk_signal=clk) \
+`define SB_TO_QUEUE_SIM(signal, dw, file, rdymode=1, clk_signal=clk) \
     sb_to_queue_sim #(                                          \
         .READY_MODE_DEFAULT(rdymode),                           \
         .DW(dw),                                                \
-        .FILE(                                                  \
-            /* verilator lint_off WIDTHEXPAND */                \
-            (file == -1) ? {`STRINGIFY(signal), ".q"} : file    \
-            /* verilator lint_on WIDTHEXPAND */                 \
-        )                                                       \
+        .FILE(file)                                             \
     ) signal``_sb_inst (                                        \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -102,15 +90,11 @@
         .valid(signal``_valid)                                  \
     )
 
-`define QUEUE_TO_SB_SIM(signal, dw, file=-1, vldmode=1, clk_signal=clk) \
+`define QUEUE_TO_SB_SIM(signal, dw, file, vldmode=1, clk_signal=clk) \
     queue_to_sb_sim #(                                          \
         .VALID_MODE_DEFAULT(vldmode),                           \
         .DW(dw),                                                \
-        .FILE(                                                  \
-            /* verilator lint_off WIDTHEXPAND */                \
-            (file == -1) ? {`STRINGIFY(signal), ".q"} : file    \
-            /* verilator lint_on WIDTHEXPAND */                 \
-        )                                                       \
+        .FILE(file)                                             \
     ) signal``_sb_inst (                                        \
         .clk(clk_signal),                                       \
         .data(signal``_data),                                   \
@@ -162,17 +146,13 @@
         .a``_rvalid(b``_rvalid),                                \
         .a``_rready(b``_rready)
 
-`define SB_AXIL_M(signal, dw, aw, file=-1, vldmode=1, rdymode=1, clk_signal=clk) \
+`define SB_AXIL_M(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk) \
     sb_axil_m #(                                                \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw),                                        \
         .VALID_MODE_DEFAULT(vldmode),                           \
         .READY_MODE_DEFAULT(rdymode),                           \
-        .FILE(                                                  \
-            /* verilator lint_off WIDTHEXPAND */                \
-            (file == -1) ? `STRINGIFY(signal) : file            \
-            /* verilator lint_on WIDTHEXPAND */                 \
-        )                                                       \
+        .FILE(file)                                             \
     ) signal``_sb_inst (                                        \
         .clk(clk_signal),                                       \
         .m_axil_awaddr(signal``_awaddr),                        \
@@ -270,18 +250,14 @@
     .a``_rvalid(b``_rvalid),                                    \
     .a``_rready(b``_rready)
 
-`define SB_AXI_M(signal, dw, aw, idw, file=-1, vldmode=1, rdymode=1, clk_signal=clk) \
+`define SB_AXI_M(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk) \
     sb_axi_m #(                                                 \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw),                                        \
         .ID_WIDTH(idw),                                         \
         .VALID_MODE_DEFAULT(vldmode),                           \
         .READY_MODE_DEFAULT(rdymode),                           \
-        .FILE(                                                  \
-            /* verilator lint_off WIDTHEXPAND */                \
-            (file == -1) ? `STRINGIFY(signal) : file            \
-            /* verilator lint_on WIDTHEXPAND */                 \
-        )                                                       \
+        .FILE(file)                                             \
     ) signal``_sb_inst (                                        \
         .clk(clk_signal),                                       \
         .m_axi_awid(signal``_awid),                             \

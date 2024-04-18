@@ -23,18 +23,12 @@ In the Verilog implementation, [testbench.sv](testbench.sv) instantiates a switc
 
 ...
 
-`SB_AXI_M(sb_axi_m_i, axi, clk, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH);
+`SB_AXI_M(axi, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH, "axi");
 ```
 
-Based on the macro arguments, the module instance is called `sb_axi_m_i` and it connects to AXI signals starting with the prefix `axi`, with a clock signal called `clk`.  The module is configured to connect to switchboard queues in an `initial` block:
+Based on the first argument, `axi`, the module instance is called `axi_sb_inst` and it connects to AXI signals starting with the prefix `axi`.  The next three arguments specify the widths of the data, address, and ID buses, respectively.  The last argument indicates that the switchboard queues to be used start with the prefix `axi`: `axi-aw.q`, `axi-w.q`, `axi-b.q`, `axi-ar.q`, `axi-r.q`.
 
-```verilog
-initial begin
-    sb_axi_m_i.init("axi");
-end
-```
-
-The argument, `axi`, is the prefix used when connecting to the queues that convey AXI traffic.  Since AXI has 5 channels, 5 queues will be connected as a result of this function call: `axi-aw.q`, `axi-w.q`, `axi-b.q`, `axi-ar.q`, `axi-r.q`.  If the argument of `init` were instead `myqueue`, then the queue names would all start with `myqueue` instead of `axi`.
+Various optional macro arguments can fine-tune the behavior, for example changing the clock signal name, which defaults to `clk`.
 
 In the Python script [test.py](test.py), a corresponding `AxiTxRx` object is created, using the same shorthand for connecting to all 5 queues.
 

@@ -17,12 +17,12 @@ module testbench (
     // SB RX port
 
     `SB_WIRES(to_rtl, DW);
-    `QUEUE_TO_SB_SIM(to_rtl, DW);
+    `QUEUE_TO_SB_SIM(to_rtl, DW, "to_rtl.q");
 
     // SB TX port
 
     `SB_WIRES(from_rtl, DW);
-    `SB_TO_QUEUE_SIM(from_rtl, DW);
+    `SB_TO_QUEUE_SIM(from_rtl, DW, "from_rtl.q");
 
     // custom modification of packet
 

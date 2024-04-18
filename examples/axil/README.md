@@ -23,18 +23,12 @@ In the Verilog implementation, [testbench.sv](testbench.sv) instantiates a switc
 
 ...
 
-`SB_AXIL_M(sb_axil_m_i, axil, clk, DATA_WIDTH, ADDR_WIDTH);
+`SB_AXIL_M(axil, DATA_WIDTH, ADDR_WIDTH, "axil");
 ```
 
-Based on the macro arguments, the module instance is called `sb_axil_m_i` and it connects to AXI-Lite signals starting with the prefix `axil`, with a clock signal called `clk`.  The module is configured to connect to switchboard queues in an `initial` block:
+Based on the first argument, `axil`, the module instance is called `axil_sb_inst` and it connects to AXI-Lite signals starting with the prefix `axil`.  The next two arguments specify the widths of the data and address buses, respectively.  The last argument indicates that the switchboard queues to be used start with the prefix `axil`: `axil-aw.q`, `axil-w.q`, `axil-b.q`, `axil-ar.q`, `axil-r.q`.
 
-```verilog
-initial begin
-    sb_axil_m_i.init("axil");
-end
-```
-
-The argument, `axil`, is the prefix used when connecting to the queues that convey AXI-Lite traffic.  Since AXI-Lite has 5 channels, 5 queues will be connected as a result of this function call: `axil-aw.q`, `axil-w.q`, `axil-b.q`, `axil-ar.q`, `axil-r.q`.  If the argument of `init` were instead `myqueue`, then the queue names would all start with `myqueue` instead of `axil`.
+Various optional macro arguments can fine-tune the behavior, for example changing the clock signal name, which defaults to `clk`.
 
 In the Python script [test.py](test.py), a corresponding `AxiLiteTxRx` object is created, using the same shorthand for connecting to all 5 queues.
 
