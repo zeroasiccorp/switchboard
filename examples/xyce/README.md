@@ -4,13 +4,28 @@ This example shows how to run a mixed-signal simulation of a Verilog module that
 
 You can run the example with `make`, producing a `*.vcd` file where digital and analog waveforms may be inspected.  `make icarus` runs the simulation using Icarus Verilog as the digital simulator.  In either case, Xyce needs to be installed, including `XyceCInterface`.  If you don't have such a setup readily available, you can run this example using the `sbtest` Docker image, which includes Xyce, Verilator, and Icarus Verilog:
 
-```shell
-$ docker run --rm -it ghcr.io/zeroasiccorp/sbtest:latest bash
-$ git clone https://github.com/zeroasiccorp/switchboard
-$ cd switchboard
-$ pip install -e .
-$ cd examples/xyce
-$ make
+```console
+docker run --rm -it ghcr.io/zeroasiccorp/sbtest:latest bash
+```
+
+```console
+git clone https://github.com/zeroasiccorp/switchboard
+```
+
+```console
+cd switchboard
+```
+
+```console
+pip install -e .
+```
+
+```console
+cd examples/xyce
+```
+
+```console
+make
 ```
 
 The core of the example code is the `input_analog()` call in [test.py](test.py):
