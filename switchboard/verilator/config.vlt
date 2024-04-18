@@ -1,7 +1,7 @@
 // This file silences Verilator warnings in the verilog-axi third party library.
 // Note: this file must be passed to Verilator *before* Verilog sources.
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `verilator_config

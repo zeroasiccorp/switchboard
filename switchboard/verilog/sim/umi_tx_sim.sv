@@ -1,6 +1,6 @@
 // Wrapper module for backwards compatibility (will eventually be removed)
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none
@@ -9,7 +9,8 @@ module umi_tx_sim #(
     parameter integer READY_MODE_DEFAULT=0,
     parameter integer DW=256,
     parameter integer AW=64,
-    parameter integer CW=32
+    parameter integer CW=32,
+    parameter FILE=""
 ) (
     input clk,
     input [DW-1:0] data,
@@ -32,7 +33,8 @@ module umi_tx_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
         .DW(DW),
         .AW(AW),
-        .CW(CW)
+        .CW(CW),
+        .FILE(FILE)
     ) tx_i (
         .*
     );

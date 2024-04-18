@@ -5,14 +5,15 @@
 // ready_mode=1: ready remains asserted as long as an outbound packet is not stuck
 // ready_mode=2: ready toggles randomly as long as an outbound packet is not stuck
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none
 
 module sb_to_queue_sim #(
     parameter integer READY_MODE_DEFAULT=0,
-    parameter integer DW=416
+    parameter integer DW=416,
+    parameter FILE=""
 ) (
     input clk,
     input [DW-1:0] data,
@@ -164,6 +165,16 @@ module sb_to_queue_sim #(
                 ready <= ($random % 2);
                 /* verilator lint_on WIDTH */
             end
+        end
+    end
+
+    // initialize
+
+    initial begin
+        if (FILE != "") begin
+            /* verilator lint_off IGNOREDRETURN */
+            init(FILE);
+            /* verilator lint_on IGNOREDRETURN */
         end
     end
 

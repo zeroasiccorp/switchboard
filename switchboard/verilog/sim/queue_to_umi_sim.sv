@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none
@@ -7,7 +7,8 @@ module queue_to_umi_sim #(
     parameter integer VALID_MODE_DEFAULT=0,
     parameter integer DW=256,
     parameter integer AW=64,
-    parameter integer CW=32
+    parameter integer CW=32,
+    parameter FILE=""
 ) (
     input clk,
     output [DW-1:0] data,
@@ -20,7 +21,8 @@ module queue_to_umi_sim #(
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(DW+AW+AW+CW)
+        .DW(DW+AW+AW+CW),
+        .FILE(FILE)
     ) rx_i (
         .clk(clk),
         .data({data, srcaddr, dstaddr, cmd}),

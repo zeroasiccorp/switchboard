@@ -24,27 +24,38 @@ Switchboard also has mixed-signal features that make it easy to incorporate SPIC
 
 The fastest way to install this package is from PyPI:
 
-```shell
+```console
 pip install switchboard-hw
 ```
 
 However, if you want to run the examples below (or if you're a switchboard developer), clone this repository and install the Python package in-place:
 
-```shell
-$ git clone https://github.com/zeroasiccorp/switchboard.git
-$ cd switchboard
-$ git submodule update --init
-$ pip install --upgrade pip
-$ pip install -e .
+```console
+git clone https://github.com/zeroasiccorp/switchboard.git
 ```
 
+```console
+cd switchboard
+```
+
+```console
+git submodule update --init
+```
+
+```console
+pip install --upgrade pip
+```
+
+```console
+pip install -e .
+```
 
 ## Examples
 
 Various examples demonstrating the features of switchboard are in the [examples](examples) folder.  If you'd like to run them yourself, please run this command first:
 
-```shell
-$ pip install -r examples/requirements.txt
+```console
+pip install -r examples/requirements.txt
 ```
 
 This clones some additional repositories that are needed by the examples.
@@ -76,13 +87,19 @@ To get a sense of how this works, open the Python script [examples/python/test.p
 
 ```python
 from switchboard import PySbPacket, PySbTx, PySbRx
+
 ...
-tx = PySbTx("to_rtl.q")
-rx = PySbRx("from_rtl.q")
+
+tx = PySbTx("to_rtl.q", fresh=True)
+rx = PySbRx("from_rtl.q", fresh=True)
+
 ...
+
 txp = PySbPacket(...)
 tx.send(txp)
+
 ...
+
 rxp = rx.recv()
 ```
 
@@ -91,34 +108,17 @@ In other words, we create an SB output port (`tx`) and an SB input port (`rx`). 
 To get a sense of how switchboard is used in RTL, have a look at the Verilog part of this example in [examples/python/testbench.sv](examples/python/testbench.sv).  The core logic is the instantiation of `queue_to_sb_sim` (SB input port) and `sb_to_queue_sim` (SB output port), along with the initialization step to define the name of each SB connection.  Notice that the Python output port is matched to the Verilog input port (`to_rtl.q`) and similarly the Python input port is matched to the Verilog output port (`from_rtl.q`).
 
 ```verilog
-// ...
+`include "switchboard.vh"
 
-queue_to_sb_sim rx_i (
-    .clk(clk),
-    .data(sb_rx_data),
-    .dest(sb_rx_dest),
-    .last(sb_rx_last),
-    .ready(sb_rx_ready),
-    .valid(sb_rx_valid)
-);
+...
 
-sb_to_queue_sim tx_i (
-    .clk(clk),
-    .data(sb_tx_data),
-    .dest(sb_tx_dest),
-    .last(sb_tx_last),
-    .ready(sb_tx_ready),
-    .valid(sb_tx_valid)
-);
+`SB_WIRES(to_rtl, DW);
+`QUEUE_TO_SB_SIM(to_rtl, DW, "to_rtl.q");
 
-// ...
+...
 
-initial begin
-    rx_i.init("to_rtl.q");
-    tx_i.init("from_rtl.q");
-end
-
-// ...
+`SB_WIRES(from_rtl, DW);
+`SB_TO_QUEUE_SIM(from_rtl, DW, "from_rtl.q");
 ```
 
 Using the same name for two ports is what establishes a connection between them.  You can use any name that you like for a SB connection, as long as it is a valid file name.  The reason is that SB connections are visible as files on your file system.  After this example runs, it will leave behind files called `to_rtl.q` and `from_rtl.q`.  It's convenient to name SB connections in a way that is amenable to pattern matching, so that you can do things like `rm *.q` to clean up old connections.
@@ -135,7 +135,7 @@ As an example, we return to [examples/python](examples/python).  The basic logic
 ```python
 from switchboard import SbDut
 
-dut = SbDut('name-of-top-level-module', default_main=True)
+dut = SbDut('name-of-top-level-module')
 
 dut.input('path/to/file/1')
 dut.input('path/to/file/2')

@@ -11,15 +11,7 @@ module testbench (
     `endif
 );
     `ifndef VERILATOR
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #5;
-            clk = 1'b1;
-            #5;
-        end
-
+        `SB_CREATE_CLOCK(clk)
     `endif
 
     // Declare AXI-Lite wires
@@ -44,13 +36,7 @@ module testbench (
 
     // Instantiate switchboard module
 
-    `SB_AXIL_M(sb_axil_m_i, axil, DATA_WIDTH, ADDR_WIDTH);
-
-    initial begin
-        /* verilator lint_off IGNOREDRETURN */
-        sb_axil_m_i.init("axil");
-        /* verilator lint_on IGNOREDRETURN */
-    end
+    `SB_AXIL_M(axil, DATA_WIDTH, ADDR_WIDTH, "axil");
 
     // Initialize RAM to zeros for easy comparison against a behavioral model
 
@@ -74,12 +60,7 @@ module testbench (
 
     // Set up waveform probing
 
-    initial begin
-        if ($test$plusargs("trace")) begin
-            $dumpfile("testbench.vcd");
-            $dumpvars(0, testbench);
-        end
-    end
+    `SB_SETUP_PROBES
 
 endmodule
 

@@ -2,17 +2,16 @@
 
 # Example illustrating how to interact with the umi_fifo_flex module
 
-# Copyright (c) 2023 Zero ASIC Corporation
+# Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from argparse import ArgumentParser
 from switchboard import SbDut, UmiTxRx, umi_loopback
 import umi
 
 
-def main(n=3, fast=False, tool='verilator'):
+def main():
     # build simulator
-    dut = build_testbench(fast=fast, tool=tool)
+    dut = build_testbench()
 
     # create queues
     umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
@@ -21,11 +20,16 @@ def main(n=3, fast=False, tool='verilator'):
     dut.simulate()
 
     # randomly write data
-    umi_loopback(umi, n)
+    umi_loopback(umi, dut.args.n)
 
 
-def build_testbench(fast=False, tool='verilator'):
-    dut = SbDut(tool=tool, default_main=True)
+def build_testbench():
+    extra_args = {
+        '-n': dict(type=int, default=3, help='Number of'
+        ' transactions to send into the FIFO during the test.')
+    }
+
+    dut = SbDut(cmdline=True, extra_args=extra_args)
 
     dut.input('testbench.sv')
 
@@ -34,19 +38,10 @@ def build_testbench(fast=False, tool='verilator'):
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
-    dut.build(fast=fast)
+    dut.build()
 
     return dut
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('-n', type=int, default=3, help='Number of'
-        ' transactions to send into the FIFO during the test.')
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
-
-    main(n=args.n, fast=args.fast, tool=args.tool)
+    main()

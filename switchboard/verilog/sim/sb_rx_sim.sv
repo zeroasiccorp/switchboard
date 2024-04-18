@@ -1,13 +1,14 @@
 // Wrapper module for backwards compatibility (will eventually be removed)
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none
 
 module sb_rx_sim #(
     parameter integer VALID_MODE_DEFAULT=0,
-    parameter integer DW=416
+    parameter integer DW=416,
+    parameter FILE=""
 ) (
     input clk,
     output [DW-1:0] data,
@@ -26,7 +27,8 @@ module sb_rx_sim #(
 
     queue_to_sb_sim #(
         .VALID_MODE_DEFAULT(VALID_MODE_DEFAULT),
-        .DW(DW)
+        .DW(DW),
+        .FILE(FILE)
     ) rx_i (
         .*
     );

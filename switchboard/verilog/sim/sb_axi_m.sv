@@ -11,8 +11,9 @@ module sb_axi_m #(
     parameter ID_WIDTH = 8,
 
     // Switchboard settings
-    parameter integer VALID_MODE_DEFAULT=0,
-    parameter integer READY_MODE_DEFAULT=0
+    parameter integer VALID_MODE_DEFAULT=1,
+    parameter integer READY_MODE_DEFAULT=1,
+    parameter FILE=""
 ) (
     input wire clk,
 
@@ -171,6 +172,16 @@ module sb_axi_m #(
         r_channel.set_ready_mode(value);
         /* verilator lint_on IGNOREDRETURN */
     `SB_END_FUNC
+
+    // initialize
+
+    initial begin
+        if (FILE != "") begin
+            /* verilator lint_off IGNOREDRETURN */
+            init(FILE);
+            /* verilator lint_on IGNOREDRETURN */
+        end
+    end
 
     // clean up macros
 

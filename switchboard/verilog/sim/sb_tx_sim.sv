@@ -1,13 +1,14 @@
 // Wrapper module for backwards compatibility (will eventually be removed)
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `default_nettype none
 
 module sb_tx_sim #(
     parameter integer READY_MODE_DEFAULT=0,
-    parameter integer DW=416
+    parameter integer DW=416,
+    parameter FILE=""
 ) (
     input clk,
     input [DW-1:0] data,
@@ -26,7 +27,8 @@ module sb_tx_sim #(
 
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
-        .DW(DW)
+        .DW(DW),
+        .FILE(FILE)
     ) tx_i (
         .*
     );

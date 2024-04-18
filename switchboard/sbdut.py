@@ -21,7 +21,6 @@ from .switchboard import path as sb_path
 from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
-from .warn import warn_future
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 
@@ -36,7 +35,7 @@ class SbDut(siliconcompiler.Chip):
         self,
         design: str = 'testbench',
         tool: str = 'verilator',
-        default_main: bool = None,
+        default_main: bool = True,
         trace: bool = True,
         trace_type: str = 'vcd',
         module: str = None,
@@ -46,7 +45,10 @@ class SbDut(siliconcompiler.Chip):
         period: float = None,
         timeunit: str = None,
         timeprecision: str = None,
-        warnings: List[str] = None
+        warnings: List[str] = None,
+        cmdline: bool = False,
+        fast: bool = False,
+        extra_args: dict = None
     ):
         """
         Parameters
@@ -87,24 +89,83 @@ class SbDut(siliconcompiler.Chip):
             If provided, a list of tool-specific warnings to enable.  If not provided, a default
             set of warnings will be included.  Warnings can be disabled by setting this argument
             to an empty list.
+
+        cmdline: bool, optional
+            If True, accept configuration settings from the command line, such as "--trace",
+            "--tool TOOL", and "--fast".
+
+        fast: bool, optional
+            If True, the simulation binary will not be rebuilt if an existing one is found.
+            The setting here can be overridden when build() is called by setting its argument
+            with the same name.
         """
+
         # call the super constructor
 
         super().__init__(design)
+
+        # parse command-line options if desired
+
+        if cmdline:
+            from argparse import ArgumentParser
+
+            parser = ArgumentParser()
+
+            if not trace:
+                parser.add_argument('--trace', action='store_true', help='Probe'
+                    ' waveforms during simulation.')
+            else:
+                parser.add_argument('--no-trace', action='store_true', help='Do not'
+                    ' probe waveforms during simulation.  This can improve build time'
+                    ' and run time, but reduces visibility.')
+
+            parser.add_argument('--trace-type', type=str, choices=['vcd', 'fst'],
+                default=trace_type, help='File type for waveform probing.')
+
+            if not fast:
+                parser.add_argument('--fast', action='store_true', help='Do not build'
+                    ' the simulator binary if it has already been built.')
+            else:
+                parser.add_argument('--rebuild', action='store_true', help='Build the'
+                    ' simulator binary even if it has already been built.')
+
+            parser.add_argument('--tool', type=str, choices=['verilator', 'icarus'],
+                default=tool, help='Name of the simulator to use.')
+
+            group = parser.add_mutually_exclusive_group()
+            group.add_argument('--period', type=float, default=period,
+                help='Period of the clk signal in seconds.  Automatically set if'
+                ' --frequency is provided.')
+            group.add_argument('--frequency', type=float, default=frequency,
+                help='Frequency of the clk signal in Hz.  Automatically set if'
+                ' --period is provided.')
+
+            if extra_args is not None:
+                for k, v in extra_args.items():
+                    parser.add_argument(k, **v)
+
+            self.args = parser.parse_args()
+
+            if not trace:
+                trace = self.args.trace
+            else:
+                trace = not self.args.no_trace
+
+            trace_type = self.args.trace_type
+
+            if not fast:
+                fast = self.args.fast
+            else:
+                fast = not self.args.rebuild
+
+            tool = self.args.tool
+            frequency = self.args.frequency
+            period = self.args.period
 
         # input validation
 
         if trace_type not in ('vcd', 'fst'):
             raise ValueError('Invalid trace_type, expected one of "vcd" or "fst"')
-
-        if (tool == 'verilator') and (default_main is None):
-            default_main = False
-            warn_future("default_main isn't provided to the SbDut constructor;"
-                ' defaulting to False.  However, we suggest setting default_main=True'
-                ' and removing any calls to add() that explicitly add a testbench.cc'
-                ' file for Verilator, since that is done automatically when'
-                ' default_main=True.  In the future, the default value for default_main'
-                ' will be True.')
 
         # save settings
 
@@ -114,6 +175,7 @@ class SbDut(siliconcompiler.Chip):
         self.fpga = fpga
         self.xyce = False  # is set True by _configure_xyce
         self.warnings = warnings
+        self.fast = fast
 
         if (period is None) and (frequency is not None):
             period = 1 / frequency
@@ -141,6 +203,10 @@ class SbDut(siliconcompiler.Chip):
 
         if trace:
             self.set('option', 'trace', True)
+            self.set('option', 'define', 'SB_TRACE')
+
+        if self.trace_type == 'fst':
+            self.set('option', 'define', 'SB_TRACE_FST')
 
         if tool == 'icarus':
             self._configure_icarus()
@@ -235,6 +301,8 @@ class SbDut(siliconcompiler.Chip):
             # already configured, so return early
             return
 
+        self.add('option', 'define', 'SB_XYCE')
+
         if self.tool != 'icarus':
             self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
 
@@ -255,7 +323,7 @@ class SbDut(siliconcompiler.Chip):
 
         return self.find_result(result_kind, step='compile')
 
-    def build(self, cwd: str = None, fast: bool = False):
+    def build(self, cwd: str = None, fast: bool = None):
         """
         Parameters
         ---------
@@ -263,9 +331,13 @@ class SbDut(siliconcompiler.Chip):
             Working directory for the simulation build
 
         fast: bool, optional
-            If True, the simulation binary will not be rebuilt if
-            an existing one is found
+            If True, the simulation binary will not be rebuilt if an existing one
+            is found.  Defaults to the value provided to the SbDut constructor,
+            which in turn defaults to False.
         """
+
+        if fast is None:
+            fast = self.fast
 
         if self.tool == 'icarus':
             if (not fast) or (icarus_find_vpi(cwd, name='switchboard') is None):

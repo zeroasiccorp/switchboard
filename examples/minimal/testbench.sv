@@ -1,105 +1,53 @@
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
+
+`include "switchboard.vh"
 
 module testbench (
     `ifdef VERILATOR
         input clk
     `endif
 );
-    // clock
-
     `ifndef VERILATOR
-
-        reg clk;
-        always begin
-            clk = 1'b0;
-            #5;
-            clk = 1'b1;
-            #5;
-        end
-
+        `SB_CREATE_CLOCK(clk)
     `endif
+
+    localparam integer DW=256;
 
     // SB RX port
 
-    wire [255:0] sb_rx_data;
-    wire [31:0] sb_rx_dest;
-    wire sb_rx_last;
-    wire sb_rx_valid;
-    wire sb_rx_ready;
+    `SB_WIRES(to_rtl, DW);
+    `QUEUE_TO_SB_SIM(to_rtl, DW, "to_rtl.q");
 
     // SB TX port
 
-    wire [255:0] sb_tx_data;
-    wire [31:0] sb_tx_dest;
-    wire sb_tx_last;
-    wire sb_tx_valid;
-    wire sb_tx_ready;
-
-    queue_to_sb_sim #(
-        .DW(256)
-    ) rx_i (
-        .clk(clk),
-        .data(sb_rx_data),  // output
-        .dest(sb_rx_dest),  // output
-        .last(sb_rx_last),  // output
-        .ready(sb_rx_ready), // input
-        .valid(sb_rx_valid)  // output
-    );
-
-    sb_to_queue_sim #(
-        .DW(256)
-    ) tx_i (
-        .clk(clk),
-        .data(sb_tx_data),  // input
-        .dest(sb_tx_dest),  // input
-        .last(sb_tx_last),  // input
-        .ready(sb_tx_ready), // output
-        .valid(sb_tx_valid)  // input
-    );
+    `SB_WIRES(from_rtl, DW);
+    `SB_TO_QUEUE_SIM(from_rtl, DW, "from_rtl.q");
 
     // custom modification of packet
 
     genvar i;
     generate
-        for (i=0; i<32; i=i+1) begin
-            assign sb_tx_data[(i*8) +: 8] = sb_rx_data[(i*8) +: 8] + 8'd1;
+        for (i=0; i<(DW/8); i=i+1) begin
+            assign from_rtl_data[(i*8) +: 8] = to_rtl_data[(i*8) +: 8] + 8'd1;
         end
     endgenerate
 
-    assign sb_tx_dest = sb_rx_dest;
-    assign sb_tx_last = sb_rx_last;
-    assign sb_tx_valid = sb_rx_valid;
-    assign sb_rx_ready = sb_tx_ready;
-
-    // Initialize UMI
-
-    initial begin
-        /* verilator lint_off IGNOREDRETURN */
-        rx_i.init("to_rtl.q");
-        tx_i.init("from_rtl.q");
-        /* verilator lint_on IGNOREDRETURN */
-    end
+    assign from_rtl_dest = to_rtl_dest;
+    assign from_rtl_last = to_rtl_last;
+    assign from_rtl_valid = to_rtl_valid;
+    assign to_rtl_ready = from_rtl_ready;
 
     // Waveforms
 
-    initial begin
-        if ($test$plusargs("trace")) begin
-            $dumpfile("testbench.vcd");
-            $dumpvars(0, testbench);
-        end
-    end
+    `SB_SETUP_PROBES
 
     // $finish
 
     always @(posedge clk) begin
-        if (sb_rx_valid && ((&sb_rx_data) == 1'b1)) begin
+        if (to_rtl_valid && ((&to_rtl_data) == 1'b1)) begin
             $finish;
         end
     end
-
-    // auto-stop
-
-    auto_stop_sim auto_stop_sim_i (.clk(clk));
 
 endmodule

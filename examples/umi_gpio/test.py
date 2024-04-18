@@ -2,18 +2,17 @@
 
 # Example illustrating how to interact with the umi_endpoint module
 
-# Copyright (c) 2023 Zero ASIC Corporation
+# Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import random
-from argparse import ArgumentParser
 from switchboard import UmiTxRx, SbDut
 import umi
 
 
-def main(fast=False, tool='verilator'):
+def main():
     # build the simulator
-    dut = build_testbench(fast=fast, tool=tool)
+    dut = build_testbench()
 
     # create queues
     umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
@@ -70,25 +69,18 @@ def main(fast=False, tool='verilator'):
     print('PASS!')
 
 
-def build_testbench(fast=False, tool='verilator'):
-    dut = SbDut(tool=tool, default_main=True)
+def build_testbench():
+    dut = SbDut(cmdline=True)
 
     dut.input('testbench.sv')
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
 
-    dut.build(fast=fast)
+    dut.build()
 
     return dut
 
 
 if __name__ == '__main__':
-    parser = ArgumentParser()
-    parser.add_argument('--fast', action='store_true', help='Do not build'
-        ' the simulator binary if it has already been built.')
-    parser.add_argument('--tool', default='verilator', choices=['icarus', 'verilator'],
-        help='Name of the simulator to use.')
-    args = parser.parse_args()
-
-    main(fast=args.fast, tool=args.tool)
+    main()

@@ -1,7 +1,7 @@
 // This is a small example showing how to connect an RTL AXI Device
 // to a SystemC/TLM simulation using the TLM-2-AXI bridges.
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 // Written by Edgar E. Iglesias

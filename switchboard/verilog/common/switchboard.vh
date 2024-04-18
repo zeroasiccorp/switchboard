@@ -1,47 +1,107 @@
 // Swithboard utility macros.
 
-// Copyright (c) 2023 Zero ASIC Corporation
+// Copyright (c) 2024 Zero ASIC Corporation
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `ifndef SWITCHBOARD_VH_
 `define SWITCHBOARD_VH_
 
+// ref: https://stackoverflow.com/a/15376637
+`define STRINGIFY(x) `"x`"
+
+`define SB_UMI_WIRES(signal, dw, cw, aw)                        \
+    wire signal``_valid;                                        \
+    wire [((cw)-1): 0] signal``_cmd;                            \
+    wire [((aw)-1): 0] signal``_dstaddr;                        \
+    wire [((aw)-1): 0] signal``_srcaddr;                        \
+    wire [((dw)-1): 0] signal``_data;                           \
+    wire signal``_ready
+
+// alias for SB_UMI_WIRES, keep for backwards compatibility
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)               \
-        wire prefix``_valid;                                    \
-        wire [cw - 1 : 0] prefix``_cmd;                         \
-        wire [aw - 1 : 0] prefix``_dstaddr;                     \
-        wire [aw - 1 : 0] prefix``_srcaddr;                     \
-        wire [dw - 1 : 0] prefix``_data;                        \
-        wire prefix``_ready
+    `SB_UMI_WIRES(prefix, dw, cw, aw)
+
+`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk) \
+    queue_to_umi_sim #(                                         \
+        .VALID_MODE_DEFAULT(vldmode),                           \
+        .DW(dw),                                                \
+        .CW(cw),                                                \
+        .AW(aw),                                                \
+        .FILE(file)                                             \
+    ) signal``_sb_inst (                                        \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .srcaddr(signal``_srcaddr),                             \
+        .dstaddr(signal``_dstaddr),                             \
+        .cmd(signal``_cmd),                                     \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
+`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file, rdymode=1, clk_signal=clk) \
+    umi_to_queue_sim #(                                         \
+        .READY_MODE_DEFAULT(rdymode),                           \
+        .DW(dw),                                                \
+        .CW(cw),                                                \
+        .AW(aw),                                                \
+        .FILE(file)                                             \
+    ) signal``_sb_inst (                                        \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .srcaddr(signal``_srcaddr),                             \
+        .dstaddr(signal``_dstaddr),                             \
+        .cmd(signal``_cmd),                                     \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
+`define SB_UMI_CONNECT(a, b)                                    \
+    .a``_valid(b``_valid),                                      \
+    .a``_cmd(b``_cmd),                                          \
+    .a``_dstaddr(b``_dstaddr),                                  \
+    .a``_srcaddr(b``_srcaddr),                                  \
+    .a``_data(b``_data),                                        \
+    .a``_ready(b``_ready)
 
 `define SWITCHBOARD_SIM_PORT(prefix, dw)                        \
-    `UMI_PORT_WIRES_WIDTHS(prefix``_req, dw, 32, 64);           \
-    `UMI_PORT_WIRES_WIDTHS(prefix``_resp, dw, 32, 64);          \
-                                                                \
-    initial begin                                               \
-        /* verilator lint_off IGNOREDRETURN */                  \
-        prefix``_rx.init($sformatf("%s_req.q", `"prefix`"));    \
-        prefix``_tx.init($sformatf("%s_resp.q", `"prefix`"));   \
-        /* verilator lint_on IGNOREDRETURN */                   \
-    end                                                         \
-                                                                \
-    queue_to_umi_sim #(.DW(dw)) prefix``_rx (                   \
-        .clk(clk),                                              \
-        .data(prefix``_req_data),                               \
-        .srcaddr(prefix``_req_srcaddr),                         \
-        .dstaddr(prefix``_req_dstaddr),                         \
-        .cmd(prefix``_req_cmd),                                 \
-        .ready(prefix``_req_ready),                             \
-        .valid(prefix``_req_valid)                              \
-    );                                                          \
-    umi_to_queue_sim #(.DW(dw)) prefix``_tx (                   \
-        .clk(clk),                                              \
-        .data(prefix``_resp_data),                              \
-        .srcaddr(prefix``_resp_srcaddr),                        \
-        .dstaddr(prefix``_resp_dstaddr),                        \
-        .cmd(prefix``_resp_cmd),                                \
-        .ready(prefix``_resp_ready),                            \
-        .valid(prefix``_resp_valid)                             \
+    `SB_UMI_WIRES(prefix``_req, dw, 32, 64);                    \
+    `SB_UMI_WIRES(prefix``_resp, dw, 32, 64);                   \
+    `QUEUE_TO_UMI_SIM(prefix``_req, dw, 32, 64);                \
+    `UMI_TO_QUEUE_SIM(prefix``_resp, dw, 32, 64)
+
+`define SB_WIRES(signal, dw)                                    \
+    wire [((dw)-1):0] signal``_data;                            \
+    wire [31:0] signal``_dest;                                  \
+    wire signal``_last;                                         \
+    wire signal``_valid;                                        \
+    wire signal``_ready
+
+`define SB_TO_QUEUE_SIM(signal, dw, file, rdymode=1, clk_signal=clk) \
+    sb_to_queue_sim #(                                          \
+        .READY_MODE_DEFAULT(rdymode),                           \
+        .DW(dw),                                                \
+        .FILE(file)                                             \
+    ) signal``_sb_inst (                                        \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .dest(signal``_dest),                                   \
+        .last(signal``_last),                                   \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
+    )
+
+`define QUEUE_TO_SB_SIM(signal, dw, file, vldmode=1, clk_signal=clk) \
+    queue_to_sb_sim #(                                          \
+        .VALID_MODE_DEFAULT(vldmode),                           \
+        .DW(dw),                                                \
+        .FILE(file)                                             \
+    ) signal``_sb_inst (                                        \
+        .clk(clk_signal),                                       \
+        .data(signal``_data),                                   \
+        .dest(signal``_dest),                                   \
+        .last(signal``_last),                                   \
+        .ready(signal``_ready),                                 \
+        .valid(signal``_valid)                                  \
     )
 
 `define SB_AXIL_WIRES(signal, dw, aw)                           \
@@ -86,12 +146,15 @@
         .a``_rvalid(b``_rvalid),                                \
         .a``_rready(b``_rready)
 
-`define SB_AXIL_M(mod, signal, dw, aw)                          \
+`define SB_AXIL_M(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk) \
     sb_axil_m #(                                                \
         .DATA_WIDTH(dw),                                        \
-        .ADDR_WIDTH(aw)                                         \
-    ) mod (                                                     \
-        .clk(clk),                                              \
+        .ADDR_WIDTH(aw),                                        \
+        .VALID_MODE_DEFAULT(vldmode),                           \
+        .READY_MODE_DEFAULT(rdymode),                           \
+        .FILE(file)                                             \
+    ) signal``_sb_inst (                                        \
+        .clk(clk_signal),                                       \
         .m_axil_awaddr(signal``_awaddr),                        \
         .m_axil_awprot(signal``_awprot),                        \
         .m_axil_awvalid(signal``_awvalid),                      \
@@ -187,13 +250,16 @@
     .a``_rvalid(b``_rvalid),                                    \
     .a``_rready(b``_rready)
 
-`define SB_AXI_M(mod, signal, dw, aw, idw)                      \
-    sb_axi_m #(                                                \
+`define SB_AXI_M(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk) \
+    sb_axi_m #(                                                 \
         .DATA_WIDTH(dw),                                        \
         .ADDR_WIDTH(aw),                                        \
-        .ID_WIDTH(idw)                                          \
-    ) mod (                                                     \
-        .clk(clk),                                              \
+        .ID_WIDTH(idw),                                         \
+        .VALID_MODE_DEFAULT(vldmode),                           \
+        .READY_MODE_DEFAULT(rdymode),                           \
+        .FILE(file)                                             \
+    ) signal``_sb_inst (                                        \
+        .clk(clk_signal),                                       \
         .m_axi_awid(signal``_awid),                             \
         .m_axi_awaddr(signal``_awaddr),                         \
         .m_axi_awlen(signal``_awlen),                           \
@@ -231,4 +297,43 @@
         .m_axi_rready(signal``_rready)                          \
     )
 
-`endif
+`define SB_CREATE_CLOCK(clk_signal)                             \
+    `ifdef SB_XYCE                                              \
+        timeunit 1s;                                            \
+        timeprecision 1fs;                                      \
+        `define SB_DELAY(t) #(t)                                \
+    `else                                                       \
+        timeunit 1ns;                                           \
+        timeprecision 1ns;                                      \
+        `define SB_DELAY(t) #((t)*1e9)                          \
+    `endif                                                      \
+                                                                \
+    real period = 10e-9;                                        \
+                                                                \
+    initial begin                                               \
+        void'($value$plusargs("period=%f", period));            \
+    end                                                         \
+                                                                \
+    reg clk_signal;                                             \
+    always begin                                                \
+        clk_signal = 1'b0;                                      \
+        `SB_DELAY(0.5 * period);                                \
+        clk_signal = 1'b1;                                      \
+        `SB_DELAY(0.5 * period);                                \
+    end
+
+`define SB_SETUP_PROBES                                         \
+    `ifdef SB_TRACE                                             \
+        initial begin                                           \
+            if ($test$plusargs("trace")) begin                  \
+                `ifdef SB_TRACE_FST                             \
+                    $dumpfile("testbench.fst");                 \
+                `else                                           \
+                    $dumpfile("testbench.vcd");                 \
+                `endif                                          \
+                $dumpvars(0, testbench);                        \
+            end                                                 \
+        end                                                     \
+    `endif
+
+`endif  // SWITCHBOARD_VH_
