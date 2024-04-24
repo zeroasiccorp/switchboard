@@ -14,7 +14,7 @@ def main():
     dut = build_testbench()
 
     # create queues
-    umi = UmiTxRx("to_rtl.q", "from_rtl.q", fresh=True)
+    umi = UmiTxRx("umi_in.q", "umi_out.q", fresh=True)
 
     # launch the simulation
     dut.simulate()
@@ -29,9 +29,45 @@ def build_testbench():
         ' transactions to send into the FIFO during the test.')
     }
 
-    dut = SbDut(cmdline=True, extra_args=extra_args)
+    idw = 256
+    odw = 64
+    aw = 64
+    cw = 32
 
-    dut.input('testbench.sv')
+    parameters = dict(
+        IDW=idw,
+        ODW=odw,
+        AW=aw,
+        CW=cw
+    )
+
+    tieoffs = dict(
+        bypass="1'b0",
+        chaosmode="1'b0",
+        fifo_full=None,
+        fifo_empty=None,
+        vdd="1'b1",
+        vss="1'b0"
+    )
+
+    interfaces = [
+        dict(name='umi_in', type='umi', dw=idw, aw=aw, cw=cw, direction='input'),
+        dict(name='umi_out', type='umi', dw=odw, aw=aw, cw=cw, direction='output')
+    ]
+
+    clocks = [
+        'umi_in_clk',
+        'umi_out_clk'
+    ]
+
+    resets = [
+        'umi_in_nreset',
+        'umi_out_nreset'
+    ]
+
+    dut = SbDut('umi_fifo_flex', autowrap=True, cmdline=True, extra_args=extra_args,
+        parameters=parameters, interfaces=interfaces, clocks=clocks, resets=resets,
+        tieoffs=tieoffs)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')

@@ -48,7 +48,13 @@ class SbDut(siliconcompiler.Chip):
         warnings: List[str] = None,
         cmdline: bool = False,
         fast: bool = False,
-        extra_args: dict = None
+        extra_args: dict = None,
+        autowrap: bool = False,
+        parameters=None,
+        interfaces=None,
+        clocks=None,
+        resets=None,
+        tieoffs=None
     ):
         """
         Parameters
@@ -102,7 +108,12 @@ class SbDut(siliconcompiler.Chip):
 
         # call the super constructor
 
-        super().__init__(design)
+        if autowrap:
+            toplevel = 'testbench'
+        else:
+            toplevel = design
+
+        super().__init__(toplevel)
 
         # parse command-line options if desired
 
@@ -183,6 +194,14 @@ class SbDut(siliconcompiler.Chip):
 
         self.timeunit = timeunit
         self.timeprecision = timeprecision
+
+        self.autowrap = autowrap
+        self.dut = design
+        self.parameters = parameters
+        self.interfaces = interfaces
+        self.clocks = clocks
+        self.resets = resets
+        self.tieoffs = tieoffs
 
         # simulator-agnostic settings
 
@@ -352,6 +371,16 @@ class SbDut(siliconcompiler.Chip):
             sim = self.find_sim()
             if sim is not None:
                 return sim
+
+        # build the wrapper if needed
+        if self.autowrap:
+            from .autowrap import autowrap
+
+            filename = autowrap(design=self.dut, parameters=self.parameters,
+                interfaces=self.interfaces, clocks=self.clocks, resets=self.resets,
+                tieoffs=self.tieoffs)
+
+            self.input(filename)
 
         # if we get to this point, then we need to rebuild
         # the simulation binary
