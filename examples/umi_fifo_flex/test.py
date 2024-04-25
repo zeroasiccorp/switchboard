@@ -5,7 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from switchboard import SbDut, UmiTxRx, umi_loopback
+from switchboard import SbDut, umi_loopback
 import umi
 
 
@@ -13,22 +13,15 @@ def main():
     # build simulator
     dut = build_testbench()
 
-    # create queues
-    umi = UmiTxRx("umi_in.q", "umi_out.q", fresh=True)
-
     # launch the simulation
     dut.simulate()
 
     # randomly write data
+    umi = dut.get_interface('umi')
     umi_loopback(umi, dut.args.n)
 
 
 def build_testbench():
-    extra_args = {
-        '-n': dict(type=int, default=3, help='Number of'
-        ' transactions to send into the FIFO during the test.')
-    }
-
     idw = 256
     odw = 64
     aw = 64
@@ -51,8 +44,8 @@ def build_testbench():
     )
 
     interfaces = [
-        dict(name='umi_in', type='umi', dw=idw, aw=aw, cw=cw, direction='input'),
-        dict(name='umi_out', type='umi', dw=odw, aw=aw, cw=cw, direction='output')
+        dict(name='umi_in', type='umi', dw=idw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        dict(name='umi_out', type='umi', dw=odw, aw=aw, cw=cw, direction='output', txrx='umi')
     ]
 
     clocks = [
@@ -64,6 +57,11 @@ def build_testbench():
         'umi_in_nreset',
         'umi_out_nreset'
     ]
+
+    extra_args = {
+        '-n': dict(type=int, default=3, help='Number of'
+        ' transactions to send into the FIFO during the test.')
+    }
 
     dut = SbDut('umi_fifo_flex', autowrap=True, cmdline=True, extra_args=extra_args,
         parameters=parameters, interfaces=interfaces, clocks=clocks, resets=resets,

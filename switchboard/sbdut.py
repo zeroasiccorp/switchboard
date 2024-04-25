@@ -23,6 +23,15 @@ from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
+from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
+    direction_is_input, direction_is_output, type_is_sb, type_is_umi, type_is_axi,
+    type_is_axil, direction_is_manager)
+
+from .umi import UmiTxRx
+from .axi import AxiTxRx
+from .axil import AxiLiteTxRx
+
+from _switchboard import PySbTx, PySbRx
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -198,10 +207,14 @@ class SbDut(siliconcompiler.Chip):
         self.autowrap = autowrap
         self.dut = design
         self.parameters = parameters
-        self.interfaces = interfaces
-        self.clocks = clocks
-        self.resets = resets
-        self.tieoffs = tieoffs
+        self.interfaces = normalize_interfaces(interfaces)
+        self.clocks = normalize_clocks(clocks)
+        self.resets = normalize_resets(resets)
+        self.tieoffs = normalize_tieoffs(tieoffs)
+
+        # initialization
+    
+        self.interface_objects = {}
 
         # simulator-agnostic settings
 
@@ -424,6 +437,10 @@ class SbDut(siliconcompiler.Chip):
             in seconds.
         """
 
+        # set up interfaces if needed
+
+        self.set_up_interfaces()
+
         # set defaults
 
         if plusargs is None:
@@ -625,3 +642,81 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
+
+    def set_up_interfaces(self, fresh=True):
+        umi_txrx = {}
+
+        for interface in self.interfaces:
+            name = interface['name']
+            type = interface['type']
+
+            if type.lower() in ['umi']:
+                txrx = interface['txrx']
+
+                if txrx is not None:
+                    if txrx not in umi_txrx:
+                        umi_txrx[txrx] = dict(tx_uri=None, rx_uri=None)
+
+                    if 'srcaddr' in interface:
+                        umi_txrx[txrx]['srcaddr'] = interface['srcaddr']
+                    
+                    if 'posted' in interface:
+                        umi_txrx[txrx]['posted'] = interface['posted']
+
+                    if 'max_bytes' in interface:
+                        umi_txrx[txrx]['max_bytes'] = interface['max_bytes']
+
+                    direction = interface['direction']
+
+                    if direction.lower() in ['i', 'in', 'input']:
+                        umi_txrx[txrx]['tx_uri'] = f'{name}.q'
+                    elif direction.lower() in ['o', 'out', 'output']:
+                        umi_txrx[txrx]['rx_uri'] = f'{name}.q'
+                    else:
+                        raise Exception(f'Unsupported UMI direction: {direction}')
+                else:
+                    self.set_up_interface(interface, fresh=fresh)
+            else:
+                self.set_up_interface(interface, fresh=fresh)
+
+        for key, value in umi_txrx.items():
+            self.interface_objects[key] = UmiTxRx(**value, fresh=fresh)
+
+    def set_up_interface(self, interface, fresh=True):
+        name = interface['name']
+        type = interface['type']
+        direction = interface['direction']
+
+        uri = f'{name}.q'
+
+        if type_is_sb(type):
+            if direction_is_input(direction):
+                obj = PySbTx(uri, fresh=fresh)
+            elif direction_is_output(direction):
+                obj = PySbRx(uri, fresh=fresh)
+            else:
+                raise Exception(f'Unsupported SB direction: "{direction}"')
+        elif type_is_umi(type):
+            if direction_is_input(direction):
+                obj = UmiTxRx(tx_uri=uri, fresh=fresh)
+            elif direction_is_output(direction):
+                obj = UmiTxRx(rx_uri=uri, fresh=fresh)
+            else:
+                raise Exception(f'Unsupported UMI direction: "{direction}"')
+        elif type_is_axi(type):
+            if direction_is_manager(direction):
+                obj = AxiTxRx(uri=uri)
+            else:
+                raise Exception(f'Unsupported AXI direction: "{direction}"')
+        elif type_is_axil(type):
+            if direction_is_manager(direction):
+                obj = AxiLiteTxRx(uri=uri)
+            else:
+                raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
+        else:
+            raise Exception(f'Unsupported interface type: "{type}"')
+
+        self.interface_objects[name] = obj
+
+    def get_interface(self, name):
+        return self.interface_objects[name]
