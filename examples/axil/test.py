@@ -81,8 +81,6 @@ def build_testbench():
         dict(name='s_axil', type='axil', dw=dw, aw=aw, direction='subordinate')
     ]
 
-    clocks = ['clk']
-
     resets = [dict(name='rst', delay=8)]
 
     extra_args = {
@@ -93,7 +91,7 @@ def build_testbench():
     }
 
     dut = SbDut('axil_ram', autowrap=True, cmdline=True, extra_args=extra_args,
-        parameters=parameters, interfaces=interfaces, clocks=clocks, resets=resets)
+        parameters=parameters, interfaces=interfaces, resets=resets)
 
     dut.register_package_source(
         'verilog-axi',

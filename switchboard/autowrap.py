@@ -54,7 +54,7 @@ def normalize_interface(interface):
 
 def normalize_interfaces(interfaces):
     if interfaces is None:
-        return []
+        interfaces = []
 
     retval = []
 
@@ -77,7 +77,7 @@ def normalize_clock(clock):
 
 def normalize_clocks(clocks):
     if clocks is None:
-        return []
+        clocks = ['clk']
 
     if isinstance(clocks, str):
         clocks = [clocks]
@@ -119,7 +119,7 @@ def normalize_reset(reset):
 
 def normalize_resets(resets):
     if resets is None:
-        return []
+        resets = []
 
     if isinstance(resets, str):
         resets = [resets]
@@ -140,7 +140,7 @@ def normalize_tieoff(key, value):
 
 def normalize_tieoffs(tieoffs):
     if tieoffs is None:
-        return {}
+        tieoffs = {}
 
     retval = {}
 
@@ -158,7 +158,7 @@ def normalize_parameter(key, value):
 
 def normalize_parameters(parameters):
     if parameters is None:
-        return {}
+        parameters = {}
 
     retval = {}
 

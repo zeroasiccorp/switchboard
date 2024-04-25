@@ -13,8 +13,8 @@ int main() {
 
     // initialize connections
 
-    tx.init("client2rtl.q");
-    rx.init("rtl2client.q");
+    tx.init("in.q");
+    rx.init("out.q");
 
     // initialize the packet
     sb_packet txp;
@@ -27,46 +27,40 @@ int main() {
     uint64_t txcount = 0;
     uint64_t rxcount = 0;
 
-    int exit_code = 0;
+    int success = 1;
 
-    while ((txcount < iterations) && (rxcount < iterations)) {
-        if (tx.send(txp)) {
+    while ((txcount < iterations) || (rxcount < iterations)) {
+        if ((txcount < iterations) && tx.send(txp)) {
             // increment transmit counter
             txcount++;
 
             // update packet
             memcpy(txp.data, &txcount, sizeof(txcount));
         }
-        if (rx.recv(rxp)) {
+        if ((rxcount < iterations) && rx.recv(rxp)) {
             // make sure that the packet is correct
             uint64_t tmp;
             memcpy(&tmp, rxp.data, sizeof(tmp));
-            if (tmp != (rxcount + 42)) {
+
+            uint64_t expected = rxcount + 0x0101010101010101;
+
+            if (tmp != expected) {
                 printf("*** ERROR: data mismatch, got %" PRId64 " but expected %" PRId64 "\n", tmp,
-                    rxcount);
-                exit_code = 1;
-                break;
+                    expected);
+                success = 0;
             }
 
-            // increment the receive counter
             rxcount++;
         }
     }
 
-    // send a packet that will end the test
-
-    for (int i = 0; i < 32; i++) {
-        txp.data[i] = 0xff;
-    }
-    tx.send_blocking(txp);
-
     // declare test as having passed or failed for regression testing purposes
 
-    if (exit_code == 0) {
+    if (success) {
         printf("PASS!\n");
+        return 0;
     } else {
         printf("FAIL\n");
+        return 1;
     }
-
-    return exit_code;
 }

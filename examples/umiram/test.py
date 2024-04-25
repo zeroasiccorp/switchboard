@@ -93,15 +93,13 @@ def build_testbench():
         dict(name='udev_resp', type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
     ]
 
-    clocks = ['clk']
-
     extra_args = {
         '--mode': dict(default='python', choices=['python', 'cpp'],
         help='Programming language used for the test stimulus.')
     }
 
     dut = SbDut('umiram', autowrap=True, cmdline=True, extra_args=extra_args,
-        interfaces=interfaces, clocks=clocks)
+        interfaces=interfaces)
 
     dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
 

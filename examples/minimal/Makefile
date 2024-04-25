@@ -23,3 +23,4 @@ clean:
 	rm -f *.o *.vpi *.vvp
 	rm -rf build
 	rm -rf obj_dir
+	rm -f testbench.sv

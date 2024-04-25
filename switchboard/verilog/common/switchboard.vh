@@ -76,6 +76,26 @@
     wire signal``_valid;                                        \
     wire signal``_ready
 
+`define SB_CONNECT(a, b)                                        \
+    .a``_data(b``_data),                                        \
+    .a``_dest(b``_dest),                                        \
+    .a``_last(b``_last),                                        \
+    .a``_valid(b``_valid),                                      \
+    .a``_ready(b``_ready)
+
+`define SB_PORT(signal, dw, i, o)                               \
+    i wire [((dw)-1):0] signal``_data,                          \
+    i wire [31:0] signal``_dest,                                \
+    i wire signal``_last,                                       \
+    i wire signal``_valid,                                      \
+    o wire signal``_ready
+
+`define SB_INPUT(signal, dw)                                    \
+    `SB_PORT(signal, dw, input, output)
+
+`define SB_OUTPUT(signal, dw)                                   \
+    `SB_PORT(signal, dw, output, input)
+
 `define SB_TO_QUEUE_SIM(signal, dw, file, rdymode=1, clk_signal=clk) \
     sb_to_queue_sim #(                                          \
         .READY_MODE_DEFAULT(rdymode),                           \
