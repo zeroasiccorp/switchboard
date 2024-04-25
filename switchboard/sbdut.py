@@ -25,7 +25,7 @@ from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
     direction_is_input, direction_is_output, type_is_sb, type_is_umi, type_is_axi,
-    type_is_axil, direction_is_manager)
+    type_is_axil, direction_is_subordinate, normalize_parameters)
 
 from .umi import UmiTxRx
 from .axi import AxiTxRx
@@ -206,14 +206,14 @@ class SbDut(siliconcompiler.Chip):
 
         self.autowrap = autowrap
         self.dut = design
-        self.parameters = parameters
+        self.parameters = normalize_parameters(parameters)
         self.interfaces = normalize_interfaces(interfaces)
         self.clocks = normalize_clocks(clocks)
         self.resets = normalize_resets(resets)
         self.tieoffs = normalize_tieoffs(tieoffs)
 
         # initialization
-    
+
         self.interface_objects = {}
 
         # simulator-agnostic settings
@@ -659,7 +659,7 @@ class SbDut(siliconcompiler.Chip):
 
                     if 'srcaddr' in interface:
                         umi_txrx[txrx]['srcaddr'] = interface['srcaddr']
-                    
+
                     if 'posted' in interface:
                         umi_txrx[txrx]['posted'] = interface['posted']
 
@@ -687,30 +687,50 @@ class SbDut(siliconcompiler.Chip):
         type = interface['type']
         direction = interface['direction']
 
-        uri = f'{name}.q'
-
         if type_is_sb(type):
             if direction_is_input(direction):
-                obj = PySbTx(uri, fresh=fresh)
+                obj = PySbTx(f'{name}.q', fresh=fresh)
             elif direction_is_output(direction):
-                obj = PySbRx(uri, fresh=fresh)
+                obj = PySbRx(f'{name}.q', fresh=fresh)
             else:
                 raise Exception(f'Unsupported SB direction: "{direction}"')
         elif type_is_umi(type):
             if direction_is_input(direction):
-                obj = UmiTxRx(tx_uri=uri, fresh=fresh)
+                obj = UmiTxRx(tx_uri=f'{name}.q', fresh=fresh)
             elif direction_is_output(direction):
-                obj = UmiTxRx(rx_uri=uri, fresh=fresh)
+                obj = UmiTxRx(rx_uri=f'{name}.q', fresh=fresh)
             else:
                 raise Exception(f'Unsupported UMI direction: "{direction}"')
         elif type_is_axi(type):
-            if direction_is_manager(direction):
-                obj = AxiTxRx(uri=uri)
+            kwargs = {}
+
+            if 'prot' in interface:
+                kwargs['prot'] = interface['prot']
+
+            if 'id' in interface:
+                kwargs['id'] = interface['id']
+
+            if 'size' in interface:
+                kwargs['size'] = interface['size']
+
+            if 'max_beats' in interface:
+                kwargs['max_beats'] = interface['max_beats']
+
+            if direction_is_subordinate(direction):
+
+                obj = AxiTxRx(uri=name, data_width=interface['dw'], addr_width=interface['aw'],
+                    id_width=interface['idw'], **kwargs)
             else:
                 raise Exception(f'Unsupported AXI direction: "{direction}"')
         elif type_is_axil(type):
-            if direction_is_manager(direction):
-                obj = AxiLiteTxRx(uri=uri)
+            kwargs = {}
+
+            if 'prot' in interface:
+                kwargs['prot'] = interface['prot']
+
+            if direction_is_subordinate(direction):
+                obj = AxiLiteTxRx(uri=name, data_width=interface['dw'],
+                    addr_width=interface['aw'], **kwargs)
             else:
                 raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
         else:

@@ -9,7 +9,7 @@
 
 import numpy as np
 from pathlib import Path
-from switchboard import SbDut, UmiTxRx, binary_run
+from switchboard import SbDut, binary_run, delete_queues
 import umi
 
 THIS_DIR = Path(__file__).resolve().parent
@@ -84,14 +84,25 @@ def python_intf(umi):
 
 
 def build_testbench():
+    dw = 256
+    aw = 64
+    cw = 32
+
+    interfaces = [
+        dict(name='udev_req', type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        dict(name='udev_resp', type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
+    ]
+
+    clocks = ['clk']
+
     extra_args = {
         '--mode': dict(default='python', choices=['python', 'cpp'],
         help='Programming language used for the test stimulus.')
     }
 
-    dut = SbDut('testbench', cmdline=True, trace_type='fst', extra_args=extra_args)
+    dut = SbDut('umiram', autowrap=True, cmdline=True, extra_args=extra_args,
+        interfaces=interfaces, clocks=clocks)
 
-    dut.input('testbench.sv')
     dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
 
     dut.use(umi)
@@ -106,14 +117,15 @@ def main():
     # build the simulator
     dut = build_testbench()
 
-    # create queues
-    umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
+    # clear old queues when running in C++ mode
+    if dut.args.mode == 'cpp':
+        delete_queues(['to_rtl.q', 'from_rtl.q'])
 
     # launch the simulation
     dut.simulate()
 
     if dut.args.mode == 'python':
-        python_intf(umi)
+        python_intf(dut.get_interface('umi'))
     elif dut.args.mode == 'cpp':
         binary_run(THIS_DIR / 'client').wait()
     else:

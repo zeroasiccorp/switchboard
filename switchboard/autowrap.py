@@ -23,7 +23,10 @@ def normalize_interface(interface):
     assert 'direction' in interface
     interface['direction'] = normalize_direction(type=type, direction=interface['direction'])
 
-    if type == 'umi':
+    if type == 'sb':
+        if 'dw' not in interface:
+            interface['dw'] = 256
+    elif type == 'umi':
         if 'dw' not in interface:
             interface['dw'] = 256
         if 'aw' not in interface:
@@ -32,6 +35,19 @@ def normalize_interface(interface):
             interface['cw'] = 32
         if 'txrx' not in interface:
             interface['txrx'] = None
+    elif type in ['axi', 'axil']:
+        if 'dw' not in interface:
+            interface['dw'] = 32
+        if 'aw' not in interface:
+            interface['aw'] = 16
+
+        if type == 'axi':
+            # settings that only apply to AXI, not AXI-Lite
+
+            if 'idw' not in interface:
+                interface['idw'] = 8
+    else:
+        raise ValueError(f'Unsupported interface type: "{type}"')
 
     return interface
 
@@ -135,6 +151,24 @@ def normalize_tieoffs(tieoffs):
     return retval
 
 
+def normalize_parameter(key, value):
+    # placeholder for doing more interesting things in the future
+    return key, value
+
+
+def normalize_parameters(parameters):
+    if parameters is None:
+        return {}
+
+    retval = {}
+
+    for key, value in parameters.items():
+        key, value = normalize_parameter(key, value)
+        retval[key] = value
+
+    return retval
+
+
 def autowrap(
     design,
     toplevel='testbench',
@@ -149,6 +183,7 @@ def autowrap(
 ):
     # normalize inputs
 
+    parameters = normalize_parameters(parameters)
     interfaces = normalize_interfaces(interfaces)
     clocks = normalize_clocks(clocks)
     resets = normalize_resets(resets)
@@ -174,9 +209,6 @@ def autowrap(
         ''
     ]
 
-    for key, value in parameters.items():
-        lines += [tab + f'parameter {key}={value};']
-
     lines += ['']
 
     for interface in interfaces:
@@ -184,7 +216,18 @@ def autowrap(
         type = interface['type']
         direction = interface['direction']
 
-        if type == 'umi':
+        if type == 'sb':
+            dw = interface['dw']
+
+            lines += [tab + f'`SB_WIRES({name}, {dw});']
+
+            if direction_is_input(direction):
+                lines += [tab + f'`QUEUE_TO_SB_SIM({name}, {dw}, "{name}.q");']
+            elif direction_is_output(direction):
+                lines += [tab + f'`SB_TO_QUEUE_SIM({name}, {dw}, "{name}.q");']
+            else:
+                raise Exception(f'Unsupported SB direction: {direction}')
+        elif type == 'umi':
             dw = interface['dw']
             cw = interface['cw']
             aw = interface['aw']
@@ -197,19 +240,50 @@ def autowrap(
                 lines += [tab + f'`UMI_TO_QUEUE_SIM({name}, {dw}, {cw}, {aw}, "{name}.q");']
             else:
                 raise Exception(f'Unsupported UMI direction: {direction}')
+        elif type == 'axi':
+            dw = interface['dw']
+            aw = interface['aw']
+            idw = interface['idw']
 
-            lines += ['']
+            lines += [tab + f'`SB_AXI_WIRES({name}, {dw}, {aw}, {idw});']
+
+            if direction_is_subordinate(direction):
+                lines += [tab + f'`SB_AXI_M({name}, {dw}, {aw}, {idw}, "{name}");']
+            else:
+                raise Exception(f'Unsupported AXI direction: {direction}')
+        elif type == 'axil':
+            dw = interface['dw']
+            aw = interface['aw']
+
+            lines += [tab + f'`SB_AXIL_WIRES({name}, {dw}, {aw});']
+
+            if direction_is_subordinate(direction):
+                lines += [tab + f'`SB_AXIL_M({name}, {dw}, {aw}, "{name}");']
+            else:
+                raise Exception(f'Unsupported AXI-Lite direction: {direction}')
         else:
             raise Exception(f'Unsupported interface type: "{type}"')
 
-    lines += [
-        tab + "reg reset = 1'b1;"
-        '',
-        tab + 'always @(posedge clk) begin',
-        (2 * tab) + "reset <= 1'b0;",
-        tab + 'end',
-        ''
-    ]
+        lines += ['']
+
+    if len(resets) > 0:
+        max_rst_dly = max(reset['delay'] for reset in resets)
+
+        lines += [
+            tab + f"reg [{max_rst_dly}:0] rstvec = '1;"
+            '',
+            tab + 'always @(posedge clk) begin'
+        ]
+
+        if max_rst_dly > 0:
+            lines += [(2 * tab) + f"rstvec <= {{rstvec[{max_rst_dly - 1}:0], 1'b0}};"]
+        else:
+            lines += [(2 * tab) + "rstvec <= 1'b0;"]
+
+        lines += [
+            tab + 'end',
+            ''
+        ]
 
     if len(parameters) > 0:
         lines += [tab + f'{design} #(']
@@ -251,11 +325,12 @@ def autowrap(
     for reset in resets:
         name = reset['name']
         polarity = reset['polarity']
+        delay = reset['delay']
 
         if polarity_is_positive(polarity):
-            value = 'reset'
+            value = f'rstvec[{delay}]'
         elif polarity_is_negative(polarity):
-            value = '~reset'
+            value = f'~rstvec[{delay}]'
         else:
             raise ValueError(f'Unsupported reset polarity: "{polarity}"')
 
