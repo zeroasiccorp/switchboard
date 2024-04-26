@@ -21,7 +21,7 @@ def main():
 
     # run the test: write to random addresses and read back in a random order
 
-    axil = dut.get_interface('s_axil')
+    axil = dut.intfs['s_axil']
 
     addr_bytes = (axil.addr_width + 7) // 8
 
@@ -77,9 +77,9 @@ def build_testbench():
         ADDR_WIDTH=aw
     )
 
-    interfaces = [
-        dict(name='s_axil', type='axil', dw=dw, aw=aw, direction='subordinate')
-    ]
+    interfaces = {
+        's_axil': dict(type='axil', dw=dw, aw=aw, direction='subordinate')
+    }
 
     resets = [dict(name='rst', delay=8)]
 

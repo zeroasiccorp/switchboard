@@ -7,60 +7,60 @@ from pathlib import Path
 from copy import deepcopy
 
 
-def normalize_interface(interface):
+def normalize_interface(name, value):
     # copy before modifying
-    interface = deepcopy(interface)
+    value = deepcopy(value)
 
-    assert 'name' in interface
+    assert isinstance(value, dict)
 
-    if 'type' not in interface:
-        interface['type'] = 'sb'
+    if 'type' not in value:
+        value['type'] = 'sb'
 
-    assert 'type' in interface
-    interface['type'] = normalize_intf_type(interface['type'])
-    type = interface['type']
+    assert 'type' in value
+    value['type'] = normalize_intf_type(value['type'])
+    type = value['type']
 
-    assert 'direction' in interface
-    interface['direction'] = normalize_direction(type=type, direction=interface['direction'])
+    assert 'direction' in value
+    value['direction'] = normalize_direction(type=type, direction=value['direction'])
 
     if type == 'sb':
-        if 'dw' not in interface:
-            interface['dw'] = 256
+        if 'dw' not in value:
+            value['dw'] = 256
     elif type == 'umi':
-        if 'dw' not in interface:
-            interface['dw'] = 256
-        if 'aw' not in interface:
-            interface['aw'] = 64
-        if 'cw' not in interface:
-            interface['cw'] = 32
-        if 'txrx' not in interface:
-            interface['txrx'] = None
+        if 'dw' not in value:
+            value['dw'] = 256
+        if 'aw' not in value:
+            value['aw'] = 64
+        if 'cw' not in value:
+            value['cw'] = 32
+        if 'txrx' not in value:
+            value['txrx'] = None
     elif type in ['axi', 'axil']:
-        if 'dw' not in interface:
-            interface['dw'] = 32
-        if 'aw' not in interface:
-            interface['aw'] = 16
+        if 'dw' not in value:
+            value['dw'] = 32
+        if 'aw' not in value:
+            value['aw'] = 16
 
         if type == 'axi':
             # settings that only apply to AXI, not AXI-Lite
 
-            if 'idw' not in interface:
-                interface['idw'] = 8
+            if 'idw' not in value:
+                value['idw'] = 8
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
-    return interface
+    return name, value
 
 
 def normalize_interfaces(interfaces):
     if interfaces is None:
-        interfaces = []
+        interfaces = {}
 
-    retval = []
+    retval = {}
 
-    for interface in interfaces:
-        interface = normalize_interface(interface)
-        retval.append(interface)
+    for name, value in interfaces.items():
+        name, value = normalize_interface(name, value)
+        retval[name] = value
 
     return retval
 
@@ -71,6 +71,8 @@ def normalize_clock(clock):
 
     if isinstance(clock, str):
         clock = dict(name=clock)
+
+    assert isinstance(clock, dict)
 
     return clock
 
@@ -211,13 +213,12 @@ def autowrap(
 
     lines += ['']
 
-    for interface in interfaces:
-        name = interface['name']
-        type = interface['type']
-        direction = interface['direction']
+    for name, value in interfaces.items():
+        type = value['type']
+        direction = value['direction']
 
         if type == 'sb':
-            dw = interface['dw']
+            dw = value['dw']
 
             lines += [tab + f'`SB_WIRES({name}, {dw});']
 
@@ -228,9 +229,9 @@ def autowrap(
             else:
                 raise Exception(f'Unsupported SB direction: {direction}')
         elif type == 'umi':
-            dw = interface['dw']
-            cw = interface['cw']
-            aw = interface['aw']
+            dw = value['dw']
+            cw = value['cw']
+            aw = value['aw']
 
             lines += [tab + f'`SB_UMI_WIRES({name}, {dw}, {cw}, {aw});']
 
@@ -241,9 +242,9 @@ def autowrap(
             else:
                 raise Exception(f'Unsupported UMI direction: {direction}')
         elif type == 'axi':
-            dw = interface['dw']
-            aw = interface['aw']
-            idw = interface['idw']
+            dw = value['dw']
+            aw = value['aw']
+            idw = value['idw']
 
             lines += [tab + f'`SB_AXI_WIRES({name}, {dw}, {aw}, {idw});']
 
@@ -252,8 +253,8 @@ def autowrap(
             else:
                 raise Exception(f'Unsupported AXI direction: {direction}')
         elif type == 'axil':
-            dw = interface['dw']
-            aw = interface['aw']
+            dw = value['dw']
+            aw = value['aw']
 
             lines += [tab + f'`SB_AXIL_WIRES({name}, {dw}, {aw});']
 
@@ -302,9 +303,8 @@ def autowrap(
 
     # interfaces
 
-    for interface in interfaces:
-        name = interface['name']
-        type = interface['type']
+    for name, value in interfaces.items():
+        type = value['type']
 
         if type_is_sb(type):
             connections += [f'`SB_CONNECT({name}, {name})']
@@ -351,6 +351,7 @@ def autowrap(
         lines += [(2 * tab) + connection]
 
     lines += [tab + ');']
+    lines += ['']
 
     lines += [tab + '`SB_SETUP_PROBES']
     lines += ['']

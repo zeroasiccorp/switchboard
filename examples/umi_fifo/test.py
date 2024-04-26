@@ -16,7 +16,7 @@ def main():
     # launch the simulation
     dut.simulate()
 
-    umi = dut.get_interface('umi')
+    umi = dut.intfs['umi']
 
     n_sent = 0
     n_recv = 0
@@ -63,10 +63,10 @@ def build_testbench():
         vss="1'b0"
     )
 
-    interfaces = [
-        dict(name='umi_in', type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
-        dict(name='umi_out', type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
-    ]
+    interfaces = {
+        'umi_in': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        'umi_out': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
+    }
 
     clocks = [
         'umi_in_clk',

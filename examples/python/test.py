@@ -17,10 +17,10 @@ COMMON_DIR = THIS_DIR.parent / 'common'
 def main():
     # build the simulator
 
-    interfaces = [
-        dict(name='in', type='sb', direction='input'),
-        dict(name='out', type='sb', direction='output')
-    ]
+    interfaces = {
+        'in': dict(type='sb', direction='input'),
+        'out': dict(type='sb', direction='output')
+    }
 
     dut = SbDut('sb_loopback', autowrap=True, cmdline=True, interfaces=interfaces)
     dut.input(COMMON_DIR / 'verilog' / 'sb_loopback.v')

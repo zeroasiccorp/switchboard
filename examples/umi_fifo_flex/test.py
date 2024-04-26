@@ -17,7 +17,7 @@ def main():
     dut.simulate()
 
     # randomly write data
-    umi = dut.get_interface('umi')
+    umi = dut.intfs['umi']
     umi_loopback(umi, dut.args.n)
 
 
@@ -43,10 +43,10 @@ def build_testbench():
         vss="1'b0"
     )
 
-    interfaces = [
-        dict(name='umi_in', type='umi', dw=idw, aw=aw, cw=cw, direction='input', txrx='umi'),
-        dict(name='umi_out', type='umi', dw=odw, aw=aw, cw=cw, direction='output', txrx='umi')
-    ]
+    interfaces = {
+        'umi_in': dict(type='umi', dw=idw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        'umi_out': dict(type='umi', dw=odw, aw=aw, cw=cw, direction='output', txrx='umi')
+    }
 
     clocks = [
         'umi_in_clk',

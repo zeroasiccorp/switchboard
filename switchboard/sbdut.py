@@ -207,14 +207,14 @@ class SbDut(siliconcompiler.Chip):
         self.autowrap = autowrap
         self.dut = design
         self.parameters = normalize_parameters(parameters)
-        self.interfaces = normalize_interfaces(interfaces)
+        self.intf_defs = normalize_interfaces(interfaces)
         self.clocks = normalize_clocks(clocks)
         self.resets = normalize_resets(resets)
         self.tieoffs = normalize_tieoffs(tieoffs)
 
         # initialization
 
-        self.interface_objects = {}
+        self.intfs = {}
 
         # simulator-agnostic settings
 
@@ -390,7 +390,7 @@ class SbDut(siliconcompiler.Chip):
             from .autowrap import autowrap
 
             filename = autowrap(design=self.dut, parameters=self.parameters,
-                interfaces=self.interfaces, clocks=self.clocks, resets=self.resets,
+                interfaces=self.intf_defs, clocks=self.clocks, resets=self.resets,
                 tieoffs=self.tieoffs)
 
             self.input(filename)
@@ -646,27 +646,26 @@ class SbDut(siliconcompiler.Chip):
     def set_up_interfaces(self, fresh=True):
         umi_txrx = {}
 
-        for interface in self.interfaces:
-            name = interface['name']
-            type = interface['type']
+        for name, value in self.intf_defs.items():
+            type = value['type']
 
             if type.lower() in ['umi']:
-                txrx = interface['txrx']
+                txrx = value['txrx']
 
                 if txrx is not None:
                     if txrx not in umi_txrx:
                         umi_txrx[txrx] = dict(tx_uri=None, rx_uri=None)
 
-                    if 'srcaddr' in interface:
-                        umi_txrx[txrx]['srcaddr'] = interface['srcaddr']
+                    if 'srcaddr' in value:
+                        umi_txrx[txrx]['srcaddr'] = value['srcaddr']
 
-                    if 'posted' in interface:
-                        umi_txrx[txrx]['posted'] = interface['posted']
+                    if 'posted' in value:
+                        umi_txrx[txrx]['posted'] = value['posted']
 
-                    if 'max_bytes' in interface:
-                        umi_txrx[txrx]['max_bytes'] = interface['max_bytes']
+                    if 'max_bytes' in value:
+                        umi_txrx[txrx]['max_bytes'] = value['max_bytes']
 
-                    direction = interface['direction']
+                    direction = value['direction']
 
                     if direction.lower() in ['i', 'in', 'input']:
                         umi_txrx[txrx]['tx_uri'] = f'{name}.q'
@@ -675,17 +674,16 @@ class SbDut(siliconcompiler.Chip):
                     else:
                         raise Exception(f'Unsupported UMI direction: {direction}')
                 else:
-                    self.set_up_interface(interface, fresh=fresh)
+                    self.set_up_interface(name, value, fresh=fresh)
             else:
-                self.set_up_interface(interface, fresh=fresh)
+                self.set_up_interface(name, value, fresh=fresh)
 
         for key, value in umi_txrx.items():
-            self.interface_objects[key] = UmiTxRx(**value, fresh=fresh)
+            self.intfs[key] = UmiTxRx(**value, fresh=fresh)
 
-    def set_up_interface(self, interface, fresh=True):
-        name = interface['name']
-        type = interface['type']
-        direction = interface['direction']
+    def set_up_interface(self, name, value, fresh=True):
+        type = value['type']
+        direction = value['direction']
 
         if type_is_sb(type):
             if direction_is_input(direction):
@@ -704,39 +702,36 @@ class SbDut(siliconcompiler.Chip):
         elif type_is_axi(type):
             kwargs = {}
 
-            if 'prot' in interface:
-                kwargs['prot'] = interface['prot']
+            if 'prot' in value:
+                kwargs['prot'] = value['prot']
 
-            if 'id' in interface:
-                kwargs['id'] = interface['id']
+            if 'id' in value:
+                kwargs['id'] = value['id']
 
-            if 'size' in interface:
-                kwargs['size'] = interface['size']
+            if 'size' in value:
+                kwargs['size'] = value['size']
 
-            if 'max_beats' in interface:
-                kwargs['max_beats'] = interface['max_beats']
+            if 'max_beats' in value:
+                kwargs['max_beats'] = value['max_beats']
 
             if direction_is_subordinate(direction):
 
-                obj = AxiTxRx(uri=name, data_width=interface['dw'], addr_width=interface['aw'],
-                    id_width=interface['idw'], **kwargs)
+                obj = AxiTxRx(uri=name, data_width=value['dw'], addr_width=value['aw'],
+                    id_width=value['idw'], **kwargs)
             else:
                 raise Exception(f'Unsupported AXI direction: "{direction}"')
         elif type_is_axil(type):
             kwargs = {}
 
-            if 'prot' in interface:
-                kwargs['prot'] = interface['prot']
+            if 'prot' in value:
+                kwargs['prot'] = value['prot']
 
             if direction_is_subordinate(direction):
-                obj = AxiLiteTxRx(uri=name, data_width=interface['dw'],
-                    addr_width=interface['aw'], **kwargs)
+                obj = AxiLiteTxRx(uri=name, data_width=value['dw'],
+                    addr_width=value['aw'], **kwargs)
             else:
                 raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
         else:
             raise Exception(f'Unsupported interface type: "{type}"')
 
-        self.interface_objects[name] = obj
-
-    def get_interface(self, name):
-        return self.interface_objects[name]
+        self.intfs[name] = obj

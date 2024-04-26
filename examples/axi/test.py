@@ -17,14 +17,14 @@ def main():
     dut = build_testbench()
 
     # wire up max-beats argument
-    dut.interfaces[0]['max_beats'] = dut.args.max_beats
+    dut.intf_defs['s_axi']['max_beats'] = dut.args.max_beats
 
     # launch the simulation
     dut.simulate()
 
     # run the test: write to random addresses and read back in a random order
 
-    axi = dut.get_interface('s_axi')
+    axi = dut.intfs['s_axi']
 
     addr_bytes = (axi.addr_width + 7) // 8
 
@@ -82,9 +82,9 @@ def build_testbench():
         ID_WIDTH=idw,
     )
 
-    interfaces = [
-        dict(name='s_axi', type='axi', dw=dw, aw=aw, idw=idw, direction='subordinate')
-    ]
+    interfaces = {
+        's_axi': dict(type='axi', dw=dw, aw=aw, idw=idw, direction='subordinate')
+    }
 
     resets = [dict(name='rst', delay=8)]
 

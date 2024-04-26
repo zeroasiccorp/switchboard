@@ -88,10 +88,10 @@ def build_testbench():
     aw = 64
     cw = 32
 
-    interfaces = [
-        dict(name='udev_req', type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
-        dict(name='udev_resp', type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
-    ]
+    interfaces = {
+        'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
+    }
 
     extra_args = {
         '--mode': dict(default='python', choices=['python', 'cpp'],
@@ -123,7 +123,7 @@ def main():
     dut.simulate()
 
     if dut.args.mode == 'python':
-        python_intf(dut.get_interface('umi'))
+        python_intf(dut.intfs['umi'])
     elif dut.args.mode == 'cpp':
         binary_run(THIS_DIR / 'client').wait()
     else:
