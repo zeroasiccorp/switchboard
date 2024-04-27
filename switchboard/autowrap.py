@@ -23,9 +23,14 @@ def normalize_interface(name, value):
     assert 'direction' in value
     value['direction'] = normalize_direction(type=type, direction=value['direction'])
 
+    if 'external' not in value:
+        value['external'] = True
+
     if type == 'sb':
         if 'dw' not in value:
             value['dw'] = 256
+        if 'uri' not in value:
+            value['uri'] = f'{name}.q'
     elif type == 'umi':
         if 'dw' not in value:
             value['dw'] = 256
@@ -35,11 +40,15 @@ def normalize_interface(name, value):
             value['cw'] = 32
         if 'txrx' not in value:
             value['txrx'] = None
+        if 'uri' not in value:
+            value['uri'] = f'{name}.q'
     elif type in ['axi', 'axil']:
         if 'dw' not in value:
             value['dw'] = 32
         if 'aw' not in value:
             value['aw'] = 16
+        if 'uri' not in value:
+            value['uri'] = name
 
         if type == 'axi':
             # settings that only apply to AXI, not AXI-Lite
@@ -223,9 +232,9 @@ def autowrap(
             lines += [tab + f'`SB_WIRES({name}, {dw});']
 
             if direction_is_input(direction):
-                lines += [tab + f'`QUEUE_TO_SB_SIM({name}, {dw}, "{name}.q");']
+                lines += [tab + f'`QUEUE_TO_SB_SIM({name}, {dw}, "");']
             elif direction_is_output(direction):
-                lines += [tab + f'`SB_TO_QUEUE_SIM({name}, {dw}, "{name}.q");']
+                lines += [tab + f'`SB_TO_QUEUE_SIM({name}, {dw}, "");']
             else:
                 raise Exception(f'Unsupported SB direction: {direction}')
         elif type == 'umi':
@@ -236,9 +245,9 @@ def autowrap(
             lines += [tab + f'`SB_UMI_WIRES({name}, {dw}, {cw}, {aw});']
 
             if direction_is_input(direction):
-                lines += [tab + f'`QUEUE_TO_UMI_SIM({name}, {dw}, {cw}, {aw}, "{name}.q");']
+                lines += [tab + f'`QUEUE_TO_UMI_SIM({name}, {dw}, {cw}, {aw}, "");']
             elif direction_is_output(direction):
-                lines += [tab + f'`UMI_TO_QUEUE_SIM({name}, {dw}, {cw}, {aw}, "{name}.q");']
+                lines += [tab + f'`UMI_TO_QUEUE_SIM({name}, {dw}, {cw}, {aw}, "");']
             else:
                 raise Exception(f'Unsupported UMI direction: {direction}')
         elif type == 'axi':
@@ -249,7 +258,7 @@ def autowrap(
             lines += [tab + f'`SB_AXI_WIRES({name}, {dw}, {aw}, {idw});']
 
             if direction_is_subordinate(direction):
-                lines += [tab + f'`SB_AXI_M({name}, {dw}, {aw}, {idw}, "{name}");']
+                lines += [tab + f'`SB_AXI_M({name}, {dw}, {aw}, {idw}, "");']
             else:
                 raise Exception(f'Unsupported AXI direction: {direction}')
         elif type == 'axil':
@@ -259,7 +268,7 @@ def autowrap(
             lines += [tab + f'`SB_AXIL_WIRES({name}, {dw}, {aw});']
 
             if direction_is_subordinate(direction):
-                lines += [tab + f'`SB_AXIL_M({name}, {dw}, {aw}, "{name}");']
+                lines += [tab + f'`SB_AXIL_M({name}, {dw}, {aw}, "");']
             else:
                 raise Exception(f'Unsupported AXI-Lite direction: {direction}')
         else:
@@ -405,6 +414,20 @@ def normalize_direction(type, direction):
             return 'subordinate'
         else:
             raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
+    else:
+        raise Exception(f'Unsupported interface type: "{type}"')
+
+
+def directions_are_compatible(type, a, b):
+    a = normalize_direction(type, a)
+    b = normalize_direction(type, b)
+
+    if type_is_sb(type) or type_is_umi(type):
+        assert (((a == 'input') and (b == 'output'))
+            or ((a == 'output') and (b == 'input')))
+    elif type_is_axi(type) or type_is_axil(type):
+        assert (((a == 'manager') and (b == 'subordinate'))
+            or ((a == 'subordinate') and (b == 'manager')))
     else:
         raise Exception(f'Unsupported interface type: "{type}"')
 

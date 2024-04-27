@@ -668,9 +668,9 @@ class SbDut(siliconcompiler.Chip):
                     direction = value['direction']
 
                     if direction.lower() in ['i', 'in', 'input']:
-                        umi_txrx[txrx]['tx_uri'] = f'{name}.q'
+                        umi_txrx[txrx]['tx_uri'] = value['uri']
                     elif direction.lower() in ['o', 'out', 'output']:
-                        umi_txrx[txrx]['rx_uri'] = f'{name}.q'
+                        umi_txrx[txrx]['rx_uri'] = value['uri']
                     else:
                         raise Exception(f'Unsupported UMI direction: {direction}')
                 else:
@@ -687,16 +687,16 @@ class SbDut(siliconcompiler.Chip):
 
         if type_is_sb(type):
             if direction_is_input(direction):
-                obj = PySbTx(f'{name}.q', fresh=fresh)
+                obj = PySbTx(value['uri'], fresh=fresh)
             elif direction_is_output(direction):
-                obj = PySbRx(f'{name}.q', fresh=fresh)
+                obj = PySbRx(value['uri'], fresh=fresh)
             else:
                 raise Exception(f'Unsupported SB direction: "{direction}"')
         elif type_is_umi(type):
             if direction_is_input(direction):
-                obj = UmiTxRx(tx_uri=f'{name}.q', fresh=fresh)
+                obj = UmiTxRx(tx_uri=value['uri'], fresh=fresh)
             elif direction_is_output(direction):
-                obj = UmiTxRx(rx_uri=f'{name}.q', fresh=fresh)
+                obj = UmiTxRx(rx_uri=value['uri'], fresh=fresh)
             else:
                 raise Exception(f'Unsupported UMI direction: "{direction}"')
         elif type_is_axi(type):
@@ -715,9 +715,8 @@ class SbDut(siliconcompiler.Chip):
                 kwargs['max_beats'] = value['max_beats']
 
             if direction_is_subordinate(direction):
-
-                obj = AxiTxRx(uri=name, data_width=value['dw'], addr_width=value['aw'],
-                    id_width=value['idw'], **kwargs)
+                obj = AxiTxRx(uri=value['uri'], data_width=value['dw'],
+                    addr_width=value['aw'], id_width=value['idw'], **kwargs)
             else:
                 raise Exception(f'Unsupported AXI direction: "{direction}"')
         elif type_is_axil(type):
@@ -727,7 +726,7 @@ class SbDut(siliconcompiler.Chip):
                 kwargs['prot'] = value['prot']
 
             if direction_is_subordinate(direction):
-                obj = AxiLiteTxRx(uri=name, data_width=value['dw'],
+                obj = AxiLiteTxRx(uri=value['uri'], data_width=value['dw'],
                     addr_width=value['aw'], **kwargs)
             else:
                 raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
