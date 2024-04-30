@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Example illustrating how to interact with the umi_fifo_flex module
+# Example showing how to wire up various modules using SbNetwork
 
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
@@ -48,9 +48,24 @@ def main():
 
     net.simulate()
 
+    # interact with the simulation
+
     umi = net.intfs['umi']
-    umi.write(0x10, np.uint32(0xdeadbeef))
-    print(hex(umi.read(0x10, np.uint32)))
+
+    wraddr = 0x10
+    wrdata = 0xdeadbeef
+
+    umi.write(wraddr, np.uint32(wrdata))
+
+    print(f'Wrote addr=0x{wraddr:x} data=0x{wrdata:x}')
+
+    rdaddr = wraddr
+
+    rddata = umi.read(rdaddr, np.uint32)
+
+    print(f'Read addr=0x{rdaddr:x} data=0x{rddata:x}')
+
+    assert wrdata == rddata
 
 
 def make_umi_fifo(args):
