@@ -262,6 +262,8 @@ def autowrap(
 
             if direction_is_subordinate(direction):
                 lines += [tab + f'`SB_AXI_M({name}, {dw}, {aw}, {idw}, "");']
+            elif direction_is_manager(direction):
+                lines += [tab + f'`SB_AXI_S({name}, {dw}, {aw}, "");']
             else:
                 raise Exception(f'Unsupported AXI direction: {direction}')
         elif type == 'axil':
@@ -272,6 +274,8 @@ def autowrap(
 
             if direction_is_subordinate(direction):
                 lines += [tab + f'`SB_AXIL_M({name}, {dw}, {aw}, "");']
+            elif direction_is_manager(direction):
+                lines += [tab + f'`SB_AXIL_S({name}, {dw}, {aw}, "");']
             else:
                 raise Exception(f'Unsupported AXI-Lite direction: {direction}')
         else:

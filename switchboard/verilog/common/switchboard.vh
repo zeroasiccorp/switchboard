@@ -166,8 +166,8 @@
         .a``_rvalid(b``_rvalid),                                                                   \
         .a``_rready(b``_rready)
 
-`define SB_AXIL_M(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                      \
-    sb_axil_m #(                                                                                   \
+`define SB_AXIL(dir, signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                   \
+    sb_axil_``dir #(                                                                               \
         .DATA_WIDTH(dw),                                                                           \
         .ADDR_WIDTH(aw),                                                                           \
         .VALID_MODE_DEFAULT(vldmode),                                                              \
@@ -175,26 +175,32 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
-        .m_axil_awaddr(signal``_awaddr),                                                           \
-        .m_axil_awprot(signal``_awprot),                                                           \
-        .m_axil_awvalid(signal``_awvalid),                                                         \
-        .m_axil_awready(signal``_awready),                                                         \
-        .m_axil_wdata(signal``_wdata),                                                             \
-        .m_axil_wstrb(signal``_wstrb),                                                             \
-        .m_axil_wvalid(signal``_wvalid),                                                           \
-        .m_axil_wready(signal``_wready),                                                           \
-        .m_axil_bresp(signal``_bresp),                                                             \
-        .m_axil_bvalid(signal``_bvalid),                                                           \
-        .m_axil_bready(signal``_bready),                                                           \
-        .m_axil_araddr(signal``_araddr),                                                           \
-        .m_axil_arprot(signal``_arprot),                                                           \
-        .m_axil_arvalid(signal``_arvalid),                                                         \
-        .m_axil_arready(signal``_arready),                                                         \
-        .m_axil_rdata(signal``_rdata),                                                             \
-        .m_axil_rresp(signal``_rresp),                                                             \
-        .m_axil_rvalid(signal``_rvalid),                                                           \
-        .m_axil_rready(signal``_rready)                                                            \
+        .dir``_axil_awaddr(signal``_awaddr),                                                       \
+        .dir``_axil_awprot(signal``_awprot),                                                       \
+        .dir``_axil_awvalid(signal``_awvalid),                                                     \
+        .dir``_axil_awready(signal``_awready),                                                     \
+        .dir``_axil_wdata(signal``_wdata),                                                         \
+        .dir``_axil_wstrb(signal``_wstrb),                                                         \
+        .dir``_axil_wvalid(signal``_wvalid),                                                       \
+        .dir``_axil_wready(signal``_wready),                                                       \
+        .dir``_axil_bresp(signal``_bresp),                                                         \
+        .dir``_axil_bvalid(signal``_bvalid),                                                       \
+        .dir``_axil_bready(signal``_bready),                                                       \
+        .dir``_axil_araddr(signal``_araddr),                                                       \
+        .dir``_axil_arprot(signal``_arprot),                                                       \
+        .dir``_axil_arvalid(signal``_arvalid),                                                     \
+        .dir``_axil_arready(signal``_arready),                                                     \
+        .dir``_axil_rdata(signal``_rdata),                                                         \
+        .dir``_axil_rresp(signal``_rresp),                                                         \
+        .dir``_axil_rvalid(signal``_rvalid),                                                       \
+        .dir``_axil_rready(signal``_rready)                                                        \
     )
+
+`define SB_AXIL_M(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                      \
+    `SB_AXIL(m, signal, dw, aw, file, vldmode, rdymode, clk_signal)
+
+`define SB_AXIL_S(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                      \
+    `SB_AXIL(s, signal, dw, aw, file, vldmode, rdymode, clk_signal)
 
 `define SB_AXI_WIRES(signal, dw, aw, idw)                                                          \
     wire [(idw)-1:0]       signal``_awid;                                                          \
@@ -270,8 +276,8 @@
     .a``_rvalid(b``_rvalid),                                                                       \
     .a``_rready(b``_rready)
 
-`define SB_AXI_M(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)                  \
-    sb_axi_m #(                                                                                    \
+`define SB_AXI(dir, signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)               \
+    sb_axi_``dir #(                                                                                \
         .DATA_WIDTH(dw),                                                                           \
         .ADDR_WIDTH(aw),                                                                           \
         .ID_WIDTH(idw),                                                                            \
@@ -280,42 +286,48 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
-        .m_axi_awid(signal``_awid),                                                                \
-        .m_axi_awaddr(signal``_awaddr),                                                            \
-        .m_axi_awlen(signal``_awlen),                                                              \
-        .m_axi_awsize(signal``_awsize),                                                            \
-        .m_axi_awburst(signal``_awburst),                                                          \
-        .m_axi_awlock(signal``_awlock),                                                            \
-        .m_axi_awcache(signal``_awcache),                                                          \
-        .m_axi_awprot(signal``_awprot),                                                            \
-        .m_axi_awvalid(signal``_awvalid),                                                          \
-        .m_axi_awready(signal``_awready),                                                          \
-        .m_axi_wdata(signal``_wdata),                                                              \
-        .m_axi_wstrb(signal``_wstrb),                                                              \
-        .m_axi_wlast(signal``_wlast),                                                              \
-        .m_axi_wvalid(signal``_wvalid),                                                            \
-        .m_axi_wready(signal``_wready),                                                            \
-        .m_axi_bid(signal``_bid),                                                                  \
-        .m_axi_bresp(signal``_bresp),                                                              \
-        .m_axi_bvalid(signal``_bvalid),                                                            \
-        .m_axi_bready(signal``_bready),                                                            \
-        .m_axi_arid(signal``_arid),                                                                \
-        .m_axi_araddr(signal``_araddr),                                                            \
-        .m_axi_arlen(signal``_arlen),                                                              \
-        .m_axi_arsize(signal``_arsize),                                                            \
-        .m_axi_arburst(signal``_arburst),                                                          \
-        .m_axi_arlock(signal``_arlock),                                                            \
-        .m_axi_arcache(signal``_arcache),                                                          \
-        .m_axi_arprot(signal``_arprot),                                                            \
-        .m_axi_arvalid(signal``_arvalid),                                                          \
-        .m_axi_arready(signal``_arready),                                                          \
-        .m_axi_rid(signal``_rid),                                                                  \
-        .m_axi_rdata(signal``_rdata),                                                              \
-        .m_axi_rresp(signal``_rresp),                                                              \
-        .m_axi_rlast(signal``_rlast),                                                              \
-        .m_axi_rvalid(signal``_rvalid),                                                            \
-        .m_axi_rready(signal``_rready)                                                             \
+        .dir``_axi_awid(signal``_awid),                                                            \
+        .dir``_axi_awaddr(signal``_awaddr),                                                        \
+        .dir``_axi_awlen(signal``_awlen),                                                          \
+        .dir``_axi_awsize(signal``_awsize),                                                        \
+        .dir``_axi_awburst(signal``_awburst),                                                      \
+        .dir``_axi_awlock(signal``_awlock),                                                        \
+        .dir``_axi_awcache(signal``_awcache),                                                      \
+        .dir``_axi_awprot(signal``_awprot),                                                        \
+        .dir``_axi_awvalid(signal``_awvalid),                                                      \
+        .dir``_axi_awready(signal``_awready),                                                      \
+        .dir``_axi_wdata(signal``_wdata),                                                          \
+        .dir``_axi_wstrb(signal``_wstrb),                                                          \
+        .dir``_axi_wlast(signal``_wlast),                                                          \
+        .dir``_axi_wvalid(signal``_wvalid),                                                        \
+        .dir``_axi_wready(signal``_wready),                                                        \
+        .dir``_axi_bid(signal``_bid),                                                              \
+        .dir``_axi_bresp(signal``_bresp),                                                          \
+        .dir``_axi_bvalid(signal``_bvalid),                                                        \
+        .dir``_axi_bready(signal``_bready),                                                        \
+        .dir``_axi_arid(signal``_arid),                                                            \
+        .dir``_axi_araddr(signal``_araddr),                                                        \
+        .dir``_axi_arlen(signal``_arlen),                                                          \
+        .dir``_axi_arsize(signal``_arsize),                                                        \
+        .dir``_axi_arburst(signal``_arburst),                                                      \
+        .dir``_axi_arlock(signal``_arlock),                                                        \
+        .dir``_axi_arcache(signal``_arcache),                                                      \
+        .dir``_axi_arprot(signal``_arprot),                                                        \
+        .dir``_axi_arvalid(signal``_arvalid),                                                      \
+        .dir``_axi_arready(signal``_arready),                                                      \
+        .dir``_axi_rid(signal``_rid),                                                              \
+        .dir``_axi_rdata(signal``_rdata),                                                          \
+        .dir``_axi_rresp(signal``_rresp),                                                          \
+        .dir``_axi_rlast(signal``_rlast),                                                          \
+        .dir``_axi_rvalid(signal``_rvalid),                                                        \
+        .dir``_axi_rready(signal``_rready)                                                         \
     )
+
+`define SB_AXI_M(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)                  \
+    `SB_AXI(m, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal)
+
+`define SB_AXI_S(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)                  \
+    `SB_AXI(s, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal)
 
 `define SB_CREATE_CLOCK(clk_signal)                                                                \
     `ifdef SB_XYCE                                                                                 \

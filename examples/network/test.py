@@ -22,19 +22,23 @@ def main():
     # create the building blocks
 
     umi_fifo = make_umi_fifo(args=net.args)
-    umiram = make_umiram(args=net.args)
+    umi2axil = make_umi2axil(args=net.args)
+    axil_ram = make_axil_ram(args=net.args)
 
     # connect them together
 
-    umi_fifo_in = net.instantiate(umi_fifo)
-    umi_fifo_out = net.instantiate(umi_fifo)
-    umiram_i = net.instantiate(umiram)
+    umi_fifo_i = net.instantiate(umi_fifo)
+    umi_fifo_o = net.instantiate(umi_fifo)
+    umi2axil_i = net.instantiate(umi2axil)
+    axil_ram_i = net.instantiate(axil_ram)
 
-    net.connect(umi_fifo_in.umi_out, umiram_i.udev_req)
-    net.connect(umi_fifo_out.umi_in, umiram_i.udev_resp)
+    net.connect(umi_fifo_i.umi_out, umi2axil_i.udev_req)
+    net.connect(umi_fifo_o.umi_in, umi2axil_i.udev_resp)
 
-    net.external(umi_fifo_in.umi_in, txrx='umi')
-    net.external(umi_fifo_out.umi_out, txrx='umi')
+    net.connect(umi2axil_i.axi, axil_ram_i.s_axil)
+
+    net.external(umi_fifo_i.umi_in, txrx='umi')
+    net.external(umi_fifo_o.umi_out, txrx='umi')
 
     # build simulator
 
@@ -95,24 +99,64 @@ def make_umi_fifo(args):
     return dut
 
 
-def make_umiram(args):
-    dw = 256
+def make_axil_ram(args):
+    dw = 64
+    aw = 13
+
+    parameters = dict(
+        DATA_WIDTH=dw,
+        ADDR_WIDTH=aw
+    )
+
+    interfaces = {
+        's_axil': dict(type='axil', dw=dw, aw=aw, direction='subordinate')
+    }
+
+    resets = [dict(name='rst', delay=8)]
+
+    dut = SbDut('axil_ram', autowrap=True, parameters=parameters, interfaces=interfaces,
+        resets=resets, args=args)
+
+    dut.register_package_source(
+        'verilog-axi',
+        'git+https://github.com/alexforencich/verilog-axi.git',
+        '38915fb'
+    )
+
+    dut.input('rtl/axil_ram.v', package='verilog-axi')
+
+    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
+        ['WIDTHTRUNC', 'TIMESCALEMOD'])
+
+    return dut
+
+
+def make_umi2axil(args):
+    dw = 64
     aw = 64
     cw = 32
 
+    parameters = dict(
+        DW=dw,
+        AW=aw,
+        CW=cw
+    )
+
     interfaces = {
         'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
-        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
+        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi'),
+        'axi': dict(type='axil', dw=dw, aw=aw, direction='manager')
     }
 
-    dut = SbDut('umiram', autowrap=True, interfaces=interfaces, args=args)
+    resets = ['nreset']
 
-    dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
+    dut = SbDut('umi2axilite', autowrap=True, parameters=parameters, interfaces=interfaces,
+        resets=resets, args=args)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
-
-    dut.build()
+    dut.add('option', 'library', 'lambdalib_stdlib')
+    dut.add('option', 'library', 'lambdalib_ramlib')
 
     return dut
 
