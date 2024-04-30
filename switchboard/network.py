@@ -1,12 +1,16 @@
+from copy import deepcopy
 from itertools import count
 
 from .sbdut import SbDut
+from .axi import delete_axi_queues
 from .autowrap import (directions_are_compatible, normalize_intf_type,
-    type_is_umi, type_is_sb)
+    type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil)
+
+from _switchboard import delete_queue
 
 
 class SbIntf:
-    def __init__(self, inst, name, external=False):
+    def __init__(self, inst, name):
         self.inst = inst
         self.name = name
 
@@ -16,27 +20,26 @@ class SbInst:
         self.name = name
         self.block = block
         self.mapping = {}
-        self.external = {}
 
         for name, value in block.intf_defs.items():
             self.mapping[name] = None
-            self.__setattr__(name, value)
+            self.__setattr__(name, SbIntf(inst=self, name=name))
 
 
 class SbNetwork:
     def __init__(self):
         self.insts = {}
-        self.intfs = {}
         self.inst_names = {}
         self.uri_names = {}
+        self.intf_defs = {}
 
     def instantiate(self, block: SbDut, name: str = None):
         if name is None:
-            self.generate_name(prefix=block.dut, dict=self.inst_names)
+            name = self.generate_name(prefix=block.dut, dict=self.inst_names)
 
         self.insts[name] = SbInst(name=name, block=block)
 
-        return self.inst_names[name]
+        return self.insts[name]
 
     def connect(self, a, b, uri=None):
         # retrieve the two interface definitions
@@ -59,52 +62,72 @@ class SbNetwork:
             uri = self.generate_name(prefix=prefix, dict=self.uri_names)
             if type_is_sb(type_a) or type_is_umi(type_a):
                 uri = f'{uri}.q'
+                delete_queue(uri)
+            elif type_is_axi(type_a) or type_is_axil(type_a):
+                delete_axi_queues(uri)
+            else:
+                raise Exception(f'Unsupported interface type: "{type}"')
 
         # tell both instances what they are connected to
         a.inst.mapping[a.name] = uri
         b.inst.mapping[b.name] = uri
 
     def build(self):
-        unique_blocks = set(inst.block for inst in self.insts)
+        unique_blocks = set(inst.block for inst in self.insts.values())
 
         for block in unique_blocks:
             block.build()
 
     def external(self, intf, name=None, txrx=None):
-        if name is None:
-            if txrx is not None:
-                name = txrx
-            else:
-                name = intf.name
+        # make a copy of the interface definition since we will be modifying it
 
-        intf.inst.external[intf.name] = dict(name=name, txrx=txrx)
+        intf_def = deepcopy(intf.inst.block.intf_defs[intf.name])
+
+        # generate URI
+
+        uri = self.generate_name(prefix=intf.name, dict=self.uri_names)
+
+        type = intf_def['type']
+        if type_is_sb(type) or type_is_umi(type):
+            uri = f'{uri}.q'
+
+        intf_def['uri'] = uri
+
+        intf.inst.mapping[intf.name] = uri
+
+        # set txrx
+
+        intf_def['txrx'] = txrx
+
+        # save interface
+
+        if name is None:
+            name = intf.name
+
+        self.intf_defs[name] = intf_def
 
     def simulate(self):
+        # create interface objects
+
+        self.intfs = create_intf_objs(self.intf_defs)
+
         # "hard" part
-        for inst in self.insts:
+        for inst in self.insts.values():
             block = inst.block
 
-            for intf, uri in inst.mapping.items():
+            for intf_name, uri in inst.mapping.items():
                 # check that the interface is wired up
 
                 if uri is None:
-                    raise Exception(f'{inst.name}.{intf.name} not connected')
+                    raise Exception(f'{inst.name}.{intf_name} not connected')
 
-                block.intf_defs[intf.name]['uri'] = uri
-
-                # mark as internal/external
-
-                block.intf_defs[intf.name]['external'] = intf.name in inst.external
+                block.intf_defs[intf_name]['uri'] = uri
 
             # launch an instance of simulation
-            block.simulate(run=inst.name)
-
-            # map to external interfaces
-            for name, value in inst.external.items():
-                self.intfs[value['name']] = block.intfs[name]
+            block.simulate(run=inst.name, intf_objs=False)
 
     @staticmethod
-    def generate_name(self, prefix, dict):
+    def generate_name(prefix, dict):
         if prefix not in dict:
             dict[prefix] = count(0)
 

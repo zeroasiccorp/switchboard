@@ -24,14 +24,7 @@ from .util import plusargs_to_args, binary_run
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
-    direction_is_input, direction_is_output, type_is_sb, type_is_umi, type_is_axi,
-    type_is_axil, direction_is_subordinate, normalize_parameters)
-
-from .umi import UmiTxRx
-from .axi import AxiTxRx
-from .axil import AxiLiteTxRx
-
-from _switchboard import PySbTx, PySbRx
+    normalize_parameters, create_intf_objs)
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -409,7 +402,9 @@ class SbDut(siliconcompiler.Chip):
         cwd: str = None,
         trace: bool = None,
         period: float = None,
-        frequency: float = None
+        frequency: float = None,
+        run: str = None,
+        intf_objs: bool = True
     ) -> subprocess.Popen:
         """
         Parameters
@@ -439,7 +434,8 @@ class SbDut(siliconcompiler.Chip):
 
         # set up interfaces if needed
 
-        self.set_up_interfaces()
+        if intf_objs:
+            self.intfs = create_intf_objs(self.intf_defs)
 
         # set defaults
 
@@ -477,6 +473,18 @@ class SbDut(siliconcompiler.Chip):
             and ('period' not in plusargs)
             and not any(elem.startswith('+period') for elem in args)):
             plusargs.append(('period', period))
+
+        # add plusargs that define queue connections
+
+        for name, value in self.intf_defs.items():
+            plusargs += [(name, value['uri'])]
+
+        # run-specific configurations (if running the same simulator build multiple times
+        # in parallel)
+
+        if run is not None:
+            dumpfile = f'{run}.{self.trace_type}'
+            plusargs.append(('dumpfile', dumpfile))
 
         # run the simulation
 
@@ -642,95 +650,3 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
-
-    def set_up_interfaces(self, fresh=True):
-        umi_txrx = {}
-
-        for name, value in self.intf_defs.items():
-            type = value['type']
-
-            if type.lower() in ['umi']:
-                txrx = value['txrx']
-
-                if txrx is not None:
-                    if txrx not in umi_txrx:
-                        umi_txrx[txrx] = dict(tx_uri=None, rx_uri=None)
-
-                    if 'srcaddr' in value:
-                        umi_txrx[txrx]['srcaddr'] = value['srcaddr']
-
-                    if 'posted' in value:
-                        umi_txrx[txrx]['posted'] = value['posted']
-
-                    if 'max_bytes' in value:
-                        umi_txrx[txrx]['max_bytes'] = value['max_bytes']
-
-                    direction = value['direction']
-
-                    if direction.lower() in ['i', 'in', 'input']:
-                        umi_txrx[txrx]['tx_uri'] = value['uri']
-                    elif direction.lower() in ['o', 'out', 'output']:
-                        umi_txrx[txrx]['rx_uri'] = value['uri']
-                    else:
-                        raise Exception(f'Unsupported UMI direction: {direction}')
-                else:
-                    self.set_up_interface(name, value, fresh=fresh)
-            else:
-                self.set_up_interface(name, value, fresh=fresh)
-
-        for key, value in umi_txrx.items():
-            self.intfs[key] = UmiTxRx(**value, fresh=fresh)
-
-    def set_up_interface(self, name, value, fresh=True):
-        type = value['type']
-        direction = value['direction']
-
-        if type_is_sb(type):
-            if direction_is_input(direction):
-                obj = PySbTx(value['uri'], fresh=fresh)
-            elif direction_is_output(direction):
-                obj = PySbRx(value['uri'], fresh=fresh)
-            else:
-                raise Exception(f'Unsupported SB direction: "{direction}"')
-        elif type_is_umi(type):
-            if direction_is_input(direction):
-                obj = UmiTxRx(tx_uri=value['uri'], fresh=fresh)
-            elif direction_is_output(direction):
-                obj = UmiTxRx(rx_uri=value['uri'], fresh=fresh)
-            else:
-                raise Exception(f'Unsupported UMI direction: "{direction}"')
-        elif type_is_axi(type):
-            kwargs = {}
-
-            if 'prot' in value:
-                kwargs['prot'] = value['prot']
-
-            if 'id' in value:
-                kwargs['id'] = value['id']
-
-            if 'size' in value:
-                kwargs['size'] = value['size']
-
-            if 'max_beats' in value:
-                kwargs['max_beats'] = value['max_beats']
-
-            if direction_is_subordinate(direction):
-                obj = AxiTxRx(uri=value['uri'], data_width=value['dw'],
-                    addr_width=value['aw'], id_width=value['idw'], **kwargs)
-            else:
-                raise Exception(f'Unsupported AXI direction: "{direction}"')
-        elif type_is_axil(type):
-            kwargs = {}
-
-            if 'prot' in value:
-                kwargs['prot'] = value['prot']
-
-            if direction_is_subordinate(direction):
-                obj = AxiLiteTxRx(uri=value['uri'], data_width=value['dw'],
-                    addr_width=value['aw'], **kwargs)
-            else:
-                raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
-        else:
-            raise Exception(f'Unsupported interface type: "{type}"')
-
-        self.intfs[name] = obj

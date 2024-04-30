@@ -20,3 +20,4 @@ from .uart_xactor import uart_xactor
 from .sbtcp import start_tcp_bridge
 from .axil import AxiLiteTxRx
 from .axi import AxiTxRx
+from .network import SbNetwork

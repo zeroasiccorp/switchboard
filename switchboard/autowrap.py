@@ -6,6 +6,12 @@
 from pathlib import Path
 from copy import deepcopy
 
+from .umi import UmiTxRx
+from .axi import AxiTxRx
+from .axil import AxiLiteTxRx
+
+from _switchboard import PySbTx, PySbRx
+
 
 def normalize_interface(name, value):
     # copy before modifying
@@ -22,9 +28,6 @@ def normalize_interface(name, value):
 
     assert 'direction' in value
     value['direction'] = normalize_direction(type=type, direction=value['direction'])
-
-    if 'external' not in value:
-        value['external'] = True
 
     if type == 'sb':
         if 'dw' not in value:
@@ -362,6 +365,29 @@ def autowrap(
     lines += [tab + ');']
     lines += ['']
 
+    # initialize queue connections
+
+    lines += [
+        tab + 'string uri_sb_value;',
+        '',
+        tab + 'initial begin',
+        (2 * tab) + '/* verilator lint_off IGNOREDRETURN */'
+    ]
+
+    for name, value in interfaces.items():
+        lines += [
+            (2 * tab) + f'if($value$plusargs("{name}=%s", uri_sb_value)) begin',
+            (3 * tab) + f'{name}_sb_inst.init(uri_sb_value);',
+            (2 * tab) + 'end'
+        ]
+
+    lines += [
+        (2 * tab) + '/* verilator lint_on IGNOREDRETURN */',
+        tab + 'end'
+    ]
+
+    lines += ['']
+
     lines += [tab + '`SB_SETUP_PROBES']
     lines += ['']
 
@@ -423,10 +449,10 @@ def directions_are_compatible(type, a, b):
     b = normalize_direction(type, b)
 
     if type_is_sb(type) or type_is_umi(type):
-        assert (((a == 'input') and (b == 'output'))
+        return (((a == 'input') and (b == 'output'))
             or ((a == 'output') and (b == 'input')))
     elif type_is_axi(type) or type_is_axil(type):
-        assert (((a == 'manager') and (b == 'subordinate'))
+        return (((a == 'manager') and (b == 'subordinate'))
             or ((a == 'subordinate') and (b == 'manager')))
     else:
         raise Exception(f'Unsupported interface type: "{type}"')
@@ -476,3 +502,101 @@ def normalize_intf_type(type):
         return 'axil'
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
+
+
+def create_intf_objs(intf_defs, fresh=True):
+    intf_objs = {}
+
+    umi_txrx = {}
+
+    for name, value in intf_defs.items():
+        type = value['type']
+
+        if type.lower() in ['umi']:
+            txrx = value['txrx']
+
+            if txrx is not None:
+                if txrx not in umi_txrx:
+                    umi_txrx[txrx] = dict(tx_uri=None, rx_uri=None)
+
+                if 'srcaddr' in value:
+                    umi_txrx[txrx]['srcaddr'] = value['srcaddr']
+
+                if 'posted' in value:
+                    umi_txrx[txrx]['posted'] = value['posted']
+
+                if 'max_bytes' in value:
+                    umi_txrx[txrx]['max_bytes'] = value['max_bytes']
+
+                direction = value['direction']
+
+                if direction.lower() in ['i', 'in', 'input']:
+                    umi_txrx[txrx]['tx_uri'] = value['uri']
+                elif direction.lower() in ['o', 'out', 'output']:
+                    umi_txrx[txrx]['rx_uri'] = value['uri']
+                else:
+                    raise Exception(f'Unsupported UMI direction: {direction}')
+            else:
+                intf_objs[name] = create_intf_obj(value, fresh=fresh)
+        else:
+            intf_objs[name] = create_intf_obj(value, fresh=fresh)
+
+    for key, value in umi_txrx.items():
+        intf_objs[key] = UmiTxRx(**value, fresh=fresh)
+
+    return intf_objs
+
+
+def create_intf_obj(value, fresh=True):
+    type = value['type']
+    direction = value['direction']
+
+    if type_is_sb(type):
+        if direction_is_input(direction):
+            obj = PySbTx(value['uri'], fresh=fresh)
+        elif direction_is_output(direction):
+            obj = PySbRx(value['uri'], fresh=fresh)
+        else:
+            raise Exception(f'Unsupported SB direction: "{direction}"')
+    elif type_is_umi(type):
+        if direction_is_input(direction):
+            obj = UmiTxRx(tx_uri=value['uri'], fresh=fresh)
+        elif direction_is_output(direction):
+            obj = UmiTxRx(rx_uri=value['uri'], fresh=fresh)
+        else:
+            raise Exception(f'Unsupported UMI direction: "{direction}"')
+    elif type_is_axi(type):
+        kwargs = {}
+
+        if 'prot' in value:
+            kwargs['prot'] = value['prot']
+
+        if 'id' in value:
+            kwargs['id'] = value['id']
+
+        if 'size' in value:
+            kwargs['size'] = value['size']
+
+        if 'max_beats' in value:
+            kwargs['max_beats'] = value['max_beats']
+
+        if direction_is_subordinate(direction):
+            obj = AxiTxRx(uri=value['uri'], data_width=value['dw'],
+                addr_width=value['aw'], id_width=value['idw'], **kwargs)
+        else:
+            raise Exception(f'Unsupported AXI direction: "{direction}"')
+    elif type_is_axil(type):
+        kwargs = {}
+
+        if 'prot' in value:
+            kwargs['prot'] = value['prot']
+
+        if direction_is_subordinate(direction):
+            obj = AxiLiteTxRx(uri=value['uri'], data_width=value['dw'],
+                addr_width=value['aw'], **kwargs)
+        else:
+            raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
+    else:
+        raise Exception(f'Unsupported interface type: "{type}"')
+
+    return obj
