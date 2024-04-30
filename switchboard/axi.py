@@ -8,7 +8,7 @@ import numpy as np
 from math import floor, ceil, log2
 from numbers import Integral
 
-from _switchboard import PySbPacket, PySbTx, PySbRx, delete_queues
+from _switchboard import PySbPacket, PySbTx, PySbRx
 
 
 class AxiTxRx:
@@ -555,11 +555,11 @@ def decode_resp(resp: Integral):
     return ['OKAY', 'EXOKAY', 'SLVERR', 'DECERR'][resp]
 
 
-def delete_axi_queues(prefix, suffix='.q'):
-    delete_queues([
+def axi_uris(prefix, suffix='.q'):
+    return [
         f'{prefix}-aw{suffix}',
         f'{prefix}-w{suffix}',
         f'{prefix}-b{suffix}',
         f'{prefix}-ar{suffix}',
         f'{prefix}-r{suffix}'
-    ])
+    ]

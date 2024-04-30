@@ -357,9 +357,13 @@ class SbDut(siliconcompiler.Chip):
         if self.autowrap:
             from .autowrap import autowrap
 
-            filename = autowrap(design=self.dut, parameters=self.parameters,
+            filename = Path(self.get('option', 'builddir')).resolve() / 'testbench.sv'
+
+            filename.parent.mkdir(exist_ok=True, parents=True)
+
+            autowrap(design=self.dut, parameters=self.parameters,
                 interfaces=self.intf_defs, clocks=self.clocks, resets=self.resets,
-                tieoffs=self.tieoffs)
+                tieoffs=self.tieoffs, filename=filename)
 
             self.input(filename)
 
