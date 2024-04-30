@@ -5,6 +5,7 @@ from .sbdut import SbDut
 from .axi import delete_axi_queues
 from .autowrap import (directions_are_compatible, normalize_intf_type,
     type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil)
+from .cmdline import get_cmdline_args
 
 from _switchboard import delete_queue
 
@@ -27,11 +28,18 @@ class SbInst:
 
 
 class SbNetwork:
-    def __init__(self):
+    def __init__(self, cmdline=False, tool: str = 'verilator', trace: bool = True,
+        trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
+        fast: bool = False, extra_args: dict = None):
+
         self.insts = {}
         self.inst_names = {}
         self.uri_names = {}
         self.intf_defs = {}
+
+        if cmdline:
+            self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
+                period=period, fast=fast, extra_args=extra_args)
 
     def instantiate(self, block: SbDut, name: str = None):
         if name is None:

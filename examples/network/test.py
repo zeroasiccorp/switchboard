@@ -5,8 +5,10 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from switchboard import SbDut, SbNetwork, umi_loopback
+import numpy as np
+
 import umi
+from switchboard import SbDut, SbNetwork
 
 from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
@@ -15,21 +17,24 @@ THIS_DIR = Path(__file__).resolve().parent
 def main():
     # create network
 
-    net = SbNetwork()
+    net = SbNetwork(cmdline=True)
 
     # create the building blocks
 
-    umi_fifo = make_umi_fifo()
+    umi_fifo = make_umi_fifo(args=net.args)
+    umiram = make_umiram(args=net.args)
 
     # connect them together
 
-    umi_fifo_0 = net.instantiate(umi_fifo)
-    umi_fifo_1 = net.instantiate(umi_fifo)
+    umi_fifo_in = net.instantiate(umi_fifo)
+    umi_fifo_out = net.instantiate(umi_fifo)
+    umiram_i = net.instantiate(umiram)
 
-    net.connect(umi_fifo_0.umi_out, umi_fifo_1.umi_in)
+    net.connect(umi_fifo_in.umi_out, umiram_i.udev_req)
+    net.connect(umi_fifo_out.umi_in, umiram_i.udev_resp)
 
-    net.external(umi_fifo_0.umi_in, txrx='umi')
-    net.external(umi_fifo_1.umi_out, txrx='umi')
+    net.external(umi_fifo_in.umi_in, txrx='umi')
+    net.external(umi_fifo_out.umi_out, txrx='umi')
 
     # build simulator
 
@@ -39,12 +44,12 @@ def main():
 
     net.simulate()
 
-    # randomly write data
     umi = net.intfs['umi']
-    umi_loopback(umi, 10)
+    umi.write(0x10, np.uint32(0xdeadbeef))
+    print(hex(umi.read(0x10, np.uint32)))
 
 
-def make_umi_fifo():
+def make_umi_fifo(args):
     dw = 256
     aw = 64
     cw = 32
@@ -79,18 +84,35 @@ def make_umi_fifo():
         'umi_out_nreset'
     ]
 
-    extra_args = {
-        '-n': dict(type=int, default=3, help='Number of'
-        ' transactions to send into the FIFO during the test.')
-    }
-
-    dut = SbDut('umi_fifo', autowrap=True, extra_args=extra_args, parameters=parameters,
-        interfaces=interfaces, clocks=clocks, resets=resets, tieoffs=tieoffs)
+    dut = SbDut('umi_fifo', autowrap=True, parameters=parameters, interfaces=interfaces,
+        clocks=clocks, resets=resets, tieoffs=tieoffs, args=args)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
+
+    return dut
+
+
+def make_umiram(args):
+    dw = 256
+    aw = 64
+    cw = 32
+
+    interfaces = {
+        'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
+    }
+
+    dut = SbDut('umiram', autowrap=True, interfaces=interfaces, args=args)
+
+    dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
+
+    dut.use(umi)
+    dut.add('option', 'library', 'umi')
+
+    dut.build()
 
     return dut
 

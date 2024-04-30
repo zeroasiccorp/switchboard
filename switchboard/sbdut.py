@@ -25,6 +25,7 @@ from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
     normalize_parameters, create_intf_objs)
+from .cmdline import get_cmdline_args
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -56,7 +57,10 @@ class SbDut(siliconcompiler.Chip):
         interfaces=None,
         clocks=None,
         resets=None,
-        tieoffs=None
+        tieoffs=None,
+        buildroot=None,
+        builddir=None,
+        args=None
     ):
         """
         Parameters
@@ -120,57 +124,17 @@ class SbDut(siliconcompiler.Chip):
         # parse command-line options if desired
 
         if cmdline:
-            from argparse import ArgumentParser
+            self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
+                frequency=frequency, period=period, fast=fast, extra_args=extra_args)
+        elif args is not None:
+            self.args = args
+        else:
+            self.args = None
 
-            parser = ArgumentParser()
-
-            if not trace:
-                parser.add_argument('--trace', action='store_true', help='Probe'
-                    ' waveforms during simulation.')
-            else:
-                parser.add_argument('--no-trace', action='store_true', help='Do not'
-                    ' probe waveforms during simulation.  This can improve build time'
-                    ' and run time, but reduces visibility.')
-
-            parser.add_argument('--trace-type', type=str, choices=['vcd', 'fst'],
-                default=trace_type, help='File type for waveform probing.')
-
-            if not fast:
-                parser.add_argument('--fast', action='store_true', help='Do not build'
-                    ' the simulator binary if it has already been built.')
-            else:
-                parser.add_argument('--rebuild', action='store_true', help='Build the'
-                    ' simulator binary even if it has already been built.')
-
-            parser.add_argument('--tool', type=str, choices=['verilator', 'icarus'],
-                default=tool, help='Name of the simulator to use.')
-
-            group = parser.add_mutually_exclusive_group()
-            group.add_argument('--period', type=float, default=period,
-                help='Period of the clk signal in seconds.  Automatically set if'
-                ' --frequency is provided.')
-            group.add_argument('--frequency', type=float, default=frequency,
-                help='Frequency of the clk signal in Hz.  Automatically set if'
-                ' --period is provided.')
-
-            if extra_args is not None:
-                for k, v in extra_args.items():
-                    parser.add_argument(k, **v)
-
-            self.args = parser.parse_args()
-
-            if not trace:
-                trace = self.args.trace
-            else:
-                trace = not self.args.no_trace
-
+        if self.args is not None:
+            trace = self.args.trace
             trace_type = self.args.trace_type
-
-            if not fast:
-                fast = self.args.fast
-            else:
-                fast = not self.args.rebuild
-
+            fast = self.args.fast
             tool = self.args.tool
             frequency = self.args.frequency
             period = self.args.period
@@ -210,6 +174,17 @@ class SbDut(siliconcompiler.Chip):
         self.intfs = {}
 
         # simulator-agnostic settings
+
+        if builddir is None:
+            if buildroot is None:
+                buildroot = 'build'
+
+            buildroot = Path(buildroot).resolve()
+
+            builddir = buildroot / metadata_str(design=design, parameters=parameters, tool=tool,
+                trace=trace, trace_type=trace_type)
+
+        self.set('option', 'builddir', str(Path(builddir).resolve()))
 
         if fpga:
             # library dirs
@@ -650,3 +625,23 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
+
+
+def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
+    parameters: dict = None) -> Path:
+
+    opts = []
+
+    opts += [design]
+
+    if parameters is not None:
+        for k, v in parameters.items():
+            opts += [k, v]
+
+    opts += [tool]
+
+    if trace:
+        assert trace_type is not None
+        opts += [trace_type]
+
+    return '-'.join(str(opt) for opt in opts)
