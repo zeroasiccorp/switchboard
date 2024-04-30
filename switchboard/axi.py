@@ -556,6 +556,11 @@ def decode_resp(resp: Integral):
 
 
 def axi_uris(prefix, suffix='.q'):
+    # returns a list of the URIs associated with a given AXI or AXI-Lite
+    # prefix.  For example, axi_uris('axi') returns ['axi-aw.q', 'axi-w.q',
+    # 'axi-b.q', 'axi-ar.q', 'axi-r.q'].  Changing the optional suffix
+    # argument changes the file extension assumed in generating this list.
+
     return [
         f'{prefix}-aw{suffix}',
         f'{prefix}-w{suffix}',

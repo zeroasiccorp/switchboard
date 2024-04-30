@@ -1,3 +1,6 @@
+# Copyright (c) 2024 Zero ASIC Corporation
+# This code is licensed under Apache License 2.0 (see LICENSE for details)
+
 def get_cmdline_args(
     tool: str = 'verilator',
     trace: bool = True,
@@ -7,6 +10,47 @@ def get_cmdline_args(
     fast: bool = False,
     extra_args: dict = None
 ):
+    """
+    Sets up and runs a command-line option parser (argparse) using the arguments
+    provided as defaults.  The object returned is an argparse.Namespace object,
+    which is the same object type returned by ArgumentParser.parse_args()
+
+    This function is used in SbNetwork and SbDut.  It should generally be
+    called only once, at the top level of the simulation.
+
+    Parameters
+    ----------
+    tool: string, optional
+        Which tool to use to compile simulator.  Options are "verilator" or
+        "icarus".
+
+    trace: bool, optional
+        If true, a waveform dump file will be produced using the file type
+        specified by `trace_type`.
+
+    trace_type: str, optional
+        File type for the waveform dump file. Defaults to vcd.
+
+    frequency: float, optional
+        If provided, the default frequency of the clock generated in the testbench,
+        in seconds.
+
+    period: float, optional
+        If provided, the default period of the clock generated in the testbench,
+        in seconds.
+
+    fast: bool, optional
+        If True, the simulation binary will not be rebuilt if an existing one is found.
+        The setting here can be overridden when build() is called by setting its argument
+        with the same name.
+
+    extra_args: dict, optional
+        If provided and cmdline=True, a dictionary of additional command line arguments
+        to be made available.  The keys of the dictionary are the arguments ("-n", "--test",
+        etc.) and the values are themselves dictionaries that contain keyword arguments
+        accepted by argparse ("action": "store_true", "default": 42, etc.)
+    """
+
     from argparse import ArgumentParser
 
     parser = ArgumentParser()

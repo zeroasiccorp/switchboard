@@ -93,6 +93,10 @@ class SbDut(siliconcompiler.Chip):
         xyce: bool, optional
             If True, compile for xyce co-simulation.
 
+        frequency: float, optional
+            If provided, the default frequency of the clock generated in the testbench,
+            in seconds.
+
         period: float, optional
             If provided, the default period of the clock generated in the testbench,
             in seconds.
@@ -110,6 +114,12 @@ class SbDut(siliconcompiler.Chip):
             If True, the simulation binary will not be rebuilt if an existing one is found.
             The setting here can be overridden when build() is called by setting its argument
             with the same name.
+
+        extra_args: dict, optional
+            If provided and cmdline=True, a dictionary of additional command line arguments
+            to be made available.  The keys of the dictionary are the arguments ("-n", "--test",
+            etc.) and the values are themselves dictionaries that contain keyword arguments
+            accepted by argparse ("action": "store_true", "default": 42, etc.)
         """
 
         # call the super constructor
