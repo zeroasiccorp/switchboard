@@ -25,4 +25,3 @@ clean:
 	rm -f queue-* *.q
 	rm -f *.vcd *.fst *.fst.hier
 	rm -f *.o *.vpi
-	rm -f testbench.sv

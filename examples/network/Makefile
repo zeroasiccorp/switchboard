@@ -15,4 +15,3 @@ clean:
 	rm -f *.vcd *.fst *.fst.hier
 	rm -rf obj_dir build
 	rm -f *.o *.vpi
-	rm -f testbench.sv
