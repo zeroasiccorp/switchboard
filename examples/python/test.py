@@ -30,8 +30,8 @@ def main():
     dut.simulate()
 
     # accesss queues
-    tx = dut.get_interface('in')
-    rx = dut.get_interface('out')
+    tx = dut.intfs['in']
+    rx = dut.intfs['out']
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
