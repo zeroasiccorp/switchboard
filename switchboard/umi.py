@@ -132,9 +132,6 @@ class UmiTxRx:
             UmiGpio object with .i (input) and .o (output) attributes
         """
 
-        if max_rate is None:
-            max_rate = self.max_rate
-
         return UmiGpio(
             iwidth=iwidth,
             owidth=owidth,

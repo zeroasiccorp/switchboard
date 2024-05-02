@@ -21,7 +21,7 @@ class AxiLiteTxRx:
         prot: int = 0,
         resp_expected: str = 'OKAY',
         queue_suffix: str = '.q',
-        max_rate: float = -1
+        max_rate: float = None
     ):
         """
         Parameters
@@ -129,6 +129,11 @@ class AxiLiteTxRx:
 
         if max_rate is None:
             max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None set to -1
+
+        max_rate = float(max_rate)
 
         # check/standardize data types
 
@@ -279,6 +284,11 @@ class AxiLiteTxRx:
 
         if max_rate is None:
             max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None set to -1
+
+        max_rate = float(max_rate)
 
         # check/standardize data types
 
