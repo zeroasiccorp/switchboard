@@ -95,3 +95,24 @@ void pi_time_taken(double* t) {
          (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
     start_time = std::chrono::steady_clock::now();
 }
+
+void pi_start_delay(double value) {
+    // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
+    // uses start_delay in main(), not through DPI
+    start_delay(value);
+}
+
+void pi_max_rate_tick(svBitVecVal* t_us, double max_rate) {
+    // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
+    // uses max_rate_tick in main(), not through DPI
+    long timestamp = max_rate_tick(max_rate);
+    memcpy(t_us, &timestamp, 8);  // timestamp is 64-bit
+}
+
+void pi_max_rate_tock(const svBitVecVal* t_us, double max_rate) {
+    // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
+    // uses max_rate_tock in main(), not through DPI
+    long timestamp;
+    memcpy(&timestamp, t_us, 8);  // timestamp is 64-bit
+    max_rate_tock(timestamp, max_rate);
+}

@@ -329,30 +329,17 @@
 `define SB_AXI_S(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)                  \
     `SB_AXI(s, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal)
 
-`define SB_CREATE_CLOCK(clk_signal)                                                                \
-    `ifdef SB_XYCE                                                                                 \
-        timeunit 1s;                                                                               \
-        timeprecision 1fs;                                                                         \
-        `define SB_DELAY(t) #(t)                                                                   \
-    `else                                                                                          \
-        timeunit 1ns;                                                                              \
-        timeprecision 1ns;                                                                         \
-        `define SB_DELAY(t) #((t)*1e9)                                                             \
-    `endif                                                                                         \
+`define SB_CREATE_CLOCK(clk_signal, period=10e-9, duty_cycle=0.5, max_rate=-1, start_delay=-1)     \
+    wire clk_signal;                                                                               \
                                                                                                    \
-    real period = 10e-9;                                                                           \
-                                                                                                   \
-    initial begin                                                                                  \
-        void'($value$plusargs("period=%f", period));                                               \
-    end                                                                                            \
-                                                                                                   \
-    reg clk_signal;                                                                                \
-    always begin                                                                                   \
-        clk_signal = 1'b0;                                                                         \
-        `SB_DELAY(0.5 * period);                                                                   \
-        clk_signal = 1'b1;                                                                         \
-        `SB_DELAY(0.5 * period);                                                                   \
-    end
+    sb_clk_gen #(                                                                                  \
+        .DEFAULT_PERIOD(period),                                                                   \
+        .DEFAULT_DUTY_CYCLE(duty_cycle),                                                           \
+        .DEFAULT_MAX_RATE(max_rate),                                                               \
+        .DEFAULT_START_DELAY(start_delay)                                                          \
+    ) clk_signal``_sb_inst (                                                                       \
+        .clk(clk_signal)                                                                           \
+    );
 
 `define SB_SETUP_PROBES                                                                            \
     `ifdef SB_TRACE                                                                                \
