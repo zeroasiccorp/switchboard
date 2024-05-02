@@ -19,7 +19,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['axil', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
     ['minimal', 'PASS!', 'verilator'],
-    # ['network', None, 'verilator'],
+    ['network', None, 'verilator'],
     # ['network', None, 'icarus'],
     ['python', 'PASS!', None],
     ['router', 'PASS!', None],

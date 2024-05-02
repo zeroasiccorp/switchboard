@@ -3,7 +3,7 @@
 
 .PHONY: verilator
 verilator:
-	./test.py --tool verilator
+	./test.py --tool verilator --start-delay 1 --max-rate 1e3
 
 .PHONY: icarus
 icarus:
