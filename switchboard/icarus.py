@@ -78,4 +78,4 @@ def icarus_run(vvp, plusargs=None, modules=None, extra_args=None, **kwargs):
             raise TypeError('extra_args must be a list')
         args += extra_args
 
-    return binary_run(bin='vvp', args=args, **kwargs, print_command=True)
+    return binary_run(bin='vvp', args=args, **kwargs)

@@ -422,11 +422,11 @@ def direction_is_output(direction):
 
 
 def direction_is_manager(direction):
-    return direction.lower() in ['m', 'manager', 'master']
+    return direction.lower() in ['m', 'manager', 'master', 'indicator']
 
 
 def direction_is_subordinate(direction):
-    return direction.lower() in ['s', 'subordinate', 'slave']
+    return direction.lower() in ['s', 'subordinate', 'slave', 'target']
 
 
 def normalize_direction(type, direction):
@@ -532,6 +532,9 @@ def create_intf_objs(intf_defs, fresh=True):
                 if 'max_bytes' in value:
                     umi_txrx[txrx]['max_bytes'] = value['max_bytes']
 
+                if 'max_rate' in value:
+                    umi_txrx[txrx]['max_rate'] = value['max_rate']
+
                 direction = value['direction']
 
                 if direction.lower() in ['i', 'in', 'input']:
@@ -563,10 +566,15 @@ def create_intf_obj(value, fresh=True):
         else:
             raise Exception(f'Unsupported SB direction: "{direction}"')
     elif type_is_umi(type):
+        kwargs = {}
+
+        if 'max_rate' in value:
+            kwargs['max_rate'] = value['max_rate']
+
         if direction_is_input(direction):
-            obj = UmiTxRx(tx_uri=value['uri'], fresh=fresh)
+            obj = UmiTxRx(tx_uri=value['uri'], fresh=fresh, **kwargs)
         elif direction_is_output(direction):
-            obj = UmiTxRx(rx_uri=value['uri'], fresh=fresh)
+            obj = UmiTxRx(rx_uri=value['uri'], fresh=fresh, **kwargs)
         else:
             raise Exception(f'Unsupported UMI direction: "{direction}"')
     elif type_is_axi(type):
@@ -584,6 +592,9 @@ def create_intf_obj(value, fresh=True):
         if 'max_beats' in value:
             kwargs['max_beats'] = value['max_beats']
 
+        if 'max_rate' in value:
+            kwargs['max_rate'] = value['max_rate']
+
         if direction_is_subordinate(direction):
             obj = AxiTxRx(uri=value['uri'], data_width=value['dw'],
                 addr_width=value['aw'], id_width=value['idw'], **kwargs)
@@ -594,6 +605,9 @@ def create_intf_obj(value, fresh=True):
 
         if 'prot' in value:
             kwargs['prot'] = value['prot']
+
+        if 'max_rate' in value:
+            kwargs['max_rate'] = value['max_rate']
 
         if direction_is_subordinate(direction):
             obj = AxiLiteTxRx(uri=value['uri'], data_width=value['dw'],

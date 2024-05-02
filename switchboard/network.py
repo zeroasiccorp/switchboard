@@ -33,7 +33,8 @@ class SbInst:
 class SbNetwork:
     def __init__(self, cmdline=False, tool: str = 'verilator', trace: bool = False,
         trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
-        fast: bool = False, extra_args: dict = None, cleanup: bool = True):
+        max_rate: float = None, start_delay: float = None, fast: bool = False,
+        extra_args: dict = None, cleanup: bool = True, args=None):
 
         self.insts = {}
 
@@ -47,7 +48,35 @@ class SbNetwork:
 
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
-                frequency=frequency, period=period, fast=fast, extra_args=extra_args)
+                frequency=frequency, period=period, fast=fast, max_rate=max_rate,
+                start_delay=start_delay, extra_args=extra_args)
+        elif args is not None:
+            self.args = args
+        else:
+            self.args = None
+
+        if self.args is not None:
+            trace = self.args.trace
+            trace_type = self.args.trace_type
+            fast = self.args.fast
+            tool = self.args.tool
+            frequency = self.args.frequency
+            period = self.args.period
+            max_rate = self.args.max_rate
+            start_delay = self.args.start_delay
+
+        # save settings
+
+        self.tool = tool
+        self.trace = trace
+        self.trace_type = trace_type
+        self.fast = fast
+
+        if (period is None) and (frequency is not None):
+            period = 1 / frequency
+        self.period = period
+        self.max_rate = max_rate
+        self.start_delay = start_delay
 
         if cleanup:
             import atexit
@@ -138,6 +167,11 @@ class SbNetwork:
 
         intf_def['txrx'] = txrx
 
+        # set max rate
+
+        if self.max_rate is not None:
+            intf_def['max_rate'] = self.max_rate
+
         # save interface
 
         if name is None:
@@ -150,8 +184,19 @@ class SbNetwork:
 
         self.intfs = create_intf_objs(self.intf_defs)
 
-        # "hard" part
-        for inst in self.insts.values():
+        if self.start_delay is not None:
+            import time
+            start = time.time()
+
+        insts = self.insts.values()
+
+        try:
+            from tqdm import tqdm
+            insts = tqdm(insts)
+        except ModuleNotFoundError:
+            pass
+
+        for inst in insts:
             block = inst.block
 
             for intf_name, uri in inst.mapping.items():
@@ -162,8 +207,21 @@ class SbNetwork:
 
                 block.intf_defs[intf_name]['uri'] = uri
 
+            # calculate the start delay for this process by measuring the
+            # time left until the start delay for the whole network is over
+
+            if self.start_delay is not None:
+                now = time.time()
+                dt = now - start
+                if dt < self.start_delay:
+                    start_delay = self.start_delay - dt
+                else:
+                    start_delay = None
+            else:
+                start_delay = None
+
             # launch an instance of simulation
-            block.simulate(run=inst.name, intf_objs=False)
+            block.simulate(run=inst.name, intf_objs=False, start_delay=start_delay)
 
     def generate_inst_name(self, prefix):
         if prefix not in self.inst_name_counters:

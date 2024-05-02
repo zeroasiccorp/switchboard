@@ -46,6 +46,8 @@ class SbDut(siliconcompiler.Chip):
         xyce: bool = False,
         frequency: float = 100e6,
         period: float = None,
+        max_rate: float = None,
+        start_delay: float = None,
         timeunit: str = None,
         timeprecision: str = None,
         warnings: List[str] = None,
@@ -101,6 +103,17 @@ class SbDut(siliconcompiler.Chip):
             If provided, the default period of the clock generated in the testbench,
             in seconds.
 
+        max_rate: float, optional
+            If provided, the maximum real-world rate that the simulation is allowed to run
+            at, in Hz.  Can be useful to encourage time-sharing between many processes and
+            for performance modeling when latencies are large and/or variable.
+
+        start_delay: float, optional
+            If provided, the real-world time to delay before the first clock tick in the
+            simulation.  Can be useful to make sure that programs start at approximately
+            the same time and to prevent simulations from stepping on each other's toes
+            when starting up.
+
         warnings: List[str], optional
             If provided, a list of tool-specific warnings to enable.  If not provided, a default
             set of warnings will be included.  Warnings can be disabled by setting this argument
@@ -135,7 +148,8 @@ class SbDut(siliconcompiler.Chip):
 
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
-                frequency=frequency, period=period, fast=fast, extra_args=extra_args)
+                frequency=frequency, period=period, fast=fast, max_rate=max_rate,
+                start_delay=start_delay, extra_args=extra_args)
         elif args is not None:
             self.args = args
         else:
@@ -148,6 +162,8 @@ class SbDut(siliconcompiler.Chip):
             tool = self.args.tool
             frequency = self.args.frequency
             period = self.args.period
+            max_rate = self.args.max_rate
+            start_delay = self.args.start_delay
 
         # input validation
 
@@ -167,6 +183,8 @@ class SbDut(siliconcompiler.Chip):
         if (period is None) and (frequency is not None):
             period = 1 / frequency
         self.period = period
+        self.max_rate = max_rate
+        self.start_delay = start_delay
 
         self.timeunit = timeunit
         self.timeprecision = timeprecision
@@ -392,6 +410,8 @@ class SbDut(siliconcompiler.Chip):
         trace: bool = None,
         period: float = None,
         frequency: float = None,
+        max_rate: float = None,
+        start_delay: float = None,
         run: str = None,
         intf_objs: bool = True
     ) -> subprocess.Popen:
@@ -446,6 +466,12 @@ class SbDut(siliconcompiler.Chip):
         if period is None:
             period = self.period
 
+        if max_rate is None:
+            max_rate = self.max_rate
+
+        if start_delay is None:
+            start_delay = self.start_delay
+
         # build the simulation if necessary
 
         sim = self.build(cwd=cwd, fast=True)
@@ -455,13 +481,18 @@ class SbDut(siliconcompiler.Chip):
         # since logic in the testbench can use that flag to enable/disable
         # waveform dumping in a simulator-agnostic manner.
 
-        if trace and ('trace' not in plusargs) and ('+trace' not in args):
-            plusargs.append('trace')
+        if trace:
+            carefully_add_plusarg(key='trace', args=args, plusargs=plusargs)
 
-        if ((period is not None)
-            and ('period' not in plusargs)
-            and not any(elem.startswith('+period') for elem in args)):
-            plusargs.append(('period', period))
+        if period is not None:
+            carefully_add_plusarg(key='period', value=period, args=args, plusargs=plusargs)
+
+        if max_rate is not None:
+            carefully_add_plusarg(key='max-rate', value=max_rate, args=args, plusargs=plusargs)
+
+        if start_delay is not None:
+            carefully_add_plusarg(
+                key='start-delay', value=start_delay, args=args, plusargs=plusargs)
 
         # add plusargs that define queue connections
 
@@ -659,3 +690,26 @@ def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
         opts += [trace_type]
 
     return '-'.join(str(opt) for opt in opts)
+
+
+def carefully_add_plusarg(key, args, plusargs, value=None):
+    for plusarg in plusargs:
+        if isinstance(plusarg, (list, tuple)):
+            if (len(plusarg) >= 1) and (key == plusarg[0]):
+                return
+        elif key == plusarg:
+            return
+
+    if f'+{key}' in args:
+        return
+
+    if any(elem.startswith(f'+{key}+') for elem in args):
+        return
+
+    if any(elem.startswith(f'+{key}=') for elem in args):
+        return
+
+    if value is None:
+        plusargs.append(key)
+    else:
+        plusargs.append((key, value))

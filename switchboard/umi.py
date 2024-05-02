@@ -20,7 +20,8 @@ from .gpio import UmiGpio
 class UmiTxRx:
     def __init__(self, tx_uri: str = None, rx_uri: str = None,
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
-        max_bytes: int = None, fresh: bool = False, error: bool = True):
+        max_bytes: int = None, fresh: bool = False, error: bool = True,
+        max_rate: float = None):
         """
         Parameters
         ----------
@@ -92,6 +93,7 @@ class UmiTxRx:
 
         self.default_max_bytes = max_bytes
         self.default_error = error
+        self.default_max_rate = max_rate
 
     def gpio(
         self,
@@ -101,7 +103,8 @@ class UmiTxRx:
         dstaddr: int = 0,
         srcaddr: int = 0,
         posted: bool = False,
-        max_bytes: int = 32
+        max_bytes: int = 32,
+        max_rate: float = None
     ) -> UmiGpio:
         """
         Returns an object for communicating with umi_gpio modules.
@@ -129,6 +132,9 @@ class UmiTxRx:
             UmiGpio object with .i (input) and .o (output) attributes
         """
 
+        if max_rate is None:
+            max_rate = self.max_rate
+
         return UmiGpio(
             iwidth=iwidth,
             owidth=owidth,
@@ -137,7 +143,8 @@ class UmiTxRx:
             srcaddr=srcaddr,
             posted=posted,
             max_bytes=max_bytes,
-            umi=self
+            umi=self,
+            max_rate=max_rate
         )
 
     def init_queues(self, tx_uri: str = None, rx_uri: str = None, fresh: bool = False):
@@ -165,7 +172,7 @@ class UmiTxRx:
 
         self.umi.init(tx_uri, rx_uri, fresh)
 
-    def send(self, p, blocking=True) -> bool:
+    def send(self, p, blocking=True, max_rate=None) -> bool:
         """
         Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket)
         Returns True if the packet was sent successfully, else False.
@@ -184,9 +191,15 @@ class UmiTxRx:
             Returns true if the `p` was sent successfully
         """
 
-        return self.umi.send(p, blocking)
+        if max_rate is None:
+            max_rate = self.default_max_rate
 
-    def recv(self, blocking=True) -> PyUmiPacket:
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None set to -1
+
+        return self.umi.send(p, blocking, max_rate)
+
+    def recv(self, blocking=True, max_rate=None) -> PyUmiPacket:
         """
         Wait for and return a UMI packet if blocking=True, otherwise return a
         UMI packet if one can be read immediately, and None otherwise.
@@ -206,11 +219,17 @@ class UmiTxRx:
             Otherwise, a None type will be returned.
         """
 
-        return self.umi.recv(blocking)
+        if max_rate is None:
+            max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None, set to -1
+
+        return self.umi.recv(blocking, max_rate)
 
     def write(self, addr, data, srcaddr=None, max_bytes=None,
         posted=None, qos=0, prot=0, progressbar=False, check_alignment=True,
-        error=None):
+        error=None, max_rate=None):
         """
         Writes the provided data to the given 64-bit address.
 
@@ -277,6 +296,14 @@ class UmiTxRx:
 
         error = bool(error)
 
+        if max_rate is None:
+            max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None, set to -1
+
+        max_rate = float(max_rate)
+
         # format the data to be written
 
         if isinstance(data, np.ndarray):
@@ -302,10 +329,11 @@ class UmiTxRx:
 
         # perform write
         self.umi.write(addr, write_data, srcaddr, max_bytes,
-            posted, qos, prot, progressbar, error)
+            posted, qos, prot, progressbar, error, max_rate)
 
     def write_readback(self, addr, value, mask=None, srcaddr=None, dtype=None,
-        posted=True, write_srcaddr=None, check_alignment=True, error=None):
+        posted=True, write_srcaddr=None, check_alignment=True, error=None,
+        max_rate=None):
         """
         Writes the provided value to the given 64-bit address, and blocks
         until that value is read back from the provided address.
@@ -388,15 +416,16 @@ class UmiTxRx:
 
         # write, then read repeatedly until the value written is observed
         self.write(addr, value, srcaddr=write_srcaddr, posted=posted,
-            check_alignment=check_alignment, error=error)
+            check_alignment=check_alignment, error=error, max_rate=max_rate)
         rdval = self.read(addr, value.dtype, srcaddr=srcaddr,
-            check_alignment=check_alignment, error=error)
+            check_alignment=check_alignment, error=error, max_rate=max_rate)
         while ((rdval & mask) != (value & mask)):
             rdval = self.read(addr, value.dtype, srcaddr=srcaddr,
-                check_alignment=check_alignment, error=error)
+                check_alignment=check_alignment, error=error, max_rate=max_rate)
 
     def read(self, addr, num_or_dtype, dtype=np.uint8, srcaddr=None,
-        max_bytes=None, qos=0, prot=0, check_alignment=True, error=None):
+        max_bytes=None, qos=0, prot=0, check_alignment=True, error=None,
+        max_rate=None):
         """
         Parameters
         ----------
@@ -455,6 +484,14 @@ class UmiTxRx:
 
         error = bool(error)
 
+        if max_rate is None:
+            max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None, set to -1
+
+        max_rate = float(max_rate)
+
         if isinstance(num_or_dtype, (type, np.dtype)):
             num = 1
             bytes_per_elem = np.dtype(num_or_dtype).itemsize
@@ -468,14 +505,15 @@ class UmiTxRx:
                 raise ValueError(f'addr=0x{addr:x} misaligned for size={size}')
 
         result = self.umi.read(addr, num, bytes_per_elem, srcaddr, max_bytes,
-            qos, prot, error)
+            qos, prot, error, max_rate)
 
         if isinstance(num_or_dtype, (type, np.dtype)):
             return result.view(num_or_dtype)[0]
         else:
             return result
 
-    def atomic(self, addr, data, opcode, srcaddr=None, qos=0, prot=0, error=None):
+    def atomic(self, addr, data, opcode, srcaddr=None, qos=0, prot=0, error=None,
+        max_rate=None):
         """
         Parameters
         ----------
@@ -527,6 +565,14 @@ class UmiTxRx:
 
         error = bool(error)
 
+        if max_rate is None:
+            max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None, set to -1
+
+        max_rate = float(max_rate)
+
         # resolve the opcode to an enum if needed
         if isinstance(opcode, str):
             opcode = getattr(UmiAtomic, f'UMI_REQ_ATOMIC{opcode.upper()}')
@@ -537,7 +583,8 @@ class UmiTxRx:
             # copied over to the queue; the original data will never
             # be read again or modified from the C++ side
             atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
-            result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, qos, prot, error)
+            result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, qos, prot, error,
+                max_rate)
             return result.view(data.dtype)[0]
         else:
             raise TypeError("The data provided to atomic should be of a numpy integer type"

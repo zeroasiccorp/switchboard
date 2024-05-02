@@ -14,7 +14,12 @@ except ModuleNotFoundError:
 from .umi import UmiTxRx, random_umi_packet
 
 
-def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10, **kwargs):
+def umi_loopback(
+    umi: UmiTxRx,
+    packets: Union[Integral, Iterable, Iterator] = 10,
+    max_rate: float = None,
+    **kwargs
+):
     """
     Performs a loopback test by sending packets into a block and checking that
     the packets received back are equivalent under the UMI split/merge rules.
@@ -44,6 +49,8 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
 
     """
 
+    # input validation
+
     if isinstance(packets, Integral):
         if packets <= 0:
             raise ValueError(f'The number of packets must be positive (got packets={packets}).')
@@ -60,6 +67,12 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
         total = float('inf')
     else:
         raise TypeError(f'Unsupported type for packets: {type(packets)}')
+
+    if (max_rate is not None) and (max_rate > 0):
+        import time
+        min_period = 1 / max_rate
+    else:
+        min_period = None
 
     tx_sets = []  # kept for debug purposes
     tx_hist = []
@@ -84,6 +97,9 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
         raise ValueError('The argument "packets" is empty.')
 
     while (txp is not None) or (len(tx_hist) > 0):
+        if min_period is not None:
+            tick = time.time()
+
         # send data
         if txp is not None:
             if umi.send(txp, blocking=False):
@@ -145,6 +161,13 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
                     tx_sets.pop(0)
                     rx_partial = None
                     rx_set = None
+
+        if min_period is not None:
+            tock = time.time()
+            dt = tock - tick
+
+            if dt < min_period:
+                time.sleep(min_period - dt)
 
     if pbar is not None:
         pbar.close()

@@ -24,7 +24,8 @@ class AxiTxRx:
         size: int = None,
         max_beats: int = 256,
         resp_expected: str = 'OKAY',
-        queue_suffix: str = '.q'
+        queue_suffix: str = '.q',
+        max_rate: float = None
     ):
         """
         Parameters
@@ -95,6 +96,7 @@ class AxiTxRx:
         self.default_size = size
         self.default_max_beats = max_beats
         self.default_resp_expected = resp_expected
+        self.default_max_rate = max_rate
 
         # create the queues
         self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh)
@@ -115,7 +117,8 @@ class AxiTxRx:
         id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
-        resp_expected: str = None
+        resp_expected: str = None,
+        max_rate: float = None
     ):
         """
         Parameters
@@ -172,6 +175,12 @@ class AxiTxRx:
 
         if resp_expected is None:
             resp_expected = self.default_resp_expected
+
+        if max_rate is None:
+            max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None, set to -1
 
         # check/standardize data types
 
@@ -244,7 +253,7 @@ class AxiTxRx:
 
             # transmit the write address
             self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
-                len=beats - 1, id=id))
+                len=beats - 1, id=id), True, max_rate)
 
             for beat in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -268,14 +277,14 @@ class AxiTxRx:
                     last = 1
                 else:
                     last = 0
-                self.w.send(self.pack_w(data, strb=strb, last=last))
+                self.w.send(self.pack_w(data, strb=strb, last=last), True, max_rate)
 
                 # increment pointers
                 bytes_sent += bytes_this_beat
                 addr += bytes_this_beat
 
             # wait for response
-            resp, id = self.unpack_b(self.b.recv())
+            resp, id = self.unpack_b(self.b.recv(True, max_rate))
 
             # decode the response
             resp = decode_resp(resp)
@@ -296,7 +305,8 @@ class AxiTxRx:
         id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
-        resp_expected: str = None
+        resp_expected: str = None,
+        max_rate: float = None
     ):
         """
         Parameters
@@ -360,6 +370,12 @@ class AxiTxRx:
         if resp_expected is None:
             resp_expected = self.default_resp_expected
 
+        if max_rate is None:
+            max_rate = self.default_max_rate
+
+        if max_rate is None:
+            max_rate = -1  # i.e. if still None, set to -1
+
         # check/standardize data types
 
         assert isinstance(addr, Integral), 'addr must be an integer'
@@ -415,7 +431,7 @@ class AxiTxRx:
 
             # transmit read address
             self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
-                len=beats - 1, id=id))
+                len=beats - 1, id=id), True, max_rate)
 
             for _ in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -426,7 +442,7 @@ class AxiTxRx:
                 bytes_this_beat = min(bytes_to_read - bytes_read, (1 << size) - offset)
 
                 # wait for response
-                data, resp, id, last = self.unpack_r(self.r.recv())
+                data, resp, id, last = self.unpack_r(self.r.recv(True, max_rate))
                 retval[bytes_read:bytes_read + bytes_this_beat] = \
                     data = data[offset:offset + bytes_this_beat]
 

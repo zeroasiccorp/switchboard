@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <string>
+#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -26,6 +27,61 @@ struct sb_packet {
     };
     uint8_t data[SB_DATA_SIZE];
 } __attribute__((packed));
+
+static inline long max_rate_tick (double max_rate) {
+    if (max_rate > 0) {
+        // measure the time now
+
+        auto tick = std::chrono::high_resolution_clock::now();
+
+        // convert to a timestamp in microseconds since the epoch
+
+        long t_us = std::chrono::duration_cast<std::chrono::microseconds>(
+            tick.time_since_epoch()).count();
+
+        // return that timestamp
+
+        return t_us;            
+    } else {
+        // if max_rate is non-positive, that means that the rate-limiting
+        // feature is disabled, so we should just return as quickly as
+        // possible
+
+        return -1;
+    }
+}
+
+static inline void max_rate_tock (long t_us, double max_rate) {
+    if (max_rate > 0) {
+        // convert timestamp back into a time point
+
+        auto tick = std::chrono::time_point<std::chrono::high_resolution_clock>(
+            std::chrono::microseconds(t_us));
+
+        // measure the time now
+
+        auto tock = std::chrono::high_resolution_clock::now();
+
+        // measure the time delta
+
+        auto dt = tock - tick;
+
+        // sleep if needed to hit the minimum period
+
+        auto min_period = std::chrono::microseconds((int)(1.0e6 / max_rate + 0.5));
+
+        if (dt < min_period) {
+            std::this_thread::sleep_for(min_period - dt);
+        }
+    }
+}
+
+static inline void start_delay(double value) {
+    if (value > 0) {
+        int value_us = (value * 1.0e6) + 0.5;
+        std::this_thread::sleep_for(std::chrono::microseconds(value_us));
+    }
+}
 
 class SB_base {
   public:
@@ -100,9 +156,22 @@ class SBTX : public SB_base {
         return spsc_send(m_q, &p, sizeof p);
     }
 
-    void send_blocking(sb_packet& p) {
-        while (!send(p)) {
-            std::this_thread::yield();
+    void send_blocking(sb_packet& p, double max_rate = -1) {
+        bool success = false;
+
+        while (!success) {
+            auto tick = max_rate_tick(max_rate);
+
+            success = send(p);
+
+            max_rate_tock(tick, max_rate);
+
+            if ((!success) && (max_rate <= 0)) {
+                // maintain old behavior if max_rate isn't specified,
+                // i.e. yield on every iteration that the send isn't
+                // successful
+                std::this_thread::yield();
+            }
         }
     }
 
@@ -127,9 +196,22 @@ class SBRX : public SB_base {
         return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
     }
 
-    void recv_blocking(sb_packet& p) {
-        while (!recv(p)) {
-            std::this_thread::yield();
+    void recv_blocking(sb_packet& p, double max_rate = -1) {
+        bool success = false;
+
+        while (!success) {
+            auto tick = max_rate_tick(max_rate);
+
+            success = recv(p);
+
+            max_rate_tock(tick, max_rate);
+
+            if ((!success) && (max_rate <= 0)) {
+                // maintain old behavior if max_rate isn't specified,
+                // i.e. yield on every iteration that the send isn't
+                // successful
+                std::this_thread::yield();
+            }            
         }
     }
 

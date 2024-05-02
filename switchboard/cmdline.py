@@ -7,6 +7,8 @@ def get_cmdline_args(
     trace_type: str = 'vcd',
     frequency: float = 100e6,
     period: float = None,
+    max_rate: float = None,
+    start_delay: float = None,
     fast: bool = False,
     extra_args: dict = None
 ):
@@ -38,6 +40,17 @@ def get_cmdline_args(
     period: float, optional
         If provided, the default period of the clock generated in the testbench,
         in seconds.
+
+    max_rate: float, optional
+        If provided, the maximum real-world rate that the simulation is allowed to run
+        at, in Hz.  Can be useful to encourage time-sharing between many processes and
+        for performance modeling when latencies are large and/or variable.
+
+    start_delay: float, optional
+        If provided, the real-world time to delay before the first clock tick in the
+        simulation.  Can be useful to make sure that programs start at approximately
+        the same time and to prevent simulations from stepping on each other's toes
+        when starting up.
 
     fast: bool, optional
         If True, the simulation binary will not be rebuilt if an existing one is found.
@@ -83,6 +96,13 @@ def get_cmdline_args(
     group.add_argument('--frequency', type=float, default=frequency,
         help='Frequency of the clk signal in Hz.  Automatically set if'
         ' --period is provided.')
+
+    parser.add_argument('--max-rate', type=float, default=max_rate,
+        help='Maximum real-world rate that the simulation is allowed to run at, in Hz.')
+
+    parser.add_argument('--start-delay', type=float, default=start_delay,
+        help='Delay before starting simulation, in seconds.  Can be useful to prevent'
+        ' simulations from stepping on each others toes when starting up.')
 
     if extra_args is not None:
         for k, v in extra_args.items():

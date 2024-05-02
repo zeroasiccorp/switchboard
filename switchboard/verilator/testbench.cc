@@ -13,6 +13,7 @@
 // For changing the clock period
 #include <cmath>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 // Include common routines
@@ -20,6 +21,9 @@
 
 // Include model header, generated from Verilating "top.v"
 #include "Vtestbench.h"
+
+// Include switchboard functions
+#include "switchboard.hpp"
 
 // Legacy function required only so linking works on Cygwin and MSVC++
 double sc_time_stamp() {
@@ -31,6 +35,33 @@ static volatile int got_sigint = 0;
 
 void sigint_handler(int unused) {
     got_sigint = 1;
+}
+
+std::string extract_plusarg_value(const char* match, const char* name) {
+    if (match) {
+        std::string full = std::string(match);
+        std::string prefix = "+" + std::string(name) + "=";
+        size_t len = prefix.size();
+        // match requirements: there must be at least one character after
+        // the prefix, and the argument must start with the prefix,
+        // ignoring the last character of the prefix, which can be
+        // anything (typically "=" or "+")
+        if ((full.size() >= (len + 1)) && (full.substr(0, len - 1) == prefix.substr(0, len - 1))) {
+            return std::string(match).substr(len);
+        }
+    }
+
+    // if we get here, return an empty string
+    return "";
+}
+
+template <typename T> void parse_plusarg(const char* match, const char* name, T& result) {
+    std::string value = extract_plusarg_value(match, name);
+
+    if (value != "") {
+        std::istringstream iss(value);
+        iss >> result;
+    }
 }
 
 int main(int argc, char** argv, char** env) {
@@ -57,20 +88,15 @@ int main(int argc, char** argv, char** env) {
 
     // parse the clock period, if provided
     double period = 10e-9;
-    const char* flag = contextp->commandArgsPlusMatch("period");
-    if (flag) {
-        std::string full = std::string(flag);
-        std::string prefix = "+period=";
-        size_t len = prefix.size();
-        // match requirements: there must be at least one character after
-        // the prefix, and the argument must start with the prefix,
-        // ignoring the last character of the prefix, which can be
-        // anything (typically "=" or "+")
-        if ((full.size() >= (len + 1)) && (full.substr(0, len - 1) == prefix.substr(0, len - 1))) {
-            std::string rest = std::string(flag).substr(len);
-            period = std::stod(rest);
-        }
-    }
+    const char* period_match = contextp->commandArgsPlusMatch("period");
+    parse_plusarg<double>(period_match, "period", period);
+
+    // parse the maximum simulation rate, if provided.  convert it to a target
+    // period in microseconds
+
+    double max_rate = -1;
+    const char* rate_match = contextp->commandArgsPlusMatch("max-rate");
+    parse_plusarg<double>(rate_match, "max-rate", max_rate);
 
     // convert the clock period an integer, scaling by the time precision
     uint64_t iperiod = std::round(period * std::pow(10.0, -1.0 * contextp->timeprecision()));
@@ -84,14 +110,29 @@ int main(int argc, char** argv, char** env) {
     // Set up Ctrl-C handler
     signal(SIGINT, sigint_handler);
 
+    // Optional delay before setting up main loop
+
+    double start_delay_value = -1;
+    const char* delay_match = contextp->commandArgsPlusMatch("start-delay");
+    parse_plusarg<double>(delay_match, "start-delay", start_delay_value);
+
+    start_delay(start_delay_value);
+
     // Main loop
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> tick, tock;
+
     while (!(contextp->gotFinish() || got_sigint)) {
+        auto tick = max_rate_tick(max_rate);
+
         contextp->timeInc(duration0);
         top->clk = 1;
         top->eval();
         contextp->timeInc(duration1);
         top->clk = 0;
         top->eval();
+
+        max_rate_tock(tick, max_rate);
     }
 
     // Final model cleanup

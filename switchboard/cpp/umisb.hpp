@@ -228,7 +228,8 @@ struct UmiTransaction {
 // higher-level functions for UMI transactions
 
 template <typename T>
-static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)(void) = NULL) {
+static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)(void) = NULL,
+    double max_rate = -1) {
 
     // sends (or tries to send, if blocking=false) a single UMI transaction
 
@@ -278,10 +279,18 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
 
     // finish sending the header packet
     if (!header_sent) {
-        while (!tx.send(p)) {
+        bool success = false;
+
+        while (!success) {
+            auto tick = max_rate_tick(max_rate);
+
+            success = tx.send(p);
+
             if (loop) {
                 loop();
             }
+
+            max_rate_tock(tick, max_rate);
         }
     }
 
@@ -290,7 +299,8 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
 }
 
 template <typename T>
-static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)(void) = NULL) {
+static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)(void) = NULL,
+    double max_rate = -1) {
 
     // if the receive side isn't active, there is nothing to receive
     if (!rx.is_active()) {
@@ -306,10 +316,18 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
             return false;
         }
     } else {
-        while (!rx.recv(p)) {
+        bool success = false;
+
+        while (!success) {
+            auto tick = max_rate_tick(max_rate);
+
+            success = rx.recv(p);
+
             if (loop) {
                 loop();
             }
+
+            max_rate_tock(tick, max_rate);
         }
     }
 
