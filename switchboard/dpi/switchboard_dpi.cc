@@ -102,17 +102,17 @@ void pi_start_delay(double value) {
     start_delay(value);
 }
 
-void pi_max_rate_tick(svBitVecVal* t_us, double max_rate) {
+void pi_max_rate_tick(svBitVecVal* t_us_vec, double max_rate) {
     // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
     // uses max_rate_tick in main(), not through DPI
-    long timestamp = max_rate_tick(max_rate);
-    memcpy(t_us, &timestamp, 8);  // timestamp is 64-bit
-}
 
-void pi_max_rate_tock(const svBitVecVal* t_us, double max_rate) {
-    // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
-    // uses max_rate_tock in main(), not through DPI
-    long timestamp;
-    memcpy(&timestamp, t_us, 8);  // timestamp is 64-bit
-    max_rate_tock(timestamp, max_rate);
+    // retrieve the previous timestamp
+    long t_us;
+    memcpy(&t_us, t_us_vec, 8);
+
+    // call the underlying switchboard function
+    max_rate_tick(t_us, max_rate);
+
+    // store the new timestamp
+    memcpy(t_us_vec, &t_us, 8);
 }

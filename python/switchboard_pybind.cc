@@ -417,15 +417,14 @@ class PySbTx {
             return m_tx.send(p);
         } else {
             bool success = false;
+            long t_us = -1;
 
             while (!success) {
-                auto tick = max_rate_tick(max_rate);
+                max_rate_tick(t_us, max_rate);
 
                 success = m_tx.send(p);
 
                 check_signals();
-
-                max_rate_tock(tick, max_rate);
             }
 
             return true;
@@ -463,15 +462,14 @@ class PySbRx {
             }
         } else {
             bool success = false;
-            
+            long t_us = -1;
+
             while (!success) {
-                auto tick = max_rate_tick(max_rate);
+                max_rate_tick(t_us, max_rate);
 
                 success = m_rx.recv(p);
 
                 check_signals();
-
-                max_rate_tock(tick, max_rate);
             }
         }
 
@@ -622,8 +620,10 @@ class PyUmi {
         int pb_state = 0;
 
         // send all of the data
+        long t_us = -1;
+
         while ((total_len > 0) || ((!posted) && (to_ack > 0))) {
-            auto tick = max_rate_tick(max_rate);
+            max_rate_tick(t_us, max_rate);
 
             if (total_len > 0) {
                 // try to send a write request
@@ -662,9 +662,6 @@ class PyUmi {
 
             // make sure there aren't outside signals trying to interrupt
             check_signals();
-
-            // delay if needed
-            max_rate_tock(tick, max_rate);
         }
         if (progressbar) {
             progressbar_done();
@@ -721,8 +718,10 @@ class PyUmi {
         uint32_t to_recv = num;
         uint64_t expected_addr = srcaddr;
 
+        long t_us = -1;
+
         while ((num > 0) || (to_recv > 0)) {
-            auto tick = max_rate_tick(max_rate);
+            max_rate_tick(t_us, max_rate);
 
             if (num > 0) {
                 // send read request
@@ -756,9 +755,6 @@ class PyUmi {
 
             // make sure there aren't outside signals trying to interrupt
             check_signals();
-
-            // delay if needed
-            max_rate_tock(tick, max_rate);
         }
 
         return result;

@@ -28,51 +28,33 @@ struct sb_packet {
     uint8_t data[SB_DATA_SIZE];
 } __attribute__((packed));
 
-static inline long max_rate_tick (double max_rate) {
-    if (max_rate > 0) {
-        // measure the time now
-
-        auto tick = std::chrono::high_resolution_clock::now();
-
-        // convert to a timestamp in microseconds since the epoch
-
-        long t_us = std::chrono::duration_cast<std::chrono::microseconds>(
-            tick.time_since_epoch()).count();
-
-        // return that timestamp
-
-        return t_us;            
-    } else {
-        // if max_rate is non-positive, that means that the rate-limiting
-        // feature is disabled, so we should just return as quickly as
-        // possible
-
-        return -1;
-    }
+static inline long max_rate_timestamp_us() {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
-static inline void max_rate_tock (long t_us, double max_rate) {
+static inline void max_rate_tick(long& last_us, double max_rate) {
     if (max_rate > 0) {
-        // convert timestamp back into a time point
-
-        auto tick = std::chrono::time_point<std::chrono::high_resolution_clock>(
-            std::chrono::microseconds(t_us));
-
         // measure the time now
 
-        auto tock = std::chrono::high_resolution_clock::now();
+        long now_us = max_rate_timestamp_us();
 
-        // measure the time delta
+        // sleep if needed
 
-        auto dt = tock - tick;
+        if (last_us != -1) {
+            long dt_us = now_us - last_us;
+            long min_period_us = (long)(1.0e6 / max_rate + 0.5);
 
-        // sleep if needed to hit the minimum period
-
-        auto min_period = std::chrono::microseconds((int)(1.0e6 / max_rate + 0.5));
-
-        if (dt < min_period) {
-            std::this_thread::sleep_for(min_period - dt);
+            if (dt_us < min_period_us) {
+                long sleep_us = min_period_us - dt_us;
+                std::this_thread::sleep_for(std::chrono::microseconds(sleep_us));
+            }
         }
+
+        // update the time stamp.  it is not enough to set last_us = now_us,
+        // due to the sleep_for invocation
+
+        last_us = max_rate_timestamp_us();
     }
 }
 
@@ -158,13 +140,12 @@ class SBTX : public SB_base {
 
     void send_blocking(sb_packet& p, double max_rate = -1) {
         bool success = false;
+        long t_us = -1;
 
         while (!success) {
-            auto tick = max_rate_tick(max_rate);
+            max_rate_tick(t_us, max_rate);
 
             success = send(p);
-
-            max_rate_tock(tick, max_rate);
 
             if ((!success) && (max_rate <= 0)) {
                 // maintain old behavior if max_rate isn't specified,
@@ -198,13 +179,12 @@ class SBRX : public SB_base {
 
     void recv_blocking(sb_packet& p, double max_rate = -1) {
         bool success = false;
+        long t_us = -1;
 
         while (!success) {
-            auto tick = max_rate_tick(max_rate);
+            max_rate_tick(t_us, max_rate);
 
             success = recv(p);
-
-            max_rate_tock(tick, max_rate);
 
             if ((!success) && (max_rate <= 0)) {
                 // maintain old behavior if max_rate isn't specified,

@@ -120,10 +120,10 @@ int main(int argc, char** argv, char** env) {
 
     // Main loop
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> tick, tock;
+    long t_us = -1;
 
     while (!(contextp->gotFinish() || got_sigint)) {
-        auto tick = max_rate_tick(max_rate);
+        max_rate_tick(t_us, max_rate);
 
         contextp->timeInc(duration0);
         top->clk = 1;
@@ -131,8 +131,6 @@ int main(int argc, char** argv, char** env) {
         contextp->timeInc(duration1);
         top->clk = 0;
         top->eval();
-
-        max_rate_tock(tick, max_rate);
     }
 
     // Final model cleanup

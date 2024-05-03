@@ -280,17 +280,16 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
     // finish sending the header packet
     if (!header_sent) {
         bool success = false;
+        long t_us = -1;
 
         while (!success) {
-            auto tick = max_rate_tick(max_rate);
+            max_rate_tick(t_us, max_rate);
 
             success = tx.send(p);
 
             if (loop) {
                 loop();
             }
-
-            max_rate_tock(tick, max_rate);
         }
     }
 
@@ -317,17 +316,16 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
         }
     } else {
         bool success = false;
+        long t_us = -1;
 
         while (!success) {
-            auto tick = max_rate_tick(max_rate);
+            max_rate_tick(t_us, max_rate);
 
             success = rx.recv(p);
 
             if (loop) {
                 loop();
             }
-
-            max_rate_tock(tick, max_rate);
         }
     }
 

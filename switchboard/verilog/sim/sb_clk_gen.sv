@@ -35,12 +35,7 @@ module sb_clk_gen #(
         );
 
         import "DPI-C" function void pi_max_rate_tick (
-            output [63:0] t_us,
-            input real max_rate
-        );
-
-        import "DPI-C" function void pi_max_rate_tock (
-            input [63:0] t_us,
+            inout signed [63:0] t_us,
             input real max_rate
         );
     `endif
@@ -64,7 +59,7 @@ module sb_clk_gen #(
     reg clk_r;
     assign clk = clk_r;
 
-    reg signed [63:0] t_us;
+    reg signed [63:0] t_us = -(64'sd1);
 
     initial begin
         `SB_EXT_FUNC(pi_start_delay)(start_delay);
@@ -77,8 +72,6 @@ module sb_clk_gen #(
 
             clk_r = 1'b1;
             `SB_DELAY(duty_cycle * period);
-
-            `SB_EXT_FUNC(pi_max_rate_tock)(t_us, max_rate);
         end
     end
 

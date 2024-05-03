@@ -92,13 +92,22 @@ def umi_loopback(
     try:
         txp = next(packets)
         if pbar is not None:
-            pbar.update()
+            pbar.update(0)
     except StopIteration:
         raise ValueError('The argument "packets" is empty.')
 
+    t_old = None
+
     while (txp is not None) or (len(tx_hist) > 0):
         if min_period is not None:
-            tick = time.time()
+            t_now = time.time()
+
+            if t_old is not None:
+                dt = t_now - t_old
+                if dt < min_period:
+                    time.sleep(min_period - dt)
+
+            t_old = time.time()
 
         # send data
         if txp is not None:
@@ -120,8 +129,6 @@ def umi_loopback(
 
                 try:
                     txp = next(packets)
-                    if pbar is not None:
-                        pbar.update()
                 except StopIteration:
                     txp = None
 
@@ -162,12 +169,8 @@ def umi_loopback(
                     rx_partial = None
                     rx_set = None
 
-        if min_period is not None:
-            tock = time.time()
-            dt = tock - tick
-
-            if dt < min_period:
-                time.sleep(min_period - dt)
+                    if pbar is not None:
+                        pbar.update()
 
     if pbar is not None:
         pbar.close()
