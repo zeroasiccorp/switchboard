@@ -17,7 +17,6 @@ from .umi import UmiTxRx, random_umi_packet
 def umi_loopback(
     umi: UmiTxRx,
     packets: Union[Integral, Iterable, Iterator] = 10,
-    max_rate: float = None,
     **kwargs
 ):
     """
@@ -68,12 +67,6 @@ def umi_loopback(
     else:
         raise TypeError(f'Unsupported type for packets: {type(packets)}')
 
-    if (max_rate is not None) and (max_rate > 0):
-        import time
-        min_period = 1 / max_rate
-    else:
-        min_period = None
-
     tx_sets = []  # kept for debug purposes
     tx_hist = []
 
@@ -96,19 +89,7 @@ def umi_loopback(
     except StopIteration:
         raise ValueError('The argument "packets" is empty.')
 
-    t_old = None
-
     while (txp is not None) or (len(tx_hist) > 0):
-        if min_period is not None:
-            t_now = time.time()
-
-            if t_old is not None:
-                dt = t_now - t_old
-                if dt < min_period:
-                    time.sleep(min_period - dt)
-
-            t_old = time.time()
-
         # send data
         if txp is not None:
             if umi.send(txp, blocking=False):

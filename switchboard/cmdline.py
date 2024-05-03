@@ -7,7 +7,7 @@ def get_cmdline_args(
     trace_type: str = 'vcd',
     frequency: float = 100e6,
     period: float = None,
-    max_rate: float = None,
+    max_rate: float = -1,
     start_delay: float = None,
     fast: bool = False,
     extra_args: dict = None
@@ -44,7 +44,8 @@ def get_cmdline_args(
     max_rate: float, optional
         If provided, the maximum real-world rate that the simulation is allowed to run
         at, in Hz.  Can be useful to encourage time-sharing between many processes and
-        for performance modeling when latencies are large and/or variable.
+        for performance modeling when latencies are large and/or variable.  A value of
+        "-1" means that the rate-limiting feature is disabled.
 
     start_delay: float, optional
         If provided, the real-world time to delay before the first clock tick in the

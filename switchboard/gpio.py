@@ -6,13 +6,12 @@ from .bitvector import BitVector
 
 
 class UmiGpioInput:
-    def __init__(self, width, dstaddr, srcaddr, max_bytes, umi, max_rate=None):
+    def __init__(self, width, dstaddr, srcaddr, max_bytes, umi):
         self.width = width
         self.dstaddr = dstaddr
         self.srcaddr = srcaddr
         self.max_bytes = max_bytes
         self.umi = umi
-        self.max_rate = max_rate
 
     def _read(self):
         # determine the number of bytes to read
@@ -27,8 +26,7 @@ class UmiGpioInput:
                 num_or_dtype=nbytes,
                 dtype=np.uint8,
                 srcaddr=self.srcaddr,
-                max_bytes=self.max_bytes,
-                max_rate=self.max_rate
+                max_bytes=self.max_bytes
             )
         )
 
@@ -44,14 +42,13 @@ class UmiGpioInput:
 
 
 class UmiGpioOutput:
-    def __init__(self, width, init, dstaddr, srcaddr, posted, max_bytes, umi, max_rate=None):
+    def __init__(self, width, init, dstaddr, srcaddr, posted, max_bytes, umi):
         self.width = width
         self.dstaddr = dstaddr
         self.srcaddr = srcaddr
         self.posted = posted
         self.max_bytes = max_bytes
         self.umi = umi
-        self.max_rate = max_rate
 
         self.bv = BitVector(init)
 
@@ -70,8 +67,7 @@ class UmiGpioOutput:
             data=self.bv.tobytes(n=nbytes),
             srcaddr=self.srcaddr,
             max_bytes=self.max_bytes,
-            posted=self.posted,
-            max_rate=self.max_rate
+            posted=self.posted
         )
 
     def __setitem__(self, key, value):
@@ -91,16 +87,14 @@ class UmiGpioOutput:
 
 
 class UmiGpio(object):
-    def __init__(self, iwidth, owidth, init, dstaddr, srcaddr, posted, max_bytes, umi,
-        max_rate=None):
+    def __init__(self, iwidth, owidth, init, dstaddr, srcaddr, posted, max_bytes, umi):
 
         self.i = UmiGpioInput(
             width=iwidth,
             dstaddr=dstaddr,
             srcaddr=srcaddr,
             max_bytes=max_bytes,
-            umi=umi,
-            max_rate=max_rate
+            umi=umi
         )
 
         self.o = UmiGpioOutput(
@@ -110,6 +104,5 @@ class UmiGpio(object):
             srcaddr=srcaddr,
             posted=posted,
             max_bytes=max_bytes,
-            umi=umi,
-            max_rate=max_rate
+            umi=umi
         )

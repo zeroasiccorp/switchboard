@@ -25,7 +25,7 @@ class AxiTxRx:
         max_beats: int = 256,
         resp_expected: str = 'OKAY',
         queue_suffix: str = '.q',
-        max_rate: float = None
+        max_rate: float = -1
     ):
         """
         Parameters
@@ -96,14 +96,13 @@ class AxiTxRx:
         self.default_size = size
         self.default_max_beats = max_beats
         self.default_resp_expected = resp_expected
-        self.default_max_rate = max_rate
 
         # create the queues
-        self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh)
-        self.w = PySbTx(f'{uri}-w{queue_suffix}', fresh=fresh)
-        self.b = PySbRx(f'{uri}-b{queue_suffix}', fresh=fresh)
-        self.ar = PySbTx(f'{uri}-ar{queue_suffix}', fresh=fresh)
-        self.r = PySbRx(f'{uri}-r{queue_suffix}', fresh=fresh)
+        self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.w = PySbTx(f'{uri}-w{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.b = PySbRx(f'{uri}-b{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.ar = PySbTx(f'{uri}-ar{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.r = PySbRx(f'{uri}-r{queue_suffix}', fresh=fresh, max_rate=max_rate)
 
     @property
     def strb_width(self):
@@ -117,8 +116,7 @@ class AxiTxRx:
         id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
-        resp_expected: str = None,
-        max_rate: float = None
+        resp_expected: str = None
     ):
         """
         Parameters
@@ -175,12 +173,6 @@ class AxiTxRx:
 
         if resp_expected is None:
             resp_expected = self.default_resp_expected
-
-        if max_rate is None:
-            max_rate = self.default_max_rate
-
-        if max_rate is None:
-            max_rate = -1  # i.e. if still None, set to -1
 
         # check/standardize data types
 
@@ -253,7 +245,7 @@ class AxiTxRx:
 
             # transmit the write address
             self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
-                len=beats - 1, id=id), True, max_rate)
+                len=beats - 1, id=id), True)
 
             for beat in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -277,14 +269,14 @@ class AxiTxRx:
                     last = 1
                 else:
                     last = 0
-                self.w.send(self.pack_w(data, strb=strb, last=last), True, max_rate)
+                self.w.send(self.pack_w(data, strb=strb, last=last), True)
 
                 # increment pointers
                 bytes_sent += bytes_this_beat
                 addr += bytes_this_beat
 
             # wait for response
-            resp, id = self.unpack_b(self.b.recv(True, max_rate))
+            resp, id = self.unpack_b(self.b.recv(True))
 
             # decode the response
             resp = decode_resp(resp)
@@ -305,8 +297,7 @@ class AxiTxRx:
         id: Integral = None,
         size: Integral = None,
         max_beats: Integral = None,
-        resp_expected: str = None,
-        max_rate: float = None
+        resp_expected: str = None
     ):
         """
         Parameters
@@ -370,12 +361,6 @@ class AxiTxRx:
         if resp_expected is None:
             resp_expected = self.default_resp_expected
 
-        if max_rate is None:
-            max_rate = self.default_max_rate
-
-        if max_rate is None:
-            max_rate = -1  # i.e. if still None, set to -1
-
         # check/standardize data types
 
         assert isinstance(addr, Integral), 'addr must be an integer'
@@ -431,7 +416,7 @@ class AxiTxRx:
 
             # transmit read address
             self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
-                len=beats - 1, id=id), True, max_rate)
+                len=beats - 1, id=id), True)
 
             for _ in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -442,7 +427,7 @@ class AxiTxRx:
                 bytes_this_beat = min(bytes_to_read - bytes_read, (1 << size) - offset)
 
                 # wait for response
-                data, resp, id, last = self.unpack_r(self.r.recv(True, max_rate))
+                data, resp, id, last = self.unpack_r(self.r.recv(True))
                 retval[bytes_read:bytes_read + bytes_this_beat] = \
                     data = data[offset:offset + bytes_this_beat]
 

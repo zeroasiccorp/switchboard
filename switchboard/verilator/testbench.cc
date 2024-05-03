@@ -121,9 +121,10 @@ int main(int argc, char** argv, char** env) {
     // Main loop
 
     long t_us = -1;
+    long min_period_us = (1.0e6 / max_rate) + 0.5;
 
     while (!(contextp->gotFinish() || got_sigint)) {
-        max_rate_tick(t_us, max_rate);
+        max_rate_tick(t_us, min_period_us);
 
         contextp->timeInc(duration0);
         top->clk = 1;

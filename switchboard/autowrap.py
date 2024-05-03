@@ -508,7 +508,7 @@ def normalize_intf_type(type):
         raise ValueError(f'Unsupported interface type: "{type}"')
 
 
-def create_intf_objs(intf_defs, fresh=True):
+def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
     intf_objs = {}
 
     umi_txrx = {}
@@ -534,6 +534,9 @@ def create_intf_objs(intf_defs, fresh=True):
 
                 if 'max_rate' in value:
                     umi_txrx[txrx]['max_rate'] = value['max_rate']
+                else:
+                    # use default if not set for this particular interface
+                    umi_txrx[txrx]['max_rate'] = max_rate
 
                 direction = value['direction']
 
@@ -544,9 +547,9 @@ def create_intf_objs(intf_defs, fresh=True):
                 else:
                     raise Exception(f'Unsupported UMI direction: {direction}')
             else:
-                intf_objs[name] = create_intf_obj(value, fresh=fresh)
+                intf_objs[name] = create_intf_obj(value, fresh=fresh, max_rate=max_rate)
         else:
-            intf_objs[name] = create_intf_obj(value, fresh=fresh)
+            intf_objs[name] = create_intf_obj(value, fresh=fresh, max_rate=max_rate)
 
     for key, value in umi_txrx.items():
         intf_objs[key] = UmiTxRx(**value, fresh=fresh)
@@ -554,15 +557,23 @@ def create_intf_objs(intf_defs, fresh=True):
     return intf_objs
 
 
-def create_intf_obj(value, fresh=True):
+def create_intf_obj(value, fresh=True, max_rate=-1):
     type = value['type']
     direction = value['direction']
 
     if type_is_sb(type):
+        kwargs = {}
+
+        if 'max_rate' in value:
+            kwargs['max_rate'] = value['max_rate']
+        else:
+            # use default if not set for this particular interface
+            kwargs['max_rate'] = max_rate
+
         if direction_is_input(direction):
-            obj = PySbTx(value['uri'], fresh=fresh)
+            obj = PySbTx(value['uri'], fresh=fresh, **kwargs)
         elif direction_is_output(direction):
-            obj = PySbRx(value['uri'], fresh=fresh)
+            obj = PySbRx(value['uri'], fresh=fresh, **kwargs)
         else:
             raise Exception(f'Unsupported SB direction: "{direction}"')
     elif type_is_umi(type):
@@ -570,6 +581,9 @@ def create_intf_obj(value, fresh=True):
 
         if 'max_rate' in value:
             kwargs['max_rate'] = value['max_rate']
+        else:
+            # use default if not set for this particular interface
+            kwargs['max_rate'] = max_rate
 
         if direction_is_input(direction):
             obj = UmiTxRx(tx_uri=value['uri'], fresh=fresh, **kwargs)
@@ -594,6 +608,9 @@ def create_intf_obj(value, fresh=True):
 
         if 'max_rate' in value:
             kwargs['max_rate'] = value['max_rate']
+        else:
+            # use default if not set for this particular interface
+            kwargs['max_rate'] = max_rate
 
         if direction_is_subordinate(direction):
             obj = AxiTxRx(uri=value['uri'], data_width=value['dw'],
@@ -608,6 +625,9 @@ def create_intf_obj(value, fresh=True):
 
         if 'max_rate' in value:
             kwargs['max_rate'] = value['max_rate']
+        else:
+            # use default if not set for this particular interface
+            kwargs['max_rate'] = max_rate
 
         if direction_is_subordinate(direction):
             obj = AxiLiteTxRx(uri=value['uri'], data_width=value['dw'],

@@ -21,7 +21,7 @@ class AxiLiteTxRx:
         prot: int = 0,
         resp_expected: str = 'OKAY',
         queue_suffix: str = '.q',
-        max_rate: float = None
+        max_rate: float = -1
     ):
         """
         Parameters
@@ -72,14 +72,13 @@ class AxiLiteTxRx:
         self.addr_width = addr_width
         self.default_prot = prot
         self.default_resp_expected = resp_expected
-        self.default_max_rate = max_rate
 
         # create the queues
-        self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh)
-        self.w = PySbTx(f'{uri}-w{queue_suffix}', fresh=fresh)
-        self.b = PySbRx(f'{uri}-b{queue_suffix}', fresh=fresh)
-        self.ar = PySbTx(f'{uri}-ar{queue_suffix}', fresh=fresh)
-        self.r = PySbRx(f'{uri}-r{queue_suffix}', fresh=fresh)
+        self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.w = PySbTx(f'{uri}-w{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.b = PySbRx(f'{uri}-b{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.ar = PySbTx(f'{uri}-ar{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.r = PySbRx(f'{uri}-r{queue_suffix}', fresh=fresh, max_rate=max_rate)
 
     @property
     def strb_width(self):
@@ -90,8 +89,7 @@ class AxiLiteTxRx:
         addr: Integral,
         data,
         prot: Integral = None,
-        resp_expected: str = None,
-        max_rate: float = None
+        resp_expected: str = None
     ):
         """
         Parameters
@@ -126,14 +124,6 @@ class AxiLiteTxRx:
 
         if resp_expected is None:
             resp_expected = self.default_resp_expected
-
-        if max_rate is None:
-            max_rate = self.default_max_rate
-
-        if max_rate is None:
-            max_rate = -1  # i.e. if still None set to -1
-
-        max_rate = float(max_rate)
 
         # check/standardize data types
 
@@ -205,17 +195,17 @@ class AxiLiteTxRx:
             pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
             pack = np.frombuffer(pack, dtype=np.uint8)
             pack = PySbPacket(data=pack, flags=1, destination=0)
-            self.aw.send(pack, True, max_rate)
+            self.aw.send(pack, True)
 
             # write data and strobe
             pack = np.empty((data_bytes + strb_bytes,), dtype=np.uint8)
             pack[offset:offset + bytes_this_cycle] = data_this_cycle
             pack[data_bytes:data_bytes + strb_bytes] = strb
             pack = PySbPacket(data=pack, flags=1, destination=0)
-            self.w.send(pack, True, max_rate)
+            self.w.send(pack, True)
 
             # wait for response
-            pack = self.b.recv(True, max_rate)
+            pack = self.b.recv(True)
             pack = pack.data.tobytes()
             pack = int.from_bytes(pack, 'little')
 
@@ -239,8 +229,7 @@ class AxiLiteTxRx:
         num_or_dtype,
         dtype=np.uint8,
         prot: Integral = None,
-        resp_expected: str = None,
-        max_rate: float = None
+        resp_expected: str = None
     ):
         """
         Parameters
@@ -281,14 +270,6 @@ class AxiLiteTxRx:
 
         if resp_expected is None:
             resp_expected = self.default_resp_expected
-
-        if max_rate is None:
-            max_rate = self.default_max_rate
-
-        if max_rate is None:
-            max_rate = -1  # i.e. if still None set to -1
-
-        max_rate = float(max_rate)
 
         # check/standardize data types
 
@@ -335,10 +316,10 @@ class AxiLiteTxRx:
             pack = pack.to_bytes((self.addr_width + 3 + 7) // 8, 'little')
             pack = np.frombuffer(pack, dtype=np.uint8)
             pack = PySbPacket(data=pack, flags=1, destination=0)
-            self.ar.send(pack, True, max_rate)
+            self.ar.send(pack, True)
 
             # wait for response
-            pack = self.r.recv(True, max_rate)
+            pack = self.r.recv(True)
             data = pack.data[offset:offset + bytes_this_cycle]
             resp = pack.data[data_bytes] & 0b11
 

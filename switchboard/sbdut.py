@@ -46,7 +46,7 @@ class SbDut(siliconcompiler.Chip):
         xyce: bool = False,
         frequency: float = 100e6,
         period: float = None,
-        max_rate: float = None,
+        max_rate: float = -1,
         start_delay: float = None,
         timeunit: str = None,
         timeprecision: str = None,
@@ -443,8 +443,11 @@ class SbDut(siliconcompiler.Chip):
 
         # set up interfaces if needed
 
+        if max_rate is None:
+            max_rate = self.max_rate
+
         if intf_objs:
-            self.intfs = create_intf_objs(self.intf_defs)
+            self.intfs = create_intf_objs(self.intf_defs, max_rate=max_rate)
 
         # set defaults
 
@@ -465,9 +468,6 @@ class SbDut(siliconcompiler.Chip):
 
         if period is None:
             period = self.period
-
-        if max_rate is None:
-            max_rate = self.max_rate
 
         if start_delay is None:
             start_delay = self.start_delay

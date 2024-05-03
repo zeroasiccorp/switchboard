@@ -307,22 +307,11 @@ struct PyUmiPacket {
 
 // check_signals() should be called within any loops where the C++
 // code is waiting for something to happen.  this ensures that
-// the binding doesn't hang after the user presses Ctrl-C.  the
-// value "100000" is a balance between responsiveness and speed:
-// setting it lower allows the binding to respond faster Ctrl-C,
-// but incurs more overhead due to more frequent invocation of
-// PyErr_CheckSignals().
+// the binding doesn't hang after the user presses Ctrl-C.
 
 void check_signals() {
-    static int count = 0;
-
-    if (count == 100000) {
-        count = 0;
-        if (PyErr_CheckSignals() != 0) {
-            throw pybind11::error_already_set();
-        }
-    } else {
-        count++;
+    if (PyErr_CheckSignals() != 0) {
+        throw pybind11::error_already_set();
     }
 }
 
@@ -373,17 +362,17 @@ struct PySbRxPcie {
 
 class PySbTx {
   public:
-    PySbTx(std::string uri = "", bool fresh = false) {
-        init(uri, fresh);
+    PySbTx(std::string uri = "", bool fresh = false, double max_rate = -1) {
+        init(uri, fresh, max_rate);
     }
 
-    void init(std::string uri, bool fresh = false) {
+    void init(std::string uri, bool fresh = false, double max_rate = -1) {
         if (uri != "") {
-            m_tx.init(uri, 0, fresh);
+            m_tx.init(uri, 0, fresh, max_rate);
         }
     }
 
-    bool send(const PySbPacket& py_packet, bool blocking = true, double max_rate = -1) {
+    bool send(const PySbPacket& py_packet, bool blocking = true) {
         // if blocking=true (default), this function will keep trying
         // to send a packet until it is successful, at which point the
         // function returns "true".  otherwise, the send will only be
@@ -416,14 +405,7 @@ class PySbTx {
         if (!blocking) {
             return m_tx.send(p);
         } else {
-            bool success = false;
-            long t_us = -1;
-
-            while (!success) {
-                max_rate_tick(t_us, max_rate);
-
-                success = m_tx.send(p);
-
+            while (!m_tx.send(p)) {
                 check_signals();
             }
 
@@ -439,17 +421,17 @@ class PySbTx {
 
 class PySbRx {
   public:
-    PySbRx(std::string uri = "", bool fresh = false) {
-        init(uri, fresh);
+    PySbRx(std::string uri = "", bool fresh = false, double max_rate = -1) {
+        init(uri, fresh, max_rate);
     }
 
-    void init(std::string uri, bool fresh = false) {
+    void init(std::string uri, bool fresh = false, double max_rate = -1) {
         if (uri != "") {
-            m_rx.init(uri, 0, fresh);
+            m_rx.init(uri, 0, fresh, max_rate);
         }
     }
 
-    std::unique_ptr<PySbPacket> recv(bool blocking = true, double max_rate = -1) {
+    std::unique_ptr<PySbPacket> recv(bool blocking = true) {
         // if blocking=true (default), this function will keep trying to
         // receive a packet until it gets one, returning the result as
         // a PySbPacket.  otherwise, it will try just once, returning
@@ -461,14 +443,7 @@ class PySbRx {
                 return nullptr;
             }
         } else {
-            bool success = false;
-            long t_us = -1;
-
-            while (!success) {
-                max_rate_tick(t_us, max_rate);
-
-                success = m_rx.recv(p);
-
+            while (!m_rx.recv(p)) {
                 check_signals();
             }
         }
@@ -520,34 +495,34 @@ static inline void progressbar_done(void) {
 
 class PyUmi {
   public:
-    PyUmi(std::string tx_uri = "", std::string rx_uri = "", bool fresh = false) {
-        init(tx_uri, rx_uri, fresh);
+    PyUmi(std::string tx_uri = "", std::string rx_uri = "", bool fresh = false,
+        double max_rate = -1) {
+        init(tx_uri, rx_uri, fresh, max_rate);
     }
 
-    void init(std::string tx_uri, std::string rx_uri, bool fresh = false) {
+    void init(std::string tx_uri, std::string rx_uri, bool fresh = false, double max_rate = -1) {
         if (tx_uri != "") {
-            m_tx.init(tx_uri, 0, fresh);
+            m_tx.init(tx_uri, 0, fresh, max_rate);
         }
         if (rx_uri != "") {
-            m_rx.init(rx_uri, 0, fresh);
+            m_rx.init(rx_uri, 0, fresh, max_rate);
         }
     }
 
-    bool send(PyUmiPacket& py_packet, bool blocking = true, double max_rate = -1) {
+    bool send(PyUmiPacket& py_packet, bool blocking = true) {
         // sends (or tries to send, if blocking=false) a single UMI transaction
         // if length of the data payload in the packet is greater than
         // what can be sent in a header packet, then a header packet is sent
         // containing the beginning of the data, followed by the rest in
         // subsequent burst packets.
 
-        return umisb_send<PyUmiPacket>(py_packet, m_tx, blocking, &check_signals, max_rate);
+        return umisb_send<PyUmiPacket>(py_packet, m_tx, blocking, &check_signals);
     }
 
-    std::unique_ptr<PyUmiPacket> recv(bool blocking = true, double max_rate = -1) {
+    std::unique_ptr<PyUmiPacket> recv(bool blocking = true) {
         // try to receive a transaction
         std::unique_ptr<PyUmiPacket> resp = std::unique_ptr<PyUmiPacket>(new PyUmiPacket());
-        bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals,
-            max_rate);
+        bool success = umisb_recv<PyUmiPacket>(*resp.get(), m_rx, blocking, &check_signals);
 
         // if we got something, return it, otherwise return a null pointer
         if (success) {
@@ -559,8 +534,7 @@ class PyUmi {
 
     void write(uint64_t addr, py::array data, uint64_t srcaddr = 0,
         uint32_t max_bytes = UMI_PACKET_DATA_BYTES, bool posted = false, uint32_t qos = 0,
-        uint32_t prot = 0, bool progressbar = false, bool error = true,
-        double max_rate = -1) {
+        uint32_t prot = 0, bool progressbar = false, bool error = true) {
 
         // write data to the given address.  data can be of any length,
         // including greater than the length of a header packet and
@@ -620,11 +594,7 @@ class PyUmi {
         int pb_state = 0;
 
         // send all of the data
-        long t_us = -1;
-
         while ((total_len > 0) || ((!posted) && (to_ack > 0))) {
-            max_rate_tick(t_us, max_rate);
-
             if (total_len > 0) {
                 // try to send a write request
                 uint32_t len = std::min(total_len, max_len);
@@ -670,7 +640,7 @@ class PyUmi {
 
     py::array read(uint64_t addr, uint32_t num, size_t bytes_per_elem, uint64_t srcaddr = 0,
         uint32_t max_bytes = UMI_PACKET_DATA_BYTES, uint32_t qos = 0, uint32_t prot = 0,
-        bool error = true, double max_rate = -1) {
+        bool error = true) {
 
         // read "num" bytes from the given address.  "num" may be any value,
         // including greater than the length of a header packet, and values
@@ -718,11 +688,7 @@ class PyUmi {
         uint32_t to_recv = num;
         uint64_t expected_addr = srcaddr;
 
-        long t_us = -1;
-
         while ((num > 0) || (to_recv > 0)) {
-            max_rate_tick(t_us, max_rate);
-
             if (num > 0) {
                 // send read request
                 uint32_t len = std::min(num, max_len);
@@ -761,8 +727,7 @@ class PyUmi {
     }
 
     py::array atomic(uint64_t addr, py::array_t<uint8_t> data, uint32_t opcode,
-        uint64_t srcaddr = 0, uint32_t qos = 0, uint32_t prot = 0, bool error = true,
-        double max_rate = -1) {
+        uint64_t srcaddr = 0, uint32_t qos = 0, uint32_t prot = 0, bool error = true) {
         // input validation
 
         uint32_t num = data.nbytes();
@@ -788,11 +753,11 @@ class PyUmi {
         PyUmiPacket request(cmd, addr, srcaddr, data);
 
         // send the request
-        umisb_send<PyUmiPacket>(request, m_tx, true, &check_signals, max_rate);
+        umisb_send<PyUmiPacket>(request, m_tx, true, &check_signals);
 
         // get the response
         PyUmiPacket resp;
-        umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals, max_rate);
+        umisb_recv<PyUmiPacket>(resp, m_rx, true, &check_signals);
 
         // check that the response makes sense
         umisb_check_resp(resp, UMI_RESP_READ, size, 1, srcaddr, error);
@@ -1005,18 +970,19 @@ PYBIND11_MODULE(_switchboard, m) {
         .def(py::self != py::self);
 
     py::class_<PySbTx>(m, "PySbTx")
-        .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
+        .def(py::init<std::string, bool, double>(), py::arg("uri") = "", py::arg("fresh") = false,
+            py::arg("max_rate") = -1)
         .def("init", &PySbTx::init, PySbTx_init_docstring, py::arg("uri") = "",
-            py::arg("fresh") = false)
+            py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("send", &PySbTx::send, PySbTx_send_docstring, py::arg("py_packet"),
-            py::arg("blocking") = true, py::arg("max_rate") = -1);
+            py::arg("blocking") = true);
 
     py::class_<PySbRx>(m, "PySbRx")
-        .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
+        .def(py::init<std::string, bool, double>(), py::arg("uri") = "", py::arg("fresh") = false,
+            py::arg("max_rate") = -1)
         .def("init", &PySbRx::init, PySbRx_init_docstring, py::arg("uri") = "",
-            py::arg("fresh") = false)
-        .def("recv", &PySbRx::recv, PySbRx_recv_docstring, py::arg("blocking") = true,
-            py::arg("max_rate") = -1);
+            py::arg("fresh") = false, py::arg("max_rate") = -1)
+        .def("recv", &PySbRx::recv, PySbRx_recv_docstring, py::arg("blocking") = true);
 
     py::class_<PySbTxPcie>(m, "PySbTxPcie")
         .def(py::init<std::string, int, int, std::string>(), py::arg("uri") = "",
@@ -1031,25 +997,23 @@ PYBIND11_MODULE(_switchboard, m) {
             py::arg("bar_num") = 0, py::arg("bdf") = "");
 
     py::class_<PyUmi>(m, "PyUmi")
-        .def(py::init<std::string, std::string, bool>(), py::arg("tx_uri") = "",
-            py::arg("rx_uri") = "", py::arg("fresh") = false)
+        .def(py::init<std::string, std::string, bool, double>(), py::arg("tx_uri") = "",
+            py::arg("rx_uri") = "", py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("init", &PyUmi::init, PyUmi_init_docstring, py::arg("tx_uri") = "",
-            py::arg("rx_uri") = "", py::arg("fresh") = false)
+            py::arg("rx_uri") = "", py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("send", &PyUmi::send, PyUmi_send_docstring, py::arg("py_packet"),
-            py::arg("blocking") = true, py::arg("max_rate") = -1)
-        .def("recv", &PyUmi::recv, PyUmi_recv_docstring, py::arg("blocking") = true,
-            py::arg("max_rate") = -1)
+            py::arg("blocking") = true)
+        .def("recv", &PyUmi::recv, PyUmi_recv_docstring, py::arg("blocking") = true)
         .def("write", &PyUmi::write, PyUmi_write_docstring, py::arg("addr"), py::arg("data"),
             py::arg("srcaddr") = 0, py::arg("max_bytes") = 32, py::arg("posted") = false,
             py::arg("qos") = 0, py::arg("prot") = 0, py::arg("progressbar") = false,
-            py::arg("error") = true, py::arg("max_rate") = -1)
+            py::arg("error") = true)
         .def("read", &PyUmi::read, PyUmi_read_docstring, py::arg("addr"), py::arg("num"),
             py::arg("bytes_per_elem") = 1, py::arg("srcaddr") = 0, py::arg("max_bytes") = 32,
-            py::arg("qos") = 0, py::arg("prot") = 0, py::arg("error") = true,
-            py::arg("max_rate") = -1)
+            py::arg("qos") = 0, py::arg("prot") = 0, py::arg("error") = true)
         .def("atomic", &PyUmi::atomic, PyUmi_atomic_docstring, py::arg("addr"), py::arg("data"),
             py::arg("opcode"), py::arg("srcaddr") = 0, py::arg("qos") = 0, py::arg("prot") = 0,
-            py::arg("error") = true, py::arg("max_rate") = -1);
+            py::arg("error") = true);
 
     m.def("umi_opcode_to_str", &umi_opcode_to_str,
         "Returns a string representation of a UMI opcode");

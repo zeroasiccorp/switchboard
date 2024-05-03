@@ -36,7 +36,7 @@ module sb_clk_gen #(
 
         import "DPI-C" function void pi_max_rate_tick (
             inout signed [63:0] t_us,
-            input real max_rate
+            input signed [63:0] min_period_us
         );
     `endif
 
@@ -47,11 +47,19 @@ module sb_clk_gen #(
     real max_rate = DEFAULT_MAX_RATE;
     real start_delay = DEFAULT_START_DELAY;
 
+    reg signed [63:0] t_us = -(64'sd1);
+    reg signed [63:0] min_period_us = -(64'sd1);
+
     initial begin
         void'($value$plusargs("period=%f", period));
         void'($value$plusargs("duty-cycle=%f", duty_cycle));
-        void'($value$plusargs("max-rate=%f", max_rate));
         void'($value$plusargs("start-delay=%f", start_delay));
+
+        void'($value$plusargs("max-rate=%f", max_rate));
+
+        if (max_rate > 0) begin
+            min_period_us = 1.0e6 / max_rate;  // rounds according to LRM
+        end
     end
 
     // main clock generation code
@@ -59,13 +67,11 @@ module sb_clk_gen #(
     reg clk_r;
     assign clk = clk_r;
 
-    reg signed [63:0] t_us = -(64'sd1);
-
     initial begin
         `SB_EXT_FUNC(pi_start_delay)(start_delay);
 
         forever begin
-            `SB_EXT_FUNC(pi_max_rate_tick)(t_us, max_rate);
+            `SB_EXT_FUNC(pi_max_rate_tick)(t_us, min_period_us);
 
             clk_r = 1'b0;
             `SB_DELAY((1.0 - duty_cycle) * period);
