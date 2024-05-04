@@ -11,8 +11,8 @@ int main() {
 
     // initialize connections
 
-    tx.init("in.q");
-    rx.init("out.q");
+    tx.init("to_rtl.q");
+    rx.init("from_rtl.q");
 
     // form packet
 

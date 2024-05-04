@@ -7,31 +7,21 @@
 
 import sys
 import numpy as np
-from pathlib import Path
-from switchboard import PySbPacket, SbDut
-
-THIS_DIR = Path(__file__).resolve().parent
-COMMON_DIR = THIS_DIR.parent / 'common'
+from switchboard import PySbPacket, PySbTx, PySbRx, SbDut
 
 
 def main():
     # build the simulator
-
-    interfaces = {
-        'in': dict(type='sb', direction='input'),
-        'out': dict(type='sb', direction='output')
-    }
-
-    dut = SbDut('sb_loopback', autowrap=True, cmdline=True, interfaces=interfaces)
-    dut.input(COMMON_DIR / 'verilog' / 'sb_loopback.v')
+    dut = SbDut(cmdline=True)
+    dut.input('testbench.sv')
     dut.build()
 
-    # start chip simulation
-    dut.simulate()
+    # create queues
+    tx = PySbTx('to_rtl.q', fresh=True)
+    rx = PySbRx('from_rtl.q', fresh=True)
 
-    # accesss queues
-    tx = dut.intfs['in']
-    rx = dut.intfs['out']
+    # start chip simulation
+    chip = dut.simulate()
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
@@ -60,6 +50,11 @@ def main():
     # check that the received data
 
     success = np.array_equal(rxp.data, txp.data + 1)
+
+    # stop simulation
+
+    tx.send(PySbPacket(data=np.array([0xff] * 32, dtype=np.uint8)))
+    chip.wait()
 
     # declare test as having passed for regression testing purposes
 

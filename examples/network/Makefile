@@ -7,7 +7,7 @@ verilator:
 
 .PHONY: icarus
 icarus:
-	./test.py --tool icarus
+	./test.py --tool icarus --start-delay 1 --max-rate 1e3
 
 .PHONY: clean
 clean:

@@ -13,11 +13,11 @@
 int main() {
     // initialize tx connection
     SBTX tx;
-    tx.init("udev_req.q");
+    tx.init("to_rtl.q");
 
     // initialize rx connection
     SBRX rx;
-    rx.init("udev_resp.q");
+    rx.init("from_rtl.q");
 
     // packet structure used for sending/receiving
     sb_packet p;
