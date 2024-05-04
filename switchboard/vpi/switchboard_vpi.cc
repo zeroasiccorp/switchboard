@@ -383,7 +383,7 @@ PLI_INT32 pi_max_rate_tick(PLI_BYTE8* userdata) {
     {
         t_vpi_value argval;
         argval.format = vpiVectorVal;
-        s_vpi_vecval vecval[2];  // two 32-bit words
+        s_vpi_vecval vecval[2]; // two 32-bit words
         argval.value.vector = vecval;
 
         argval.value.vector[0].aval = t_us & 0xffffffff;

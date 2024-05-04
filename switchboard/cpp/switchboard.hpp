@@ -5,10 +5,10 @@
 #define __SWITCHBOARD_HPP__
 
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <stdexcept>
 #include <string>
-#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -30,7 +30,8 @@ struct sb_packet {
 
 static inline long max_rate_timestamp_us() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+        std::chrono::high_resolution_clock::now().time_since_epoch())
+        .count();
 }
 
 static inline void max_rate_tick(long& last_us, long min_period_us) {
@@ -200,7 +201,7 @@ class SBRX : public SB_base {
                 // i.e. yield on every iteration that the send isn't
                 // successful
                 std::this_thread::yield();
-            }            
+            }
         }
     }
 
