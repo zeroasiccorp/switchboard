@@ -596,13 +596,29 @@ def addr_aligned(addr: Integral, align: Integral) -> bool:
 def random_int_value(name, value, min, max, align=None):
     # determine the length of the transaction
 
-    if value is None:
-        value = random.randint(min, max)
+    if isinstance(value, range) or (value is None):
+        if isinstance(value, range):
+            a = value.start
+            b = value.stop - 1
+        else:
+            a = min
+            b = max
+
+        value = random.randint(a, b)
+
         if align is not None:
             value >>= align
             value <<= align
-    elif isinstance(value, Iterable):
+    elif isinstance(value, (list, tuple, np.ndarray)):
         value = random.choice(value)
+
+        if isinstance(value, (range, list, tuple)):
+            # if we happen to pick a range object from the list/tuple, then run this
+            # function on the range object.  this allows users to specify a collection
+            # of values and ranges to efficiently represent a discontinuous space
+            # of options.  it is also possible to have lists of lists of ranges, to
+            # adjust the probabilities of drawing from each range
+            return random_int_value(name=name, value=value, min=min, max=max, align=align)
 
     # validate result
 
