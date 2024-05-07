@@ -19,8 +19,6 @@ module umi_to_queue_sim #(
     input valid
 );
 
-    // TODO: support burst mode (through "last")
-
     sb_to_queue_sim #(
         .READY_MODE_DEFAULT(READY_MODE_DEFAULT),
         .DW(DW+AW+AW+CW),
@@ -29,7 +27,7 @@ module umi_to_queue_sim #(
         .clk(clk),
         .data({data, srcaddr, dstaddr, cmd}),
         .dest({16'h0000, dstaddr[55:40]}),
-        .last(1'b1),
+        .last(cmd[22]),
         .ready(ready),
         .valid(valid)
     );
