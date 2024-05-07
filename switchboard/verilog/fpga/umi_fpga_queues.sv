@@ -106,11 +106,13 @@ module umi_fpga_queues #(
 
     wire [NUM_TX_QUEUES*SB_DW-1:0] sb_tx_data;
     wire [NUM_TX_QUEUES*32-1:0] sb_tx_dest;
+    wire [NUM_TX_QUEUES-1:0] sb_tx_last;
     for (i = 0; i < NUM_TX_QUEUES; i = i + 1) begin
         assign sb_tx_data[i*SB_DW+:SB_DW] = {
             tx_data[i*DW+:DW], tx_srcaddr[i*AW+:AW], tx_dstaddr[i*AW+:AW], tx_cmd[i*CW+:CW]
         };
         assign sb_tx_dest[i*32+:32] = {16'h0000, tx_dstaddr[i*AW+55:i*AW+40]};
+        assign sb_tx_last[i] = tx_cmd[(i*CW)+22];
     end
 
     sb_fpga_queues #(
@@ -131,8 +133,7 @@ module umi_fpga_queues #(
 
         .tx_data(sb_tx_data),
         .tx_dest(sb_tx_dest),
-        // TODO: support burst mode
-        .tx_last({NUM_TX_QUEUES{1'b1}}),
+        .tx_last(sb_tx_last),
         .tx_ready(tx_ready),
         .tx_valid(tx_valid),
 
