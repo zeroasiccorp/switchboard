@@ -38,10 +38,12 @@ def tcp2sb(outputs, conn):
         p = bytes2sb(data_rx_from_tcp)
 
         # figure out which queue this packet is going to
-        sbtx = outputs[p.destination]
-
-        # send the packet
-        sbtx.send(p)
+        for rule, output in outputs:
+            if rule_matches(rule, p.destination):
+                output.send(p)
+                break
+        else:
+            raise Exception(f"No rule for destination {p.destination}")
 
 
 def sb2tcp(inputs, conn):
@@ -109,8 +111,8 @@ def run_server(outputs, host, port=0, quiet=False, max_rate=None, run_once=False
     """
 
     # initialize TX objects if needed
-    outputs = {k: convert_to_queue(q=v, cls=PySbTx, max_rate=max_rate)
-        for k, v in outputs.items()}
+    outputs = [(rule, convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate))
+        for rule, output in outputs]
 
     # create the server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -161,6 +163,44 @@ def convert_to_queue(q, cls, max_rate=None):
         raise TypeError(f'{q} must be a string or {cls.__name__}; got {type(q)}')
 
 
+def rule_matches(rule, addr):
+    if rule == '*':
+        return True
+    elif isinstance(rule, int):
+        return addr == rule
+    elif isinstance(rule, range):
+        return rule.start <= addr < rule.stop
+    elif isinstance(rule, (list, tuple)):
+        # return True if any subrules match
+        for subrule in rule:
+            if rule_matches(subrule, addr):
+                return True
+
+        # otherwise return False
+        return False
+    else:
+        raise Exception(f'Unsupported rule type: {type(rule)}')
+
+
+def parse_rule(rule):
+    subrules = rule.split(',')
+
+    retval = []
+
+    for subrule in subrules:
+        if subrule == '*':
+            retval.append('*')
+        elif '-' in subrule:
+            start, stop = subrule.split('-')
+            start = int(start)
+            stop = int(stop)
+            retval.append(range(start, stop + 1))
+        else:
+            retval.append(int(subrule))
+
+    return retval
+
+
 def start_tcp_bridge(inputs=None, outputs=None, host='localhost', port=5555,
     quiet=True, max_rate=None):
 
@@ -192,9 +232,10 @@ def get_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--outputs', type=str, default=None, nargs='+', help="Space-separated"
-        " dictionary of queues to write to.  For example, 0:a.q 1:b.q means that packets sent"
-        " to destination 0 are routed to a.q, while packets sent to desination 1 are routed"
-        " to b.q")
+        " dictionary of queues to write to.  For example, 0:a.q 1-2:b.q 3,5-7:c.q *:d.q means"
+        " that packets sent to destination 0 are routed to a.q, packets sent to destinations 1"
+        " or 2 are routed to b.q, packets sent to destinations 3, 5, 6, or 7 are routed to c.q,"
+        " and all other packets are routed to d.q")
     parser.add_argument('--inputs', type=str, default=None, nargs='+', help="Space-separated"
         " list of queues to read from, for example a.q b.q c.q")
     parser.add_argument('--port', type=int, default=5555, help="TCP port used for"
@@ -220,10 +261,10 @@ def main():
 
     if args.outputs is not None:
         # parse the output mapping
-        outputs = {}
+        outputs = []
         for output in args.outputs:
-            k, v = output.split(':')
-            outputs[int(k)] = v
+            rule, output = output.split(':')
+            outputs.append((parse_rule(rule), output))
 
         run_server(outputs=outputs, host=args.host, port=args.port,
             quiet=args.q, max_rate=args.max_rate, run_once=args.run_once)

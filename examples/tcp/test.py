@@ -17,12 +17,12 @@ def main(txq='tx.q', rxq='rx.q'):
 
     # start TCP bridges
     start_tcp_bridge(inputs=[txq])
-    start_tcp_bridge(outputs={0: rxq})
+    start_tcp_bridge(outputs=[('*', rxq)])
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later
     txp = PySbPacket(
-        destination=0,
+        destination=123456789,
         flags=1,
         data=np.arange(32, dtype=np.uint8)
     )
