@@ -40,6 +40,11 @@ jobs:
           cat out.log
           grep -Fxq "PASS" out.log
 
+      - name: Run TCP tests
+        working-directory: tests
+        run: |
+          make TCP=1
+
   fpga_sim:
     name: FPGA queue simulation
     runs-on: ubuntu-latest

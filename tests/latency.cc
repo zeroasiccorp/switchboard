@@ -21,20 +21,16 @@ int main(int argc, char* argv[]) {
     }
 
     // determine the RX port
-    const char* rx_arg = "5555";
+    const char* rx_port = "queue-0";
     if (arg_idx < argc) {
-        rx_arg = argv[arg_idx++];
+        rx_port = argv[arg_idx++];
     }
-    char rx_port[128];
-    sprintf(rx_port, "queue-%s", rx_arg);
 
     // determine the TX port
-    const char* tx_arg = "5555";
+    const char* tx_port = "queue-1";
     if (arg_idx < argc) {
-        tx_arg = argv[arg_idx++];
+        tx_port = argv[arg_idx++];
     }
-    char tx_port[128];
-    sprintf(tx_port, "queue-%s", tx_arg);
 
     int iterations = 10000000;
     if (arg_idx < argc) {
@@ -73,9 +69,16 @@ int main(int argc, char* argv[]) {
         // print output to make sure it is not optimized away
         printf("Output: {");
         for (int i = 0; i < 8; i++) {
-            printf("%0d", *((uint32_t*)(&p.data[4 * i])));
+            // print next entry
+            uint32_t out = *((uint32_t*)(&p.data[4 * i]));
+            printf("%0d", out);
             if (i != 7) {
                 printf(", ");
+            }
+
+            // check entry
+            if (out != (2 * iterations)) {
+                throw std::runtime_error("MISMATCH");
             }
         }
         printf("}\n");
@@ -86,8 +89,18 @@ int main(int argc, char* argv[]) {
             1.0e-6 *
             (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
 
+        printf("Latency: ");
         double latency = t / (1.0 * iterations);
-        printf("Latency: %0.1f ns\n", latency * 1.0e9);
+        if (latency < 1e-6) {
+            printf("%0.1f ns", latency * 1.0e9);
+        } else if (latency < 1e-3) {
+            printf("%0.1f us", latency * 1.0e6);
+        } else if (latency < 1) {
+            printf("%0.1f ms", latency * 1.0e3);
+        } else {
+            printf("%0.1f s", latency);
+        }
+        printf("\n");
     } else {
         while (count < iterations) {
             // busy-loop for minimum latency
