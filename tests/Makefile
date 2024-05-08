@@ -4,9 +4,15 @@
 TOPDIR=..
 include $(TOPDIR)/Rules.mk
 
-MODE ?= queue
+TESTS := hello bandwidth latency
 
-test: torture
+ifeq ($(TCP),1)
+	OPTIONS += --tcp
+else
+	TESTS += torture
+endif
+
+test: $(TESTS)
 
 TARGETS += hello.out
 TARGETS += bandwidth.out
@@ -21,15 +27,15 @@ CPPFLAGS += -MMD
 
 .PHONY: hello
 hello: hello.out
-	./test.py --test hello
+	./test.py --test hello $(OPTIONS)
 
 .PHONY: bandwidth
 bandwidth: bandwidth.out
-	./test.py --test bandwidth
+	./test.py --test bandwidth $(OPTIONS)
 
 .PHONY: latency
 latency: latency.out
-	./test.py --test latency
+	./test.py --test latency $(OPTIONS)
 
 .PHONY: torture
 torture: torture.out
