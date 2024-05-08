@@ -2,6 +2,7 @@
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 #include "switchboard.hpp"
+#include <stdexcept>
 
 #define NBYTES 32
 
@@ -29,12 +30,10 @@ int main(int argc, char* argv[]) {
 
     // determine the communication port to use
 
-    const char* arg = "5555";
+    const char* port = "queue-0";
     if (arg_idx < argc) {
-        arg = argv[arg_idx++];
+        port = argv[arg_idx++];
     }
-    char port[128];
-    sprintf(port, "queue-%s", arg);
 
     if (is_tx) {
         SBTX tx;
@@ -45,11 +44,7 @@ int main(int argc, char* argv[]) {
         p.destination = 0xbeefcafe;
         p.last = true;
         for (int i = 0; i < NBYTES; i++) {
-            p.data[i] = 0;
-            for (int j = 0; j < 2; j++) {
-                p.data[i] <<= 4;
-                p.data[i] |= (i + j) % 16;
-            }
+            p.data[i] = i;
         }
 
         // send packet
@@ -64,6 +59,18 @@ int main(int argc, char* argv[]) {
 
         // print packet
         printf("%s\n", sb_packet_to_str(p, NBYTES).c_str());
+
+        // check destination
+        if (p.destination != 0xbeefcafe) {
+            throw std::runtime_error("MISMATCH");
+        }
+
+        // check data
+        for (int i = 0; i < NBYTES; i++) {
+            if (p.data[i] != i) {
+                throw std::runtime_error("MISMATCH");
+            }
+        }
     }
 
     return 0;

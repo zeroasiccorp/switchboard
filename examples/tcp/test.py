@@ -10,14 +10,14 @@ import numpy as np
 from switchboard import PySbPacket, PySbTx, PySbRx, start_tcp_bridge
 
 
-def main(rxq='rx.q', txq='tx.q'):
+def main(txq='tx.q', rxq='rx.q'):
     # create queues
-    tx = PySbTx(rxq, fresh=True)
-    rx = PySbRx(txq, fresh=True)
+    tx = PySbTx(txq, fresh=True)
+    rx = PySbRx(rxq, fresh=True)
 
     # start TCP bridges
-    start_tcp_bridge(mode='server', rx=rxq)
-    start_tcp_bridge(mode='client', tx=txq)
+    start_tcp_bridge(inputs=[txq])
+    start_tcp_bridge(outputs=[('*', rxq)])
 
     # form packet to be sent into the simulation.  note that the arguments
     # to the constructor are all optional, and can all be specified later

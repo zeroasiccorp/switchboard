@@ -23,12 +23,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    const char* arg = "5555";
+    const char* port = "queue-0";
     if (arg_idx < argc) {
-        arg = argv[arg_idx++];
+        port = argv[arg_idx++];
     }
-    char port[128];
-    sprintf(port, "queue-%s", arg);
 
     int iterations = 10000000;
     if (arg_idx < argc) {
@@ -86,6 +84,11 @@ int main(int argc, char* argv[]) {
         // print output to make sure it is not optimized away
         printf("Output: %d\n", out);
 
+        // check output
+        if (out != iterations) {
+            throw std::runtime_error("MISMATCH");
+        }
+
         // stop measuring time taken
         std::chrono::steady_clock::time_point stop_time = std::chrono::steady_clock::now();
         double t =
@@ -94,7 +97,17 @@ int main(int argc, char* argv[]) {
 
         // print bandwidth
         double rate = (1.0 * iterations) / t;
-        printf("Rate: %0.3f MT/s\n", rate * 1e-6);
+        printf("Rate: ");
+        if (rate > 1e9) {
+            printf("%0.1f GT/s\n", rate * 1e-9);
+        } else if (rate > 1e6) {
+            printf("%0.1f MT/s\n", rate * 1e-6);
+        } else if (rate > 1e3) {
+            printf("%0.1f KT/s\n", rate * 1e-3);
+        } else {
+            printf("%0.1f T/s\n", rate);
+        }
+        printf("\n");
     }
 
     return 0;
