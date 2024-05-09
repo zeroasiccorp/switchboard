@@ -28,7 +28,6 @@ from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets,
 from .cmdline import get_cmdline_args
 
 import siliconcompiler
-from siliconcompiler.flows import dvflow
 
 SB_DIR = sb_path()
 
@@ -62,7 +61,9 @@ class SbDut(siliconcompiler.Chip):
         tieoffs=None,
         buildroot=None,
         builddir=None,
-        args=None
+        args=None,
+        subcomponent=False,
+        suffix=None
     ):
         """
         Parameters
@@ -137,7 +138,7 @@ class SbDut(siliconcompiler.Chip):
 
         # call the super constructor
 
-        if autowrap:
+        if autowrap and (not subcomponent):
             toplevel = 'testbench'
         else:
             toplevel = design
@@ -197,6 +198,8 @@ class SbDut(siliconcompiler.Chip):
         self.resets = normalize_resets(resets)
         self.tieoffs = normalize_tieoffs(tieoffs)
 
+        self.suffix = suffix
+
         # initialization
 
         self.intfs = {}
@@ -209,8 +212,11 @@ class SbDut(siliconcompiler.Chip):
 
             buildroot = Path(buildroot).resolve()
 
-            builddir = buildroot / metadata_str(design=design, parameters=parameters, tool=tool,
-                trace=trace, trace_type=trace_type)
+            if subcomponent:
+                builddir = buildroot / design
+            else:
+                builddir = buildroot / metadata_str(design=design, parameters=parameters,
+                    tool=tool, trace=trace, trace_type=trace_type)
 
         self.set('option', 'builddir', str(Path(builddir).resolve()))
 
@@ -255,6 +261,25 @@ class SbDut(siliconcompiler.Chip):
 
         if xyce:
             self._configure_xyce()
+
+        if subcomponent:
+            # special mode that produces a standalone Verilog netlist
+            # rather than building/running a simulation
+
+            flowname = 'package'
+
+            self.package_flow = siliconcompiler.Flow(self, flowname)
+
+            from siliconcompiler.tools.surelog import parse
+            self.package_flow.node(flowname, 'parse', parse)
+
+            from .sc.morty import uniquify
+            self.package_flow.node(flowname, 'uniquify', uniquify)
+
+            self.package_flow.edge(flowname, 'parse', 'uniquify')
+
+            self.use(self.package_flow)
+            self.set('option', 'flow', flowname)
 
     def _configure_build(
         self,
@@ -320,7 +345,9 @@ class SbDut(siliconcompiler.Chip):
         self.set('tool', 'icarus', 'task', 'compile', 'var', 'verilog_generation', '2012')
 
         # use dvflow to execute Icarus, but set steplist so we don't run sim
+        from siliconcompiler.flows import dvflow
         self.use(dvflow)
+
         self.set('option', 'flow', 'dvflow')
         self.set('option', 'to', 'compile')
 
@@ -670,6 +697,39 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
+
+    def package(self, suffix=None, fast=None):
+        # set defaults
+
+        if suffix is None:
+            suffix = self.suffix
+
+        if fast is None:
+            fast = self.fast
+
+        # see if we can exit early
+
+        if fast:
+            package = self.find_package(suffix=suffix)
+
+            if package is not None:
+                return package
+
+        # if not, parse with surelog and postprocess with morty
+
+        if suffix:
+            self.set('tool', 'morty', 'task', 'uniquify', 'var', 'suffix', suffix)
+
+        self.run()
+
+        # return the path to the output
+        return self.find_package(suffix=suffix)
+
+    def find_package(self, suffix=None):
+        if suffix is None:
+            return self.find_result('v', step='parse')
+        else:
+            return self.find_result('v', step='uniquify')
 
 
 def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
