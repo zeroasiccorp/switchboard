@@ -3,11 +3,11 @@
 
 .PHONY: verilator
 verilator:
-	./test.py --tool verilator
+	./test.py --tool verilator --start-delay 1 --max-rate 1e3
 
 .PHONY: icarus
 icarus:
-	./test.py --tool icarus
+	./test.py --tool icarus --start-delay 1 --max-rate 1e3
 
 .PHONY: clean
 clean:
@@ -15,4 +15,3 @@ clean:
 	rm -f *.vcd *.fst *.fst.hier
 	rm -rf obj_dir build
 	rm -f *.o *.vpi
-	rm -f testbench.sv

@@ -1,2 +1,2 @@
 # Examples dependencies
-umi @ git+https://github.com/zeroasiccorp/umi.git@ab0920ec84948204ce944e6c146239abb4a7bfd6
+umi @ git+https://github.com/zeroasiccorp/umi.git@f6d8fea9e6270b89a2c38860a4af512383cbc6ef

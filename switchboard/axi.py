@@ -24,7 +24,8 @@ class AxiTxRx:
         size: int = None,
         max_beats: int = 256,
         resp_expected: str = 'OKAY',
-        queue_suffix: str = '.q'
+        queue_suffix: str = '.q',
+        max_rate: float = -1
     ):
         """
         Parameters
@@ -97,11 +98,11 @@ class AxiTxRx:
         self.default_resp_expected = resp_expected
 
         # create the queues
-        self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh)
-        self.w = PySbTx(f'{uri}-w{queue_suffix}', fresh=fresh)
-        self.b = PySbRx(f'{uri}-b{queue_suffix}', fresh=fresh)
-        self.ar = PySbTx(f'{uri}-ar{queue_suffix}', fresh=fresh)
-        self.r = PySbRx(f'{uri}-r{queue_suffix}', fresh=fresh)
+        self.aw = PySbTx(f'{uri}-aw{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.w = PySbTx(f'{uri}-w{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.b = PySbRx(f'{uri}-b{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.ar = PySbTx(f'{uri}-ar{queue_suffix}', fresh=fresh, max_rate=max_rate)
+        self.r = PySbRx(f'{uri}-r{queue_suffix}', fresh=fresh, max_rate=max_rate)
 
     @property
     def strb_width(self):
@@ -244,7 +245,7 @@ class AxiTxRx:
 
             # transmit the write address
             self.aw.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
-                len=beats - 1, id=id))
+                len=beats - 1, id=id), True)
 
             for beat in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -268,14 +269,14 @@ class AxiTxRx:
                     last = 1
                 else:
                     last = 0
-                self.w.send(self.pack_w(data, strb=strb, last=last))
+                self.w.send(self.pack_w(data, strb=strb, last=last), True)
 
                 # increment pointers
                 bytes_sent += bytes_this_beat
                 addr += bytes_this_beat
 
             # wait for response
-            resp, id = self.unpack_b(self.b.recv())
+            resp, id = self.unpack_b(self.b.recv(True))
 
             # decode the response
             resp = decode_resp(resp)
@@ -415,7 +416,7 @@ class AxiTxRx:
 
             # transmit read address
             self.ar.send(self.pack_addr(addr & addr_mask, prot=prot, size=size,
-                len=beats - 1, id=id))
+                len=beats - 1, id=id), True)
 
             for _ in range(beats):
                 # find the offset into the data bus for this beat.  bytes below
@@ -426,7 +427,7 @@ class AxiTxRx:
                 bytes_this_beat = min(bytes_to_read - bytes_read, (1 << size) - offset)
 
                 # wait for response
-                data, resp, id, last = self.unpack_r(self.r.recv())
+                data, resp, id, last = self.unpack_r(self.r.recv(True))
                 retval[bytes_read:bytes_read + bytes_this_beat] = \
                     data = data[offset:offset + bytes_this_beat]
 
@@ -553,3 +554,18 @@ def decode_resp(resp: Integral):
     assert 0 <= resp <= 3, 'response code out of range'
 
     return ['OKAY', 'EXOKAY', 'SLVERR', 'DECERR'][resp]
+
+
+def axi_uris(prefix, suffix='.q'):
+    # returns a list of the URIs associated with a given AXI or AXI-Lite
+    # prefix.  For example, axi_uris('axi') returns ['axi-aw.q', 'axi-w.q',
+    # 'axi-b.q', 'axi-ar.q', 'axi-r.q'].  Changing the optional suffix
+    # argument changes the file extension assumed in generating this list.
+
+    return [
+        f'{prefix}-aw{suffix}',
+        f'{prefix}-w{suffix}',
+        f'{prefix}-b{suffix}',
+        f'{prefix}-ar{suffix}',
+        f'{prefix}-r{suffix}'
+    ]

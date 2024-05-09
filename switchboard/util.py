@@ -68,6 +68,12 @@ def binary_run(bin, args=None, stop_timeout=10, use_sigint=False,
         # and sigint didn't work (or we didn't try it)
         p.terminate()
 
+    # note: tried combining all process terminations into a single
+    # function registered with atexit, but it didn't appear to make
+    # a difference when running with a few hundred verilator sim
+    # processes - still took a few dozen milliseconds to stop each
+    # simulator.
+
     atexit.register(stop_bin)
 
     return p

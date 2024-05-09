@@ -36,4 +36,3 @@ This example highlights some convenient features of switchboard for lower-level 
 2. The `UmiTxRx.send()` method sends a single `PyUmiPacket` through a switchboard connection.  When `blocking=False`, switchboard will return immediately if the connection can't accept the packet and return `False`, rather than blocking until the packet can be sent.
 3. The `UmiTxRx.recv()` method receives a single `PyUmiPacket` from a switchboard connection.  When `blocking=False`, switchboard will return `None` immediately if there isn't a packet, rather than blocking until there is.
 4. The `==` and `!=` operators can be used to compare `PyUmiPacket` objects.
-

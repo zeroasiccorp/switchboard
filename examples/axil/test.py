@@ -9,20 +9,19 @@ import sys
 import random
 import numpy as np
 
-from switchboard import SbDut, AxiLiteTxRx
+from switchboard import SbDut
 
 
 def main():
     # build the simulator
     dut = build_testbench()
 
-    # create the queues
-    axil = AxiLiteTxRx('axil', data_width=32, addr_width=13)
-
     # launch the simulation
     dut.simulate()
 
     # run the test: write to random addresses and read back in a random order
+
+    axil = dut.intfs['s_axil']
 
     addr_bytes = (axil.addr_width + 7) // 8
 
@@ -70,16 +69,29 @@ def main():
 
 
 def build_testbench():
+    dw = 32
+    aw = 13
+
+    parameters = dict(
+        DATA_WIDTH=dw,
+        ADDR_WIDTH=aw
+    )
+
+    interfaces = {
+        's_axil': dict(type='axil', dw=dw, aw=aw, direction='subordinate')
+    }
+
+    resets = [dict(name='rst', delay=8)]
+
     extra_args = {
         '-n': dict(type=int, default=10000, help='Number of'
         ' words to write as part of the test.'),
         '--max-bytes': dict(type=int, default=10, help='Maximum'
-        ' number of bytes in any single read/write.'),
-        '--max-beats': dict(type=int, default=256, help='Maximum'
-        ' number of beats to use in AXI transfers.')
+        ' number of bytes in any single read/write.')
     }
 
-    dut = SbDut(cmdline=True, extra_args=extra_args)
+    dut = SbDut('axil_ram', autowrap=True, cmdline=True, extra_args=extra_args,
+        parameters=parameters, interfaces=interfaces, resets=resets)
 
     dut.register_package_source(
         'verilog-axi',
@@ -88,7 +100,6 @@ def build_testbench():
     )
 
     dut.input('rtl/axil_ram.v', package='verilog-axi')
-    dut.input('testbench.sv')
 
     dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
         ['WIDTHTRUNC', 'TIMESCALEMOD'])

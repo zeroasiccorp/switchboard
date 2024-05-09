@@ -307,22 +307,11 @@ struct PyUmiPacket {
 
 // check_signals() should be called within any loops where the C++
 // code is waiting for something to happen.  this ensures that
-// the binding doesn't hang after the user presses Ctrl-C.  the
-// value "100000" is a balance between responsiveness and speed:
-// setting it lower allows the binding to respond faster Ctrl-C,
-// but incurs more overhead due to more frequent invocation of
-// PyErr_CheckSignals().
+// the binding doesn't hang after the user presses Ctrl-C.
 
 void check_signals() {
-    static int count = 0;
-
-    if (count == 100000) {
-        count = 0;
-        if (PyErr_CheckSignals() != 0) {
-            throw pybind11::error_already_set();
-        }
-    } else {
-        count++;
+    if (PyErr_CheckSignals() != 0) {
+        throw pybind11::error_already_set();
     }
 }
 
@@ -373,13 +362,13 @@ struct PySbRxPcie {
 
 class PySbTx {
   public:
-    PySbTx(std::string uri = "", bool fresh = false) {
-        init(uri, fresh);
+    PySbTx(std::string uri = "", bool fresh = false, double max_rate = -1) {
+        init(uri, fresh, max_rate);
     }
 
-    void init(std::string uri, bool fresh = false) {
+    void init(std::string uri, bool fresh = false, double max_rate = -1) {
         if (uri != "") {
-            m_tx.init(uri, 0, fresh);
+            m_tx.init(uri, 0, fresh, max_rate);
         }
     }
 
@@ -419,6 +408,7 @@ class PySbTx {
             while (!m_tx.send(p)) {
                 check_signals();
             }
+
             return true;
         }
     }
@@ -431,13 +421,13 @@ class PySbTx {
 
 class PySbRx {
   public:
-    PySbRx(std::string uri = "", bool fresh = false) {
-        init(uri, fresh);
+    PySbRx(std::string uri = "", bool fresh = false, double max_rate = -1) {
+        init(uri, fresh, max_rate);
     }
 
-    void init(std::string uri, bool fresh = false) {
+    void init(std::string uri, bool fresh = false, double max_rate = -1) {
         if (uri != "") {
-            m_rx.init(uri, 0, fresh);
+            m_rx.init(uri, 0, fresh, max_rate);
         }
     }
 
@@ -505,16 +495,17 @@ static inline void progressbar_done(void) {
 
 class PyUmi {
   public:
-    PyUmi(std::string tx_uri = "", std::string rx_uri = "", bool fresh = false) {
-        init(tx_uri, rx_uri, fresh);
+    PyUmi(std::string tx_uri = "", std::string rx_uri = "", bool fresh = false,
+        double max_rate = -1) {
+        init(tx_uri, rx_uri, fresh, max_rate);
     }
 
-    void init(std::string tx_uri, std::string rx_uri, bool fresh = false) {
+    void init(std::string tx_uri, std::string rx_uri, bool fresh = false, double max_rate = -1) {
         if (tx_uri != "") {
-            m_tx.init(tx_uri, 0, fresh);
+            m_tx.init(tx_uri, 0, fresh, max_rate);
         }
         if (rx_uri != "") {
-            m_rx.init(rx_uri, 0, fresh);
+            m_rx.init(rx_uri, 0, fresh, max_rate);
         }
     }
 
@@ -979,16 +970,18 @@ PYBIND11_MODULE(_switchboard, m) {
         .def(py::self != py::self);
 
     py::class_<PySbTx>(m, "PySbTx")
-        .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
+        .def(py::init<std::string, bool, double>(), py::arg("uri") = "", py::arg("fresh") = false,
+            py::arg("max_rate") = -1)
         .def("init", &PySbTx::init, PySbTx_init_docstring, py::arg("uri") = "",
-            py::arg("fresh") = false)
+            py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("send", &PySbTx::send, PySbTx_send_docstring, py::arg("py_packet"),
             py::arg("blocking") = true);
 
     py::class_<PySbRx>(m, "PySbRx")
-        .def(py::init<std::string, bool>(), py::arg("uri") = "", py::arg("fresh") = false)
+        .def(py::init<std::string, bool, double>(), py::arg("uri") = "", py::arg("fresh") = false,
+            py::arg("max_rate") = -1)
         .def("init", &PySbRx::init, PySbRx_init_docstring, py::arg("uri") = "",
-            py::arg("fresh") = false)
+            py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("recv", &PySbRx::recv, PySbRx_recv_docstring, py::arg("blocking") = true);
 
     py::class_<PySbTxPcie>(m, "PySbTxPcie")
@@ -1004,10 +997,10 @@ PYBIND11_MODULE(_switchboard, m) {
             py::arg("bar_num") = 0, py::arg("bdf") = "");
 
     py::class_<PyUmi>(m, "PyUmi")
-        .def(py::init<std::string, std::string, bool>(), py::arg("tx_uri") = "",
-            py::arg("rx_uri") = "", py::arg("fresh") = false)
+        .def(py::init<std::string, std::string, bool, double>(), py::arg("tx_uri") = "",
+            py::arg("rx_uri") = "", py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("init", &PyUmi::init, PyUmi_init_docstring, py::arg("tx_uri") = "",
-            py::arg("rx_uri") = "", py::arg("fresh") = false)
+            py::arg("rx_uri") = "", py::arg("fresh") = false, py::arg("max_rate") = -1)
         .def("send", &PyUmi::send, PyUmi_send_docstring, py::arg("py_packet"),
             py::arg("blocking") = true)
         .def("recv", &PyUmi::recv, PyUmi_recv_docstring, py::arg("blocking") = true)

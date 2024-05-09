@@ -52,6 +52,10 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
+      # note that "sb_loopback.v" is not included in linting.  verible doesn't
+      # seem to be able to take into account the macro definitions in the port
+      # list, so linting unfortunately needs to be disabled for that file.
+
       - name: Lint with Verible
         run: |
           find . \( \
@@ -64,6 +68,7 @@ jobs:
             -or -path "./examples/deps/*" \
             -or -name "axil_interconnect_wrap_1x2.v" \
             -or -name "picorv32.v" \
+            -or -name "sb_loopback.v" \
           \) > files.txt
           cat files.txt
           verible-verilog-lint \

@@ -23,6 +23,9 @@ from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .util import plusargs_to_args, binary_run
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
+from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
+    normalize_parameters, create_intf_objs)
+from .cmdline import get_cmdline_args
 
 import siliconcompiler
 from siliconcompiler.flows import dvflow
@@ -43,12 +46,23 @@ class SbDut(siliconcompiler.Chip):
         xyce: bool = False,
         frequency: float = 100e6,
         period: float = None,
+        max_rate: float = -1,
+        start_delay: float = None,
         timeunit: str = None,
         timeprecision: str = None,
         warnings: List[str] = None,
         cmdline: bool = False,
         fast: bool = False,
-        extra_args: dict = None
+        extra_args: dict = None,
+        autowrap: bool = False,
+        parameters=None,
+        interfaces=None,
+        clocks=None,
+        resets=None,
+        tieoffs=None,
+        buildroot=None,
+        builddir=None,
+        args=None
     ):
         """
         Parameters
@@ -81,9 +95,24 @@ class SbDut(siliconcompiler.Chip):
         xyce: bool, optional
             If True, compile for xyce co-simulation.
 
+        frequency: float, optional
+            If provided, the default frequency of the clock generated in the testbench,
+            in seconds.
+
         period: float, optional
             If provided, the default period of the clock generated in the testbench,
             in seconds.
+
+        max_rate: float, optional
+            If provided, the maximum real-world rate that the simulation is allowed to run
+            at, in Hz.  Can be useful to encourage time-sharing between many processes and
+            for performance modeling when latencies are large and/or variable.
+
+        start_delay: float, optional
+            If provided, the real-world time to delay before the first clock tick in the
+            simulation.  Can be useful to make sure that programs start at approximately
+            the same time and to prevent simulations from stepping on each other's toes
+            when starting up.
 
         warnings: List[str], optional
             If provided, a list of tool-specific warnings to enable.  If not provided, a default
@@ -98,69 +127,43 @@ class SbDut(siliconcompiler.Chip):
             If True, the simulation binary will not be rebuilt if an existing one is found.
             The setting here can be overridden when build() is called by setting its argument
             with the same name.
+
+        extra_args: dict, optional
+            If provided and cmdline=True, a dictionary of additional command line arguments
+            to be made available.  The keys of the dictionary are the arguments ("-n", "--test",
+            etc.) and the values are themselves dictionaries that contain keyword arguments
+            accepted by argparse ("action": "store_true", "default": 42, etc.)
         """
 
         # call the super constructor
 
-        super().__init__(design)
+        if autowrap:
+            toplevel = 'testbench'
+        else:
+            toplevel = design
+
+        super().__init__(toplevel)
 
         # parse command-line options if desired
 
         if cmdline:
-            from argparse import ArgumentParser
+            self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
+                frequency=frequency, period=period, fast=fast, max_rate=max_rate,
+                start_delay=start_delay, extra_args=extra_args)
+        elif args is not None:
+            self.args = args
+        else:
+            self.args = None
 
-            parser = ArgumentParser()
-
-            if not trace:
-                parser.add_argument('--trace', action='store_true', help='Probe'
-                    ' waveforms during simulation.')
-            else:
-                parser.add_argument('--no-trace', action='store_true', help='Do not'
-                    ' probe waveforms during simulation.  This can improve build time'
-                    ' and run time, but reduces visibility.')
-
-            parser.add_argument('--trace-type', type=str, choices=['vcd', 'fst'],
-                default=trace_type, help='File type for waveform probing.')
-
-            if not fast:
-                parser.add_argument('--fast', action='store_true', help='Do not build'
-                    ' the simulator binary if it has already been built.')
-            else:
-                parser.add_argument('--rebuild', action='store_true', help='Build the'
-                    ' simulator binary even if it has already been built.')
-
-            parser.add_argument('--tool', type=str, choices=['verilator', 'icarus'],
-                default=tool, help='Name of the simulator to use.')
-
-            group = parser.add_mutually_exclusive_group()
-            group.add_argument('--period', type=float, default=period,
-                help='Period of the clk signal in seconds.  Automatically set if'
-                ' --frequency is provided.')
-            group.add_argument('--frequency', type=float, default=frequency,
-                help='Frequency of the clk signal in Hz.  Automatically set if'
-                ' --period is provided.')
-
-            if extra_args is not None:
-                for k, v in extra_args.items():
-                    parser.add_argument(k, **v)
-
-            self.args = parser.parse_args()
-
-            if not trace:
-                trace = self.args.trace
-            else:
-                trace = not self.args.no_trace
-
+        if self.args is not None:
+            trace = self.args.trace
             trace_type = self.args.trace_type
-
-            if not fast:
-                fast = self.args.fast
-            else:
-                fast = not self.args.rebuild
-
+            fast = self.args.fast
             tool = self.args.tool
             frequency = self.args.frequency
             period = self.args.period
+            max_rate = self.args.max_rate
+            start_delay = self.args.start_delay
 
         # input validation
 
@@ -180,11 +183,36 @@ class SbDut(siliconcompiler.Chip):
         if (period is None) and (frequency is not None):
             period = 1 / frequency
         self.period = period
+        self.max_rate = max_rate
+        self.start_delay = start_delay
 
         self.timeunit = timeunit
         self.timeprecision = timeprecision
 
+        self.autowrap = autowrap
+        self.dut = design
+        self.parameters = normalize_parameters(parameters)
+        self.intf_defs = normalize_interfaces(interfaces)
+        self.clocks = normalize_clocks(clocks)
+        self.resets = normalize_resets(resets)
+        self.tieoffs = normalize_tieoffs(tieoffs)
+
+        # initialization
+
+        self.intfs = {}
+
         # simulator-agnostic settings
+
+        if builddir is None:
+            if buildroot is None:
+                buildroot = 'build'
+
+            buildroot = Path(buildroot).resolve()
+
+            builddir = buildroot / metadata_str(design=design, parameters=parameters, tool=tool,
+                trace=trace, trace_type=trace_type)
+
+        self.set('option', 'builddir', str(Path(builddir).resolve()))
 
         if fpga:
             # library dirs
@@ -353,6 +381,20 @@ class SbDut(siliconcompiler.Chip):
             if sim is not None:
                 return sim
 
+        # build the wrapper if needed
+        if self.autowrap:
+            from .autowrap import autowrap
+
+            filename = Path(self.get('option', 'builddir')).resolve() / 'testbench.sv'
+
+            filename.parent.mkdir(exist_ok=True, parents=True)
+
+            autowrap(design=self.dut, parameters=self.parameters,
+                interfaces=self.intf_defs, clocks=self.clocks, resets=self.resets,
+                tieoffs=self.tieoffs, filename=filename)
+
+            self.input(filename)
+
         # if we get to this point, then we need to rebuild
         # the simulation binary
         self.run()
@@ -367,7 +409,11 @@ class SbDut(siliconcompiler.Chip):
         cwd: str = None,
         trace: bool = None,
         period: float = None,
-        frequency: float = None
+        frequency: float = None,
+        max_rate: float = None,
+        start_delay: float = None,
+        run: str = None,
+        intf_objs: bool = True
     ) -> subprocess.Popen:
         """
         Parameters
@@ -395,6 +441,14 @@ class SbDut(siliconcompiler.Chip):
             in seconds.
         """
 
+        # set up interfaces if needed
+
+        if max_rate is None:
+            max_rate = self.max_rate
+
+        if intf_objs:
+            self.intfs = create_intf_objs(self.intf_defs, max_rate=max_rate)
+
         # set defaults
 
         if plusargs is None:
@@ -415,6 +469,9 @@ class SbDut(siliconcompiler.Chip):
         if period is None:
             period = self.period
 
+        if start_delay is None:
+            start_delay = self.start_delay
+
         # build the simulation if necessary
 
         sim = self.build(cwd=cwd, fast=True)
@@ -424,13 +481,30 @@ class SbDut(siliconcompiler.Chip):
         # since logic in the testbench can use that flag to enable/disable
         # waveform dumping in a simulator-agnostic manner.
 
-        if trace and ('trace' not in plusargs) and ('+trace' not in args):
-            plusargs.append('trace')
+        if trace:
+            carefully_add_plusarg(key='trace', args=args, plusargs=plusargs)
 
-        if ((period is not None)
-            and ('period' not in plusargs)
-            and not any(elem.startswith('+period') for elem in args)):
-            plusargs.append(('period', period))
+        if period is not None:
+            carefully_add_plusarg(key='period', value=period, args=args, plusargs=plusargs)
+
+        if max_rate is not None:
+            carefully_add_plusarg(key='max-rate', value=max_rate, args=args, plusargs=plusargs)
+
+        if start_delay is not None:
+            carefully_add_plusarg(
+                key='start-delay', value=start_delay, args=args, plusargs=plusargs)
+
+        # add plusargs that define queue connections
+
+        for name, value in self.intf_defs.items():
+            plusargs += [(name, value['uri'])]
+
+        # run-specific configurations (if running the same simulator build multiple times
+        # in parallel)
+
+        if run is not None:
+            dumpfile = f'{run}.{self.trace_type}'
+            plusargs.append(('dumpfile', dumpfile))
 
         # run the simulation
 
@@ -596,3 +670,46 @@ class SbDut(siliconcompiler.Chip):
         )
 
         self.input(verilog_wrapper)
+
+
+def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
+    parameters: dict = None) -> Path:
+
+    opts = []
+
+    opts += [design]
+
+    if parameters is not None:
+        for k, v in parameters.items():
+            opts += [k, v]
+
+    opts += [tool]
+
+    if trace:
+        assert trace_type is not None
+        opts += [trace_type]
+
+    return '-'.join(str(opt) for opt in opts)
+
+
+def carefully_add_plusarg(key, args, plusargs, value=None):
+    for plusarg in plusargs:
+        if isinstance(plusarg, (list, tuple)):
+            if (len(plusarg) >= 1) and (key == plusarg[0]):
+                return
+        elif key == plusarg:
+            return
+
+    if f'+{key}' in args:
+        return
+
+    if any(elem.startswith(f'+{key}+') for elem in args):
+        return
+
+    if any(elem.startswith(f'+{key}=') for elem in args):
+        return
+
+    if value is None:
+        plusargs.append(key)
+    else:
+        plusargs.append((key, value))

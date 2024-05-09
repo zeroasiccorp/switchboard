@@ -306,6 +306,102 @@ PLI_INT32 pi_time_taken(PLI_BYTE8* userdata) {
     return 0;
 }
 
+PLI_INT32 pi_start_delay(PLI_BYTE8* userdata) {
+    (void)userdata; // unused
+
+    // get arguments
+    vpiHandle args_iter;
+    std::vector<vpiHandle> argh;
+    {
+        vpiHandle systfref;
+        systfref = vpi_handle(vpiSysTfCall, NULL);
+        args_iter = vpi_iterate(vpiArgument, systfref);
+        for (size_t i = 0; i < 1; i++) {
+            argh.push_back(vpi_scan(args_iter));
+        }
+    }
+
+    // get value
+    double value;
+    {
+        t_vpi_value argval;
+        argval.format = vpiRealVal;
+        vpi_get_value(argh[0], &argval);
+        value = argval.value.real;
+    }
+
+    // call the underlying switchboard function
+    start_delay(value);
+
+    // clean up
+    vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
+PLI_INT32 pi_max_rate_tick(PLI_BYTE8* userdata) {
+    (void)userdata; // unused
+
+    // get arguments
+    vpiHandle args_iter;
+    std::vector<vpiHandle> argh;
+    {
+        vpiHandle systfref;
+        systfref = vpi_handle(vpiSysTfCall, NULL);
+        args_iter = vpi_iterate(vpiArgument, systfref);
+        for (size_t i = 0; i < 2; i++) {
+            argh.push_back(vpi_scan(args_iter));
+        }
+    }
+
+    // get the timestamp
+    long t_us = 0;
+    {
+        t_vpi_value argval;
+        argval.format = vpiVectorVal;
+        vpi_get_value(argh[0], &argval);
+
+        t_us |= argval.value.vector[1].aval & 0xffffffff;
+        t_us <<= 32;
+        t_us |= argval.value.vector[0].aval & 0xffffffff;
+    }
+
+    // get max rate
+    double max_rate;
+    {
+        t_vpi_value argval;
+        argval.format = vpiRealVal;
+        vpi_get_value(argh[1], &argval);
+        max_rate = argval.value.real;
+    }
+
+    // call the underlying switchboard function
+    max_rate_tick(t_us, max_rate);
+
+    // set the timestamp
+    {
+        t_vpi_value argval;
+        argval.format = vpiVectorVal;
+        s_vpi_vecval vecval[2]; // two 32-bit words
+        argval.value.vector = vecval;
+
+        argval.value.vector[0].aval = t_us & 0xffffffff;
+        argval.value.vector[0].bval = 0;
+
+        argval.value.vector[1].aval = (t_us >> 32) & 0xffffffff;
+        argval.value.vector[1].bval = 0;
+
+        vpi_put_value(argh[0], &argval, NULL, vpiNoDelay);
+    }
+
+    // clean up
+    vpi_free_object(args_iter);
+
+    // return value unused?
+    return 0;
+}
+
 // macro that creates a function to register PLI functions
 
 #define VPI_REGISTER_FUNC_NAME(name) register_##name
@@ -323,10 +419,13 @@ VPI_REGISTER_FUNC(pi_sb_tx_init)
 VPI_REGISTER_FUNC(pi_sb_recv)
 VPI_REGISTER_FUNC(pi_sb_send)
 VPI_REGISTER_FUNC(pi_time_taken)
+VPI_REGISTER_FUNC(pi_start_delay)
+VPI_REGISTER_FUNC(pi_max_rate_tick)
 
 void (*vlog_startup_routines[])(void) = {
     VPI_REGISTER_FUNC_NAME(pi_sb_rx_init), VPI_REGISTER_FUNC_NAME(pi_sb_tx_init),
     VPI_REGISTER_FUNC_NAME(pi_sb_recv), VPI_REGISTER_FUNC_NAME(pi_sb_send),
-    VPI_REGISTER_FUNC_NAME(pi_time_taken),
+    VPI_REGISTER_FUNC_NAME(pi_time_taken), VPI_REGISTER_FUNC_NAME(pi_start_delay),
+    VPI_REGISTER_FUNC_NAME(pi_max_rate_tick),
     0 // last entry must be 0
 };

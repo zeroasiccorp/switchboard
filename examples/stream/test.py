@@ -5,32 +5,32 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-import time
-
 from pathlib import Path
-from switchboard import delete_queues, binary_run, SbDut
+from switchboard import binary_run, SbDut
 
 THIS_DIR = Path(__file__).resolve().parent
+COMMON_DIR = THIS_DIR.parent / 'common'
 
 
 def main():
     # build the simulator
-    dut = SbDut(cmdline=True)
-    dut.input('testbench.sv')
+
+    interfaces = {
+        'in': dict(type='sb', direction='input'),
+        'out': dict(type='sb', direction='output')
+    }
+
+    dut = SbDut('sb_loopback', autowrap=True, cmdline=True, interfaces=interfaces)
+    dut.input(COMMON_DIR / 'verilog' / 'sb_loopback.v')
     dut.build()
 
-    # clean up old queues if present
-    delete_queues(['client2rtl.q', 'rtl2client.q'])
-
-    # start client and chip
-    # this order yields a smaller waveform file
+    # start chip and client
+    dut.simulate()
     client = binary_run(THIS_DIR / 'client')
-    time.sleep(1)
-    chip = dut.simulate()
 
     # wait for client and chip to complete
-    client.wait()
-    chip.wait()
+    retcode = client.wait()
+    assert retcode == 0
 
 
 if __name__ == '__main__':

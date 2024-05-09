@@ -88,6 +88,7 @@ class UmiGpioOutput:
 
 class UmiGpio(object):
     def __init__(self, iwidth, owidth, init, dstaddr, srcaddr, posted, max_bytes, umi):
+
         self.i = UmiGpioInput(
             width=iwidth,
             dstaddr=dstaddr,

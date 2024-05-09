@@ -20,7 +20,8 @@ from .gpio import UmiGpio
 class UmiTxRx:
     def __init__(self, tx_uri: str = None, rx_uri: str = None,
         srcaddr: Union[int, Dict[str, int]] = 0, posted: bool = False,
-        max_bytes: int = None, fresh: bool = False, error: bool = True):
+        max_bytes: int = None, fresh: bool = False, error: bool = True,
+        max_rate: float = -1):
         """
         Parameters
         ----------
@@ -62,7 +63,7 @@ class UmiTxRx:
         if rx_uri is None:
             rx_uri = ""
 
-        self.umi = PyUmi(tx_uri, rx_uri, fresh)
+        self.umi = PyUmi(tx_uri, rx_uri, fresh, max_rate=max_rate)
 
         if srcaddr is not None:
             # convert srcaddr default to a dictionary if necessary

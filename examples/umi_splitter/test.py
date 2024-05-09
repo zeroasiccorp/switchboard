@@ -5,7 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from switchboard import UmiTxRx, random_umi_packet, SbDut
+from switchboard import SbDut, random_umi_packet
 import umi
 
 
@@ -13,15 +13,14 @@ def main():
     # build the simulator
     dut = build_testbench()
 
-    # create queues
-    umi_in = UmiTxRx("in.q", "", fresh=True)
-    umi_out = [
-        UmiTxRx("", "out0.q", fresh=True),
-        UmiTxRx("", "out1.q", fresh=True)
-    ]
-
     # launch the simulation
     dut.simulate()
+
+    umi_in = dut.intfs['umi_in']
+    umi_out = [
+        dut.intfs['umi_resp_out'],
+        dut.intfs['umi_req_out']
+    ]
 
     # main loop
     tx_rep = []
@@ -61,14 +60,23 @@ def main():
 
 
 def build_testbench():
-    extra_args = {
-        '-n': dict(type=int, default=3, help='Number of'
-        ' transactions to send into the FIFO during the test.')
+    dw = 256
+    aw = 64
+    cw = 32
+
+    interfaces = {
+        'umi_in': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input'),
+        'umi_resp_out': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output'),
+        'umi_req_out': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output')
     }
 
-    dut = SbDut(cmdline=True, extra_args=extra_args)
+    extra_args = {
+        '-n': dict(type=int, default=3, help='Number of'
+        ' transactions to send into the splitter during the test.')
+    }
 
-    dut.input('testbench.sv')
+    dut = SbDut('umi_splitter', autowrap=True, cmdline=True, extra_args=extra_args,
+        interfaces=interfaces, clocks=[])
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')

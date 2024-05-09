@@ -95,3 +95,25 @@ void pi_time_taken(double* t) {
          (std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count());
     start_time = std::chrono::steady_clock::now();
 }
+
+void pi_start_delay(double value) {
+    // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
+    // uses start_delay in main(), not through DPI
+    start_delay(value);
+}
+
+void pi_max_rate_tick(svBitVecVal* t_us_vec, svBitVecVal* min_period_us_vec) {
+    // WARNING: not tested yet since Icarus Verilog uses VPI and Verilator
+    // uses max_rate_tick in main(), not through DPI
+
+    // retrieve the previous timestamp and minimum period
+    long t_us, min_period_us;
+    memcpy(&t_us, t_us_vec, 8);
+    memcpy(&min_period_us, min_period_us_vec, 8);
+
+    // call the underlying switchboard function
+    max_rate_tick(t_us, min_period_us);
+
+    // store the new timestamp
+    memcpy(t_us_vec, &t_us, 8);
+}

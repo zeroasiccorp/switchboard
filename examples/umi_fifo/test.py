@@ -5,7 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from switchboard import UmiTxRx, random_umi_packet, SbDut
+from switchboard import random_umi_packet, SbDut
 import umi
 
 
@@ -13,11 +13,10 @@ def main():
     # build the simulator
     dut = build_testbench()
 
-    # create queues
-    umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
-
     # launch the simulation
     dut.simulate()
+
+    umi = dut.intfs['umi']
 
     n_sent = 0
     n_recv = 0
@@ -45,14 +44,48 @@ def main():
 
 
 def build_testbench():
+    dw = 256
+    aw = 64
+    cw = 32
+
+    parameters = dict(
+        DW=dw,
+        AW=aw,
+        CW=cw
+    )
+
+    tieoffs = dict(
+        bypass="1'b0",
+        chaosmode="1'b0",
+        fifo_full=None,
+        fifo_empty=None,
+        vdd="1'b1",
+        vss="1'b0"
+    )
+
+    interfaces = {
+        'umi_in': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='umi'),
+        'umi_out': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='umi')
+    }
+
+    clocks = [
+        'umi_in_clk',
+        'umi_out_clk'
+    ]
+
+    resets = [
+        'umi_in_nreset',
+        'umi_out_nreset'
+    ]
+
     extra_args = {
         '-n': dict(type=int, default=3, help='Number of'
         ' transactions to send into the FIFO during the test.')
     }
 
-    dut = SbDut(cmdline=True, extra_args=extra_args)
-
-    dut.input('testbench.sv')
+    dut = SbDut('umi_fifo', autowrap=True, cmdline=True, extra_args=extra_args,
+        parameters=parameters, interfaces=interfaces, clocks=clocks, resets=resets,
+        tieoffs=tieoffs)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')

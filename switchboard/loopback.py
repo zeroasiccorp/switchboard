@@ -14,7 +14,11 @@ except ModuleNotFoundError:
 from .umi import UmiTxRx, random_umi_packet
 
 
-def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10, **kwargs):
+def umi_loopback(
+    umi: UmiTxRx,
+    packets: Union[Integral, Iterable, Iterator] = 10,
+    **kwargs
+):
     """
     Performs a loopback test by sending packets into a block and checking that
     the packets received back are equivalent under the UMI split/merge rules.
@@ -43,6 +47,8 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
         If a received packet does not match the corresponding transmitted packet
 
     """
+
+    # input validation
 
     if isinstance(packets, Integral):
         if packets <= 0:
@@ -79,7 +85,7 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
     try:
         txp = next(packets)
         if pbar is not None:
-            pbar.update()
+            pbar.update(0)
     except StopIteration:
         raise ValueError('The argument "packets" is empty.')
 
@@ -104,8 +110,6 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
 
                 try:
                     txp = next(packets)
-                    if pbar is not None:
-                        pbar.update()
                 except StopIteration:
                     txp = None
 
@@ -145,6 +149,9 @@ def umi_loopback(umi: UmiTxRx, packets: Union[Integral, Iterable, Iterator] = 10
                     tx_sets.pop(0)
                     rx_partial = None
                     rx_set = None
+
+                    if pbar is not None:
+                        pbar.update()
 
     if pbar is not None:
         pbar.close()

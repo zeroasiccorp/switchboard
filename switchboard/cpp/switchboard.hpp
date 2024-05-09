@@ -5,6 +5,7 @@
 #define __SWITCHBOARD_HPP__
 
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <stdexcept>
 #include <string>
@@ -27,6 +28,43 @@ struct sb_packet {
     uint8_t data[SB_DATA_SIZE];
 } __attribute__((packed));
 
+static inline long max_rate_timestamp_us() {
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now().time_since_epoch())
+        .count();
+}
+
+static inline void max_rate_tick(long& last_us, long min_period_us) {
+    if (min_period_us > 0) {
+        // measure the time now
+
+        long now_us = max_rate_timestamp_us();
+
+        // sleep if needed
+
+        if (last_us != -1) {
+            long dt_us = now_us - last_us;
+
+            if (dt_us < min_period_us) {
+                long sleep_us = min_period_us - dt_us;
+                std::this_thread::sleep_for(std::chrono::microseconds(sleep_us));
+            }
+        }
+
+        // update the time stamp.  it is not enough to set last_us = now_us,
+        // due to the sleep_for invocation
+
+        last_us = max_rate_timestamp_us();
+    }
+}
+
+static inline void start_delay(double value) {
+    if (value > 0) {
+        int value_us = (value * 1.0e6) + 0.5;
+        std::this_thread::sleep_for(std::chrono::microseconds(value_us));
+    }
+}
+
 class SB_base {
   public:
     SB_base() : m_active(false), m_q(NULL) {}
@@ -35,11 +73,11 @@ class SB_base {
         deinit();
     }
 
-    void init(std::string uri, size_t capacity = 0, bool fresh = false) {
-        init(uri.c_str(), capacity, fresh);
+    void init(std::string uri, size_t capacity = 0, bool fresh = false, double max_rate = -1) {
+        init(uri.c_str(), capacity, fresh, max_rate);
     }
 
-    void init(const char* uri, size_t capacity = 0, bool fresh = false) {
+    void init(const char* uri, size_t capacity = 0, bool fresh = false, double max_rate = -1) {
         // Default to one page of capacity
         if (capacity == 0) {
             capacity = spsc_capacity(getpagesize());
@@ -52,6 +90,9 @@ class SB_base {
 
         m_q = spsc_open(uri, capacity);
         m_active = true;
+        m_timestamp_us = -1;
+
+        set_max_rate(max_rate);
     }
 
     void deinit(void) {
@@ -79,6 +120,14 @@ class SB_base {
         return m_q->shm;
     }
 
+    void set_max_rate(double max_rate) {
+        if (max_rate > 0) {
+            m_min_period_us = (1.0e6 / max_rate) + 0.5;
+        } else {
+            m_min_period_us = -1;
+        }
+    }
+
   protected:
     void check_active(void) {
         if (!m_active) {
@@ -88,6 +137,8 @@ class SB_base {
 
     bool m_auto_deinit;
     bool m_active;
+    long m_min_period_us;
+    long m_timestamp_us;
     spsc_queue* m_q;
 };
 
@@ -97,12 +148,22 @@ class SBTX : public SB_base {
 
     bool send(sb_packet& p) {
         check_active();
+        max_rate_tick(m_timestamp_us, m_min_period_us);
         return spsc_send(m_q, &p, sizeof p);
     }
 
     void send_blocking(sb_packet& p) {
-        while (!send(p)) {
-            std::this_thread::yield();
+        bool success = false;
+
+        while (!success) {
+            success = send(p);
+
+            if ((!success) && (m_min_period_us == -1)) {
+                // maintain old behavior if max_rate isn't specified,
+                // i.e. yield on every iteration that the send isn't
+                // successful
+                std::this_thread::yield();
+            }
         }
     }
 
@@ -118,23 +179,35 @@ class SBRX : public SB_base {
 
     bool recv(sb_packet& p) {
         check_active();
+        max_rate_tick(m_timestamp_us, m_min_period_us);
         return spsc_recv(m_q, &p, sizeof p);
     }
 
     bool recv() {
         check_active();
         sb_packet dummy_p;
+        max_rate_tick(m_timestamp_us, m_min_period_us);
         return spsc_recv(m_q, &dummy_p, sizeof dummy_p);
     }
 
     void recv_blocking(sb_packet& p) {
-        while (!recv(p)) {
-            std::this_thread::yield();
+        bool success = false;
+
+        while (!success) {
+            success = recv(p);
+
+            if ((!success) && (m_min_period_us == -1)) {
+                // maintain old behavior if max_rate isn't specified,
+                // i.e. yield on every iteration that the send isn't
+                // successful
+                std::this_thread::yield();
+            }
         }
     }
 
     bool recv_peek(sb_packet& p) {
         check_active();
+        max_rate_tick(m_timestamp_us, m_min_period_us);
         return spsc_recv_peek(m_q, &p, sizeof p);
     }
 };

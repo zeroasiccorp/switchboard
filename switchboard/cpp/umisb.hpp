@@ -278,7 +278,11 @@ static inline bool umisb_send(T& x, SBTX& tx, bool blocking = true, void (*loop)
 
     // finish sending the header packet
     if (!header_sent) {
-        while (!tx.send(p)) {
+        bool success = false;
+
+        while (!success) {
+            success = tx.send(p);
+
             if (loop) {
                 loop();
             }
@@ -306,7 +310,11 @@ static inline bool umisb_recv(T& x, SBRX& rx, bool blocking = true, void (*loop)
             return false;
         }
     } else {
-        while (!rx.recv(p)) {
+        bool success = false;
+
+        while (!success) {
+            success = rx.recv(p);
+
             if (loop) {
                 loop();
             }

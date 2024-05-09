@@ -16,24 +16,20 @@ PASS!
 
 `make icarus` runs the example using Icarus Verilog as the digital simulator.
 
-In the Verilog implementation, [testbench.sv](testbench.sv) instantiates a switchboard module that acts as an AXI manager.
+In the Python script [test.py](test.py), an AXI interface is specified using the `interfaces` argument of `SbDut`.  The name of the interface is `s_axi`, corresponding to the AXI port prefix in the `axi_ram` implementation.  After simulation starts, the AXI interface object is retrieved from the `SbDut.intfs` dictionary.
 
-```verilog
-`include "switchboard.vh"
+```python
+interfaces = {
+    's_axi': dict(type='axi', dw=dw, aw=aw, idw=idw, direction='subordinate')
+}
 
 ...
 
-`SB_AXI_M(axi, DATA_WIDTH, ADDR_WIDTH, ID_WIDTH, "axi");
-```
+dut = SbDut('axi_ram', ..., interfaces=interfaces, ...)
 
-Based on the first argument, `axi`, the module instance is called `axi_sb_inst` and it connects to AXI signals starting with the prefix `axi`.  The next three arguments specify the widths of the data, address, and ID buses, respectively.  The last argument indicates that the switchboard queues to be used start with the prefix `axi`: `axi-aw.q`, `axi-w.q`, `axi-b.q`, `axi-ar.q`, `axi-r.q`.
+...
 
-Various optional macro arguments can fine-tune the behavior, for example changing the clock signal name, which defaults to `clk`.
-
-In the Python script [test.py](test.py), a corresponding `AxiTxRx` object is created, using the same shorthand for connecting to all 5 queues.
-
-```python
-axi = AxiTxRx('axi', data_width=..., addr_width=..., id_width=...)
+axi = dut.intfs['s_axi']  # type: AxiTxRx
 ```
 
 As with `UmiTxRx`, this object may be used to issue read and write transactions involving numpy scalars and arrays.  Under the hood, each transaction may be converted to multiple cycles of AXI transactions, with the write strobe automatically calculated in each cycle.

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .util import plusargs_to_args, binary_run
 from .switchboard import path as sb_path
-from subprocess import check_output, STDOUT
+from subprocess import check_output, STDOUT, CalledProcessError
 
 
 def run(command: list, cwd: str = None) -> str:
@@ -38,7 +38,11 @@ def icarus_build_vpi(
     cmd += ldflags
     cmd += [str(sbdir / 'vpi' / f'{name}_vpi.cc')]
 
-    return run(cmd, cwd)
+    try:
+        run(cmd, cwd)
+    except CalledProcessError as e:
+        print(e.output)
+        raise
 
 
 def icarus_find_vpi(cwd: Union[str, Path] = None, name: str = 'switchboard') -> Path:
@@ -78,4 +82,4 @@ def icarus_run(vvp, plusargs=None, modules=None, extra_args=None, **kwargs):
             raise TypeError('extra_args must be a list')
         args += extra_args
 
-    return binary_run(bin='vvp', args=args, **kwargs, print_command=True)
+    return binary_run(bin='vvp', args=args, **kwargs)
