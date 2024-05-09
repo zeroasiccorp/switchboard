@@ -29,7 +29,7 @@ dut = SbDut('axill_ram', ..., interfaces=interfaces, ...)
 
 ...
 
-axi = dut.intfs['s_axil']  # type: AxiLiteTxRx
+axil = dut.intfs['s_axil']  # type: AxiLiteTxRx
 ```
 
 As with `UmiTxRx`, this object may be used to issue read and write transactions involving numpy scalars and arrays.  Under the hood, each transaction may be converted to multiple cycles of AXI transactions, with the write strobe automatically calculated in each cycle.
