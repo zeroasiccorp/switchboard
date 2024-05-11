@@ -175,7 +175,10 @@ class SbNetwork:
         # save interface
 
         if name is None:
-            name = intf.name
+            name = f'{intf.inst.name}_{intf.name}'
+
+        assert name not in self.intf_defs, \
+            f'Network already contains an external interface called "{name}".'
 
         self.intf_defs[name] = intf_def
 
