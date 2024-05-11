@@ -508,6 +508,26 @@ def normalize_intf_type(type):
         raise ValueError(f'Unsupported interface type: "{type}"')
 
 
+def nested_list(f, shape, indices=None):
+    if len(shape) == 0:
+        return f(indices)
+    else:
+        if indices is None:
+            indices = []
+
+        return [nested_list(f, shape[:1], indices + [index]) for index in shape[0]]
+
+
+def add_indices_to_uri(uri, indices):
+    uri = Path(uri)
+
+    parent = uri.parent
+    stem = uri.stem
+    suffix = uri.suffix
+
+    return f'{parent / stem}_{" ".join(indices)}{suffix}'
+
+
 def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
     intf_objs = {}
 
@@ -538,6 +558,9 @@ def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
                     # use default if not set for this particular interface
                     umi_txrx[txrx]['max_rate'] = max_rate
 
+                if 'shape' in value:
+                    umi_txrx[txrx]['shape'] = value['shape']
+
                 direction = value['direction']
 
                 if direction.lower() in ['i', 'in', 'input']:
@@ -551,13 +574,53 @@ def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
         else:
             intf_objs[name] = create_intf_obj(value, fresh=fresh, max_rate=max_rate)
 
+    # create UmiTxRx objects
+
     for key, value in umi_txrx.items():
-        intf_objs[key] = UmiTxRx(**value, fresh=fresh)
+        if ('shape' in value) and (value['shape'] is not None) and (len(value['shape']) > 0):
+            # function that prepares an individual interface object that is part of an array
+
+            def helper(indices, value=value, fresh=fresh):
+                # make a copy of the value so that we can modify it
+                elem_value = deepcopy(value)
+
+                # modify the uris
+                if 'tx_uri' in elem_value:
+                    elem_value['tx_uri'] = add_indices_to_uri(value['tx_uri'], indices=indices)
+                if 'rx_uri' in elem_value:
+                    elem_value['rx_uri'] = add_indices_to_uri(value['rx_uri'], indices=indices)
+
+                # remove the shape property
+                del elem_value['shape']
+
+                return UmiTxRx(**elem_value, fresh=fresh)
+
+            intf_objs[key] = nested_list(helper, shape=value['shape'])
+        else:
+            intf_objs[key] = UmiTxRx(**value, fresh=fresh)
 
     return intf_objs
 
 
 def create_intf_obj(value, fresh=True, max_rate=-1):
+    if ('shape' in value) and (value['shape'] is not None) and (len(value['shape']) > 0):
+        # function that prepares an individual interface object that is part of an array
+
+        def helper(indices, value=value, fresh=fresh, max_rate=max_rate):
+            # make a copy of the value so that we can modify it
+            elem_value = deepcopy(value)
+
+            # modify the uri
+            elem_value['uri'] = add_indices_to_uri(value['uri'], indices=indices)
+
+            # remove the shape property
+            del elem_value['shape']
+
+            return create_intf_obj(elem_value, fresh=fresh, max_rate=max_rate)
+
+        # return array of interface objects
+        return nested_list(helper, shape=value['shape'])
+
     type = value['type']
     direction = value['direction']
 
