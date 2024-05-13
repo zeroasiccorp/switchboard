@@ -316,7 +316,18 @@ def autowrap(
 
             lines += ['']
 
-    if len(resets) > 0:
+    max_rst_dly = None
+
+    for inst_resets in resets.values():
+        if len(inst_resets) > 0:
+            # find the max reset delay for this instance
+            inst_max_rst_dly = max(reset['delay'] for reset in inst_resets)
+
+            # update the overall max reset delay
+            if (max_rst_dly is None) or (inst_max_rst_dly > max_rst_dly):
+                max_rst_dly = inst_max_rst_dly
+
+    if max_rst_dly is not None:
         max_rst_dly = max(max(reset['delay'] for reset in inst_resets)
             for inst_resets in resets.values())
 
