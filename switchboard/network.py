@@ -66,6 +66,7 @@ class SbNetwork:
             period = self.args.period
             max_rate = self.args.max_rate
             start_delay = self.args.start_delay
+            netlist = self.args.netlist
 
         # save settings
 

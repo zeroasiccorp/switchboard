@@ -19,11 +19,18 @@ def main():
 
     net = SbNetwork(cmdline=True)
 
+    # different configuration for single-netlist mode vs. distributed simulation
+
+    if net.netlist:
+        cfg = dict(autowrap=False, subcomponent=True)
+    else:
+        cfg = dict(autowrap=True, subcomponent=False)
+
     # create the building blocks
 
-    umi_fifo = make_umi_fifo(args=net.args)
-    umi2axil = make_umi2axil(args=net.args)
-    axil_ram = make_axil_ram(args=net.args)
+    umi_fifo = make_umi_fifo(cfg=cfg, args=net.args)
+    umi2axil = make_umi2axil(cfg=cfg, args=net.args)
+    axil_ram = make_axil_ram(cfg=cfg, args=net.args)
 
     # connect them together
 
@@ -68,7 +75,7 @@ def main():
     assert wrdata == rddata
 
 
-def make_umi_fifo(args):
+def make_umi_fifo(cfg, args):
     dw = 256
     aw = 64
     cw = 32
@@ -103,18 +110,20 @@ def make_umi_fifo(args):
         'umi_out_nreset'
     ]
 
-    dut = SbDut('umi_fifo', autowrap=True, parameters=parameters, interfaces=interfaces,
-        clocks=clocks, resets=resets, tieoffs=tieoffs, args=args)
+    dut = SbDut('umi_fifo', parameters=parameters, interfaces=interfaces,
+        clocks=clocks, resets=resets, tieoffs=tieoffs, args=args, **cfg)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
+    dut.input('umi/rtl/umi_fifo.v', package='umi')
+
     return dut
 
 
-def make_axil_ram(args):
+def make_axil_ram(cfg, args):
     dw = 64
     aw = 13
 
@@ -129,8 +138,8 @@ def make_axil_ram(args):
 
     resets = [dict(name='rst', delay=8)]
 
-    dut = SbDut('axil_ram', autowrap=True, parameters=parameters, interfaces=interfaces,
-        resets=resets, args=args)
+    dut = SbDut('axil_ram', parameters=parameters, interfaces=interfaces,
+        resets=resets, args=args, **cfg)
 
     dut.register_package_source(
         'verilog-axi',
@@ -146,7 +155,7 @@ def make_axil_ram(args):
     return dut
 
 
-def make_umi2axil(args):
+def make_umi2axil(cfg, args):
     dw = 64
     aw = 64
     cw = 32
@@ -165,13 +174,15 @@ def make_umi2axil(args):
 
     resets = ['nreset']
 
-    dut = SbDut('umi2axilite', autowrap=True, parameters=parameters, interfaces=interfaces,
-        resets=resets, args=args)
+    dut = SbDut('umi2axilite', parameters=parameters, interfaces=interfaces,
+        resets=resets, args=args, **cfg)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
+
+    dut.input('utils/rtl/umi2axilite.v', package='umi')
 
     return dut
 
