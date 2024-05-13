@@ -191,14 +191,22 @@ class SbDut(siliconcompiler.Chip):
         self.timeprecision = timeprecision
 
         self.autowrap = autowrap
-        self.dut = design
+
+        if (suffix is None) and subcomponent:
+            suffix = f'_unq_{design}'
+
+        self.suffix = suffix
+
+        if suffix is not None:
+            self.dut = f'{design}{suffix}'
+        else:
+            self.dut = design
+
         self.parameters = normalize_parameters(parameters)
         self.intf_defs = normalize_interfaces(interfaces)
         self.clocks = normalize_clocks(clocks)
         self.resets = normalize_resets(resets)
         self.tieoffs = normalize_tieoffs(tieoffs)
-
-        self.suffix = suffix
 
         # initialization
 
@@ -220,49 +228,49 @@ class SbDut(siliconcompiler.Chip):
 
         self.set('option', 'builddir', str(Path(builddir).resolve()))
 
-        if fpga:
-            # library dirs
-            self.set('option', 'ydir', sb_path() / 'verilog' / 'fpga')
-            self.add('option', 'ydir', sb_path() / 'deps' / 'verilog-axi' / 'rtl')
-
-            # include dirs
-            self.set('option', 'idir', sb_path() / 'verilog' / 'fpga' / 'include')
-
-        for opt in ['ydir', 'idir']:
-            if not fpga:
-                self.set('option', opt, sb_path() / 'verilog' / 'sim')
-            self.add('option', opt, sb_path() / 'verilog' / 'common')
-
         self.set('option', 'mode', 'sim')
 
-        if trace:
-            self.set('option', 'trace', True)
-            self.set('option', 'define', 'SB_TRACE')
+        if not subcomponent:
+            if fpga:
+                # library dirs
+                self.set('option', 'ydir', sb_path() / 'verilog' / 'fpga')
+                self.add('option', 'ydir', sb_path() / 'deps' / 'verilog-axi' / 'rtl')
 
-        if self.trace_type == 'fst':
-            self.set('option', 'define', 'SB_TRACE_FST')
+                # include dirs
+                self.set('option', 'idir', sb_path() / 'verilog' / 'fpga' / 'include')
 
-        if tool == 'icarus':
-            self._configure_icarus()
+            for opt in ['ydir', 'idir']:
+                if not fpga:
+                    self.set('option', opt, sb_path() / 'verilog' / 'sim')
+                self.add('option', opt, sb_path() / 'verilog' / 'common')
+
+            if trace:
+                self.set('option', 'trace', True)
+                self.set('option', 'define', 'SB_TRACE')
+
+            if self.trace_type == 'fst':
+                self.set('option', 'define', 'SB_TRACE_FST')
+
+            if tool == 'icarus':
+                self._configure_icarus()
+            else:
+                if module is None:
+                    if tool == 'verilator':
+                        module = 'siliconcompiler'
+                    else:
+                        raise ValueError('Must specify the "module" argument,'
+                            ' which is the name of the module containing the'
+                            ' SiliconCompiler driver for this simulator.')
+
+                self._configure_build(
+                    module=module,
+                    default_main=default_main,
+                    fpga=fpga
+                )
+
+            if xyce:
+                self._configure_xyce()
         else:
-            if module is None:
-                if tool == 'verilator':
-                    module = 'siliconcompiler'
-                else:
-                    raise ValueError('Must specify the "module" argument,'
-                        ' which is the name of the module containing the'
-                        ' SiliconCompiler driver for this simulator.')
-
-            self._configure_build(
-                module=module,
-                default_main=default_main,
-                fpga=fpga
-            )
-
-        if xyce:
-            self._configure_xyce()
-
-        if subcomponent:
             # special mode that produces a standalone Verilog netlist
             # rather than building/running a simulation
 
@@ -416,9 +424,17 @@ class SbDut(siliconcompiler.Chip):
 
             filename.parent.mkdir(exist_ok=True, parents=True)
 
-            autowrap(design=self.dut, parameters=self.parameters,
-                interfaces=self.intf_defs, clocks=self.clocks, resets=self.resets,
-                tieoffs=self.tieoffs, filename=filename)
+            instance = f'{self.dut}_i'
+
+            autowrap(
+                instances={instance: self.dut},
+                parameters={instance: self.parameters},
+                interfaces={instance: self.intf_defs},
+                clocks={instance: self.clocks},
+                resets={instance: self.resets},
+                tieoffs={instance: self.tieoffs},
+                filename=filename
+            )
 
             self.input(filename)
 

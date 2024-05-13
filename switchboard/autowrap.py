@@ -22,6 +22,12 @@ def normalize_interface(name, value):
     if 'type' not in value:
         value['type'] = 'sb'
 
+    if 'wire' not in value:
+        value['wire'] = name
+
+    if 'external' not in value:
+        value['external'] = True
+
     assert 'type' in value
     value['type'] = normalize_intf_type(value['type'])
     type = value['type']
@@ -184,7 +190,7 @@ def normalize_parameters(parameters):
 
 
 def autowrap(
-    design,
+    instances,
     toplevel='testbench',
     parameters=None,
     interfaces=None,
@@ -197,11 +203,11 @@ def autowrap(
 ):
     # normalize inputs
 
-    parameters = normalize_parameters(parameters)
-    interfaces = normalize_interfaces(interfaces)
-    clocks = normalize_clocks(clocks)
-    resets = normalize_resets(resets)
-    tieoffs = normalize_tieoffs(tieoffs)
+    parameters = {k: normalize_parameters(v) for k, v in parameters.items()}
+    interfaces = {k: normalize_interfaces(v) for k, v in interfaces.items()}
+    clocks = {k: normalize_clocks(v) for k, v in clocks.items()}
+    resets = {k: normalize_resets(v) for k, v in resets.items()}
+    tieoffs = {k: normalize_tieoffs(v) for k, v in tieoffs.items()}
 
     # build up output lines
 
@@ -223,68 +229,96 @@ def autowrap(
         ''
     ]
 
+    # wire declarations
+
+    wires = {}
+
     lines += ['']
 
-    for name, value in interfaces.items():
-        type = value['type']
-        direction = value['direction']
+    for instance in instances:
+        for name, value in interfaces[instance].items():
+            type = value['type']
 
-        if type == 'sb':
-            dw = value['dw']
+            if type not in wires:
+                wires[type] = set()
 
-            lines += [tab + f'`SB_WIRES({name}, {dw});']
+            wire = value['wire']
 
-            if direction_is_input(direction):
-                lines += [tab + f'`QUEUE_TO_SB_SIM({name}, {dw}, "");']
-            elif direction_is_output(direction):
-                lines += [tab + f'`SB_TO_QUEUE_SIM({name}, {dw}, "");']
+            if wire not in wires[type]:
+                decl_wire = True
+                wires[type].add(wire)
             else:
-                raise Exception(f'Unsupported SB direction: {direction}')
-        elif type == 'umi':
-            dw = value['dw']
-            cw = value['cw']
-            aw = value['aw']
+                decl_wire = False
 
-            lines += [tab + f'`SB_UMI_WIRES({name}, {dw}, {cw}, {aw});']
+            direction = value['direction']
 
-            if direction_is_input(direction):
-                lines += [tab + f'`QUEUE_TO_UMI_SIM({name}, {dw}, {cw}, {aw}, "");']
-            elif direction_is_output(direction):
-                lines += [tab + f'`UMI_TO_QUEUE_SIM({name}, {dw}, {cw}, {aw}, "");']
+            external = value['external']
+
+            if type == 'sb':
+                dw = value['dw']
+
+                if decl_wire:
+                    lines += [tab + f'`SB_WIRES({wire}, {dw});']
+
+                if external:
+                    if direction_is_input(direction):
+                        lines += [tab + f'`QUEUE_TO_SB_SIM({wire}, {dw}, "");']
+                    elif direction_is_output(direction):
+                        lines += [tab + f'`SB_TO_QUEUE_SIM({wire}, {dw}, "");']
+                    else:
+                        raise Exception(f'Unsupported SB direction: {direction}')
+            elif type == 'umi':
+                dw = value['dw']
+                cw = value['cw']
+                aw = value['aw']
+
+                if decl_wire:
+                    lines += [tab + f'`SB_UMI_WIRES({wire}, {dw}, {cw}, {aw});']
+
+                if external:
+                    if direction_is_input(direction):
+                        lines += [tab + f'`QUEUE_TO_UMI_SIM({wire}, {dw}, {cw}, {aw}, "");']
+                    elif direction_is_output(direction):
+                        lines += [tab + f'`UMI_TO_QUEUE_SIM({wire}, {dw}, {cw}, {aw}, "");']
+                    else:
+                        raise Exception(f'Unsupported UMI direction: {direction}')
+            elif type == 'axi':
+                dw = value['dw']
+                aw = value['aw']
+                idw = value['idw']
+
+                if decl_wire:
+                    lines += [tab + f'`SB_AXI_WIRES({wire}, {dw}, {aw}, {idw});']
+
+                if external:
+                    if direction_is_subordinate(direction):
+                        lines += [tab + f'`SB_AXI_M({wire}, {dw}, {aw}, {idw}, "");']
+                    elif direction_is_manager(direction):
+                        lines += [tab + f'`SB_AXI_S({wire}, {dw}, {aw}, "");']
+                    else:
+                        raise Exception(f'Unsupported AXI direction: {direction}')
+            elif type == 'axil':
+                dw = value['dw']
+                aw = value['aw']
+
+                if decl_wire:
+                    lines += [tab + f'`SB_AXIL_WIRES({wire}, {dw}, {aw});']
+
+                if external:
+                    if direction_is_subordinate(direction):
+                        lines += [tab + f'`SB_AXIL_M({wire}, {dw}, {aw}, "");']
+                    elif direction_is_manager(direction):
+                        lines += [tab + f'`SB_AXIL_S({wire}, {dw}, {aw}, "");']
+                    else:
+                        raise Exception(f'Unsupported AXI-Lite direction: {direction}')
             else:
-                raise Exception(f'Unsupported UMI direction: {direction}')
-        elif type == 'axi':
-            dw = value['dw']
-            aw = value['aw']
-            idw = value['idw']
+                raise Exception(f'Unsupported interface type: "{type}"')
 
-            lines += [tab + f'`SB_AXI_WIRES({name}, {dw}, {aw}, {idw});']
-
-            if direction_is_subordinate(direction):
-                lines += [tab + f'`SB_AXI_M({name}, {dw}, {aw}, {idw}, "");']
-            elif direction_is_manager(direction):
-                lines += [tab + f'`SB_AXI_S({name}, {dw}, {aw}, "");']
-            else:
-                raise Exception(f'Unsupported AXI direction: {direction}')
-        elif type == 'axil':
-            dw = value['dw']
-            aw = value['aw']
-
-            lines += [tab + f'`SB_AXIL_WIRES({name}, {dw}, {aw});']
-
-            if direction_is_subordinate(direction):
-                lines += [tab + f'`SB_AXIL_M({name}, {dw}, {aw}, "");']
-            elif direction_is_manager(direction):
-                lines += [tab + f'`SB_AXIL_S({name}, {dw}, {aw}, "");']
-            else:
-                raise Exception(f'Unsupported AXI-Lite direction: {direction}')
-        else:
-            raise Exception(f'Unsupported interface type: "{type}"')
-
-        lines += ['']
+            lines += ['']
 
     if len(resets) > 0:
-        max_rst_dly = max(reset['delay'] for reset in resets)
+        max_rst_dly = max(max(reset['delay'] for reset in inst_resets)
+            for inst_resets in resets.values())
 
         lines += [
             tab + f"reg [{max_rst_dly}:0] rstvec = '1;"
@@ -302,74 +336,78 @@ def autowrap(
             ''
         ]
 
-    if len(parameters) > 0:
-        lines += [tab + f'{design} #(']
-        for n, (key, value) in enumerate(parameters.items()):
-            line = (2 * tab) + f'.{key}({value})'
+    for instance, module in instances.items():
+        # start of the instantiation
 
-            if n != len(parameters) - 1:
-                line += ','
+        if len(parameters[instance]) > 0:
+            lines += [tab + f'{module} #(']
+            for n, (key, value) in enumerate(parameters[instance].items()):
+                line = (2 * tab) + f'.{key}({value})'
 
-            lines += [line]
-        lines += [tab + f') {design}_i (']
-    else:
-        lines += [tab + f'{design} {design}_i (']
+                if n != len(parameters[instance]) - 1:
+                    line += ','
 
-    connections = []
-
-    # interfaces
-
-    for name, value in interfaces.items():
-        type = value['type']
-
-        if type_is_sb(type):
-            connections += [f'`SB_CONNECT({name}, {name})']
-        elif type_is_umi(type):
-            connections += [f'`SB_UMI_CONNECT({name}, {name})']
-        elif type_is_axi(type):
-            connections += [f'`SB_AXI_CONNECT({name}, {name})']
-        elif type_is_axil(type):
-            connections += [f'`SB_AXIL_CONNECT({name}, {name})']
-
-    # clocks
-
-    for clock in clocks:
-        connections += [f'.{clock["name"]}(clk)']
-
-    # resets
-
-    for reset in resets:
-        name = reset['name']
-        polarity = reset['polarity']
-        delay = reset['delay']
-
-        if polarity_is_positive(polarity):
-            value = f'rstvec[{delay}]'
-        elif polarity_is_negative(polarity):
-            value = f'~rstvec[{delay}]'
+                lines += [line]
+            lines += [tab + f') {instance} (']
         else:
-            raise ValueError(f'Unsupported reset polarity: "{polarity}"')
+            lines += [tab + f'{module} {instance} (']
 
-        connections += [f'.{name}({value})']
+        connections = []
 
-    # tieoffs
+        # interfaces
 
-    for key, value in tieoffs.items():
-        if value is None:
-            value = ''
-        else:
-            value = str(value)
-        connections += [f'.{key}({value})']
+        for name, value in interfaces[instance].items():
+            type = value['type']
+            wire = value['wire']
 
-    for n, connection in enumerate(connections):
-        if n != len(connections) - 1:
-            connection += ','
-        lines += [(2 * tab) + connection]
+            if type_is_sb(type):
+                connections += [f'`SB_CONNECT({name}, {wire})']
+            elif type_is_umi(type):
+                connections += [f'`SB_UMI_CONNECT({name}, {wire})']
+            elif type_is_axi(type):
+                connections += [f'`SB_AXI_CONNECT({name}, {wire})']
+            elif type_is_axil(type):
+                connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
 
-    lines += [tab + ');']
-    lines += ['']
+        # clocks
 
-    # initialize queue connections
+        for clock in clocks[instance]:
+            connections += [f'.{clock["name"]}(clk)']
+
+        # resets
+
+        for reset in resets[instance]:
+            name = reset['name']
+            polarity = reset['polarity']
+            delay = reset['delay']
+
+            if polarity_is_positive(polarity):
+                value = f'rstvec[{delay}]'
+            elif polarity_is_negative(polarity):
+                value = f'~rstvec[{delay}]'
+            else:
+                raise ValueError(f'Unsupported reset polarity: "{polarity}"')
+
+            connections += [f'.{name}({value})']
+
+        # tieoffs
+
+        for key, value in tieoffs[instance].items():
+            if value is None:
+                value = ''
+            else:
+                value = str(value)
+            connections += [f'.{key}({value})']
+
+        for n, connection in enumerate(connections):
+            if n != len(connections) - 1:
+                connection += ','
+            lines += [(2 * tab) + connection]
+
+        lines += [tab + ');']
+        lines += ['']
+
+    # initialize queue connections for this instance
 
     lines += [
         tab + 'string uri_sb_value;',
@@ -378,12 +416,20 @@ def autowrap(
         (2 * tab) + '/* verilator lint_off IGNOREDRETURN */'
     ]
 
-    for name, value in interfaces.items():
-        lines += [
-            (2 * tab) + f'if($value$plusargs("{name}=%s", uri_sb_value)) begin',
-            (3 * tab) + f'{name}_sb_inst.init(uri_sb_value);',
-            (2 * tab) + 'end'
-        ]
+    for inst_interfaces in interfaces.values():
+        for value in inst_interfaces.values():
+            external = value['external']
+
+            if not external:
+                continue
+
+            wire = value['wire']
+
+            lines += [
+                (2 * tab) + f'if($value$plusargs("{wire}=%s", uri_sb_value)) begin',
+                (3 * tab) + f'{wire}_sb_inst.init(uri_sb_value);',
+                (2 * tab) + 'end'
+            ]
 
     lines += [
         (2 * tab) + '/* verilator lint_on IGNOREDRETURN */',
