@@ -37,7 +37,7 @@ class SbInst:
 class SbNetwork:
     def __init__(self, cmdline=False, tool: str = 'verilator', trace: bool = False,
         trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
-        max_rate: float = None, start_delay: float = None, fast: bool = False,
+        max_rate: float = -1, start_delay: float = None, fast: bool = False,
         extra_args: dict = None, cleanup: bool = True, args=None, netlist: bool = False):
 
         self.insts = {}
