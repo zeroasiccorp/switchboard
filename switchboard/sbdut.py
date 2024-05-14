@@ -221,7 +221,9 @@ class SbDut(siliconcompiler.Chip):
             buildroot = Path(buildroot).resolve()
 
             if subcomponent:
-                builddir = buildroot / design
+                # the subcomponent build flow is tool-agnostic, producing a single Verilog
+                # file as output, as opposed to a simulator binary
+                builddir = buildroot / metadata_str(design=design, parameters=parameters)
             else:
                 builddir = buildroot / metadata_str(design=design, parameters=parameters,
                     tool=tool, trace=trace, trace_type=trace_type)
@@ -754,8 +756,8 @@ class SbDut(siliconcompiler.Chip):
             return self.find_result('v', step='uniquify')
 
 
-def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
-    parameters: dict = None) -> Path:
+def metadata_str(design: str, tool: str = None, trace: bool = False,
+    trace_type: str = None, parameters: dict = None) -> Path:
 
     opts = []
 
@@ -765,7 +767,8 @@ def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
         for k, v in parameters.items():
             opts += [k, v]
 
-    opts += [tool]
+    if tool is not None:
+        opts += [tool]
 
     if trace:
         assert trace_type is not None
