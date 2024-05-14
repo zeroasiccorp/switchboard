@@ -1,2 +1,3 @@
 # Examples dependencies
 umi @ git+https://github.com/zeroasiccorp/umi.git@f6d8fea9e6270b89a2c38860a4af512383cbc6ef
+lambdalib >=0.2.3
