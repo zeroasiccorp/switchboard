@@ -31,7 +31,9 @@ jobs:
 
       - name: Run pytest
         working-directory: examples
-        run: pytest --durations=0 -s
+        run: |
+          export PATH=$PATH:/root/.cargo/bin
+          pytest --durations=0 -s
 
       - name: Run tests
         working-directory: tests
