@@ -5,17 +5,17 @@
 verilator:
 	./test.py --tool verilator --start-delay 1 --max-rate 1e3
 
-.PHONY: verilator-netlist
-verilator-netlist:
-	./test.py --tool verilator --start-delay 1 --max-rate 1e3 --netlist
+.PHONY: verilator-single-netlist
+verilator-single-netlist:
+	./test.py --tool verilator --start-delay 1 --max-rate 1e3 --single-netlist
 
 .PHONY: icarus
 icarus:
 	./test.py --tool icarus --start-delay 1 --max-rate 1e3
 
-.PHONY: icarus-netlist
-icarus-netlist:
-	./test.py --tool icarus --start-delay 1 --max-rate 1e3 --netlist
+.PHONY: icarus-single-netlist
+icarus-single-netlist:
+	./test.py --tool icarus --start-delay 1 --max-rate 1e3 --single-netlist
 
 .PHONY: clean
 clean:

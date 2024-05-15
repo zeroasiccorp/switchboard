@@ -8,7 +8,7 @@
 import numpy as np
 
 import umi
-from switchboard import SbDut, SbNetwork
+from switchboard import SbNetwork
 
 from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
@@ -19,18 +19,11 @@ def main():
 
     net = SbNetwork(cmdline=True)
 
-    # different configuration for single-netlist mode vs. distributed simulation
-
-    if net.netlist:
-        cfg = dict(autowrap=False, subcomponent=True)
-    else:
-        cfg = dict(autowrap=True, subcomponent=False)
-
     # create the building blocks
 
-    umi_fifo = make_umi_fifo(cfg=cfg, args=net.args)
-    umi2axil = make_umi2axil(cfg=cfg, args=net.args)
-    axil_ram = make_axil_ram(cfg=cfg, args=net.args)
+    umi_fifo = make_umi_fifo(net)
+    umi2axil = make_umi2axil(net)
+    axil_ram = make_axil_ram(net)
 
     # connect them together
 
@@ -75,7 +68,7 @@ def main():
     assert wrdata == rddata
 
 
-def make_umi_fifo(cfg, args):
+def make_umi_fifo(net):
     dw = 256
     aw = 64
     cw = 32
@@ -110,8 +103,8 @@ def make_umi_fifo(cfg, args):
         'umi_out_nreset'
     ]
 
-    dut = SbDut('umi_fifo', parameters=parameters, interfaces=interfaces,
-        clocks=clocks, resets=resets, tieoffs=tieoffs, args=args, **cfg)
+    dut = net.make_dut('umi_fifo', parameters=parameters, interfaces=interfaces,
+        clocks=clocks, resets=resets, tieoffs=tieoffs)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
@@ -123,7 +116,7 @@ def make_umi_fifo(cfg, args):
     return dut
 
 
-def make_axil_ram(cfg, args):
+def make_axil_ram(net):
     dw = 64
     aw = 13
 
@@ -138,8 +131,8 @@ def make_axil_ram(cfg, args):
 
     resets = [dict(name='rst', delay=8)]
 
-    dut = SbDut('axil_ram', parameters=parameters, interfaces=interfaces,
-        resets=resets, args=args, **cfg)
+    dut = net.make_dut('axil_ram', parameters=parameters,
+        interfaces=interfaces, resets=resets)
 
     dut.register_package_source(
         'verilog-axi',
@@ -155,7 +148,7 @@ def make_axil_ram(cfg, args):
     return dut
 
 
-def make_umi2axil(cfg, args):
+def make_umi2axil(net):
     dw = 64
     aw = 64
     cw = 32
@@ -174,8 +167,8 @@ def make_umi2axil(cfg, args):
 
     resets = ['nreset']
 
-    dut = SbDut('umi2axilite', parameters=parameters, interfaces=interfaces,
-        resets=resets, args=args, **cfg)
+    dut = net.make_dut('umi2axilite', parameters=parameters,
+        interfaces=interfaces, resets=resets)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')

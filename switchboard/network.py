@@ -38,7 +38,8 @@ class SbNetwork:
     def __init__(self, cmdline=False, tool: str = 'verilator', trace: bool = False,
         trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
         max_rate: float = -1, start_delay: float = None, fast: bool = False,
-        extra_args: dict = None, cleanup: bool = True, args=None, netlist: bool = False):
+        extra_args: dict = None, cleanup: bool = True, args=None,
+        single_netlist: bool = False):
 
         self.insts = {}
 
@@ -66,7 +67,7 @@ class SbNetwork:
             period = self.args.period
             max_rate = self.args.max_rate
             start_delay = self.args.start_delay
-            netlist = self.args.netlist
+            single_netlist = self.args.single_netlist
 
         # save settings
 
@@ -81,9 +82,9 @@ class SbNetwork:
         self.max_rate = max_rate
         self.start_delay = start_delay
 
-        self.netlist = netlist
+        self.single_netlist = single_netlist
 
-        if netlist:
+        if single_netlist:
             self.dut = SbDut(args=self.args)
         else:
             self.intf_defs = {}
@@ -139,7 +140,7 @@ class SbNetwork:
             if type_is_sb(type_a) or type_is_umi(type_a):
                 uri = uri + '.q'
 
-        if not self.netlist:
+        if not self.single_netlist:
             # internal connection, no need to register it for cleanup
             self.register_uri(type=type_a, uri=uri)
 
@@ -154,7 +155,7 @@ class SbNetwork:
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())
 
-        if self.netlist:
+        if self.single_netlist:
             passthroughs = [
                 ('tool', 'verilator', 'task', 'compile', 'warningoff')
             ]
@@ -248,7 +249,7 @@ class SbNetwork:
         if name is None:
             name = f'{intf.inst.name}_{intf.name}'
 
-        if self.netlist:
+        if self.single_netlist:
             intf_defs = self.dut.intf_defs
         else:
             intf_defs = self.intf_defs
@@ -261,7 +262,7 @@ class SbNetwork:
     def simulate(self):
         # create interface objects
 
-        if self.netlist:
+        if self.single_netlist:
             self.dut.simulate()
             self.intfs = self.dut.intfs
         else:
@@ -334,3 +335,28 @@ class SbNetwork:
 
         if fresh:
             delete_queues(uris)
+
+    def make_dut(self, *args, **kwargs):
+        # argument customizations
+
+        cfg = {}
+
+        cfg['args'] = self.args
+
+        if self.single_netlist:
+            cfg['autowrap'] = False
+            cfg['subcomponent'] = True
+        else:
+            cfg['autowrap'] = True
+            cfg['subcomponent'] = False
+
+        # add to keyword arguments without clobbering
+        # existing entries
+
+        kwargs = deepcopy(kwargs)
+
+        for k, v in cfg.items():
+            if k not in kwargs:
+                kwargs[k] = v
+
+        return SbDut(*args, **kwargs)

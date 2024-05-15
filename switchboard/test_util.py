@@ -24,19 +24,19 @@ def test_cmd(args, expected=None, path=None):
     if isinstance(args, str):
         args = [args]
     args = [str(arg) for arg in args]
-    result = subprocess.run(args, check=True, capture_output=True,
-        text=True, cwd=cwd)
 
-    # print the output
+    process = subprocess.Popen(args, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, bufsize=1, text=True, cwd=cwd)
 
-    stdout = result.stdout
-    if (stdout is not None) and (stdout != ''):
-        print(stdout, end='', flush=True)
+    # print output while saving it
+    stdout = ''
+    for line in process.stdout:
+        print(line, end='')
+        stdout += line
 
-    stderr = result.stderr
-    if (stderr is not None) and (stderr != ''):
-        print('### STDERR ###')
-        print(stderr, end='', flush=True)
+    # make sure that process exits cleanly
+    returncode = process.wait()
+    assert returncode == 0, f'Exited with non-zero code: {returncode}'
 
     # check the results
     if expected is not None:
