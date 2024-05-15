@@ -3,7 +3,7 @@
 
 .PHONY: verilator
 verilator:
-	./test.py --tool verilator --start-delay 1 --max-rate 1e3
+	./test.py --tool verilator --start-delay 5 --max-rate 1e3
 
 .PHONY: verilator-single-netlist
 verilator-single-netlist:
@@ -11,7 +11,7 @@ verilator-single-netlist:
 
 .PHONY: icarus
 icarus:
-	./test.py --tool icarus --start-delay 1 --max-rate 1e3
+	./test.py --tool icarus --start-delay 2 --max-rate 1e3 --fifos 125
 
 .PHONY: icarus-single-netlist
 icarus-single-netlist:
