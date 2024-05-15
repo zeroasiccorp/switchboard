@@ -1,7 +1,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from .python import setup as setup_tool
+from .sed import setup as setup_tool
 
 
 def setup(chip):
@@ -9,7 +9,7 @@ def setup(chip):
 
     setup_tool(chip)
 
-    tool = 'python'
+    tool = 'sed'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
@@ -20,18 +20,22 @@ def setup(chip):
 
 
 def runtime_options(chip):
-    tool = 'python'
+    tool = 'sed'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     task = chip._get_task(step, index)
     design = chip.top()
-
-    from pathlib import Path
-    script = str(Path(__file__).resolve().parent / 'remove_script.py')
 
     infile = f'inputs/{design}.v'
     outfile = f'outputs/{design}.v'
 
     to_remove = chip.get('tool', tool, 'task', task, 'var', 'to_remove', step=step, index=index)
 
-    return [script, infile, outfile] + to_remove
+    script = [f's/{elem}//g' for elem in to_remove]
+    script += [f'w {outfile}']
+
+    script = '; '.join(script)
+
+    cmdlist = ['-n', f'"{script}"', infile]
+
+    return cmdlist

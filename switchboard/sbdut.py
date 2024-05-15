@@ -283,7 +283,7 @@ class SbDut(siliconcompiler.Chip):
             from siliconcompiler.tools.surelog import parse
             self.package_flow.node(flowname, 'parse', parse)
 
-            from .sc.python import remove
+            from .sc.sed import remove
             self.package_flow.node(flowname, 'remove', remove)
 
             from .sc.morty import uniquify
@@ -742,7 +742,7 @@ class SbDut(siliconcompiler.Chip):
         if suffix:
             self.set('tool', 'morty', 'task', 'uniquify', 'var', 'suffix', suffix)
 
-        self.set('tool', 'python', 'task', 'remove', 'var', 'to_remove', '`resetall')
+        self.set('tool', 'sed', 'task', 'remove', 'var', 'to_remove', '`resetall')
 
         self.run()
 
