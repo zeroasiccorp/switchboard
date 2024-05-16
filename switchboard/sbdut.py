@@ -63,7 +63,8 @@ class SbDut(siliconcompiler.Chip):
         builddir=None,
         args=None,
         subcomponent=False,
-        suffix=None
+        suffix=None,
+        threads=None
     ):
         """
         Parameters
@@ -150,7 +151,7 @@ class SbDut(siliconcompiler.Chip):
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
                 frequency=frequency, period=period, fast=fast, max_rate=max_rate,
-                start_delay=start_delay, extra_args=extra_args)
+                start_delay=start_delay, threads=threads, extra_args=extra_args)
         elif args is not None:
             self.args = args
         else:
@@ -165,6 +166,7 @@ class SbDut(siliconcompiler.Chip):
             period = self.args.period
             max_rate = self.args.max_rate
             start_delay = self.args.start_delay
+            threads = self.args.threads
 
         # input validation
 
@@ -186,6 +188,8 @@ class SbDut(siliconcompiler.Chip):
         self.period = period
         self.max_rate = max_rate
         self.start_delay = start_delay
+
+        self.threads = threads
 
         self.timeunit = timeunit
         self.timeprecision = timeprecision
@@ -226,7 +230,7 @@ class SbDut(siliconcompiler.Chip):
                 builddir = buildroot / metadata_str(design=design, parameters=parameters)
             else:
                 builddir = buildroot / metadata_str(design=design, parameters=parameters,
-                    tool=tool, trace=trace, trace_type=trace_type)
+                    tool=tool, trace=trace, trace_type=trace_type, threads=threads)
 
         self.set('option', 'builddir', str(Path(builddir).resolve()))
 
@@ -344,6 +348,10 @@ class SbDut(siliconcompiler.Chip):
                 timescale = f'{timeunit}/{timeprecision}'
                 self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
                 self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
+
+        if (self.threads is not None) and (self.tool == 'verilator'):
+            self.add('tool', 'verilator', 'task', 'compile', 'option', '--threads')
+            self.add('tool', 'verilator', 'task', 'compile', 'option', str(self.threads))
 
         self.set('option', 'libext', ['v', 'sv'])
 
@@ -757,7 +765,7 @@ class SbDut(siliconcompiler.Chip):
 
 
 def metadata_str(design: str, tool: str = None, trace: bool = False,
-    trace_type: str = None, parameters: dict = None) -> Path:
+    trace_type: str = None, threads: int = None, parameters: dict = None) -> Path:
 
     opts = []
 
@@ -773,6 +781,9 @@ def metadata_str(design: str, tool: str = None, trace: bool = False,
     if trace:
         assert trace_type is not None
         opts += [trace_type]
+
+    if threads is not None:
+        opts += ['threads', threads]
 
     return '-'.join(str(opt) for opt in opts)
 

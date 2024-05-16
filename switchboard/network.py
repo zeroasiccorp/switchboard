@@ -39,7 +39,7 @@ class SbNetwork:
         trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
         max_rate: float = -1, start_delay: float = None, fast: bool = False,
         extra_args: dict = None, cleanup: bool = True, args=None,
-        single_netlist: bool = False):
+        single_netlist: bool = False, threads: int = None):
 
         self.insts = {}
 
@@ -52,7 +52,8 @@ class SbNetwork:
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
                 frequency=frequency, period=period, fast=fast, max_rate=max_rate,
-                start_delay=start_delay, extra_args=extra_args)
+                start_delay=start_delay, single_netlist=single_netlist, threads=threads,
+                extra_args=extra_args)
         elif args is not None:
             self.args = args
         else:

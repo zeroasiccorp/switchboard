@@ -11,6 +11,7 @@ def get_cmdline_args(
     start_delay: float = None,
     fast: bool = False,
     single_netlist: bool = False,
+    threads: int = None,
     extra_args: dict = None
 ):
     """
@@ -112,6 +113,9 @@ def get_cmdline_args(
     else:
         parser.add_argument('--distributed', action='store_true', help='Run in distributed'
             ' simulation mode, rather than single-netlist mode.')
+
+    parser.add_argument('--threads', type=int, default=threads,
+        help='Number of threads to use when running a simulation.')
 
     if extra_args is not None:
         for k, v in extra_args.items():
