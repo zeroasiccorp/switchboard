@@ -39,7 +39,7 @@ class SbNetwork:
         trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
         max_rate: float = -1, start_delay: float = None, fast: bool = False,
         extra_args: dict = None, cleanup: bool = True, args=None,
-        single_netlist: bool = False, threads: int = None):
+        single_netlist: bool = False, threads: int = None, name: str = None):
 
         self.insts = {}
 
@@ -88,7 +88,9 @@ class SbNetwork:
         if single_netlist:
             self.dut = SbDut(args=self.args)
         else:
-            self.intf_defs = {}
+            self._intf_defs = {}
+
+        self.name = name
 
         if cleanup:
             import atexit
@@ -99,10 +101,26 @@ class SbNetwork:
 
             atexit.register(cleanup_func)
 
-    def instantiate(self, block: SbDut, name: str = None):
+    @property
+    def intf_defs(self):
+        if self.single_netlist:
+            return self.dut.intf_defs
+        else:
+            return self._intf_defs
+
+    def instantiate(self, block, name: str = None):
         # generate a name if needed
         if name is None:
-            name = self.generate_inst_name(prefix=block.dut)
+            if isinstance(block, SbDut):
+                prefix = block.dut
+            else:
+                prefix = block.name
+
+            assert prefix is not None, ('Cannot generate name for this instance.'
+                '  When block is an SbNetwork, make sure that its constructor set'
+                ' "name" if you want name generation to work here.')
+
+            name = self.generate_inst_name(prefix=prefix)
 
         # make sure the name hasn't been used already
         assert name not in self.inst_name_set
@@ -250,26 +268,31 @@ class SbNetwork:
         if name is None:
             name = f'{intf.inst.name}_{intf.name}'
 
-        if self.single_netlist:
-            intf_defs = self.dut.intf_defs
-        else:
-            intf_defs = self.intf_defs
-
-        assert name not in intf_defs, \
+        assert name not in self.intf_defs, \
             f'Network already contains an external interface called "{name}".'
 
-        intf_defs[name] = intf_def
+        self.intf_defs[name] = intf_def
 
-    def simulate(self):
+        return name
+
+    def simulate(self, start_delay=None, run=None, intf_objs=True):
+        # set defaults
+
+        if start_delay is None:
+            start_delay = self.start_delay
+
         # create interface objects
 
         if self.single_netlist:
-            self.dut.simulate()
-            self.intfs = self.dut.intfs
-        else:
-            self.intfs = create_intf_objs(self.intf_defs)
+            self.dut.simulate(start_delay=start_delay, run=run, intf_objs=intf_objs)
 
-            if self.start_delay is not None:
+            if intf_objs:
+                self.intfs = self.dut.intfs
+        else:
+            if intf_objs:
+                self.intfs = create_intf_objs(self.intf_defs)
+
+            if start_delay is not None:
                 import time
                 start = time.time()
 
@@ -297,18 +320,18 @@ class SbNetwork:
                 # calculate the start delay for this process by measuring the
                 # time left until the start delay for the whole network is over
 
-                if self.start_delay is not None:
+                if start_delay is not None:
                     now = time.time()
                     dt = now - start
-                    if dt < self.start_delay:
-                        start_delay = self.start_delay - dt
+                    if dt < start_delay:
+                        start_delay = start_delay - dt
                     else:
                         start_delay = None
                 else:
                     start_delay = None
 
                 # launch an instance of simulation
-                block.simulate(run=inst.name, intf_objs=False, start_delay=start_delay)
+                block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
 
     def generate_inst_name(self, prefix):
         if prefix not in self.inst_name_counters:

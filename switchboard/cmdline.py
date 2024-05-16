@@ -121,7 +121,7 @@ def get_cmdline_args(
         for k, v in extra_args.items():
             parser.add_argument(k, **v)
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     # standardize boolean flags
 
