@@ -554,7 +554,7 @@ class SbDut(siliconcompiler.Chip):
         # add plusargs that define queue connections
 
         for name, value in self.intf_defs.items():
-            plusargs += [(name, value['uri'])]
+            plusargs += [(value['wire'], value['uri'])]
 
         # run-specific configurations (if running the same simulator build multiple times
         # in parallel)

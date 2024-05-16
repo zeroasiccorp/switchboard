@@ -52,20 +52,18 @@ def main():
         subnet.connect(subblocks[i].umi_out, subblocks[i + 1].umi_in)
 
     if n < args.fifos:
-        umi_in = subnet.external(subblocks[0].umi_in)
-        umi_out = subnet.external(subblocks[-1].umi_out)
+        subnet.external(subblocks[0].umi_in, name='umi_in')
+        subnet.external(subblocks[-1].umi_out, name='umi_out')
 
         blocks = [net.instantiate(subnet) for _ in range(args.fifos // args.fifos_per_sim)]
 
         for i in range(len(blocks) - 1):
-            net.connect(getattr(blocks[i], umi_out), getattr(blocks[i + 1], umi_in))
+            net.connect(blocks[i].umi_out, blocks[i + 1].umi_in)
     else:
         blocks = subblocks
-        umi_in = 'umi_in'
-        umi_out = 'umi_out'
 
-    net.external(getattr(blocks[0], umi_in), txrx='umi')
-    net.external(getattr(blocks[-1], umi_out), txrx='umi')
+    net.external(blocks[0].umi_in, txrx='umi')
+    net.external(blocks[-1].umi_out, txrx='umi')
 
     # build simulator
 
