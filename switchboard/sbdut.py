@@ -28,7 +28,6 @@ from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets,
 from .cmdline import get_cmdline_args
 
 import siliconcompiler
-from siliconcompiler.flows import dvflow
 
 SB_DIR = sb_path()
 
@@ -62,7 +61,10 @@ class SbDut(siliconcompiler.Chip):
         tieoffs=None,
         buildroot=None,
         builddir=None,
-        args=None
+        args=None,
+        subcomponent=False,
+        suffix=None,
+        threads=None
     ):
         """
         Parameters
@@ -137,7 +139,7 @@ class SbDut(siliconcompiler.Chip):
 
         # call the super constructor
 
-        if autowrap:
+        if autowrap and (not subcomponent):
             toplevel = 'testbench'
         else:
             toplevel = design
@@ -149,7 +151,7 @@ class SbDut(siliconcompiler.Chip):
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
                 frequency=frequency, period=period, fast=fast, max_rate=max_rate,
-                start_delay=start_delay, extra_args=extra_args)
+                start_delay=start_delay, threads=threads, extra_args=extra_args)
         elif args is not None:
             self.args = args
         else:
@@ -164,6 +166,7 @@ class SbDut(siliconcompiler.Chip):
             period = self.args.period
             max_rate = self.args.max_rate
             start_delay = self.args.start_delay
+            threads = self.args.threads
 
         # input validation
 
@@ -186,11 +189,23 @@ class SbDut(siliconcompiler.Chip):
         self.max_rate = max_rate
         self.start_delay = start_delay
 
+        self.threads = threads
+
         self.timeunit = timeunit
         self.timeprecision = timeprecision
 
         self.autowrap = autowrap
-        self.dut = design
+
+        if (suffix is None) and subcomponent:
+            suffix = f'_unq_{design}'
+
+        self.suffix = suffix
+
+        if suffix is not None:
+            self.dut = f'{design}{suffix}'
+        else:
+            self.dut = design
+
         self.parameters = normalize_parameters(parameters)
         self.intf_defs = normalize_interfaces(interfaces)
         self.clocks = normalize_clocks(clocks)
@@ -209,52 +224,80 @@ class SbDut(siliconcompiler.Chip):
 
             buildroot = Path(buildroot).resolve()
 
-            builddir = buildroot / metadata_str(design=design, parameters=parameters, tool=tool,
-                trace=trace, trace_type=trace_type)
+            if subcomponent:
+                # the subcomponent build flow is tool-agnostic, producing a single Verilog
+                # file as output, as opposed to a simulator binary
+                builddir = buildroot / metadata_str(design=design, parameters=parameters)
+            else:
+                builddir = buildroot / metadata_str(design=design, parameters=parameters,
+                    tool=tool, trace=trace, trace_type=trace_type, threads=threads)
 
         self.set('option', 'builddir', str(Path(builddir).resolve()))
 
-        if fpga:
-            # library dirs
-            self.set('option', 'ydir', sb_path() / 'verilog' / 'fpga')
-            self.add('option', 'ydir', sb_path() / 'deps' / 'verilog-axi' / 'rtl')
-
-            # include dirs
-            self.set('option', 'idir', sb_path() / 'verilog' / 'fpga' / 'include')
-
-        for opt in ['ydir', 'idir']:
-            if not fpga:
-                self.set('option', opt, sb_path() / 'verilog' / 'sim')
-            self.add('option', opt, sb_path() / 'verilog' / 'common')
-
         self.set('option', 'mode', 'sim')
 
-        if trace:
-            self.set('option', 'trace', True)
-            self.set('option', 'define', 'SB_TRACE')
+        if not subcomponent:
+            if fpga:
+                # library dirs
+                self.set('option', 'ydir', sb_path() / 'verilog' / 'fpga')
+                self.add('option', 'ydir', sb_path() / 'deps' / 'verilog-axi' / 'rtl')
 
-        if self.trace_type == 'fst':
-            self.set('option', 'define', 'SB_TRACE_FST')
+                # include dirs
+                self.set('option', 'idir', sb_path() / 'verilog' / 'fpga' / 'include')
 
-        if tool == 'icarus':
-            self._configure_icarus()
+            for opt in ['ydir', 'idir']:
+                if not fpga:
+                    self.set('option', opt, sb_path() / 'verilog' / 'sim')
+                self.add('option', opt, sb_path() / 'verilog' / 'common')
+
+            if trace:
+                self.set('option', 'trace', True)
+                self.set('option', 'define', 'SB_TRACE')
+
+            if self.trace_type == 'fst':
+                self.set('option', 'define', 'SB_TRACE_FST')
+
+            if tool == 'icarus':
+                self._configure_icarus()
+            else:
+                if module is None:
+                    if tool == 'verilator':
+                        module = 'siliconcompiler'
+                    else:
+                        raise ValueError('Must specify the "module" argument,'
+                            ' which is the name of the module containing the'
+                            ' SiliconCompiler driver for this simulator.')
+
+                self._configure_build(
+                    module=module,
+                    default_main=default_main,
+                    fpga=fpga
+                )
+
+            if xyce:
+                self._configure_xyce()
         else:
-            if module is None:
-                if tool == 'verilator':
-                    module = 'siliconcompiler'
-                else:
-                    raise ValueError('Must specify the "module" argument,'
-                        ' which is the name of the module containing the'
-                        ' SiliconCompiler driver for this simulator.')
+            # special mode that produces a standalone Verilog netlist
+            # rather than building/running a simulation
 
-            self._configure_build(
-                module=module,
-                default_main=default_main,
-                fpga=fpga
-            )
+            flowname = 'package'
 
-        if xyce:
-            self._configure_xyce()
+            self.package_flow = siliconcompiler.Flow(self, flowname)
+
+            from siliconcompiler.tools.surelog import parse
+            self.package_flow.node(flowname, 'parse', parse)
+
+            from .sc.sed import remove
+            self.package_flow.node(flowname, 'remove', remove)
+
+            from .sc.morty import uniquify
+            self.package_flow.node(flowname, 'uniquify', uniquify)
+
+            self.package_flow.edge(flowname, 'parse', 'remove')
+            self.package_flow.edge(flowname, 'remove', 'uniquify')
+
+            self.use(self.package_flow)
+            self.set('option', 'flow', flowname)
 
     def _configure_build(
         self,
@@ -306,6 +349,10 @@ class SbDut(siliconcompiler.Chip):
                 self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
                 self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
 
+        if (self.threads is not None) and (self.tool == 'verilator'):
+            self.add('tool', 'verilator', 'task', 'compile', 'option', '--threads')
+            self.add('tool', 'verilator', 'task', 'compile', 'option', str(self.threads))
+
         self.set('option', 'libext', ['v', 'sv'])
 
         # Set up flow that compiles RTL
@@ -320,7 +367,9 @@ class SbDut(siliconcompiler.Chip):
         self.set('tool', 'icarus', 'task', 'compile', 'var', 'verilog_generation', '2012')
 
         # use dvflow to execute Icarus, but set steplist so we don't run sim
+        from siliconcompiler.flows import dvflow
         self.use(dvflow)
+
         self.set('option', 'flow', 'dvflow')
         self.set('option', 'to', 'compile')
 
@@ -389,9 +438,17 @@ class SbDut(siliconcompiler.Chip):
 
             filename.parent.mkdir(exist_ok=True, parents=True)
 
-            autowrap(design=self.dut, parameters=self.parameters,
-                interfaces=self.intf_defs, clocks=self.clocks, resets=self.resets,
-                tieoffs=self.tieoffs, filename=filename)
+            instance = f'{self.dut}_i'
+
+            autowrap(
+                instances={instance: self.dut},
+                parameters={instance: self.parameters},
+                interfaces={instance: self.intf_defs},
+                clocks={instance: self.clocks},
+                resets={instance: self.resets},
+                tieoffs={instance: self.tieoffs},
+                filename=filename
+            )
 
             self.input(filename)
 
@@ -497,7 +554,7 @@ class SbDut(siliconcompiler.Chip):
         # add plusargs that define queue connections
 
         for name, value in self.intf_defs.items():
-            plusargs += [(name, value['uri'])]
+            plusargs += [(value['wire'], value['uri'])]
 
         # run-specific configurations (if running the same simulator build multiple times
         # in parallel)
@@ -671,9 +728,44 @@ class SbDut(siliconcompiler.Chip):
 
         self.input(verilog_wrapper)
 
+    def package(self, suffix=None, fast=None):
+        # set defaults
 
-def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
-    parameters: dict = None) -> Path:
+        if suffix is None:
+            suffix = self.suffix
+
+        if fast is None:
+            fast = self.fast
+
+        # see if we can exit early
+
+        if fast:
+            package = self.find_package(suffix=suffix)
+
+            if package is not None:
+                return package
+
+        # if not, parse with surelog and postprocess with morty
+
+        if suffix:
+            self.set('tool', 'morty', 'task', 'uniquify', 'var', 'suffix', suffix)
+
+        self.set('tool', 'sed', 'task', 'remove', 'var', 'to_remove', '`resetall')
+
+        self.run()
+
+        # return the path to the output
+        return self.find_package(suffix=suffix)
+
+    def find_package(self, suffix=None):
+        if suffix is None:
+            return self.find_result('v', step='parse')
+        else:
+            return self.find_result('v', step='uniquify')
+
+
+def metadata_str(design: str, tool: str = None, trace: bool = False,
+    trace_type: str = None, threads: int = None, parameters: dict = None) -> Path:
 
     opts = []
 
@@ -683,11 +775,15 @@ def metadata_str(design: str, tool: str, trace: bool, trace_type: str,
         for k, v in parameters.items():
             opts += [k, v]
 
-    opts += [tool]
+    if tool is not None:
+        opts += [tool]
 
     if trace:
         assert trace_type is not None
         opts += [trace_type]
+
+    if threads is not None:
+        opts += ['threads', threads]
 
     return '-'.join(str(opt) for opt in opts)
 

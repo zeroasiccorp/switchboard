@@ -31,7 +31,8 @@ jobs:
 
       - name: Run pytest
         working-directory: examples
-        run: pytest --durations=0 -s
+        run: |
+          pytest --durations=0 -s
 
       - name: Run tests
         working-directory: tests

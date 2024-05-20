@@ -8,7 +8,7 @@
 import numpy as np
 
 import umi
-from switchboard import SbDut, SbNetwork
+from switchboard import SbNetwork
 
 from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
@@ -21,9 +21,9 @@ def main():
 
     # create the building blocks
 
-    umi_fifo = make_umi_fifo(args=net.args)
-    umi2axil = make_umi2axil(args=net.args)
-    axil_ram = make_axil_ram(args=net.args)
+    umi_fifo = make_umi_fifo(net)
+    umi2axil = make_umi2axil(net)
+    axil_ram = make_axil_ram(net)
 
     # connect them together
 
@@ -68,7 +68,7 @@ def main():
     assert wrdata == rddata
 
 
-def make_umi_fifo(args):
+def make_umi_fifo(net):
     dw = 256
     aw = 64
     cw = 32
@@ -103,18 +103,20 @@ def make_umi_fifo(args):
         'umi_out_nreset'
     ]
 
-    dut = SbDut('umi_fifo', autowrap=True, parameters=parameters, interfaces=interfaces,
-        clocks=clocks, resets=resets, tieoffs=tieoffs, args=args)
+    dut = net.make_dut('umi_fifo', parameters=parameters, interfaces=interfaces,
+        clocks=clocks, resets=resets, tieoffs=tieoffs)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
+    dut.input('umi/rtl/umi_fifo.v', package='umi')
+
     return dut
 
 
-def make_axil_ram(args):
+def make_axil_ram(net):
     dw = 64
     aw = 13
 
@@ -129,8 +131,8 @@ def make_axil_ram(args):
 
     resets = [dict(name='rst', delay=8)]
 
-    dut = SbDut('axil_ram', autowrap=True, parameters=parameters, interfaces=interfaces,
-        resets=resets, args=args)
+    dut = net.make_dut('axil_ram', parameters=parameters,
+        interfaces=interfaces, resets=resets)
 
     dut.register_package_source(
         'verilog-axi',
@@ -146,7 +148,7 @@ def make_axil_ram(args):
     return dut
 
 
-def make_umi2axil(args):
+def make_umi2axil(net):
     dw = 64
     aw = 64
     cw = 32
@@ -165,13 +167,15 @@ def make_umi2axil(args):
 
     resets = ['nreset']
 
-    dut = SbDut('umi2axilite', autowrap=True, parameters=parameters, interfaces=interfaces,
-        resets=resets, args=args)
+    dut = net.make_dut('umi2axilite', parameters=parameters,
+        interfaces=interfaces, resets=resets)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
+
+    dut.input('utils/rtl/umi2axilite.v', package='umi')
 
     return dut
 

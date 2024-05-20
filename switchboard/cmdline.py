@@ -10,6 +10,8 @@ def get_cmdline_args(
     max_rate: float = -1,
     start_delay: float = None,
     fast: bool = False,
+    single_netlist: bool = False,
+    threads: int = None,
     extra_args: dict = None
 ):
     """
@@ -105,11 +107,21 @@ def get_cmdline_args(
         help='Delay before starting simulation, in seconds.  Can be useful to prevent'
         ' simulations from stepping on each others toes when starting up.')
 
+    if not single_netlist:
+        parser.add_argument('--single-netlist', action='store_true', help='Run in single-netlist'
+            ' mode, where the network is constructed in Verilog and run in a single simulator.')
+    else:
+        parser.add_argument('--distributed', action='store_true', help='Run in distributed'
+            ' simulation mode, rather than single-netlist mode.')
+
+    parser.add_argument('--threads', type=int, default=threads,
+        help='Number of threads to use when running a simulation.')
+
     if extra_args is not None:
         for k, v in extra_args.items():
             parser.add_argument(k, **v)
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     # standardize boolean flags
 
@@ -120,6 +132,10 @@ def get_cmdline_args(
     if fast:
         args.fast = not args.rebuild
         del args.rebuild
+
+    if single_netlist:
+        args.single_netlist = not args.distributed
+        del args.distributed
 
     # return arguments
 

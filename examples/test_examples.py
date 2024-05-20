@@ -21,6 +21,8 @@ THIS_DIR = Path(__file__).resolve().parent
     ['minimal', 'PASS!', 'verilator'],
     ['network', None, 'verilator'],
     ['network', None, 'icarus'],
+    ['network', None, 'verilator-single-netlist'],
+    ['network', None, 'icarus-single-netlist'],
     ['python', 'PASS!', None],
     ['router', 'PASS!', None],
     ['stream', 'PASS!', None],
