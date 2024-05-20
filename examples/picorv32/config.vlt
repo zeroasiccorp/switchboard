@@ -1,0 +1,2 @@
+`verilator_config
+lint_off -file "**/picorv32.v"

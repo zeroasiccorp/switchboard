@@ -21,6 +21,20 @@
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)                                                  \
     `SB_UMI_WIRES(prefix, dw, cw, aw)
 
+`define SB_UMI_PORT(signal, dw, cw, aw, i, o)                                                      \
+    i signal``_valid,                                                                              \
+    i [((cw)-1): 0] signal``_cmd,                                                                  \
+    i [((aw)-1): 0] signal``_dstaddr,                                                              \
+    i [((aw)-1): 0] signal``_srcaddr,                                                              \
+    i [((dw)-1): 0] signal``_data,                                                                 \
+    o signal``_ready   
+
+`define SB_UMI_INPUT(signal, dw, cw, aw)                                                           \
+    `SB_UMI_PORT(signal, dw, cw, aw, input, output)
+
+`define SB_UMI_OUTPUT(signal, dw, cw, aw)                                                          \
+    `SB_UMI_PORT(signal, dw, cw, aw, output, input)
+
 `define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk)                      \
     queue_to_umi_sim #(                                                                            \
         .VALID_MODE_DEFAULT(vldmode),                                                              \
