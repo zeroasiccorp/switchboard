@@ -64,7 +64,8 @@ class SbDut(siliconcompiler.Chip):
         args=None,
         subcomponent=False,
         suffix=None,
-        threads=None
+        threads=None,
+        hierarchical=False
     ):
         """
         Parameters
@@ -212,6 +213,8 @@ class SbDut(siliconcompiler.Chip):
         self.resets = normalize_resets(resets)
         self.tieoffs = normalize_tieoffs(tieoffs)
 
+        self.hierarchical = hierarchical
+
         # initialization
 
         self.intfs = {}
@@ -325,6 +328,9 @@ class SbDut(siliconcompiler.Chip):
 
             for warning in warnings:
                 self.set('tool', 'verilator', 'task', 'compile', 'option', f'-Wwarn-{warning}')
+
+        if (self.tool == 'verilator') and self.hierarchical:
+            self.add('tool', 'verilator', 'task', 'compile', 'option', '--hierarchical')
 
         self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags',
             ['-Wno-unknown-warning-option'])

@@ -32,6 +32,8 @@ module perf_meas_sim #(
     integer total_clock_cycles=0;
     string sim_name;
 
+    /* verilator lint_off BLKSEQ */
+
     `SB_START_FUNC init(input integer n, input string name="");
         cycles_per_meas = n;
         sim_name = name;
@@ -57,21 +59,23 @@ module perf_meas_sim #(
                 $write("%s: ", sim_name);
             end
             sim_rate = (1.0*total_clock_cycles)/t;
-            if (sim_rate < 1.0e3) begin
-                $display("Simulation rate: %0.3f Hz", sim_rate);
-            end else if (sim_rate < 1.0e6) begin
-                $display("Simulation rate: %0.3f kHz", 1e-3*sim_rate);
-            end else begin
-                $display("Simulation rate: %0.3f MHz", 1e-6*sim_rate);
+            if ((min_report_time <= t) && (t <= max_report_time)) begin
+                if (sim_rate < 1.0e3) begin
+                    $display("Simulation rate: %0.3f Hz", sim_rate);
+                end else if (sim_rate < 1.0e6) begin
+                    $display("Simulation rate: %0.3f kHz", 1e-3*sim_rate);
+                end else begin
+                    $display("Simulation rate: %0.3f MHz", 1e-6*sim_rate);
+                end
             end
             total_clock_cycles <= 0;
 
             // update number of cycles in between updates appropriately
-            if (t < min_report_time) begin
+            if (t < (0.75 * min_report_time) + (0.25 * max_report_time)) begin
                 // reporting in too frequent, increase cycles_per_meas
                 // to report less frequently
                 cycles_per_meas = cycles_per_meas * search_factor;
-            end else if (t > max_report_time) begin
+            end else if (t > (0.75 * max_report_time) + (0.25 * min_report_time)) begin
                 // reporting in too infrequent, decrease cycles_per_meas
                 // to report more frequently
                 cycles_per_meas = cycles_per_meas / search_factor;
@@ -85,6 +89,8 @@ module perf_meas_sim #(
             total_clock_cycles <= total_clock_cycles + 1;
         end
     end
+
+    /* verilator lint_on BLKSEQ */
 
     // clean up macros
 

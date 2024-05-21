@@ -6,32 +6,59 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import sys
+import time
+import random
 import numpy as np
 
 import umi
 
-from switchboard import SbDut, PyUmiPacket, UmiCmd, umi_opcode, UmiRam
+from switchboard import SbNetwork, PyUmiPacket, UmiCmd, umi_opcode, UmiRam
+from switchboard.switchboard import path as sb_path
 
+
+FAST = True
+NDUTS = 200
+THREADS = 2
+DURATION = 15
 
 MEMORY_SIZE = 32768
 
 
 def main():
+    net = SbNetwork(fast=FAST, single_netlist=True, threads=THREADS)
+
     # build the simulator
-    dut = build_testbench()
+    picorv32 = build_picorv32(net)
+    for k in range(NDUTS):
+        dut = net.instantiate(picorv32)
+        net.external(dut.uhost_req, txrx=f'uhost{k}')
+        net.external(dut.uhost_resp, txrx=f'uhost{k}')
+
+    # configure
+    net.dut.add('tool', 'verilator', 'task', 'compile', 'file', 'config', 'config.vlt')
 
     # launch the simulation
-    dut.simulate()
+    net.build()
+    net.simulate()
 
     # run the test: write to random addresses and read back in a random order
 
-    mon = dut.intfs['uhost']
-
     program_mem = np.fromfile('hello.bin', dtype=np.uint8)
-    main_memory = UmiRam(MEMORY_SIZE)
-    main_memory.initialize_memory(0, program_mem)
+    main_memories = [UmiRam(MEMORY_SIZE) for _ in range(NDUTS)]
+    for k in range(NDUTS):
+        main_memories[k].initialize_memory(0, program_mem)
 
-    while True:
+    start_time = time.time()
+    exit_code = 0
+
+    talked_to_first_core = False
+
+    while time.time() < (start_time + DURATION):
+        # pick a random core to interact with
+        k = random.randint(0, NDUTS - 1) if talked_to_first_core else 0
+        mon = net.intfs[f'uhost{k}']
+        main_memory = main_memories[k]
+
         # UmiTxRx.recv() returns a PyUmiPacket object.  blocking=False means that
         # the method returns None if there is no UMI packet immediately available.
         p = mon.recv(blocking=False)
@@ -49,28 +76,34 @@ def main():
                     # change the command to a read response
 
                     cmd = (p.cmd & 0xffffffe0) | int(UmiCmd.UMI_RESP_READ)
-                    resp = PyUmiPacket(cmd, p.srcaddr, p.dstaddr, main_memory.read(p))
+                    resp = PyUmiPacket(cmd, p.srcaddr | (k << 32), p.dstaddr, main_memory.read(p))
                     mon.send(resp)
+                    if k == 0:
+                        talked_to_first_core = True
             elif p.dstaddr == 0xC0000000:
                 c = chr(p.data[0])
-                print(c, end='', flush=True)
+                print(c, end='', flush=True, file=sys.stderr)
             elif p.dstaddr == 0xD0000000:
                 exit_code = int(p.data.view(np.uint32)[0])
-                sys.exit(exit_code)
             else:
                 raise ValueError(f'Unsupported address: 0x{p.dstaddr:08x}')
 
             # send a write reponse if this was an ordinary write (non-posted)
             if opcode == UmiCmd.UMI_REQ_WRITE:
                 cmd = (p.cmd & 0xffffffe0) | int(UmiCmd.UMI_RESP_WRITE)
-                resp = PyUmiPacket(cmd, p.srcaddr, p.dstaddr)
+                resp = PyUmiPacket(cmd, p.srcaddr | (k << 32), p.dstaddr)
                 mon.send(resp)
+                if k == 0:
+                    talked_to_first_core = True
+
+    print('EXITING', flush=True)
+    sys.exit(exit_code)
 
 
-def build_testbench():
+def build_picorv32(net):
     interfaces = {
-        'uhost_req': dict(type='umi', dw=32, cw=32, aw=64, direction='output', txrx='uhost'),
-        'uhost_resp': dict(type='umi', dw=32, cw=32, aw=64, direction='input', txrx='uhost')
+        'uhost_req': dict(type='umi', dw=32, cw=32, aw=64, direction='output'),
+        'uhost_resp': dict(type='umi', dw=32, cw=32, aw=64, direction='input')
     }
 
     resets = [
@@ -78,15 +111,16 @@ def build_testbench():
         dict(name='picorv32_resetn', delay=8)
     ]
 
-    dut = SbDut('dut', autowrap=True, cmdline=True,
-        interfaces=interfaces, resets=resets)
-
-    dut.add('tool', 'verilator', 'task', 'compile', 'file', 'config', 'config.vlt')
+    dut = net.make_dut('dut', interfaces=interfaces, resets=resets)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
+
+    for option in ['idir', 'ydir']:
+        dut.add('option', option, sb_path() / 'verilog' / 'common')
+        dut.add('option', option, sb_path() / 'verilog' / 'sim')
 
     dut.register_package_source(
         name='picorv32',
@@ -99,8 +133,6 @@ def build_testbench():
 
     dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
         ['WIDTHEXPAND', 'TIMESCALEMOD'])
-
-    dut.build()
 
     return dut
 

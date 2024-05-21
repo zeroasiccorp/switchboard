@@ -1,2 +1,4 @@
 `verilator_config
 lint_off -file "**/picorv32.v"
+lint_off -file "**/outputs/dut.v"
+hier_block -module "dut_unq_dut"

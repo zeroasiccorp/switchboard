@@ -101,4 +101,19 @@ module dut #(
         `SB_UMI_CONNECT(uhost_resp, uhost_resp)
     );
 
+    perf_meas_sim perf_meas_sim_ (
+        .clk(clk)
+    );
+
+    reg perf_init = 0;
+
+    always @(posedge clk) begin
+        if (uhost_resp_valid && uhost_resp_ready && uhost_resp_dstaddr[63:32] == 32'd0) begin
+            if (!perf_init) begin
+                perf_meas_sim_.init(1);
+                perf_init <= 1;
+            end
+        end
+    end
+
 endmodule
