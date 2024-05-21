@@ -56,10 +56,8 @@ class SbNetwork:
                 extra_args=extra_args)
         elif args is not None:
             self.args = args
-        else:
-            self.args = None
 
-        if self.args is not None:
+        if hasattr(self, 'args'):
             trace = self.args.trace
             trace_type = self.args.trace_type
             fast = self.args.fast
@@ -69,6 +67,20 @@ class SbNetwork:
             max_rate = self.args.max_rate
             start_delay = self.args.start_delay
             single_netlist = self.args.single_netlist
+        else:
+            # create args object to pass down to SbDut
+            from types import SimpleNamespace
+            self.args = SimpleNamespace(
+                trace=trace,
+                trace_type=trace_type,
+                fast=fast,
+                tool=tool,
+                frequency=frequency,
+                period=period,
+                max_rate=max_rate,
+                start_delay=start_delay,
+                threads=threads
+            )
 
         # save settings
 
