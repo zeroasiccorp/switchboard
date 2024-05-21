@@ -9,8 +9,65 @@ from copy import deepcopy
 from .umi import UmiTxRx
 from .axi import AxiTxRx
 from .axil import AxiLiteTxRx
+from .bitvector import slice_to_msb_lsb
 
 from _switchboard import PySbTx, PySbRx
+
+
+class WireExpr:
+    def __init__(self, width):
+        self.width = width
+        self.bindings = []
+
+    def bind(self, slice, wire):
+        # extract msb, lsb
+        msb, lsb = slice_to_msb_lsb(start=slice.start, stop=slice.stop, step=slice.step)
+
+        # make sure that the slice fits in the width
+        assert 0 <= lsb <= self.width - 1
+        assert 0 <= msb <= self.width - 1
+
+        if len(self.bindings) == 0:
+            self.bindings.append(((msb, lsb), wire))
+            return
+
+        for idx in range(len(self.bindings) - 1, -1, -1):
+            (msb_i, lsb_i), _ = self.bindings[idx]
+            if lsb < lsb_i:
+                assert msb < msb_i
+                self.bindings.insert(idx + 1, ((msb, lsb), wire))
+                break
+        else:
+            self.bindings.insert(0, ((msb, lsb), wire))
+
+    def padded(self):
+        retval = []
+
+        for idx, ((msb, lsb), wire) in enumerate(self.bindings):
+            if idx == 0:
+                if msb != self.width - 1:
+                    msb_pad = (self.width - 1) - self.msb
+                    retval.append(f"{msb_pad}'b0")
+
+            retval.append(wire)
+
+            if idx < len(self.bindings) - 1:
+                lsb_pad = (lsb - 1) - self.bindings[idx + 1][0][0]
+            else:
+                lsb_pad = lsb
+
+            if lsb_pad > 0:
+                retval.append(f"{lsb_pad}'b0")
+
+        return retval
+
+    def __str__(self):
+        padded = self.padded()
+
+        if len(padded) == 0:
+            return padded
+        else:
+            return '{' + ', '.join(padded) + '}'
 
 
 def normalize_interface(name, value):
@@ -30,6 +87,14 @@ def normalize_interface(name, value):
 
     assert 'type' in value
     value['type'] = normalize_intf_type(value['type'])
+
+    if value['type'] == 'input':
+        value['type'] = 'gpio'
+        value['direction'] = 'input'
+    elif value['type'] == 'output':
+        value['type'] = 'gpio'
+        value['direction'] = 'output'
+
     type = value['type']
 
     assert 'direction' in value
@@ -64,6 +129,9 @@ def normalize_interface(name, value):
 
             if 'idw' not in value:
                 value['idw'] = 8
+    elif type == 'gpio':
+        if 'width' not in value:
+            value['width'] = 1
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
@@ -235,6 +303,35 @@ def autowrap(
 
     lines += ['']
 
+    # declare all GPIO output wires (makes things easier when an output is
+    # sent to multiple places or slices of it are used)
+
+    wires['gpio'] = set()
+
+    for instance in instances:
+        for name, value in interfaces[instance].items():
+            type = value['type']
+            direction = value['direction']
+
+            if not ((type == 'gpio') and (direction == 'output')):
+                continue
+
+            wire = value['wire']
+            assert wire not in wires['gpio']
+
+            width = value['width']
+
+            if width == 1:
+                lines += [tab + f'wire {wire};']
+            elif width > 1:
+                lines += [tab + f'wire [{width-1}:0] {wire};']
+            else:
+                raise ValueError(f'Unsupported wire width: {width}')
+
+            wires['gpio'] = wire
+
+    lines += ['']
+
     for instance in instances:
         for name, value in interfaces[instance].items():
             type = value['type']
@@ -244,7 +341,7 @@ def autowrap(
 
             wire = value['wire']
 
-            if wire not in wires[type]:
+            if (type != 'gpio') and (wire not in wires[type]):
                 decl_wire = True
                 wires[type].add(wire)
             else:
@@ -311,6 +408,8 @@ def autowrap(
                         lines += [tab + f'`SB_AXIL_S({wire}, {dw}, {aw}, "");']
                     else:
                         raise Exception(f'Unsupported AXI-Lite direction: {direction}')
+            elif type == 'gpio':
+                pass
             else:
                 raise Exception(f'Unsupported interface type: "{type}"')
 
@@ -328,9 +427,6 @@ def autowrap(
                 max_rst_dly = inst_max_rst_dly
 
     if max_rst_dly is not None:
-        max_rst_dly = max(max(reset['delay'] for reset in inst_resets)
-            for inst_resets in resets.values())
-
         lines += [
             tab + f"reg [{max_rst_dly}:0] rstvec = '1;"
             '',
@@ -379,6 +475,8 @@ def autowrap(
                 connections += [f'`SB_AXI_CONNECT({name}, {wire})']
             elif type_is_axil(type):
                 connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
+            elif type_is_gpio(type):
+                connections += [f'.{name}({wire})']
 
         # clocks
 
@@ -487,7 +585,7 @@ def direction_is_subordinate(direction):
 
 
 def normalize_direction(type, direction):
-    if type_is_sb(type) or type_is_umi(type):
+    if type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
         if direction_is_input(direction):
             return 'input'
         elif direction_is_output(direction):
@@ -509,7 +607,7 @@ def directions_are_compatible(type, a, b):
     a = normalize_direction(type, a)
     b = normalize_direction(type, b)
 
-    if type_is_sb(type) or type_is_umi(type):
+    if type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
         return (((a == 'input') and (b == 'output'))
             or ((a == 'output') and (b == 'input')))
     elif type_is_axi(type) or type_is_axil(type):
@@ -552,6 +650,18 @@ def type_is_axil(type):
     return type.lower() in ['axil']
 
 
+def type_is_input(type):
+    return type.lower() in ['i', 'in', 'input']
+
+
+def type_is_output(type):
+    return type.lower() in ['o', 'out', 'output']
+
+
+def type_is_gpio(type):
+    return type.lower() in ['gpio']
+
+
 def normalize_intf_type(type):
     if type_is_sb(type):
         return 'sb'
@@ -561,6 +671,12 @@ def normalize_intf_type(type):
         return 'axi'
     elif type_is_axil(type):
         return 'axil'
+    elif type_is_input(type):
+        return 'input'
+    elif type_is_output(type):
+        return 'output'
+    elif type_is_gpio(type):
+        return 'gpio'
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 

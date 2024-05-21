@@ -10,16 +10,34 @@ from .sbdut import SbDut
 from .axi import axi_uris
 from .autowrap import (directions_are_compatible, normalize_intf_type,
     type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil,
-    autowrap)
+    autowrap, normalize_direction, WireExpr)
 from .cmdline import get_cmdline_args
 
 from _switchboard import delete_queues
 
 
 class SbIntf:
-    def __init__(self, inst, name):
+    def __init__(self, inst, name, width=None, indices=None):
         self.inst = inst
         self.name = name
+        self.width = width
+
+        if (indices is None) and (width is not None):
+            indices = slice(width - 1, 0, 1)
+
+        self.slice = indices
+
+    def __getitem__(self, key):
+        if not isinstance(key, slice):
+            key = slice(key, key)
+
+        return SbIntf(inst=self.inst, name=self.name, indices=key)
+
+    def slice_as_str(self):
+        if self.slice is None:
+            return ''
+        else:
+            return f'[{self.slice.start}:{self.slice.stop}]'
 
 
 class SbInst:
@@ -31,7 +49,8 @@ class SbInst:
 
         for name, value in block.intf_defs.items():
             self.mapping[name] = dict(uri=None, wire=None)
-            self.__setattr__(name, SbIntf(inst=self, name=name))
+            width = block.intf_defs[name].get('width', None)
+            self.__setattr__(name, SbIntf(inst=self, name=name, width=width))
 
 
 class SbNetwork:
@@ -157,13 +176,24 @@ class SbNetwork:
         assert type_a == type_b
 
         # make sure that the directions are compatible
-        assert directions_are_compatible(type=type_a,
-            a=intf_def_a['direction'], b=intf_def_b['direction'])
+        direction_a = normalize_direction(type_a, intf_def_a['direction'])
+        direction_b = normalize_direction(type_b, intf_def_b['direction'])
+        assert directions_are_compatible(type=type_a, a=direction_a, b=direction_b)
+
+        # indicate which is input vs. output
+        if type_a == 'gpio':
+            if direction_a == 'input':
+                input, output = a, b
+            else:
+                input, output = b, a
 
         # determine what the queue will be called that connects the two
 
         if wire is None:
-            wire = f'{a.inst.name}_{a.name}_conn_{b.inst.name}_{b.name}'
+            if type_a != 'gpio':
+                wire = f'{a.inst.name}_{a.name}_conn_{b.inst.name}_{b.name}'
+            else:
+                wire = f'{output.inst.name}_{output.name}'
 
         if uri is None:
             uri = wire
@@ -171,17 +201,25 @@ class SbNetwork:
             if type_is_sb(type_a) or type_is_umi(type_a):
                 uri = uri + '.q'
 
-        if not self.single_netlist:
-            # internal connection, no need to register it for cleanup
+        if (not self.single_netlist) and (type_a != 'gpio'):
             self.register_uri(type=type_a, uri=uri)
 
         # tell both instances what they are connected to
 
-        a.inst.mapping[a.name]['wire'] = wire
-        b.inst.mapping[b.name]['wire'] = wire
+        if type_a != 'gpio':
+            a.inst.mapping[a.name]['wire'] = wire
+            b.inst.mapping[b.name]['wire'] = wire
 
-        a.inst.mapping[a.name]['uri'] = uri
-        b.inst.mapping[b.name]['uri'] = uri
+            a.inst.mapping[a.name]['uri'] = uri
+            b.inst.mapping[b.name]['uri'] = uri
+        else:
+            if input.inst.mapping[input.name]['wire'] is None:
+                expr = WireExpr(input.inst.block.intf_defs[input.name]['width'])
+                input.inst.mapping[input.name]['wire'] = expr
+
+            input.inst.mapping[input.name]['wire'].bind(
+                input.slice, f'{wire}{output.slice_as_str()}')
+            output.inst.mapping[output.name]['wire'] = wire
 
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())
