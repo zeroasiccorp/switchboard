@@ -64,8 +64,8 @@ class WireExpr:
     def __str__(self):
         padded = self.padded()
 
-        if len(padded) == 0:
-            return padded
+        if len(padded) == 1:
+            return padded[0]
         else:
             return '{' + ', '.join(padded) + '}'
 

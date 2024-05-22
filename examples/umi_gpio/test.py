@@ -23,7 +23,7 @@ def main():
     net.connect(umi_gpio.gpio_out[15:8], funcs.b)
     net.connect(umi_gpio.gpio_in[7:0], funcs.c)
     net.connect(umi_gpio.gpio_in[15:8], funcs.d)
-    net.connect(umi_gpio.gpio_out[127:0], funcs.e)
+    net.connect(umi_gpio.gpio_out, funcs.e)
     net.connect(umi_gpio.gpio_in[255:128], funcs.f)
     net.connect(umi_gpio.gpio_in[383:256], funcs.g)
 
