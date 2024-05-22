@@ -100,8 +100,8 @@ def make_umi_gpio(net, owidth, iwidth):
     interfaces = {
         'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input'),
         'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output'),
-        'gpio_out': dict(type='output', width=owidth),
-        'gpio_in': dict(type='input', width=iwidth)
+        'gpio_out': dict(type='gpio', direction='output', width=owidth),
+        'gpio_in': dict(type='gpio', direction='input', width=iwidth)
     }
 
     resets = ['nreset']
@@ -118,13 +118,13 @@ def make_umi_gpio(net, owidth, iwidth):
 
 def make_funcs(net):
     interfaces = {
-        'a': dict(type='input', width=8),
-        'b': dict(type='input', width=8),
-        'c': dict(type='output', width=8),
-        'd': dict(type='output', width=8),
-        'e': dict(type='input', width=128),
-        'f': dict(type='output', width=128),
-        'g': dict(type='output', width=128)
+        'a': dict(type='gpio', direction='input', width=8),
+        'b': dict(type='gpio', direction='input', width=8),
+        'c': dict(type='gpio', direction='output', width=8),
+        'd': dict(type='gpio', direction='output', width=8),
+        'e': dict(type='gpio', direction='input', width=128),
+        'f': dict(type='gpio', direction='output', width=128),
+        'g': dict(type='gpio', direction='output', width=128)
     }
 
     block = net.make_dut('funcs', interfaces=interfaces, clocks=[])

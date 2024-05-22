@@ -87,14 +87,6 @@ def normalize_interface(name, value):
 
     assert 'type' in value
     value['type'] = normalize_intf_type(value['type'])
-
-    if value['type'] == 'input':
-        value['type'] = 'gpio'
-        value['direction'] = 'input'
-    elif value['type'] == 'output':
-        value['type'] = 'gpio'
-        value['direction'] = 'output'
-
     type = value['type']
 
     assert 'direction' in value
