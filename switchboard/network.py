@@ -211,7 +211,7 @@ class SbNetwork:
             a.inst.mapping[a.name]['uri'] = uri
 
         if not isinstance(b, TcpIntf):
-            b.inst.mapping[b.name]['wire'] = wire            
+            b.inst.mapping[b.name]['wire'] = wire
             b.inst.mapping[b.name]['uri'] = uri
 
         # make a note of TCP bridges that need to be started
