@@ -285,14 +285,15 @@ class SbNetwork:
     def external(self, intf, name=None, txrx=None, uri=None, wire=None):
         # make a copy of the interface definition since we will be modifying it
 
-        intf_def = deepcopy(intf.inst.block.intf_defs[intf.name])
+        assert intf.intf_def is not None, 'Cannot infer interface type'
+        intf_def = deepcopy(intf.intf_def)
 
         # generate URI if needed
 
         type = intf_def['type']
 
         if wire is None:
-            wire = f'{intf.inst.name}_{intf.name}'
+            wire = intf.wire_name
 
         intf_def['wire'] = wire
 
@@ -310,8 +311,9 @@ class SbNetwork:
 
         # propagate information about the URI mapping
 
-        intf.inst.mapping[intf.name] = dict(uri=uri, wire=wire)
-        intf.inst.external.add(intf.name)
+        if not isinstance(intf, TcpIntf):
+            intf.inst.mapping[intf.name] = dict(uri=uri, wire=wire)
+            intf.inst.external.add(intf.name)
 
         # set txrx
 
@@ -325,12 +327,27 @@ class SbNetwork:
         # save interface
 
         if name is None:
-            name = f'{intf.inst.name}_{intf.name}'
+            name = intf.wire_name
 
         assert name not in self.intf_defs, \
             f'Network already contains an external interface called "{name}".'
 
         self.intf_defs[name] = intf_def
+
+        # make a note of TCP bridges that need to be started
+
+        if isinstance(intf, TcpIntf):
+            tcp_kwargs = deepcopy(intf.kwargs)
+            tcp_direction = intf_def['direction']
+
+            if tcp_direction == 'input':
+                tcp_kwargs['inputs'] = [uri]
+            elif tcp_direction == 'output':
+                tcp_kwargs['outputs'] = [('*', uri)]
+            else:
+                raise Exception(f'Unsupported direction: {tcp_direction}')
+
+            self.tcp_intfs.append(tcp_kwargs)
 
         return name
 

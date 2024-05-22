@@ -10,21 +10,32 @@ from switchboard import SbNetwork, TcpIntf
 
 
 def main():
+    # parameters
+
+    dw = 256
+    aw = 64
+    cw = 32
+
     # create network
 
     net = SbNetwork(cmdline=True)
 
     # create the building blocks
 
-    umi_fifo = make_umi_fifo(net)
+    umi_fifo = make_umi_fifo(net, dw=dw, aw=aw, cw=cw)
     umi_fifo_in = net.instantiate(umi_fifo)
-    umi_fifo_out = net.instantiate(umi_fifo)
 
     net.connect(umi_fifo_in.umi_out, TcpIntf(port=5555))
-    net.connect(umi_fifo_out.umi_in, TcpIntf(port=5556))
 
     net.external(umi_fifo_in.umi_in, txrx='umi')
-    net.external(umi_fifo_out.umi_out, txrx='umi')
+
+    # just for illustrative purposes, don't connect a FIFO to
+    # the UMI stream on port 5556, and instead connect that
+    # port directly to a UmiTxRx block
+
+    intf = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='output')
+    tcp_intf = TcpIntf(intf, port=5556)
+    net.external(tcp_intf, txrx='umi')
 
     # build simulator
 
@@ -54,11 +65,7 @@ def main():
     assert wrdata == rddata
 
 
-def make_umi_fifo(net):
-    dw = 256
-    aw = 64
-    cw = 32
-
+def make_umi_fifo(net, dw, aw, cw):
     parameters = dict(
         DW=dw,
         AW=aw,
