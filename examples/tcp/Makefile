@@ -7,4 +7,8 @@ test:
 
 .PHONY: clean
 clean:
-	rm -f queue-* *.q
+	rm -f *.q
+	rm -f ram/*.q
+	rm -rf ram/build
+	rm -f fifos/*.q
+	rm -rf fifos/build

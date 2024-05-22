@@ -519,6 +519,32 @@ def directions_are_compatible(type, a, b):
         raise Exception(f'Unsupported interface type: "{type}"')
 
 
+def flip_intf(a):
+    type = normalize_intf_type(a['type'])
+    direction = normalize_direction(type=type, direction=a['direction'])
+
+    retval = deepcopy(a)
+
+    if type_is_sb(type) or type_is_umi(type):
+        if direction == 'input':
+            retval['direction'] = 'output'
+        elif direction == 'output':
+            retval['direction'] = 'input'
+        else:
+            raise Exception(f'Unsupported direction: {direction}')
+    elif type_is_axi(type) or type_is_axil(type):
+        if direction == 'manager':
+            retval['direction'] = 'subordinate'
+        elif direction == 'subordinate':
+            retval['direction'] = 'manager'
+        else:
+            raise Exception(f'Unsupported direction: {direction}')
+    else:
+        raise Exception(f'Unsupported interface type: "{type}"')
+
+    return retval
+
+
 def polarity_is_positive(polarity):
     return polarity.lower() in ['+', 'p', 'plus', 'positive']
 

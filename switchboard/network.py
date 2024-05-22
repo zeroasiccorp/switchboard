@@ -10,8 +10,9 @@ from .sbdut import SbDut
 from .axi import axi_uris
 from .autowrap import (directions_are_compatible, normalize_intf_type,
     type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil,
-    autowrap)
+    autowrap, flip_intf)
 from .cmdline import get_cmdline_args
+from .sbtcp import start_tcp_bridge
 
 from _switchboard import delete_queues
 
@@ -20,6 +21,11 @@ class SbIntf:
     def __init__(self, inst, name):
         self.inst = inst
         self.name = name
+
+
+class TcpIntf:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
 
 
 class SbInst:
@@ -48,6 +54,8 @@ class SbNetwork:
 
         self.uri_set = set()
         self.uri_counters = {}
+
+        self.tcp_intfs = []
 
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
@@ -147,9 +155,27 @@ class SbNetwork:
         return self.insts[name]
 
     def connect(self, a, b, uri=None, wire=None):
-        # retrieve the two interface definitions
-        intf_def_a = a.inst.block.intf_defs[a.name]
-        intf_def_b = b.inst.block.intf_defs[b.name]
+        if isinstance(a, TcpIntf):
+            if isinstance(b, TcpIntf):
+                raise Exception('tcp pass through not supported yet')
+            else:
+                intf_def_b = b.inst.block.intf_defs[b.name]
+                intf_def_a = flip_intf(intf_def_b)
+                tcp_kwargs = deepcopy(a.kwargs)
+                tcp_direction = intf_def_a['direction']
+                default_wire = f'{b.inst.name}_{b.name}'
+        else:
+            if isinstance(b, TcpIntf):
+                intf_def_a = a.inst.block.intf_defs[a.name]
+                intf_def_b = flip_intf(intf_def_a)
+                tcp_kwargs = deepcopy(b.kwargs)
+                tcp_direction = intf_def_b['direction']
+                default_wire = f'{a.inst.name}_{a.name}'
+            else:
+                intf_def_a = a.inst.block.intf_defs[a.name]
+                intf_def_b = b.inst.block.intf_defs[b.name]
+                tcp_kwargs = None
+                default_wire = f'{a.inst.name}_{a.name}_conn_{b.inst.name}_{b.name}'
 
         # make sure that the interfaces are the same
         type_a = normalize_intf_type(intf_def_a['type'])
@@ -163,7 +189,7 @@ class SbNetwork:
         # determine what the queue will be called that connects the two
 
         if wire is None:
-            wire = f'{a.inst.name}_{a.name}_conn_{b.inst.name}_{b.name}'
+            wire = default_wire
 
         if uri is None:
             uri = wire
@@ -177,11 +203,25 @@ class SbNetwork:
 
         # tell both instances what they are connected to
 
-        a.inst.mapping[a.name]['wire'] = wire
-        b.inst.mapping[b.name]['wire'] = wire
+        if not isinstance(a, TcpIntf):
+            a.inst.mapping[a.name]['wire'] = wire
+            a.inst.mapping[a.name]['uri'] = uri
 
-        a.inst.mapping[a.name]['uri'] = uri
-        b.inst.mapping[b.name]['uri'] = uri
+        if not isinstance(b, TcpIntf):
+            b.inst.mapping[b.name]['wire'] = wire            
+            b.inst.mapping[b.name]['uri'] = uri
+
+        # make a note of TCP bridges that need to be started
+
+        if tcp_kwargs is not None:
+            if tcp_direction == 'input':
+                tcp_kwargs['inputs'] = [uri]
+            elif tcp_direction == 'output':
+                tcp_kwargs['outputs'] = [('*', uri)]
+            else:
+                raise Exception(f'Unsupported direction: {tcp_direction}')
+
+            self.tcp_intfs.append(tcp_kwargs)
 
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())
@@ -344,6 +384,10 @@ class SbNetwork:
 
                 # launch an instance of simulation
                 block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
+
+        # start TCP bridges as needed
+        for tcp_intf in self.tcp_intfs:
+            start_tcp_bridge(**tcp_intf)
 
     def generate_inst_name(self, prefix):
         if prefix not in self.inst_name_counters:
