@@ -22,10 +22,24 @@ class SbIntf:
         self.inst = inst
         self.name = name
 
+    @property
+    def intf_def(self):
+        return self.inst.block.intf_defs[self.name]
+
+    @property
+    def wire_name(self):
+        return f'{self.inst.name}_{self.name}'
+
 
 class TcpIntf:
-    def __init__(self, **kwargs):
+    def __init__(self, intf_def=None, **kwargs):
+        self.intf_def = intf_def
         self.kwargs = kwargs
+
+    @property
+    def wire_name(self):
+        if 'port' in self.kwargs:
+            return f'port_{self.kwargs["port"]}'
 
 
 class SbInst:
@@ -155,27 +169,16 @@ class SbNetwork:
         return self.insts[name]
 
     def connect(self, a, b, uri=None, wire=None):
-        if isinstance(a, TcpIntf):
-            if isinstance(b, TcpIntf):
-                raise Exception('tcp pass through not supported yet')
-            else:
-                intf_def_b = b.inst.block.intf_defs[b.name]
-                intf_def_a = flip_intf(intf_def_b)
-                tcp_kwargs = deepcopy(a.kwargs)
-                tcp_direction = intf_def_a['direction']
-                default_wire = f'{b.inst.name}_{b.name}'
-        else:
-            if isinstance(b, TcpIntf):
-                intf_def_a = a.inst.block.intf_defs[a.name]
-                intf_def_b = flip_intf(intf_def_a)
-                tcp_kwargs = deepcopy(b.kwargs)
-                tcp_direction = intf_def_b['direction']
-                default_wire = f'{a.inst.name}_{a.name}'
-            else:
-                intf_def_a = a.inst.block.intf_defs[a.name]
-                intf_def_b = b.inst.block.intf_defs[b.name]
-                tcp_kwargs = None
-                default_wire = f'{a.inst.name}_{a.name}_conn_{b.inst.name}_{b.name}'
+        intf_def_a = a.intf_def
+        intf_def_b = b.intf_def
+
+        if intf_def_a is None:
+            assert intf_def_b is not None, 'Cannot infer interface type'
+            intf_def_a = flip_intf(intf_def_b)
+
+        if intf_def_b is None:
+            assert intf_def_a is not None, 'Cannot infer interface type'
+            intf_def_b = flip_intf(intf_def_a)
 
         # make sure that the interfaces are the same
         type_a = normalize_intf_type(intf_def_a['type'])
@@ -189,7 +192,7 @@ class SbNetwork:
         # determine what the queue will be called that connects the two
 
         if wire is None:
-            wire = default_wire
+            wire = f'{a.wire_name}_conn_{b.wire_name}'
 
         if uri is None:
             uri = wire
@@ -213,15 +216,19 @@ class SbNetwork:
 
         # make a note of TCP bridges that need to be started
 
-        if tcp_kwargs is not None:
-            if tcp_direction == 'input':
-                tcp_kwargs['inputs'] = [uri]
-            elif tcp_direction == 'output':
-                tcp_kwargs['outputs'] = [('*', uri)]
-            else:
-                raise Exception(f'Unsupported direction: {tcp_direction}')
+        for intf, intf_def in [(a, intf_def_a), (b, intf_def_b)]:
+            if isinstance(intf, TcpIntf):
+                tcp_kwargs = deepcopy(intf.kwargs)
+                tcp_direction = intf_def['direction']
 
-            self.tcp_intfs.append(tcp_kwargs)
+                if tcp_direction == 'input':
+                    tcp_kwargs['inputs'] = [uri]
+                elif tcp_direction == 'output':
+                    tcp_kwargs['outputs'] = [('*', uri)]
+                else:
+                    raise Exception(f'Unsupported direction: {tcp_direction}')
+
+                self.tcp_intfs.append(tcp_kwargs)
 
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())
