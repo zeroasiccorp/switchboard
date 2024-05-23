@@ -11,8 +11,11 @@ from switchboard import binary_run
 
 def main():
     binary_run(sys.executable, ['ram.py', '--fast'], cwd='ram', use_sigint=True)
+
     fifos = binary_run(sys.executable, ['fifos.py', '--fast'], cwd='fifos')
     fifos.wait()
+
+    print('PASS!')
 
 
 if __name__ == '__main__':
