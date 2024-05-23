@@ -25,7 +25,7 @@ def main():
     umi_fifo = make_umi_fifo(net, dw=dw, aw=aw, cw=cw)
     umi_fifo_in = net.instantiate(umi_fifo)
 
-    net.connect(umi_fifo_in.umi_out, TcpIntf(port=5555, host=net.args.host, quiet=False))
+    net.connect(umi_fifo_in.umi_out, TcpIntf(port=5555, host=net.args.host))
 
     net.external(umi_fifo_in.umi_in, txrx='umi')
 
@@ -34,7 +34,7 @@ def main():
     # port directly to a UmiTxRx block
 
     intf = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='output')
-    tcp_intf = TcpIntf(intf, port=5556, quiet=False)
+    tcp_intf = TcpIntf(intf, port=5556)
     net.external(tcp_intf, txrx='umi')
 
     # build simulator
