@@ -34,7 +34,7 @@ def main():
     # port directly to a UmiTxRx block
 
     intf = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='output')
-    tcp_intf = TcpIntf(intf, port=5556, mode='client')
+    tcp_intf = TcpIntf(intf, port=5556, host=net.args.host, mode='client')
     net.external(tcp_intf, txrx='umi')
 
     # build simulator
