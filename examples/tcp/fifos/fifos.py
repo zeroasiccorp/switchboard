@@ -18,14 +18,14 @@ def main():
 
     # create network
 
-    net = SbNetwork(cmdline=True)
+    net = SbNetwork(cmdline=True, extra_args={'--host': dict(type=str, default='localhost')})
 
     # create the building blocks
 
     umi_fifo = make_umi_fifo(net, dw=dw, aw=aw, cw=cw)
     umi_fifo_in = net.instantiate(umi_fifo)
 
-    net.connect(umi_fifo_in.umi_out, TcpIntf(port=5555))
+    net.connect(umi_fifo_in.umi_out, TcpIntf(port=5555, host=net.args.host))
 
     net.external(umi_fifo_in.umi_in, txrx='umi')
 
