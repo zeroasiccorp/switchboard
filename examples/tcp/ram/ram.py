@@ -22,8 +22,8 @@ def main():
 
     umiram = net.instantiate(make_umiram(net))
 
-    net.connect(umiram.udev_req, TcpIntf(port=5555))
-    net.connect(umiram.udev_resp, TcpIntf(port=5556, host=net.args.host))
+    net.connect(umiram.udev_req, TcpIntf(port=5555, quiet=False))
+    net.connect(umiram.udev_resp, TcpIntf(port=5556, host=net.args.host, quiet=False))
 
     # build simulator
 
