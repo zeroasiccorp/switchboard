@@ -182,8 +182,12 @@ def convert_to_queue(q, cls, max_rate=None):
         # note that None is passed through
         return q
     elif isinstance(q, str):
-        # TODO: pass through max_rate
-        return cls(q)
+        kwargs = {}
+
+        if max_rate is not None:
+            kwargs['max_rate'] = max_rate
+
+        return cls(q, **kwargs)
     else:
         raise TypeError(f'{q} must be a string or {cls.__name__}; got {type(q)}')
 
