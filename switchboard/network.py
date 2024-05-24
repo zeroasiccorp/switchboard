@@ -411,6 +411,11 @@ class SbNetwork:
 
         # start TCP bridges as needed
         for tcp_intf in self.tcp_intfs:
+            tcp_intf = deepcopy(tcp_intf)
+
+            if 'max_rate' not in tcp_intf:
+                tcp_intf['max_rate'] = self.max_rate
+
             start_tcp_bridge(**tcp_intf)
 
     def generate_inst_name(self, prefix):

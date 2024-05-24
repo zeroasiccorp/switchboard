@@ -3,10 +3,11 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-import numpy as np
+import sys
+import signal
 
 import umi
-from switchboard import SbNetwork, TcpIntf
+from switchboard import SbNetwork, TcpIntf, flip_intf
 
 
 def main():
@@ -18,24 +19,35 @@ def main():
 
     # create network
 
-    net = SbNetwork(cmdline=True, extra_args={'--host': dict(type=str, default='localhost')})
+    extra_args = {
+        '--client': dict(type=str, default='localhost'),
+        '--server': dict(type=str, default='localhost')
+    }
+
+    net = SbNetwork(cmdline=True, extra_args=extra_args)
 
     # create the building blocks
 
     umi_fifo = make_umi_fifo(net, dw=dw, aw=aw, cw=cw)
     umi_fifo_in = net.instantiate(umi_fifo)
 
-    net.connect(umi_fifo_in.umi_out, TcpIntf(port=5555, host=net.args.host, mode='client'))
+    net.connect(
+        TcpIntf(port=5555, host=net.args.server, mode='server'),
+        umi_fifo_in.umi_in
+    )
 
-    net.external(umi_fifo_in.umi_in, txrx='umi')
+    intf_i = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='input')
+    intf_o = flip_intf(intf_i)
 
-    # just for illustrative purposes, don't connect a FIFO to
-    # the UMI stream on port 5556, and instead connect that
-    # port directly to a UmiTxRx block
+    net.connect(
+        TcpIntf(intf_i, port=5556, host=net.args.server, mode='server'),
+        TcpIntf(intf_o, port=5557, host=net.args.client, mode='client')
+    )
 
-    intf = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='output')
-    tcp_intf = TcpIntf(intf, port=5556, host=net.args.host, mode='client')
-    net.external(tcp_intf, txrx='umi')
+    net.connect(
+        umi_fifo_in.umi_out,
+        TcpIntf(port=5558, host=net.args.client, mode='client')
+    )
 
     # build simulator
 
@@ -45,24 +57,14 @@ def main():
 
     net.simulate()
 
-    # interact with the simulation
+    # wait for SIGINT
 
-    umi = net.intfs['umi']
+    def signal_handler(signum, frame):
+        sys.exit(0)
 
-    wraddr = 0x10
-    wrdata = 0xdeadbeef
+    signal.signal(signal.SIGINT, signal_handler)
 
-    umi.write(wraddr, np.uint32(wrdata))
-
-    print(f'Wrote addr=0x{wraddr:x} data=0x{wrdata:x}')
-
-    rdaddr = wraddr
-
-    rddata = umi.read(rdaddr, np.uint32)
-
-    print(f'Read addr=0x{rdaddr:x} data=0x{rddata:x}')
-
-    assert wrdata == rddata
+    signal.pause()
 
 
 def make_umi_fifo(net, dw, aw, cw):

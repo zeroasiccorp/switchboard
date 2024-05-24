@@ -16,14 +16,19 @@ THIS_DIR = Path(__file__).resolve().parent
 def main():
     # create network
 
-    net = SbNetwork(cmdline=True, extra_args={'--host': dict(type=str, default='localhost')})
+    extra_args = {
+        '--client': dict(type=str, default='localhost'),
+        '--server': dict(type=str, default='localhost')
+    }
+
+    net = SbNetwork(cmdline=True, extra_args=extra_args)
 
     # create the building blocks
 
     umiram = net.instantiate(make_umiram(net))
 
-    net.connect(umiram.udev_req, TcpIntf(port=5555, host=net.args.host, mode='server'))
-    net.connect(umiram.udev_resp, TcpIntf(port=5556, host=net.args.host, mode='server'))
+    net.connect(umiram.udev_req, TcpIntf(port=5558, host=net.args.server, mode='server'))
+    net.connect(umiram.udev_resp, TcpIntf(port=5557, host=net.args.server, mode='server'))
 
     # build simulator
 

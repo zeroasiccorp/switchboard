@@ -21,3 +21,4 @@ from .sbtcp import start_tcp_bridge
 from .axil import AxiLiteTxRx
 from .axi import AxiTxRx
 from .network import SbNetwork, TcpIntf
+from .autowrap import flip_intf
