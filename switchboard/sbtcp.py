@@ -76,7 +76,7 @@ def sb2tcp(inputs, conn):
             tcp_data_to_send = tcp_data_to_send[n:]
 
 
-def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None, run_once=True):
+def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None, run_once=False):
     """
     Connect to a server, retrying until a connection is made.
     """
@@ -117,7 +117,7 @@ def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None
             break
 
 
-def run_server(host, port=0, quiet=False, max_rate=None, run_once=True, outputs=None, inputs=None):
+def run_server(host, port=0, quiet=False, max_rate=None, run_once=False, outputs=None, inputs=None):
     """
     Accepts client connections in a loop until Ctrl-C is pressed.
     """
@@ -228,7 +228,7 @@ def parse_rule(rule):
 
 
 def start_tcp_bridge(inputs=None, outputs=None, host='localhost', port=5555,
-    quiet=True, max_rate=None, mode='auto', run_once=True):
+    quiet=True, max_rate=None, mode='auto', run_once=False):
 
     kwargs = dict(
         host=host,
