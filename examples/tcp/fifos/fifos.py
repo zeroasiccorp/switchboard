@@ -23,7 +23,13 @@ def main():
 
     # create network
 
-    net = SbNetwork(cmdline=True)
+    extra_args = {
+        '--quiet': dict(action='store_true')
+    }
+
+    net = SbNetwork(cmdline=True, extra_args=extra_args)
+
+    quiet = net.args.quiet
 
     # create the building blocks
 
@@ -31,7 +37,7 @@ def main():
     umi_fifo_in = net.instantiate(umi_fifo)
 
     net.connect(
-        TcpIntf(port=5555, host=server, mode='server'),
+        TcpIntf(port=5555, host=server, mode='server', quiet=quiet),
         umi_fifo_in.umi_in
     )
 
@@ -39,13 +45,13 @@ def main():
     intf_o = flip_intf(intf_i)
 
     net.connect(
-        TcpIntf(intf_i, port=5556, host=server, mode='server'),
-        TcpIntf(intf_o, port=5557, host=client, mode='client')
+        TcpIntf(intf_i, port=5556, host=server, mode='server', quiet=quiet),
+        TcpIntf(intf_o, port=5557, host=client, mode='client', quiet=quiet)
     )
 
     net.connect(
         umi_fifo_in.umi_out,
-        TcpIntf(port=5558, host=client, mode='client')
+        TcpIntf(port=5558, host=client, mode='client', quiet=quiet)
     )
 
     # build simulator

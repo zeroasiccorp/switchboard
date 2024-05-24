@@ -77,3 +77,23 @@ def binary_run(bin, args=None, stop_timeout=10, use_sigint=False,
     atexit.register(stop_bin)
 
     return p
+
+
+class ProcessCollection:
+    def __init__(self):
+        self.processes = []
+
+    def add(self, process):
+        self.processes.append(process)
+
+    def wait(self):
+        import subprocess
+        import multiprocessing
+
+        for process in self.processes:
+            if isinstance(process, subprocess.Popen):
+                process.wait()
+            elif isinstance(process, multiprocessing.Process):
+                process.join()
+            else:
+                raise Exception(f'Unknown process type: {type(process)}')

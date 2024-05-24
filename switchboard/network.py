@@ -13,6 +13,7 @@ from .autowrap import (directions_are_compatible, normalize_intf_type,
     autowrap, flip_intf)
 from .cmdline import get_cmdline_args
 from .sbtcp import start_tcp_bridge
+from .util import ProcessCollection
 
 from _switchboard import delete_queues
 
@@ -357,10 +358,15 @@ class SbNetwork:
         if start_delay is None:
             start_delay = self.start_delay
 
+        # keep track of processes started
+
+        process_collection = ProcessCollection()
+
         # create interface objects
 
         if self.single_netlist:
-            self.dut.simulate(start_delay=start_delay, run=run, intf_objs=intf_objs)
+            process = self.dut.simulate(start_delay=start_delay, run=run, intf_objs=intf_objs)
+            process_collection.add(process)
 
             if intf_objs:
                 self.intfs = self.dut.intfs
@@ -407,7 +413,8 @@ class SbNetwork:
                     start_delay = None
 
                 # launch an instance of simulation
-                block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
+                process = block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
+                process_collection.add(process)
 
         # start TCP bridges as needed
         for tcp_intf in self.tcp_intfs:
@@ -416,7 +423,10 @@ class SbNetwork:
             if 'max_rate' not in tcp_intf:
                 tcp_intf['max_rate'] = self.max_rate
 
-            start_tcp_bridge(**tcp_intf)
+            process = start_tcp_bridge(**tcp_intf)
+            process_collection.add(process)
+
+        return process_collection
 
     def generate_inst_name(self, prefix):
         if prefix not in self.inst_name_counters:

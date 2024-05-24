@@ -32,11 +32,15 @@ def main():
 
         args = []
 
+        args += ['--fast']
+
+        args += ['--quiet']
+
         if (net.max_rate is not None) and (net.max_rate != -1):
             args += ['--max-rate', str(net.max_rate)]
 
-        binary_run(sys.executable, ['ram.py', '--fast'] + args, cwd='ram', use_sigint=True)
-        binary_run(sys.executable, ['fifos.py', '--fast'] + args, cwd='fifos', use_sigint=True)
+        binary_run(sys.executable, ['ram.py'] + args, cwd='ram', use_sigint=True)
+        binary_run(sys.executable, ['fifos.py'] + args, cwd='fifos', use_sigint=True)
 
     intf_i = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='input')
     intf_o = flip_intf(intf_i)
@@ -50,10 +54,6 @@ def main():
         TcpIntf(intf_o, port=5556, host=net.args.client, mode='client'),
         txrx='umi'
     )
-
-    # build simulator
-
-    net.build()
 
     # launch the simulation
 

@@ -76,7 +76,7 @@ def sb2tcp(inputs, conn):
             tcp_data_to_send = tcp_data_to_send[n:]
 
 
-def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None, run_once=False):
+def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None, run_once=True):
     """
     Connect to a server, retrying until a connection is made.
     """
@@ -95,7 +95,7 @@ def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None
     # connect to the server in a loop
     while True:
         if not quiet:
-            print('Waiting for server', end='', flush=True)
+            print(f'Waiting for server (host={host}, port={port})')
         while True:
             try:
                 conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -103,12 +103,9 @@ def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None
                 conn.connect((host, port))
                 break
             except ConnectionRefusedError:
-                if not quiet:
-                    print('.', end='', flush=True)
                 time.sleep(1)
         if not quiet:
-            print()
-            print('Done.')
+            print(f'Connected to server (host={host}, port={port})')
 
         # communicate with the server
         if outputs is not None:
@@ -120,7 +117,7 @@ def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None
             break
 
 
-def run_server(host, port=0, quiet=False, max_rate=None, run_once=False, outputs=None, inputs=None):
+def run_server(host, port=0, quiet=False, max_rate=None, run_once=True, outputs=None, inputs=None):
     """
     Accepts client connections in a loop until Ctrl-C is pressed.
     """
@@ -147,10 +144,10 @@ def run_server(host, port=0, quiet=False, max_rate=None, run_once=False, outputs
     while True:
         # accept a client
         if not quiet:
-            print('Waiting for client...')
+            print(f'Waiting for client (host={host}, port={port})')
         conn, _ = server_socket.accept()
         if not quiet:
-            print('Done.')
+            print(f'Connected to client (host={host}, port={port})')
 
         # communicate with the client
         if outputs is not None:
@@ -231,7 +228,7 @@ def parse_rule(rule):
 
 
 def start_tcp_bridge(inputs=None, outputs=None, host='localhost', port=5555,
-    quiet=True, max_rate=None, mode='auto', run_once=False):
+    quiet=True, max_rate=None, mode='auto', run_once=True):
 
     kwargs = dict(
         host=host,

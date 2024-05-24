@@ -21,14 +21,20 @@ def main():
 
     # create network
 
-    net = SbNetwork(cmdline=True)
+    extra_args = {
+        '--quiet': dict(action='store_true')
+    }
+
+    net = SbNetwork(cmdline=True, extra_args=extra_args)
+
+    quiet = net.args.quiet
 
     # create the building blocks
 
     umiram = net.instantiate(make_umiram(net))
 
-    net.connect(umiram.udev_req, TcpIntf(port=5558, host=server, mode='server'))
-    net.connect(umiram.udev_resp, TcpIntf(port=5557, host=server, mode='server'))
+    net.connect(umiram.udev_req, TcpIntf(port=5558, host=server, mode='server', quiet=quiet))
+    net.connect(umiram.udev_resp, TcpIntf(port=5557, host=server, mode='server', quiet=quiet))
 
     # build simulator
 
