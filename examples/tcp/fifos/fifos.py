@@ -3,6 +3,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+import os
 import sys
 import signal
 
@@ -17,14 +18,12 @@ def main():
     aw = 64
     cw = 32
 
+    client = os.environ.get('SB_CLIENT', 'localhost')
+    server = os.environ.get('SB_SERVER', '0.0.0.0')
+
     # create network
 
-    extra_args = {
-        '--client': dict(type=str, default='localhost'),
-        '--server': dict(type=str, default='localhost')
-    }
-
-    net = SbNetwork(cmdline=True, extra_args=extra_args)
+    net = SbNetwork(cmdline=True)
 
     # create the building blocks
 
@@ -32,7 +31,7 @@ def main():
     umi_fifo_in = net.instantiate(umi_fifo)
 
     net.connect(
-        TcpIntf(port=5555, host=net.args.server, mode='server'),
+        TcpIntf(port=5555, host=server, mode='server'),
         umi_fifo_in.umi_in
     )
 
@@ -40,13 +39,13 @@ def main():
     intf_o = flip_intf(intf_i)
 
     net.connect(
-        TcpIntf(intf_i, port=5556, host=net.args.server, mode='server'),
-        TcpIntf(intf_o, port=5557, host=net.args.client, mode='client')
+        TcpIntf(intf_i, port=5556, host=server, mode='server'),
+        TcpIntf(intf_o, port=5557, host=client, mode='client')
     )
 
     net.connect(
         umi_fifo_in.umi_out,
-        TcpIntf(port=5558, host=net.args.client, mode='client')
+        TcpIntf(port=5558, host=client, mode='client')
     )
 
     # build simulator

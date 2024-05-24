@@ -3,6 +3,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+import os
 import sys
 import signal
 
@@ -14,21 +15,20 @@ THIS_DIR = Path(__file__).resolve().parent
 
 
 def main():
+    # parameters
+
+    server = os.environ.get('SB_SERVER', '0.0.0.0')
+
     # create network
 
-    extra_args = {
-        '--client': dict(type=str, default='localhost'),
-        '--server': dict(type=str, default='localhost')
-    }
-
-    net = SbNetwork(cmdline=True, extra_args=extra_args)
+    net = SbNetwork(cmdline=True)
 
     # create the building blocks
 
     umiram = net.instantiate(make_umiram(net))
 
-    net.connect(umiram.udev_req, TcpIntf(port=5558, host=net.args.server, mode='server'))
-    net.connect(umiram.udev_resp, TcpIntf(port=5557, host=net.args.server, mode='server'))
+    net.connect(umiram.udev_req, TcpIntf(port=5558, host=server, mode='server'))
+    net.connect(umiram.udev_resp, TcpIntf(port=5557, host=server, mode='server'))
 
     # build simulator
 

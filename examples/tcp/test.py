@@ -21,7 +21,7 @@ def main():
 
     extra_args = {
         '--client': dict(type=str, default='localhost'),
-        '--server': dict(type=str, default='localhost'),
+        '--server': dict(type=str, default='0.0.0.0'),
         '--standalone': dict(action='store_true'),
     }
 
