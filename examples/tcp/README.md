@@ -5,17 +5,10 @@ This example shows how to bridge a switchboard connection using TCP.  This can b
 To run the example, type `make`.  You'll see output like this:
 
 ```text
-*** TX packet ***
-dest: 123456789
-last: 1
-data: [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
- 24 25 26 27 28 29 30 31]
-
-*** RX packet ***
-dest: 123456789
-last: 1
-data: [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
- 24 25 26 27 28 29 30 31]
+Wrote addr=0x10 data=0xdeadbeef
+Read addr=0x10 data=0xdeadbeef
 ```
 
-Delving into [test.py](test.py), you'll see that the code is similar to the [python](../python) example, using `PySbTx` and `PySbRx` objects and the `send()` and `recv()` methods.  The difference is that `PySbTx` and `PySbRx` are two sides of the same connection, but use different queue names (`tx.q` and `rx.q`).  We launch two TCP bridge processes, one for each side of the connection, using `start_tcp_bridge()`.  It must be the case that one side is the server and one side is the client, but it doesn't matter which one is which, and the launch order doesn't matter either.  However, when bridging between two different machines, the client side must specify the IP address of the server in the `host` argument of `start_tcp_bridge()`.  Also, if you're running multiple bridges simultaneously, you'll need to specify the `port` argument for each bridge to make sure that they don't interfere with each other.
+Delving into [test.py](test.py), you'll see that the script launches two scripts, [ram/ram.py] and [fifos/fifos.py].  These run switchboard simulations for a UMI RAM module and UMI FIFO module, respectively.  The `test.py` script connects to the FIFO simulation via TCP, using `SbNetwork.external()` with one of the arguments set to `TcpIntf` to represent a TCP port.  `SbNetwork.simulate()` is called even though there is no RTL being simulated at the top level, since this is also where TCP bridges are launched.
+
+In the scripts `ram.py` and `fifos.py`, RTL simulations are specified using `SbNetwork`, with `SbNetwork.connect()` and `SbNetwork.external()` used to specify interactions with switchboard connections being bridged over TCP.
