@@ -380,11 +380,12 @@ class SbNetwork:
 
             insts = self.insts.values()
 
-            try:
-                from tqdm import tqdm
-                insts = tqdm(insts)
-            except ModuleNotFoundError:
-                pass
+            if len(insts) > 1:
+                try:
+                    from tqdm import tqdm
+                    insts = tqdm(insts)
+                except ModuleNotFoundError:
+                    pass
 
             for inst in insts:
                 block = inst.block
