@@ -46,7 +46,7 @@ class WireExpr:
         for idx, ((msb, lsb), wire) in enumerate(self.bindings):
             if idx == 0:
                 if msb != self.width - 1:
-                    msb_pad = (self.width - 1) - self.msb
+                    msb_pad = (self.width - 1) - msb
                     retval.append(f"{msb_pad}'b0")
 
             retval.append(wire)
@@ -309,18 +309,18 @@ def autowrap(
                 continue
 
             wire = value['wire']
+
+            if wire is None:
+                # means that the output is unused
+                continue
+
             assert wire not in wires['gpio']
 
             width = value['width']
 
-            if width == 1:
-                lines += [tab + f'wire {wire};']
-            elif width > 1:
-                lines += [tab + f'wire [{width-1}:0] {wire};']
-            else:
-                raise ValueError(f'Unsupported wire width: {width}')
+            lines += [tab + f'wire [{width-1}:0] {wire};']
 
-            wires['gpio'] = wire
+            wires['gpio'].add(wire)
 
     lines += ['']
 
@@ -468,7 +468,11 @@ def autowrap(
             elif type_is_axil(type):
                 connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
             elif type_is_gpio(type):
-                connections += [f'.{name}({wire})']
+                if wire is None:
+                    # unused output
+                    connections += [f'.{name}()']
+                else:
+                    connections += [f'.{name}({wire})']
 
         # clocks
 

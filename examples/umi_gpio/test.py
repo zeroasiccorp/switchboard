@@ -11,8 +11,8 @@ from switchboard import SbNetwork, sb_path
 
 
 def main():
-    owidth = 128
-    iwidth = 384
+    owidth = 512
+    iwidth = 512
 
     net = SbNetwork(cmdline=True, single_netlist=True)
 
@@ -20,12 +20,16 @@ def main():
     funcs = net.instantiate(make_funcs(net))
 
     net.connect(umi_gpio.gpio_out[7:0], funcs.a)
-    net.connect(umi_gpio.gpio_out[15:8], funcs.b)
+    net.connect(funcs.b, umi_gpio.gpio_out[15:8])
     net.connect(umi_gpio.gpio_in[7:0], funcs.c)
-    net.connect(umi_gpio.gpio_in[15:8], funcs.d)
-    net.connect(umi_gpio.gpio_out, funcs.e)
-    net.connect(umi_gpio.gpio_in[255:128], funcs.f)
+    net.connect(funcs.d, umi_gpio.gpio_in[15:8])
+    net.connect(umi_gpio.gpio_out[127:0], funcs.e)
+    net.connect(funcs.f, umi_gpio.gpio_in[255:128])
     net.connect(umi_gpio.gpio_in[383:256], funcs.g)
+    net.connect(umi_gpio.gpio_out[128], funcs.h)
+    net.connect(funcs.i, umi_gpio.gpio_out[129])
+    net.connect(umi_gpio.gpio_in[384], funcs.j)
+    net.connect(funcs.k, umi_gpio.gpio_in[385])
 
     net.external(umi_gpio.udev_req, txrx='udev')
     net.external(umi_gpio.udev_resp, txrx='udev')
@@ -70,8 +74,8 @@ def main():
 
     stimulus = random.randint(0, (1 << 128) - 1)
 
-    gpio.o[:] = stimulus
-    print(f'Wrote gpio.o[:] = 0x{gpio.o[:]:032x}')
+    gpio.o[127:0] = stimulus
+    print(f'Wrote gpio.o[127:0] = 0x{gpio.o[127:0]:032x}')
 
     c = gpio.i[255:128]
     print(f'Read gpio.i[255:128] = 0x{c:032x}')
@@ -80,6 +84,20 @@ def main():
     d = gpio.i[383:256]
     print(f'Read gpio.i[383:256] = 0x{d:032x}')
     assert d == (~stimulus) & ((1 << 128) - 1)
+
+    for h in [0, 1]:
+        for i in [0, 1]:
+            gpio.o[128] = h
+            gpio.o[129] = i
+
+            j = gpio.i[384]
+            k = gpio.i[385]
+
+            print(f'Wrote gpio.o[128]={h}, gpio.o[129]={i}')
+            print(f'Read gpio.i[384]={j}, gpio.i[385]={k}')
+
+            assert j == h ^ i
+            assert k == h & i
 
     print('PASS!')
 
@@ -124,7 +142,12 @@ def make_funcs(net):
         'd': dict(type='gpio', direction='output', width=8),
         'e': dict(type='gpio', direction='input', width=128),
         'f': dict(type='gpio', direction='output', width=128),
-        'g': dict(type='gpio', direction='output', width=128)
+        'g': dict(type='gpio', direction='output', width=128),
+        'h': dict(type='gpio', direction='input', width=1),
+        'i': dict(type='gpio', direction='input'),
+        'j': dict(type='gpio', direction='output'),
+        'k': dict(type='gpio', direction='output', width=1),
+        'l': dict(type='gpio', direction='output', width=8)  # intentionally unused
     }
 
     block = net.make_dut('funcs', interfaces=interfaces, clocks=[])

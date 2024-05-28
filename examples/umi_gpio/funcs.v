@@ -10,13 +10,20 @@ module funcs (
     output [7:0] d,
     input [127:0] e,
     output [127:0] f,
-    output [127:0] g
+    output [127:0] g,
+    input h,
+    input i,
+    output j,
+    output k,
+    output l
 );
 
     assign c = a + 8'd12;
     assign d = b - 8'd34;
     assign f = e;
     assign g = ~e;
+    assign j = h ^ i;
+    assign k = h & i;
 
 endmodule
 
