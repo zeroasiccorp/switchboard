@@ -1,25 +1,91 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-
 from pathlib import Path
 from copy import deepcopy
 from itertools import count
+from numbers import Integral
 
 from .sbdut import SbDut
 from .axi import axi_uris
 from .autowrap import (directions_are_compatible, normalize_intf_type,
     type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil,
-    autowrap)
+    autowrap, normalize_direction, WireExpr, types_are_compatible)
 from .cmdline import get_cmdline_args
 
 from _switchboard import delete_queues
 
 
 class SbIntf:
-    def __init__(self, inst, name):
+    def __init__(self, inst, name, width=None, indices=None):
         self.inst = inst
         self.name = name
+        self.width = width
+
+        if (indices is None) and (width is not None):
+            indices = slice(width - 1, 0, 1)
+
+        self.slice = indices
+
+    @property
+    def intf_def(self):
+        return self.inst.block.intf_defs[self.name]
+
+    @property
+    def wire_name(self):
+        return f'{self.inst.name}_{self.name}'
+
+    def __getitem__(self, key):
+        if not isinstance(key, slice):
+            key = slice(key, key)
+
+        return SbIntf(inst=self.inst, name=self.name, indices=key)
+
+    def slice_as_str(self):
+        if self.slice is None:
+            return ''
+        else:
+            return f'[{self.slice.start}:{self.slice.stop}]'
+
+    def compute_slice_width(self):
+        if self.slice.start is not None:
+            start = self.slice.start
+        else:
+            start = self.width - 1
+
+        if self.slice.stop is not None:
+            stop = self.slice.stop
+        else:
+            stop = 0
+
+        return start - stop + 1
+
+
+class ConstIntf:
+    def __init__(self, value):
+        self.value = value
+
+    @property
+    def intf_def(self):
+        return dict(
+            type='const',
+            direction='output'
+        )
+
+    def value_as_str(self, width=None, format='decimal'):
+        if width is None:
+            width = ''
+        else:
+            width = str(width)
+
+        if format.lower() == 'decimal':
+            return f"{width}'d{self.value}"
+        elif format.lower() == 'hex':
+            return f"{width}'h{hex(self.value)[2:]}"
+        elif format.lower() == 'hex':
+            return f"{width}'b{bin(self.value)[2:]}"
+        else:
+            raise Exception(f'Unsupported format: {format}')
 
 
 class SbInst:
@@ -31,7 +97,8 @@ class SbInst:
 
         for name, value in block.intf_defs.items():
             self.mapping[name] = dict(uri=None, wire=None)
-            self.__setattr__(name, SbIntf(inst=self, name=name))
+            width = block.intf_defs[name].get('width', None)
+            self.__setattr__(name, SbIntf(inst=self, name=name, width=width))
 
 
 class SbNetwork:
@@ -147,41 +214,82 @@ class SbNetwork:
         return self.insts[name]
 
     def connect(self, a, b, uri=None, wire=None):
+        # convert integer inputs into constant datatype
+        if isinstance(a, Integral):
+            a = ConstIntf(value=a)
+        if isinstance(b, Integral):
+            b = ConstIntf(value=b)
+
         # retrieve the two interface definitions
-        intf_def_a = a.inst.block.intf_defs[a.name]
-        intf_def_b = b.inst.block.intf_defs[b.name]
+        intf_def_a = a.intf_def
+        intf_def_b = b.intf_def
 
         # make sure that the interfaces are the same
         type_a = normalize_intf_type(intf_def_a['type'])
         type_b = normalize_intf_type(intf_def_b['type'])
-        assert type_a == type_b
+        assert types_are_compatible(type_a, type_b)
 
         # make sure that the directions are compatible
-        assert directions_are_compatible(type=type_a,
-            a=intf_def_a['direction'], b=intf_def_b['direction'])
+        direction_a = normalize_direction(type_a, intf_def_a['direction'])
+        direction_b = normalize_direction(type_b, intf_def_b['direction'])
+        assert directions_are_compatible(
+            type_a=type_a, a=direction_a,
+            type_b=type_b, b=direction_b
+        )
+
+        # indicate which is input vs. output.  we have to look at both type a and
+        # type b since one may be a constant
+        if (type_a == 'gpio') or (type_b == 'gpio'):
+            if (direction_a == 'input') or (direction_b == 'output'):
+                input, output = a, b
+                direction_a, direction_b = 'input', 'output'
+            elif (direction_b == 'input') or (direction_a == 'output'):
+                input, output = b, a
+                direction_b, direction_a = 'input', 'output'
+            else:
+                raise Exception(f'Cannot infer connection direction with direction_a={direction_a}'
+                    f' and direction_b={direction_b}')
+
+            intf_def_a['direction'] = direction_a
+            intf_def_b['direction'] = direction_b
 
         # determine what the queue will be called that connects the two
 
         if wire is None:
-            wire = f'{a.inst.name}_{a.name}_conn_{b.inst.name}_{b.name}'
+            if (type_a != 'gpio') and (type_b != 'gpio'):
+                wire = f'{a.wire_name}_conn_{b.wire_name}'
+            elif not isinstance(output, ConstIntf):
+                wire = f'{output.inst.name}_{output.name}'
 
-        if uri is None:
+        if (uri is None) and (wire is not None):
             uri = wire
 
             if type_is_sb(type_a) or type_is_umi(type_a):
                 uri = uri + '.q'
 
-        if not self.single_netlist:
-            # internal connection, no need to register it for cleanup
+        if (not self.single_netlist) and (type_a != 'gpio') and (type_b != 'gpio'):
             self.register_uri(type=type_a, uri=uri)
 
         # tell both instances what they are connected to
 
-        a.inst.mapping[a.name]['wire'] = wire
-        b.inst.mapping[b.name]['wire'] = wire
+        if (type_a != 'gpio') and (type_b != 'gpio'):
+            a.inst.mapping[a.name]['wire'] = wire
+            b.inst.mapping[b.name]['wire'] = wire
 
-        a.inst.mapping[a.name]['uri'] = uri
-        b.inst.mapping[b.name]['uri'] = uri
+            a.inst.mapping[a.name]['uri'] = uri
+            b.inst.mapping[b.name]['uri'] = uri
+        else:
+            if input.inst.mapping[input.name]['wire'] is None:
+                expr = WireExpr(input.intf_def['width'])
+                input.inst.mapping[input.name]['wire'] = expr
+
+            if isinstance(output, ConstIntf):
+                input.inst.mapping[input.name]['wire'].bind(
+                    input.slice, output.value_as_str(width=input.compute_slice_width()))
+            else:
+                input.inst.mapping[input.name]['wire'].bind(
+                    input.slice, f'{wire}{output.slice_as_str()}')
+                output.inst.mapping[output.name]['wire'] = wire
 
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())

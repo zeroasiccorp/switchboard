@@ -22,9 +22,9 @@ class BitVector:
                 self.value = value
                 return
             else:
-                msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
+                msb, lsb = slice_to_msb_lsb(key.start, key.stop, key.step)
         else:
-            msb, lsb = self.slice_to_msb_lsb(key, key)
+            msb, lsb = slice_to_msb_lsb(key, key)
 
         # generate mask with the right width
         mask = (1 << (msb - lsb + 1)) - 1
@@ -45,37 +45,15 @@ class BitVector:
             if (key.start is None) and (key.stop is None) and (key.step is None):
                 return self.value
             else:
-                msb, lsb = self.slice_to_msb_lsb(key.start, key.stop, key.step)
+                msb, lsb = slice_to_msb_lsb(key.start, key.stop, key.step)
         else:
-            msb, lsb = self.slice_to_msb_lsb(key, key)
+            msb, lsb = slice_to_msb_lsb(key, key)
 
         # generate mask with the right width
         mask = (1 << (msb - lsb + 1)) - 1
 
         # extract the value
         return (self.value >> lsb) & mask
-
-    def slice_to_msb_lsb(self, start=None, stop=None, step=None):
-        # set defaults
-        if start is None:
-            start = 0
-        if stop is None:
-            stop = 0
-        if step is None:
-            step = 1
-
-        if step != 1:
-            raise ValueError('Only step=1 allowed for slice indexing.')
-
-        msb = start
-        lsb = stop
-
-        if msb < lsb:
-            raise ValueError('MSB must be greater than or equal to LSB')
-        if lsb < 0:
-            raise ValueError('Negative LSB is not allowed.')
-
-        return msb, lsb
 
     def tobytes(self, n=None):
         # convert to a numpy byte array.  if "n" is provided,
@@ -109,3 +87,26 @@ class BitVector:
             value |= (int(elem) & 0xff) << (i * 8)
 
         return BitVector(value)
+
+
+def slice_to_msb_lsb(start=None, stop=None, step=None):
+    # set defaults
+    if start is None:
+        start = 0
+    if stop is None:
+        stop = 0
+    if step is None:
+        step = 1
+
+    if step != 1:
+        raise ValueError('Only step=1 allowed for slice indexing.')
+
+    msb = start
+    lsb = stop
+
+    if msb < lsb:
+        raise ValueError('MSB must be greater than or equal to LSB')
+    if lsb < 0:
+        raise ValueError('Negative LSB is not allowed.')
+
+    return msb, lsb
