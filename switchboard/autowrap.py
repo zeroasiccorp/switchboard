@@ -34,10 +34,14 @@ class WireExpr:
         for idx in range(len(self.bindings) - 1, -1, -1):
             (msb_i, lsb_i), _ = self.bindings[idx]
             if lsb < lsb_i:
-                assert msb < msb_i
+                assert msb < lsb_i, \
+                    f'bit assignments {msb_i}:{lsb_i} and {msb}:{lsb} overlap'
                 self.bindings.insert(idx + 1, ((msb, lsb), wire))
                 break
         else:
+            (msb_i, lsb_i), _ = self.bindings[0]
+            assert lsb > msb_i, \
+                f'bit assignments {msb_i}:{lsb_i} and {msb}:{lsb} overlap'
             self.bindings.insert(0, ((msb, lsb), wire))
 
     def padded(self):
@@ -581,7 +585,7 @@ def direction_is_subordinate(direction):
 
 
 def normalize_direction(type, direction):
-    if type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
+    if type_is_sb(type) or type_is_umi(type) or type_is_gpio(type) or type_is_const(type):
         if direction_is_input(direction):
             return 'input'
         elif direction_is_output(direction):
@@ -599,18 +603,32 @@ def normalize_direction(type, direction):
         raise Exception(f'Unsupported interface type: "{type}"')
 
 
-def directions_are_compatible(type, a, b):
-    a = normalize_direction(type, a)
-    b = normalize_direction(type, b)
+def directions_are_compatible(type_a, a, type_b, b):
+    a = normalize_direction(type_a, a)
+    b = normalize_direction(type_b, b)
 
-    if type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
-        return (((a == 'input') and (b == 'output'))
-            or ((a == 'output') and (b == 'input')))
-    elif type_is_axi(type) or type_is_axil(type):
-        return (((a == 'manager') and (b == 'subordinate'))
-            or ((a == 'subordinate') and (b == 'manager')))
+    if a == 'input':
+        return b == 'output'
+    elif a == 'output':
+        return b == 'input'
+    elif a == 'manager':
+        return b == 'subordinate'
+    elif a == 'subordinate':
+        return b == 'manager'
     else:
-        raise Exception(f'Unsupported interface type: "{type}"')
+        raise Exception(f'Cannot determine if directions are compatible: {a} and {b}')
+
+
+def types_are_compatible(a, b):
+    a = normalize_intf_type(a)
+    b = normalize_intf_type(b)
+
+    if type_is_const(a):
+        return type_is_gpio(b)
+    elif type_is_const(b):
+        return type_is_gpio(a)
+    else:
+        return a == b
 
 
 def polarity_is_positive(polarity):
@@ -658,6 +676,10 @@ def type_is_gpio(type):
     return type.lower() in ['gpio']
 
 
+def type_is_const(type):
+    return type.lower() in ['const', 'constant']
+
+
 def normalize_intf_type(type):
     if type_is_sb(type):
         return 'sb'
@@ -673,6 +695,8 @@ def normalize_intf_type(type):
         return 'output'
     elif type_is_gpio(type):
         return 'gpio'
+    elif type_is_const(type):
+        return 'const'
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 

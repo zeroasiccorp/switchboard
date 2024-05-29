@@ -15,7 +15,12 @@ module funcs (
     input i,
     output j,
     output k,
-    output l
+    output l,
+    input [7:0] m,
+    input [7:0] n,
+    output [7:0] o,
+    input p,
+    output q
 );
 
     assign c = a + 8'd12;
@@ -24,6 +29,8 @@ module funcs (
     assign g = ~e;
     assign j = h ^ i;
     assign k = h & i;
+    assign o = m + n;
+    assign q = p;
 
 endmodule
 

@@ -30,6 +30,13 @@ def main():
     net.connect(funcs.i, umi_gpio.gpio_out[129])
     net.connect(umi_gpio.gpio_in[384], funcs.j)
     net.connect(funcs.k, umi_gpio.gpio_in[385])
+    net.connect(funcs.m[1:0], 3)
+    net.connect(umi_gpio.gpio_out[132:129], funcs.m[5:2])
+    net.connect(2, funcs.m[7:6])
+    net.connect(funcs.n, 33)
+    net.connect(umi_gpio.gpio_in[393:386], funcs.o)
+    net.connect(funcs.p, 1)
+    net.connect(umi_gpio.gpio_in[394], funcs.q)
 
     net.external(umi_gpio.udev_req, txrx='udev')
     net.external(umi_gpio.udev_resp, txrx='udev')
@@ -99,6 +106,15 @@ def main():
             assert j == h ^ i
             assert k == h & i
 
+    gpio.o[132:129] = 0b1010
+    o = gpio.i[393:386]
+    print(f'Wrote gpio.o[132:129]=0b1010, read gpio.i[393:386]={o}')
+    assert o == 204
+
+    q = gpio.i[394]
+    print(f'Read gpio.i[394]={q}')
+    assert q == 1
+
     print('PASS!')
 
 
@@ -147,7 +163,12 @@ def make_funcs(net):
         'i': dict(type='gpio', direction='input'),
         'j': dict(type='gpio', direction='output'),
         'k': dict(type='gpio', direction='output', width=1),
-        'l': dict(type='gpio', direction='output', width=8)  # intentionally unused
+        'l': dict(type='gpio', direction='output', width=8),  # intentionally unused
+        'm': dict(type='gpio', direction='input', width=8),
+        'n': dict(type='gpio', direction='input', width=8),
+        'o': dict(type='gpio', direction='output', width=8),
+        'p': dict(type='gpio', direction='input'),
+        'q': dict(type='gpio', direction='output')
     }
 
     block = net.make_dut('funcs', interfaces=interfaces, clocks=[])
