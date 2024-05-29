@@ -37,6 +37,7 @@ def main():
     net.connect(umi_gpio.gpio_in[393:386], funcs.o)
     net.connect(funcs.p, 1)
     net.connect(umi_gpio.gpio_in[394], funcs.q)
+    net.connect(funcs.vss, 0)
 
     net.external(umi_gpio.udev_req, txrx='udev')
     net.external(umi_gpio.udev_resp, txrx='udev')
@@ -168,10 +169,15 @@ def make_funcs(net):
         'n': dict(type='gpio', direction='input', width=8),
         'o': dict(type='gpio', direction='output', width=8),
         'p': dict(type='gpio', direction='input'),
-        'q': dict(type='gpio', direction='output')
+        'q': dict(type='gpio', direction='output'),
+        'vss': dict(type='gpio', direction='inout')
     }
 
-    block = net.make_dut('funcs', interfaces=interfaces, clocks=[])
+    tieoffs = {
+        'vdd': "1'b1"
+    }
+
+    block = net.make_dut('funcs', interfaces=interfaces, tieoffs=tieoffs, clocks=[])
 
     block.input('funcs.v')
 

@@ -240,10 +240,18 @@ class SbNetwork:
         # indicate which is input vs. output.  we have to look at both type a and
         # type b since one may be a constant
         if (type_a == 'gpio') or (type_b == 'gpio'):
-            if direction_a == 'input':
+            if (direction_a == 'input') or (direction_b == 'output'):
                 input, output = a, b
-            else:
+                direction_a, direction_b = 'input', 'output'
+            elif (direction_b == 'input') or (direction_a == 'output'):
                 input, output = b, a
+                direction_b, direction_a = 'input', 'output'
+            else:
+                raise Exception(f'Cannot infer connection direction with direction_a={direction_a}'
+                    f' and direction_b={direction_b}')
+
+            intf_def_a['direction'] = direction_a
+            intf_def_b['direction'] = direction_b
 
         # determine what the queue will be called that connects the two
 

@@ -218,7 +218,17 @@ def normalize_resets(resets):
 
 
 def normalize_tieoff(key, value):
-    # placeholder for doing more interesting things in the future
+    if isinstance(value, dict):
+        value = deepcopy(value)
+    else:
+        value = {'value': value}
+
+    if 'width' not in value:
+        value['width'] = 1
+
+    if 'wire' not in value:
+        value['wire'] = None
+
     return key, value
 
 
@@ -329,6 +339,26 @@ def autowrap(
     lines += ['']
 
     for instance in instances:
+        # declare wires for tieoffs
+
+        for key, value in tieoffs[instance].items():
+            if value['value'] is None:
+                continue
+
+            if value['wire'] is None:
+                value['wire'] = f'{instance}_tieoff_{key}'
+
+            width = value['width']
+
+            lines += [
+                tab + f'wire [{width-1}:0] {value["wire"]};',
+                tab + f'assign {value["wire"]} = {value["value"]};'
+            ]
+
+        lines += ['']
+
+        # declare wires for interfaces
+
         for name, value in interfaces[instance].items():
             type = value['type']
 
@@ -405,7 +435,16 @@ def autowrap(
                     else:
                         raise Exception(f'Unsupported AXI-Lite direction: {direction}')
             elif type == 'gpio':
-                pass
+                if direction == 'input':
+                    width = value['width']
+                    new_wire = f'{instance}_input_{name}'
+                    lines += [
+                        tab + f'wire [{width-1}:0] {new_wire};',
+                        tab + f'assign {new_wire} = {wire};'
+                    ]
+                    value['wire'] = new_wire
+                else:
+                    pass
             else:
                 raise Exception(f'Unsupported interface type: "{type}"')
 
@@ -502,11 +541,12 @@ def autowrap(
         # tieoffs
 
         for key, value in tieoffs[instance].items():
-            if value is None:
-                value = ''
-            else:
-                value = str(value)
-            connections += [f'.{key}({value})']
+            wire = value.get('wire')
+
+            if wire is None:
+                wire = ''
+
+            connections += [f'.{key}({wire})']
 
         for n, connection in enumerate(connections):
             if n != len(connections) - 1:
@@ -576,6 +616,10 @@ def direction_is_output(direction):
     return direction.lower() in ['o', 'out', 'output']
 
 
+def direction_is_inout(direction):
+    return direction.lower() in ['inout']
+
+
 def direction_is_manager(direction):
     return direction.lower() in ['m', 'manager', 'master', 'indicator']
 
@@ -585,11 +629,18 @@ def direction_is_subordinate(direction):
 
 
 def normalize_direction(type, direction):
-    if type_is_sb(type) or type_is_umi(type) or type_is_gpio(type) or type_is_const(type):
+    if type_is_const(type):
+        if direction_is_output(direction):
+            return 'output'
+        else:
+            raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
+    elif type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
         if direction_is_input(direction):
             return 'input'
         elif direction_is_output(direction):
             return 'output'
+        elif direction_is_inout(direction):
+            return 'inout'
         else:
             raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
     elif type_is_axi(type) or type_is_axil(type):
@@ -608,9 +659,11 @@ def directions_are_compatible(type_a, a, type_b, b):
     b = normalize_direction(type_b, b)
 
     if a == 'input':
-        return b == 'output'
+        return b in ['output', 'inout']
     elif a == 'output':
-        return b == 'input'
+        return b in ['input', 'inout']
+    elif a == 'inout':
+        return b in ['input', 'output', 'inout']
     elif a == 'manager':
         return b == 'subordinate'
     elif a == 'subordinate':

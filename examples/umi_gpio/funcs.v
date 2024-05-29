@@ -20,7 +20,9 @@ module funcs (
     input [7:0] n,
     output [7:0] o,
     input p,
-    output q
+    output q,
+    inout vdd,
+    inout vss
 );
 
     assign c = a + 8'd12;
