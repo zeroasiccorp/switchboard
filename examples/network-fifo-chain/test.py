@@ -5,8 +5,11 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+import os
 import umi
-from switchboard import SbNetwork, umi_loopback
+from copy import deepcopy
+
+from switchboard import SbNetwork, umi_loopback, TcpIntf
 from switchboard.cmdline import get_cmdline_args
 
 from pathlib import Path
@@ -14,34 +17,54 @@ THIS_DIR = Path(__file__).resolve().parent
 
 
 def main():
+    # environment parameters used when there is TCP bridging
+
+    client = os.environ.get('SB_CLIENT', 'localhost')
+    server = os.environ.get('SB_SERVER', '0.0.0.0')
+    max_rate = float(os.environ.get('SB_MAX_RATE', '-1'))
+
+    last_fifo = os.environ.get('SB_LAST_FIFO', '1')
+    last_fifo = bool(int(last_fifo))
+
     # create network
 
     extra_args = {
         '--packets': dict(type=int, default=1000, help='Number of'
-        ' transactions to send into the FIFO during the test.'),
-        '--fifos': dict(type=int, default=500, help='Number of'
-        ' FIFOs to instantiate in series for this test.'),
-        '--fifos-per-sim': dict(type=int, default=1, help='Number of'
-        ' FIFOs to include in each simulation.')
+            ' transactions to send into the FIFO during the test.'),
+        '--fifos': dict(type=int, default=9, help='Number of'
+            ' FIFOs to instantiate in series for this test.'),
+        '--fifos-per-sim': dict(type=int, default=3, help='Number of'
+            ' FIFOs to include in each simulation.'),
+        '--tcp': dict(action='store_true', help='Run the simulation with UMI ports'
+            ' made available over TCP'),
+        '--quiet': dict(action='store_true', help="Don't print debugging information"
+            " for TCP bridges.")
     }
 
     # workaround - need to see what type of simulation we're running
     # (network of simulations, network of networks, single netlist)
 
-    args = get_cmdline_args(extra_args=extra_args)
+    args = get_cmdline_args(max_rate=max_rate, trace=False, extra_args=extra_args)
 
     assert args.fifos % args.fifos_per_sim == 0, \
         'Number of FIFOs must be divisible by the number of FIFOs per simulation'
 
     if args.fifos_per_sim in [1, args.fifos]:
         # single network
-        net = SbNetwork(cmdline=True, single_netlist=args.fifos_per_sim == args.fifos)
+        args.single_netlist = (args.fifos_per_sim == args.fifos)
+        net = SbNetwork(args=args)
         subnet = net
         n = args.fifos
     else:
-        # network of networks
-        net = SbNetwork(cmdline=True, single_netlist=False)
-        subnet = SbNetwork(name='subnet', cmdline=True, single_netlist=True)
+        # top level network
+        args.single_netlist = False
+        net = SbNetwork(args=args)
+
+        # subnetwork
+        subnet_args = deepcopy(args)
+        subnet_args.single_netlist = True
+        subnet = SbNetwork(name='subnet', args=subnet_args)
+
         n = args.fifos_per_sim
 
     subblock = make_umi_fifo(subnet)
@@ -62,8 +85,30 @@ def main():
     else:
         blocks = subblocks
 
-    net.external(blocks[0].umi_in, txrx='umi')
-    net.external(blocks[-1].umi_out, txrx='umi')
+    # external connection depends on whether TCP bridging is being used
+
+    if not args.tcp:
+        net.external(blocks[0].umi_in, txrx='umi')
+        net.external(blocks[-1].umi_out, txrx='umi')
+    else:
+        net.connect(
+            blocks[0].umi_in,
+            TcpIntf(
+                port=5555,
+                host=server,
+                mode='server',
+                quiet=args.quiet
+            )
+        )
+        net.connect(
+            blocks[-1].umi_out,
+            TcpIntf(
+                port=5556,
+                host=client,
+                mode='client' if not last_fifo else 'server',
+                quiet=args.quiet
+            )
+        )
 
     # build simulator
 
@@ -73,9 +118,22 @@ def main():
 
     net.simulate()
 
-    # interact with the simulation
+    if not args.tcp:
+        # interact with the simulation
 
-    umi_loopback(net.intfs['umi'], packets=args.packets)
+        umi_loopback(net.intfs['umi'], packets=args.packets)
+    else:
+        # wait for SIGINT
+
+        import sys
+        import signal
+
+        def signal_handler(signum, frame):
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+
+        signal.pause()
 
 
 def make_umi_fifo(net):
