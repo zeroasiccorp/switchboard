@@ -62,9 +62,6 @@ def main():
 
     umi = net.intfs['umi']
 
-    wraddr = 0x10
-    wrdata = 0xdeadbeef
-
     import time
 
     tick = None
@@ -72,23 +69,38 @@ def main():
     n_iter = 100
 
     for _ in range(n_iter):
-        umi.write(wraddr, np.uint32(wrdata))
-        if tick is None:
-            tick = time.time()
+        wraddr = np.random.randint(0, 8, dtype=np.uint32) << 4
+        wrdata = np.random.randint(0, 1 << 32, dtype=np.uint32)
 
-        # print(f'Wrote addr=0x{wraddr:x} data=0x{wrdata:x}')
+        umi.write(wraddr, np.uint32(wrdata))
 
         rdaddr = wraddr
 
         rddata = umi.read(rdaddr, np.uint32)
 
-        # print(f'Read addr=0x{rdaddr:x} data=0x{rddata:x}')
-
         assert wrdata == rddata
+
+        if tick is None:
+            # start measuring time after the first iteration to avoid including
+            # the time needed to start up simulators
+            tick = time.time()
 
     tock = time.time()
 
-    print(f'Iterations per second: {n_iter / (tock - tick):0.1f}')
+    iters_per_second = (n_iter - 1) / (tock - tick)
+    print(f'Iterations per second: {(n_iter - 1) / (tock - tick):0.1f}')
+
+    est_latency = (1 / iters_per_second) / 8
+    if est_latency < 1e-6:
+        est_latency = f'{est_latency * 1e9:0.1f} ns'
+    elif est_latency < 1e-3:
+        est_latency = f'{est_latency * 1e6:0.1f} us'
+    elif est_latency < 1:
+        est_latency = f'{est_latency * 1e3:0.1f} ms'
+    else:
+        est_latency = f'{est_latency:0.1f} s'
+
+    print(f'Estimated latency: {est_latency}')
 
     print('PASS!')
 
