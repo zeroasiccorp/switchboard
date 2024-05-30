@@ -5,6 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+import os
 import numpy as np
 
 from switchboard import binary_run, SbNetwork, TcpIntf, flip_intf
@@ -25,7 +26,8 @@ def main():
         '--standalone': dict(action='store_true'),
     }
 
-    net = SbNetwork(cmdline=True, extra_args=extra_args)
+    max_rate = float(os.environ.get('SB_MAX_RATE', '-1'))
+    net = SbNetwork(max_rate=max_rate, cmdline=True, extra_args=extra_args)
 
     if not net.args.standalone:
         import sys
@@ -35,9 +37,6 @@ def main():
         args += ['--fast']
 
         args += ['--quiet']
-
-        if (net.max_rate is not None) and (net.max_rate != -1):
-            args += ['--max-rate', str(net.max_rate)]
 
         binary_run(sys.executable, ['ram.py'] + args, cwd='ram', use_sigint=True)
         binary_run(sys.executable, ['fifos.py'] + args, cwd='fifos', use_sigint=True)
@@ -66,17 +65,30 @@ def main():
     wraddr = 0x10
     wrdata = 0xdeadbeef
 
-    umi.write(wraddr, np.uint32(wrdata))
+    import time
 
-    print(f'Wrote addr=0x{wraddr:x} data=0x{wrdata:x}')
+    tick = None
 
-    rdaddr = wraddr
+    n_iter = 100
 
-    rddata = umi.read(rdaddr, np.uint32)
+    for _ in range(n_iter):
+        umi.write(wraddr, np.uint32(wrdata))
+        if tick is None:
+            tick = time.time()
 
-    print(f'Read addr=0x{rdaddr:x} data=0x{rddata:x}')
+        # print(f'Wrote addr=0x{wraddr:x} data=0x{wrdata:x}')
 
-    assert wrdata == rddata
+        rdaddr = wraddr
+
+        rddata = umi.read(rdaddr, np.uint32)
+
+        # print(f'Read addr=0x{rdaddr:x} data=0x{rddata:x}')
+
+        assert wrdata == rddata
+
+    tock = time.time()
+
+    print(f'Iterations per second: {n_iter / (tock - tick):0.1f}')
 
     print('PASS!')
 

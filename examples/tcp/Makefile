@@ -3,7 +3,7 @@
 
 .PHONY: test
 test:
-	./test.py --max-rate 1e3
+	SB_MAX_RATE=1e3 ./test.py
 
 .PHONY: clean
 clean:

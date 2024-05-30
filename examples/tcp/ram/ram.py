@@ -18,6 +18,7 @@ def main():
     # parameters
 
     server = os.environ.get('SB_SERVER', '0.0.0.0')
+    max_rate = float(os.environ.get('SB_MAX_RATE', '-1'))
 
     # create network
 
@@ -25,7 +26,7 @@ def main():
         '--quiet': dict(action='store_true')
     }
 
-    net = SbNetwork(cmdline=True, extra_args=extra_args)
+    net = SbNetwork(max_rate=max_rate, cmdline=True, extra_args=extra_args)
 
     quiet = net.args.quiet
 
