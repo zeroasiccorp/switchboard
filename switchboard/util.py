@@ -25,7 +25,7 @@ def plusargs_to_args(plusargs):
 
 
 def binary_run(bin, args=None, stop_timeout=10, use_sigint=False,
-    quiet=False, print_command=False, cwd=None):
+    quiet=False, print_command=False, cwd=None, env=None):
 
     cmd = []
 
@@ -45,7 +45,7 @@ def binary_run(bin, args=None, stop_timeout=10, use_sigint=False,
         kwargs['stdout'] = subprocess.DEVNULL
         kwargs['stderr'] = subprocess.DEVNULL
 
-    p = subprocess.Popen(cmd, cwd=cwd, **kwargs)
+    p = subprocess.Popen(cmd, cwd=cwd, env=env, **kwargs)
 
     def stop_bin(p=p, stop_timeout=stop_timeout, use_sigint=use_sigint):
         poll = p.poll()

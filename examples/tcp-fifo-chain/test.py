@@ -30,9 +30,9 @@ def main():
         '--fifos': dict(type=int, default=9, help='Number of'
             ' FIFOs to instantiate in series for this test.'),
         '--fifos-per-sim': dict(type=int, default=3, help='Number of'
-            ' FIFOs to include in each simulation.'),    
+            ' FIFOs to include in each simulation.'),
         '--client': dict(type=str, default='localhost'),
-        '--server': dict(type=str, default='0.0.0.0'),
+        '--server': dict(type=str, default='localhost'),
         '--standalone': dict(action='store_true'),
     }
 
@@ -51,8 +51,10 @@ def main():
         subprocess_args += ['--fifos', args.fifos]
         subprocess_args += ['--fifos-per-sim', args.fifos_per_sim]
 
+        env = dict(SB_TCP_IN_PORT='5555', SB_TCP_OUT_PORT='5556', SB_LAST_FIFO='1')
+        env.update(os.environ)
         binary_run(sys.executable, ['test.py'] + subprocess_args,
-            cwd='../network-fifo-chain', use_sigint=True)
+            cwd='../network-fifo-chain', use_sigint=True, env=env)
 
     intf_i = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='input')
     intf_o = flip_intf(intf_i)

@@ -19,8 +19,16 @@ THIS_DIR = Path(__file__).resolve().parent
 def main():
     # environment parameters used when there is TCP bridging
 
-    client = os.environ.get('SB_CLIENT', 'localhost')
-    server = os.environ.get('SB_SERVER', '0.0.0.0')
+    tcp_in_port = os.environ.get('SB_TCP_IN_PORT', '5555')
+    tcp_in_port = int(tcp_in_port)
+
+    tcp_in_host = os.environ.get('SB_TCP_IN_HOST', 'localhost')
+
+    tcp_out_port = os.environ.get('SB_TCP_OUT_PORT', '5556')
+    tcp_out_port = int(tcp_out_port)
+
+    tcp_out_host = os.environ.get('SB_TCP_OUT_HOST', 'localhost')
+
     max_rate = float(os.environ.get('SB_MAX_RATE', '-1'))
 
     last_fifo = os.environ.get('SB_LAST_FIFO', '1')
@@ -94,8 +102,8 @@ def main():
         net.connect(
             blocks[0].umi_in,
             TcpIntf(
-                port=5555,
-                host=server,
+                port=tcp_in_port,
+                host=tcp_in_host,
                 mode='server',
                 quiet=args.quiet
             )
@@ -103,8 +111,8 @@ def main():
         net.connect(
             blocks[-1].umi_out,
             TcpIntf(
-                port=5556,
-                host=client,
+                port=tcp_out_port,
+                host=tcp_out_host,
                 mode='client' if not last_fifo else 'server',
                 quiet=args.quiet
             )
