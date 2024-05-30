@@ -31,8 +31,10 @@ def main():
             ' FIFOs to instantiate in series for this test.'),
         '--fifos-per-sim': dict(type=int, default=3, help='Number of'
             ' FIFOs to include in each simulation.'),
-        '--client': dict(type=str, default='localhost'),
-        '--server': dict(type=str, default='localhost'),
+        '--tcp-output-host': dict(type=str, default='localhost'),
+        '--tcp-output-port': dict(type=int, default=5555),
+        '--tcp-input-host': dict(type=str, default='localhost'),
+        '--tcp-input-port': dict(type=int, default=5556),
         '--standalone': dict(action='store_true'),
     }
 
@@ -60,12 +62,12 @@ def main():
     intf_o = flip_intf(intf_i)
 
     net.external(
-        TcpIntf(intf_i, port=5555, host=net.args.client, mode='client'),
+        TcpIntf(intf_i, port=args.tcp_output_port, host=args.tcp_output_host, mode='client'),
         txrx='umi'
     )
 
     net.external(
-        TcpIntf(intf_o, port=5556, host=net.args.client, mode='client'),
+        TcpIntf(intf_o, port=args.tcp_input_port, host=args.tcp_input_host, mode='client'),
         txrx='umi'
     )
 
