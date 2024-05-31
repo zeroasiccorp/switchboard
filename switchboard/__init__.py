@@ -22,3 +22,4 @@ from .axil import AxiLiteTxRx
 from .axi import AxiTxRx
 from .network import SbNetwork, TcpIntf
 from .autowrap import flip_intf
+from .switchboard import path as sb_path

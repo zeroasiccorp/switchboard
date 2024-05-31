@@ -63,11 +63,11 @@
     .a``_data(b``_data),                                                                           \
     .a``_ready(b``_ready)
 
-`define SWITCHBOARD_SIM_PORT(prefix, dw)                                                           \
-    `SB_UMI_WIRES(prefix``_req, dw, 32, 64);                                                       \
-    `SB_UMI_WIRES(prefix``_resp, dw, 32, 64);                                                      \
-    `QUEUE_TO_UMI_SIM(prefix``_req, dw, 32, 64);                                                   \
-    `UMI_TO_QUEUE_SIM(prefix``_resp, dw, 32, 64)
+`define SWITCHBOARD_SIM_PORT(prefix, dw, cw=32, aw=64)                                             \
+    `SB_UMI_WIRES(prefix``_req, dw, cw, aw);                                                       \
+    `SB_UMI_WIRES(prefix``_resp, dw, cw, aw);                                                      \
+    `QUEUE_TO_UMI_SIM(prefix``_req, dw, cw, aw, `"prefix``_req.q`");                               \
+    `UMI_TO_QUEUE_SIM(prefix``_resp, dw, cw, aw, `"prefix``_resp.q`")
 
 `define SB_WIRES(signal, dw)                                                                       \
     wire [((dw)-1):0] signal``_data;                                                               \
