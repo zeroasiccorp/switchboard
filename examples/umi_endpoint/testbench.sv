@@ -18,11 +18,7 @@ module testbench (
     parameter integer CW=32;
     parameter integer AW=64;
 
-    `SB_UMI_WIRES(udev_req, DW, CW, AW);
-    `QUEUE_TO_UMI_SIM(udev_req, DW, CW, AW, "to_rtl.q");
-
-    `SB_UMI_WIRES(udev_resp, DW, CW, AW);
-    `UMI_TO_QUEUE_SIM(udev_resp, DW, CW, AW, "from_rtl.q");
+    `SWITCHBOARD_SIM_PORT(udev, DW);
 
     reg nreset = 1'b0;
     wire [AW-1:0] loc_addr;
