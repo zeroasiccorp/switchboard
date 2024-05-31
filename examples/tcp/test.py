@@ -1,60 +1,108 @@
 #!/usr/bin/env python3
 
-# Simple example illustrating switchboard bridging over TCP.
+# Example showing how to connect simulations over TCP
 
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-import sys
+import os
 import numpy as np
-from switchboard import PySbPacket, PySbTx, PySbRx, start_tcp_bridge
+
+from switchboard import binary_run, SbNetwork, TcpIntf, flip_intf
 
 
-def main(txq='tx.q', rxq='rx.q'):
-    # create queues
-    tx = PySbTx(txq, fresh=True)
-    rx = PySbRx(rxq, fresh=True)
+def main():
+    # parameters
 
-    # start TCP bridges
-    start_tcp_bridge(inputs=[txq])
-    start_tcp_bridge(outputs=[('*', rxq)])
+    dw = 256
+    aw = 64
+    cw = 32
 
-    # form packet to be sent into the simulation.  note that the arguments
-    # to the constructor are all optional, and can all be specified later
-    txp = PySbPacket(
-        destination=123456789,
-        flags=1,
-        data=np.arange(32, dtype=np.uint8)
+    # create network
+
+    extra_args = {
+        '--client': dict(type=str, default='localhost'),
+        '--server': dict(type=str, default='0.0.0.0'),
+        '--standalone': dict(action='store_true'),
+    }
+
+    max_rate = float(os.environ.get('SB_MAX_RATE', '-1'))
+    net = SbNetwork(max_rate=max_rate, cmdline=True, extra_args=extra_args)
+
+    if not net.args.standalone:
+        import sys
+
+        args = []
+
+        args += ['--fast']
+
+        args += ['--quiet']
+
+        binary_run(sys.executable, ['ram.py'] + args, cwd='ram', use_sigint=True)
+        binary_run(sys.executable, ['fifos.py'] + args, cwd='fifos', use_sigint=True)
+
+    intf_i = dict(type='umi', dw=dw, cw=cw, aw=aw, direction='input')
+    intf_o = flip_intf(intf_i)
+
+    net.external(
+        TcpIntf(intf_i, port=5555, host=net.args.client, mode='client'),
+        txrx='umi'
     )
 
-    # send the packet
+    net.external(
+        TcpIntf(intf_o, port=5556, host=net.args.client, mode='client'),
+        txrx='umi'
+    )
 
-    tx.send(txp)  # note: blocking by default, can disable with blocking=False
-    print("*** TX packet ***")
-    print(txp)
-    print()
+    # launch the simulation
 
-    # receive packet
+    net.simulate()
 
-    rxp = rx.recv()  # note: blocking by default, can disable with blocking=False
-    rxp.data = rxp.data[:32]
+    # interact with the simulation
 
-    print("*** RX packet ***")
-    print(rxp)
-    print()
+    umi = net.intfs['umi']
 
-    # check that the received data
+    import time
 
-    success = np.array_equal(rxp.data, txp.data)
+    tick = None
 
-    # declare test as having passed for regression testing purposes
+    n_iter = 100
 
-    if success:
-        print("PASS!")
-        sys.exit(0)
+    for _ in range(n_iter):
+        wraddr = np.random.randint(0, 8, dtype=np.uint32) << 4
+        wrdata = np.random.randint(0, 1 << 32, dtype=np.uint32)
+
+        umi.write(wraddr, np.uint32(wrdata))
+
+        rdaddr = wraddr
+
+        rddata = umi.read(rdaddr, np.uint32)
+
+        assert wrdata == rddata
+
+        if tick is None:
+            # start measuring time after the first iteration to avoid including
+            # the time needed to start up simulators
+            tick = time.time()
+
+    tock = time.time()
+
+    iters_per_second = (n_iter - 1) / (tock - tick)
+    print(f'Iterations per second: {(n_iter - 1) / (tock - tick):0.1f}')
+
+    est_latency = (1 / iters_per_second) / 8
+    if est_latency < 1e-6:
+        est_latency = f'{est_latency * 1e9:0.1f} ns'
+    elif est_latency < 1e-3:
+        est_latency = f'{est_latency * 1e6:0.1f} us'
+    elif est_latency < 1:
+        est_latency = f'{est_latency * 1e3:0.1f} ms'
     else:
-        print("FAIL")
-        sys.exit(1)
+        est_latency = f'{est_latency:0.1f} s'
+
+    print(f'Estimated latency: {est_latency}')
+
+    print('PASS!')
 
 
 if __name__ == '__main__':

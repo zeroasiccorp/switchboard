@@ -10,8 +10,10 @@ from .sbdut import SbDut
 from .axi import axi_uris
 from .autowrap import (directions_are_compatible, normalize_intf_type,
     type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil,
-    autowrap, normalize_direction, WireExpr, types_are_compatible)
+    autowrap, flip_intf, normalize_direction, WireExpr, types_are_compatible)
 from .cmdline import get_cmdline_args
+from .sbtcp import start_tcp_bridge
+from .util import ProcessCollection
 
 from _switchboard import delete_queues
 
@@ -88,6 +90,17 @@ class ConstIntf:
             raise Exception(f'Unsupported format: {format}')
 
 
+class TcpIntf:
+    def __init__(self, intf_def=None, **kwargs):
+        self.intf_def = intf_def
+        self.kwargs = kwargs
+
+    @property
+    def wire_name(self):
+        if 'port' in self.kwargs:
+            return f'port_{self.kwargs["port"]}'
+
+
 class SbInst:
     def __init__(self, name, block):
         self.name = name
@@ -115,6 +128,8 @@ class SbNetwork:
 
         self.uri_set = set()
         self.uri_counters = {}
+
+        self.tcp_intfs = []
 
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
@@ -224,7 +239,15 @@ class SbNetwork:
         intf_def_a = a.intf_def
         intf_def_b = b.intf_def
 
-        # make sure that the interfaces are the same
+        if intf_def_a is None:
+            assert intf_def_b is not None, 'Cannot infer interface type'
+            intf_def_a = flip_intf(intf_def_b)
+
+        if intf_def_b is None:
+            assert intf_def_a is not None, 'Cannot infer interface type'
+            intf_def_b = flip_intf(intf_def_a)
+
+        # make sure that the interfaces are compatible
         type_a = normalize_intf_type(intf_def_a['type'])
         type_b = normalize_intf_type(intf_def_b['type'])
         assert types_are_compatible(type_a, type_b)
@@ -273,11 +296,13 @@ class SbNetwork:
         # tell both instances what they are connected to
 
         if (type_a != 'gpio') and (type_b != 'gpio'):
-            a.inst.mapping[a.name]['wire'] = wire
-            b.inst.mapping[b.name]['wire'] = wire
+            if not isinstance(a, TcpIntf):
+                a.inst.mapping[a.name]['wire'] = wire
+                a.inst.mapping[a.name]['uri'] = uri
 
-            a.inst.mapping[a.name]['uri'] = uri
-            b.inst.mapping[b.name]['uri'] = uri
+            if not isinstance(b, TcpIntf):
+                b.inst.mapping[b.name]['wire'] = wire
+                b.inst.mapping[b.name]['uri'] = uri
         else:
             if input.inst.mapping[input.name]['wire'] is None:
                 expr = WireExpr(input.intf_def['width'])
@@ -290,6 +315,22 @@ class SbNetwork:
                 input.inst.mapping[input.name]['wire'].bind(
                     input.slice, f'{wire}{output.slice_as_str()}')
                 output.inst.mapping[output.name]['wire'] = wire
+
+        # make a note of TCP bridges that need to be started
+
+        for intf, intf_def in [(a, intf_def_a), (b, intf_def_b)]:
+            if isinstance(intf, TcpIntf):
+                tcp_kwargs = deepcopy(intf.kwargs)
+                tcp_direction = intf_def['direction']
+
+                if tcp_direction == 'input':
+                    tcp_kwargs['inputs'] = [uri]
+                elif tcp_direction == 'output':
+                    tcp_kwargs['outputs'] = [('*', uri)]
+                else:
+                    raise Exception(f'Unsupported direction: {tcp_direction}')
+
+                self.tcp_intfs.append(tcp_kwargs)
 
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())
@@ -346,14 +387,15 @@ class SbNetwork:
     def external(self, intf, name=None, txrx=None, uri=None, wire=None):
         # make a copy of the interface definition since we will be modifying it
 
-        intf_def = deepcopy(intf.inst.block.intf_defs[intf.name])
+        assert intf.intf_def is not None, 'Cannot infer interface type'
+        intf_def = deepcopy(intf.intf_def)
 
         # generate URI if needed
 
         type = intf_def['type']
 
         if wire is None:
-            wire = f'{intf.inst.name}_{intf.name}'
+            wire = intf.wire_name
 
         intf_def['wire'] = wire
 
@@ -371,8 +413,9 @@ class SbNetwork:
 
         # propagate information about the URI mapping
 
-        intf.inst.mapping[intf.name] = dict(uri=uri, wire=wire)
-        intf.inst.external.add(intf.name)
+        if not isinstance(intf, TcpIntf):
+            intf.inst.mapping[intf.name] = dict(uri=uri, wire=wire)
+            intf.inst.external.add(intf.name)
 
         # set txrx
 
@@ -386,12 +429,27 @@ class SbNetwork:
         # save interface
 
         if name is None:
-            name = f'{intf.inst.name}_{intf.name}'
+            name = intf.wire_name
 
         assert name not in self.intf_defs, \
             f'Network already contains an external interface called "{name}".'
 
         self.intf_defs[name] = intf_def
+
+        # make a note of TCP bridges that need to be started
+
+        if isinstance(intf, TcpIntf):
+            tcp_kwargs = deepcopy(intf.kwargs)
+            tcp_direction = intf_def['direction']
+
+            if tcp_direction == 'input':
+                tcp_kwargs['inputs'] = [uri]
+            elif tcp_direction == 'output':
+                tcp_kwargs['outputs'] = [('*', uri)]
+            else:
+                raise Exception(f'Unsupported direction: {tcp_direction}')
+
+            self.tcp_intfs.append(tcp_kwargs)
 
         return name
 
@@ -401,10 +459,15 @@ class SbNetwork:
         if start_delay is None:
             start_delay = self.start_delay
 
+        # keep track of processes started
+
+        process_collection = ProcessCollection()
+
         # create interface objects
 
         if self.single_netlist:
-            self.dut.simulate(start_delay=start_delay, run=run, intf_objs=intf_objs)
+            process = self.dut.simulate(start_delay=start_delay, run=run, intf_objs=intf_objs)
+            process_collection.add(process)
 
             if intf_objs:
                 self.intfs = self.dut.intfs
@@ -418,11 +481,12 @@ class SbNetwork:
 
             insts = self.insts.values()
 
-            try:
-                from tqdm import tqdm
-                insts = tqdm(insts)
-            except ModuleNotFoundError:
-                pass
+            if len(insts) > 1:
+                try:
+                    from tqdm import tqdm
+                    insts = tqdm(insts)
+                except ModuleNotFoundError:
+                    pass
 
             for inst in insts:
                 block = inst.block
@@ -451,7 +515,20 @@ class SbNetwork:
                     start_delay = None
 
                 # launch an instance of simulation
-                block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
+                process = block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
+                process_collection.add(process)
+
+        # start TCP bridges as needed
+        for tcp_intf in self.tcp_intfs:
+            tcp_intf = deepcopy(tcp_intf)
+
+            if 'max_rate' not in tcp_intf:
+                tcp_intf['max_rate'] = self.max_rate
+
+            process = start_tcp_bridge(**tcp_intf)
+            process_collection.add(process)
+
+        return process_collection
 
     def generate_inst_name(self, prefix):
         if prefix not in self.inst_name_counters:

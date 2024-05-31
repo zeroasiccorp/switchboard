@@ -76,43 +76,62 @@ def sb2tcp(inputs, conn):
             tcp_data_to_send = tcp_data_to_send[n:]
 
 
-def run_client(inputs, host, port, quiet=False, max_rate=None):
+def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None, run_once=False):
     """
     Connect to a server, retrying until a connection is made.
     """
 
-    # initialize TX/RX if needed
-    inputs = [convert_to_queue(q=input, cls=PySbRx, max_rate=max_rate)
-        for input in inputs]
+    # initialize TX objects if needed
 
-    if not quiet:
-        print('Waiting for server', end='', flush=True)
+    if outputs is not None:
+        assert inputs is None, 'Cannot specify both inputs and outputs'
+        outputs = [(rule, convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate))
+            for rule, output in outputs]
+    else:
+        assert inputs is not None, 'Must specify either inputs or outputs'
+        inputs = [convert_to_queue(q=input, cls=PySbRx, max_rate=max_rate)
+            for input in inputs]
+
+    # connect to the server in a loop
     while True:
-        try:
-            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            conn.connect((host, port))
+        if not quiet:
+            print(f'Waiting for server (host={host}, port={port})')
+        while True:
+            try:
+                conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                conn.connect((host, port))
+                break
+            except ConnectionRefusedError:
+                time.sleep(1)
+        if not quiet:
+            print(f'Connected to server (host={host}, port={port})')
+
+        # communicate with the server
+        if outputs is not None:
+            tcp2sb(outputs=outputs, conn=conn)
+        elif inputs is not None:
+            sb2tcp(inputs=inputs, conn=conn)
+
+        if run_once:
             break
-        except ConnectionRefusedError:
-            if not quiet:
-                print('.', end='', flush=True)
-            time.sleep(1)
-    if not quiet:
-        print()
-        print('Done.')
-
-    # communicate with the server
-    sb2tcp(inputs=inputs, conn=conn)
 
 
-def run_server(outputs, host, port=0, quiet=False, max_rate=None, run_once=False):
+def run_server(host, port=0, quiet=False, max_rate=None, run_once=False, outputs=None, inputs=None):
     """
     Accepts client connections in a loop until Ctrl-C is pressed.
     """
 
     # initialize TX objects if needed
-    outputs = [(rule, convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate))
-        for rule, output in outputs]
+
+    if outputs is not None:
+        assert inputs is None, 'Cannot specify both inputs and outputs'
+        outputs = [(rule, convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate))
+            for rule, output in outputs]
+    else:
+        assert inputs is not None, 'Must specify either inputs or outputs'
+        inputs = [convert_to_queue(q=input, cls=PySbRx, max_rate=max_rate)
+            for input in inputs]
 
     # create the server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -125,13 +144,16 @@ def run_server(outputs, host, port=0, quiet=False, max_rate=None, run_once=False
     while True:
         # accept a client
         if not quiet:
-            print('Waiting for client...')
+            print(f'Waiting for client (host={host}, port={port})')
         conn, _ = server_socket.accept()
         if not quiet:
-            print('Done.')
+            print(f'Connected to client (host={host}, port={port})')
 
-        # communicate with that client
-        tcp2sb(outputs=outputs, conn=conn)
+        # communicate with the client
+        if outputs is not None:
+            tcp2sb(outputs=outputs, conn=conn)
+        elif inputs is not None:
+            sb2tcp(inputs=inputs, conn=conn)
 
         if run_once:
             break
@@ -157,8 +179,12 @@ def convert_to_queue(q, cls, max_rate=None):
         # note that None is passed through
         return q
     elif isinstance(q, str):
-        # TODO: pass through max_rate
-        return cls(q)
+        kwargs = {}
+
+        if max_rate is not None:
+            kwargs['max_rate'] = max_rate
+
+        return cls(q, **kwargs)
     else:
         raise TypeError(f'{q} must be a string or {cls.__name__}; got {type(q)}')
 
@@ -202,23 +228,35 @@ def parse_rule(rule):
 
 
 def start_tcp_bridge(inputs=None, outputs=None, host='localhost', port=5555,
-    quiet=True, max_rate=None):
+    quiet=True, max_rate=None, mode='auto', run_once=False):
 
     kwargs = dict(
         host=host,
         port=port,
         quiet=quiet,
-        max_rate=max_rate
+        max_rate=max_rate,
+        run_once=run_once
     )
+
+    target = None
+
+    if mode == 'client':
+        target = run_client
+    elif mode == 'server':
+        target = run_server
 
     if outputs is not None:
         kwargs['outputs'] = outputs
-        target = run_server
+        if mode == 'auto':
+            target = run_server
     elif inputs is not None:
         kwargs['inputs'] = inputs
-        target = run_client
+        if mode == 'auto':
+            target = run_client
     else:
         raise Exception('Must specify "outputs" or "inputs" argument.')
+
+    assert target is not None, 'Could not determine whether to run the bridge as a client or server'
 
     import multiprocessing
 
