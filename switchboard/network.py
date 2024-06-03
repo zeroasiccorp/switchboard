@@ -102,9 +102,11 @@ class TcpIntf:
 
 
 class SbInst:
-    def __init__(self, name, block):
+    def __init__(self, name, block, tieoffs=None):
         self.name = name
         self.block = block
+        self.tieoffs = tieoffs
+    
         self.mapping = {}
         self.external = set()
 
@@ -202,7 +204,7 @@ class SbNetwork:
         else:
             return self._intf_defs
 
-    def instantiate(self, block, name: str = None):
+    def instantiate(self, block, name: str = None, tieoffs: dict = None):
         # generate a name if needed
         if name is None:
             if isinstance(block, SbDut):
@@ -223,7 +225,7 @@ class SbNetwork:
         self.inst_name_set.add(name)
 
         # create the instance object
-        self.insts[name] = SbInst(name=name, block=block)
+        self.insts[name] = SbInst(name=name, block=block, tieoffs=tieoffs)
 
         # return the instance object
         return self.insts[name]
@@ -514,8 +516,17 @@ class SbNetwork:
                 else:
                     start_delay = None
 
+                # define the plusargs
+                plusargs = []
+
+                if inst.tieoffs is not None:
+                    for name, value in inst.tieoffs.items():
+                        plusargs.append((name, value))
+
                 # launch an instance of simulation
-                process = block.simulate(start_delay=start_delay, run=inst.name, intf_objs=False)
+                process = block.simulate(start_delay=start_delay, run=inst.name,
+                    intf_objs=False, plusargs=plusargs)
+
                 process_collection.add(process)
 
         # start TCP bridges as needed

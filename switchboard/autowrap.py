@@ -229,6 +229,9 @@ def normalize_tieoff(key, value):
     if 'wire' not in value:
         value['wire'] = None
 
+    if 'per_instance' not in value:
+        value['per_instance'] = False
+
     return key, value
 
 
@@ -349,11 +352,30 @@ def autowrap(
                 value['wire'] = f'{instance}_tieoff_{key}'
 
             width = value['width']
+            wire = value["wire"]
 
-            lines += [
-                tab + f'wire [{width-1}:0] {value["wire"]};',
-                tab + f'assign {value["wire"]} = {value["value"]};'
-            ]
+            lines += [tab + f'wire [{width-1}:0] {wire};']
+
+            if value['per_instance']:
+                plusarg = value['plusarg']
+                assert plusarg is not None
+
+                plusarg_wire = f'plusarg_{wire}'
+                plusarg_width = 32
+
+                lines += [
+                    tab + f'reg [{plusarg_width - 1}:0] {plusarg_wire} = {value["value"]};',
+                    tab + 'initial begin',
+                    2 * tab + f"void'($value$plusargs(\"{plusarg}=%d\", {plusarg_wire}));",
+                    tab + 'end'
+                ]
+
+                if width <= plusarg_width:
+                    lines += [tab + f'assign {wire} = {plusarg_wire}[{width - 1}:0];']
+                else:
+                    lines += [tab + f'assign {wire}[{plusarg_width - 1}:0 ] = {plusarg_wire};']
+            else:
+                lines += [tab + f'assign {wire} = {value["value"]};']
 
         lines += ['']
 
