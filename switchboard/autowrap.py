@@ -93,6 +93,9 @@ def normalize_interface(name, value):
     value['type'] = normalize_intf_type(value['type'])
     type = value['type']
 
+    if (type == 'init') and ('direction' not in value):
+        value['direction'] = 'input'
+
     assert 'direction' in value
     value['direction'] = normalize_direction(type=type, direction=value['direction'])
 
@@ -128,6 +131,11 @@ def normalize_interface(name, value):
     elif type == 'gpio':
         if 'width' not in value:
             value['width'] = 1
+    elif type == 'init':
+        if 'width' not in value:
+            value['width'] = 1
+        if 'default' not in value:
+            value['default'] = 0
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
@@ -228,9 +236,6 @@ def normalize_tieoff(key, value):
 
     if 'wire' not in value:
         value['wire'] = None
-
-    if 'per_instance' not in value:
-        value['per_instance'] = False
 
     return key, value
 
@@ -356,26 +361,7 @@ def autowrap(
 
             lines += [tab + f'wire [{width-1}:0] {wire};']
 
-            if value['per_instance']:
-                plusarg = value['plusarg']
-                assert plusarg is not None
-
-                plusarg_wire = f'plusarg_{wire}'
-                plusarg_width = 32
-
-                lines += [
-                    tab + f'reg [{plusarg_width - 1}:0] {plusarg_wire} = {value["value"]};',
-                    tab + 'initial begin',
-                    2 * tab + f"void'($value$plusargs(\"{plusarg}=%d\", {plusarg_wire}));",
-                    tab + 'end'
-                ]
-
-                if width <= plusarg_width:
-                    lines += [tab + f'assign {wire} = {plusarg_wire}[{width - 1}:0];']
-                else:
-                    lines += [tab + f'assign {wire}[{plusarg_width - 1}:0 ] = {plusarg_wire};']
-            else:
-                lines += [tab + f'assign {wire} = {value["value"]};']
+            lines += [tab + f'assign {wire} = {value["value"]};']
 
         lines += ['']
 
@@ -467,6 +453,24 @@ def autowrap(
                     value['wire'] = new_wire
                 else:
                     pass
+            elif type == 'init':
+                plusarg = value['plusarg']
+                assert plusarg is not None
+
+                plusarg_wire = f'plusarg_{wire}'
+                plusarg_width = 32  # TODO use long or another format?
+
+                lines += [
+                    tab + f'reg [{plusarg_width - 1}:0] {plusarg_wire} = {value["value"]};',
+                    tab + 'initial begin',
+                    2 * tab + f"void'($value$plusargs(\"{plusarg}=%d\", {plusarg_wire}));",
+                    tab + 'end'
+                ]
+
+                if width <= plusarg_width:
+                    lines += [tab + f'assign {wire} = {plusarg_wire}[{width - 1}:0];']
+                else:
+                    lines += [tab + f'assign {wire}[{plusarg_width - 1}:0] = {plusarg_wire};']
             else:
                 raise Exception(f'Unsupported interface type: "{type}"')
 
@@ -532,7 +536,7 @@ def autowrap(
                 connections += [f'`SB_AXI_CONNECT({name}, {wire})']
             elif type_is_axil(type):
                 connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
-            elif type_is_gpio(type):
+            elif type_is_gpio(type) or type_is_init(type):
                 if wire is None:
                     # unused output
                     connections += [f'.{name}()']
@@ -654,6 +658,11 @@ def normalize_direction(type, direction):
     if type_is_const(type):
         if direction_is_output(direction):
             return 'output'
+        else:
+            raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
+    elif type_is_init(type):
+        if direction_is_input(direction):
+            return 'input'
         else:
             raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
     elif type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
@@ -781,6 +790,10 @@ def type_is_const(type):
     return type.lower() in ['const', 'constant']
 
 
+def type_is_init(type):
+    return type.lower() in ['init', 'initialize']
+
+
 def normalize_intf_type(type):
     if type_is_sb(type):
         return 'sb'
@@ -798,6 +811,8 @@ def normalize_intf_type(type):
         return 'gpio'
     elif type_is_const(type):
         return 'const'
+    elif type_is_init(type):
+        return 'init'
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 

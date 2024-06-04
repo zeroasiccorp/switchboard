@@ -102,11 +102,18 @@ class TcpIntf:
 
 
 class SbInst:
-    def __init__(self, name, block, tieoffs=None):
+    def __init__(self, name, block, plusargs=None, tieoffs=None):
+        # set defaults
+        if plusargs is None:
+            plusargs = []
+        if tieoffs is None:
+            tieoffs = {}
+
         self.name = name
         self.block = block
+        self.plusargs = plusargs
         self.tieoffs = tieoffs
-    
+
         self.mapping = {}
         self.external = set()
 
@@ -130,6 +137,8 @@ class SbNetwork:
 
         self.uri_set = set()
         self.uri_counters = {}
+
+        self.plusarg_name_set = set()
 
         self.tcp_intfs = []
 
@@ -224,8 +233,24 @@ class SbNetwork:
         # add the name to the set of names in use
         self.inst_name_set.add(name)
 
+        # generate plusargs and tieoffs
+
+        plusargs = []
+        inst_tieoffs = deepcopy(block.tieoffs)
+
+        if tieoffs is not None:
+            for key, value in tieoffs.items():
+                tieoff = inst_tieoffs.tieoffs[key]
+                plusarg = tieoff['plusarg']
+                if self.single_netlist:
+                    plusarg = f'{name}_{plusarg}'
+                    tieoff['plusarg'] = plusarg
+                else:
+                    plusargs.append((tieoff['plusarg'], value))
+
         # create the instance object
-        self.insts[name] = SbInst(name=name, block=block, tieoffs=tieoffs)
+        self.insts[name] = SbInst(name=name, block=block,
+            plusargs=plusargs, tieoffs=inst_tieoffs)
 
         # return the instance object
         return self.insts[name]
@@ -375,7 +400,7 @@ class SbNetwork:
                     interfaces=interfaces,
                     clocks={inst.name: inst.block.clocks for inst in self.insts.values()},
                     resets={inst.name: inst.block.resets for inst in self.insts.values()},
-                    tieoffs={inst.name: inst.block.tieoffs for inst in self.insts.values()},
+                    tieoffs={inst.name: inst.tieoffs for inst in self.insts.values()},
                     filename=filename
                 )
             )
@@ -468,7 +493,8 @@ class SbNetwork:
         # create interface objects
 
         if self.single_netlist:
-            process = self.dut.simulate(start_delay=start_delay, run=run, intf_objs=intf_objs)
+            process = self.dut.simulate(start_delay=start_delay, run=run,
+                intf_objs=intf_objs, plusargs=self.plusargs)
             process_collection.add(process)
 
             if intf_objs:
@@ -516,16 +542,9 @@ class SbNetwork:
                 else:
                     start_delay = None
 
-                # define the plusargs
-                plusargs = []
-
-                if inst.tieoffs is not None:
-                    for name, value in inst.tieoffs.items():
-                        plusargs.append((name, value))
-
                 # launch an instance of simulation
                 process = block.simulate(start_delay=start_delay, run=inst.name,
-                    intf_objs=False, plusargs=plusargs)
+                    intf_objs=False, plusargs=inst.plusargs)
 
                 process_collection.add(process)
 

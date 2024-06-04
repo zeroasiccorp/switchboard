@@ -8,7 +8,7 @@
 import umi
 import numpy as np
 
-from switchboard import SbNetwork
+from switchboard import SbNetwork, sb_path
 
 from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
@@ -19,8 +19,8 @@ def main():
 
     umiparam = make_umiparam(net)
 
-    umiparam_0 = net.instantiate(umiparam, tieoffs=dict(value=12))
-    umiparam_1 = net.instantiate(umiparam, tieoffs=dict(value=34))
+    umiparam_0 = net.instantiate(umiparam)
+    umiparam_1 = net.instantiate(umiparam)
 
     net.external(umiparam_0.udev_req, txrx='udev0')
     net.external(umiparam_0.udev_resp, txrx='udev0')
@@ -34,7 +34,12 @@ def main():
 
     # launch the simulation
 
-    net.simulate()
+    net.simulate(
+        init=[
+            (umiparam_0.value, 12),
+            (umiparam_1.value, 34)
+        ]
+    )
 
     print(net.intfs['udev0'].read(0, np.uint32))
     print(net.intfs['udev1'].read(0, np.uint32))
@@ -51,24 +56,22 @@ def make_umiparam(net):
         CW=cw
     )
 
-    tieoffs = dict(
-        value=dict(value=77, width=32, per_instance=True, plusarg='value')
-    )
-
     interfaces = {
         'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input'),
-        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output')
+        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output'),
+        'value': dict(type='init', width=32, default=77)
     }
 
     resets = ['nreset']
 
-    dut = net.make_dut('umiparam', parameters=parameters, interfaces=interfaces,
-        resets=resets, tieoffs=tieoffs)
+    dut = net.make_dut('umiparam', parameters=parameters, interfaces=interfaces, resets=resets)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
+
+    dut.set('option', 'idir', sb_path() / 'verilog' / 'common')
 
     dut.input('../common/verilog/umiparam.sv')
 
