@@ -479,7 +479,6 @@ class SbNetwork:
         if self.single_netlist:
             plusargs = [(f"{intf.inst.name}_{intf.intf_def['plusarg']}", value)
                 for intf, value in init]
-            print(plusargs)
             process = self.dut.simulate(start_delay=start_delay, run=run,
                 intf_objs=intf_objs, plusargs=plusargs)
             process_collection.add(process)

@@ -8,44 +8,24 @@
 import umi
 import numpy as np
 
-from switchboard import SbNetwork, sb_path
+from switchboard import SbDut
 
 from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
 
 
 def main():
-    net = SbNetwork(cmdline=True)
+    dut = build_testbench()
 
-    umiparam = make_umiparam(net)
+    dut.simulate(plusargs=[('value', 42)])
 
-    umiparam_0 = net.instantiate(umiparam)
-    umiparam_1 = net.instantiate(umiparam)
+    value = dut.intfs['udev'].read(0, np.uint32)
+    print(f'Read: {value}')
 
-    net.external(umiparam_0.udev_req, txrx='udev0')
-    net.external(umiparam_0.udev_resp, txrx='udev0')
-
-    net.external(umiparam_1.udev_req, txrx='udev1')
-    net.external(umiparam_1.udev_resp, txrx='udev1')
-
-    # build simulator
-
-    net.build()
-
-    # launch the simulation
-
-    net.simulate(
-        init=[
-            (umiparam_0.value, 12),
-            (umiparam_1.value, 34)
-        ]
-    )
-
-    print(net.intfs['udev0'].read(0, np.uint32))
-    print(net.intfs['udev1'].read(0, np.uint32))
+    assert value == 42
 
 
-def make_umiparam(net):
+def build_testbench():
     dw = 32
     aw = 64
     cw = 32
@@ -57,23 +37,24 @@ def make_umiparam(net):
     )
 
     interfaces = {
-        'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input'),
-        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output'),
+        'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='udev'),
+        'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='udev'),
         'value': dict(type='init', width=32, default=77)
     }
 
     resets = ['nreset']
 
-    dut = net.make_dut('umiparam', parameters=parameters, interfaces=interfaces, resets=resets)
+    dut = SbDut('umiparam', cmdline=True, autowrap=True, parameters=parameters,
+        interfaces=interfaces, resets=resets)
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
     dut.add('option', 'library', 'lambdalib_stdlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
-    dut.set('option', 'idir', sb_path() / 'verilog' / 'common')
-
     dut.input('../common/verilog/umiparam.sv')
+
+    dut.build()
 
     return dut
 

@@ -834,6 +834,9 @@ def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
     for name, value in intf_defs.items():
         type = value['type']
 
+        if type == 'init':
+            continue
+
         if type.lower() in ['umi']:
             txrx = value['txrx']
 
