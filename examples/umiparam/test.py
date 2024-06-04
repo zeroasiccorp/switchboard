@@ -39,7 +39,7 @@ def build_testbench():
     interfaces = {
         'udev_req': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='input', txrx='udev'),
         'udev_resp': dict(type='umi', dw=dw, aw=aw, cw=cw, direction='output', txrx='udev'),
-        'value': dict(type='init', width=32, default=77)
+        'value': dict(type='plusarg', width=32, default=77)
     }
 
     resets = ['nreset']

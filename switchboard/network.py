@@ -106,11 +106,10 @@ class SbInst:
         self.name = name
         self.block = block
         self.mapping = {}
-        self.plusargs = []
         self.external = set()
 
         for name, value in block.intf_defs.items():
-            if value['type'] != 'init':
+            if value['type'] != 'plusarg':
                 self.mapping[name] = dict(uri=None, wire=None)
             width = block.intf_defs[name].get('width', None)
             self.__setattr__(name, SbIntf(inst=self, name=name, width=width))
@@ -366,7 +365,7 @@ class SbNetwork:
 
                 # prepend instance name to init interfaces
                 for value in intf_defs.values():
-                    if value['type'] == 'init':
+                    if value['type'] == 'plusarg':
                         value['wire'] = f"{inst_name}_{value['wire']}"
                         value['plusarg'] = f"{inst_name}_{value['plusarg']}"
 
@@ -461,14 +460,15 @@ class SbNetwork:
 
         return name
 
-    def simulate(self, start_delay=None, run=None, intf_objs=True, init=None):
+    def simulate(self, start_delay=None, run=None, intf_objs=True, plusargs=None):
+
         # set defaults
 
         if start_delay is None:
             start_delay = self.start_delay
 
-        if init is None:
-            init = []
+        if plusargs is None:
+            plusargs = []
 
         # keep track of processes started
 
@@ -477,8 +477,10 @@ class SbNetwork:
         # create interface objects
 
         if self.single_netlist:
-            plusargs = [(f"{intf.inst.name}_{intf.intf_def['plusarg']}", value)
-                for intf, value in init]
+            if isinstance(plusargs, dict):
+                plusargs = [(f"{inst_name}_{inst_plusarg}", value)
+                    for inst_name, inst_plusargs in plusargs.items()
+                    for inst_plusarg, value in inst_plusargs]
             process = self.dut.simulate(start_delay=start_delay, run=run,
                 intf_objs=intf_objs, plusargs=plusargs)
             process_collection.add(process)
@@ -488,9 +490,6 @@ class SbNetwork:
         else:
             if intf_objs:
                 self.intfs = create_intf_objs(self.intf_defs)
-
-            for intf, value in init:
-                intf.inst.plusargs.append((intf.intf_def['plusarg'], value))
 
             if start_delay is not None:
                 import time
@@ -532,8 +531,15 @@ class SbNetwork:
                     start_delay = None
 
                 # launch an instance of simulation
+
+                if isinstance(plusargs, dict):
+                    inst_plusargs = plusargs.get(inst.name, [])
+                else:
+                    inst_plusargs = plusargs
+
                 process = block.simulate(start_delay=start_delay, run=inst.name,
-                    intf_objs=False, plusargs=inst.plusargs)
+                    intf_objs=False, plusargs=inst_plusargs)
+
                 process_collection.add(process)
 
         # start TCP bridges as needed

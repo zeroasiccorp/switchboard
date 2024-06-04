@@ -91,12 +91,12 @@ def normalize_interface(name, value):
     type = value['type']
 
     if 'external' not in value:
-        if type == 'init':
+        if type == 'plusarg':
             value['external'] = False
         else:
             value['external'] = True
 
-    if (type == 'init') and ('direction' not in value):
+    if (type == 'plusarg') and ('direction' not in value):
         value['direction'] = 'input'
 
     assert 'direction' in value
@@ -134,7 +134,7 @@ def normalize_interface(name, value):
     elif type == 'gpio':
         if 'width' not in value:
             value['width'] = 1
-    elif type == 'init':
+    elif type == 'plusarg':
         if 'width' not in value:
             value['width'] = 1
         if 'default' not in value:
@@ -458,7 +458,7 @@ def autowrap(
                     value['wire'] = new_wire
                 else:
                     pass
-            elif type == 'init':
+            elif type == 'plusarg':
                 width = value['width']
 
                 plusarg = value['plusarg']
@@ -545,7 +545,7 @@ def autowrap(
                 connections += [f'`SB_AXI_CONNECT({name}, {wire})']
             elif type_is_axil(type):
                 connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
-            elif type_is_gpio(type) or type_is_init(type):
+            elif type_is_gpio(type) or type_is_plusarg(type):
                 if wire is None:
                     # unused output
                     connections += [f'.{name}()']
@@ -669,7 +669,7 @@ def normalize_direction(type, direction):
             return 'output'
         else:
             raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
-    elif type_is_init(type):
+    elif type_is_plusarg(type):
         if direction_is_input(direction):
             return 'input'
         else:
@@ -799,8 +799,8 @@ def type_is_const(type):
     return type.lower() in ['const', 'constant']
 
 
-def type_is_init(type):
-    return type.lower() in ['init', 'initialize']
+def type_is_plusarg(type):
+    return type.lower() in ['plusarg']
 
 
 def normalize_intf_type(type):
@@ -820,8 +820,8 @@ def normalize_intf_type(type):
         return 'gpio'
     elif type_is_const(type):
         return 'const'
-    elif type_is_init(type):
-        return 'init'
+    elif type_is_plusarg(type):
+        return 'plusarg'
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
@@ -834,7 +834,7 @@ def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
     for name, value in intf_defs.items():
         type = value['type']
 
-        if type == 'init':
+        if type == 'plusarg':
             continue
 
         if type.lower() in ['umi']:

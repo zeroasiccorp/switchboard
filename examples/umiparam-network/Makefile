@@ -3,11 +3,15 @@
 
 .PHONY: verilator
 verilator:
-	./test.py --tool verilator --max-rate 1e3
+	./test.py --tool verilator --max-rate 1e3 --fast
 
 .PHONY: verilator-single-netlist
 verilator-single-netlist:
-	./test.py --tool verilator --single-netlist
+	./test.py --tool verilator --single-netlist --fast
+
+.PHONY: verilator-supernet
+verilator-supernet:
+	./test.py --tool verilator --supernet --max-rate 1e3 --fast
 
 .PHONY: icarus
 icarus:
@@ -16,6 +20,10 @@ icarus:
 .PHONY: icarus-single-netlist
 icarus-single-netlist:
 	./test.py --tool icarus --single-netlist
+
+.PHONY: icarus-supernet
+icarus-supernet:
+	./test.py --tool icarus --supernet --max-rate 1e3
 
 .PHONY: clean
 clean:
