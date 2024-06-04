@@ -15,15 +15,15 @@ verilator-supernet:
 
 .PHONY: icarus
 icarus:
-	./test.py --tool icarus --max-rate 1e3
+	./test.py --tool icarus --max-rate 1e3 --fast
 
 .PHONY: icarus-single-netlist
 icarus-single-netlist:
-	./test.py --tool icarus --single-netlist
+	./test.py --tool icarus --single-netlist --fast
 
 .PHONY: icarus-supernet
 icarus-supernet:
-	./test.py --tool icarus --supernet --max-rate 1e3
+	./test.py --tool icarus --supernet --max-rate 1e3 --fast
 
 .PHONY: clean
 clean:
