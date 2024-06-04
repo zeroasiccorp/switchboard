@@ -86,12 +86,15 @@ def normalize_interface(name, value):
     if 'wire' not in value:
         value['wire'] = name
 
-    if 'external' not in value:
-        value['external'] = True
-
     assert 'type' in value
     value['type'] = normalize_intf_type(value['type'])
     type = value['type']
+
+    if 'external' not in value:
+        if type == 'init':
+            value['external'] = False
+        else:
+            value['external'] = True
 
     if (type == 'init') and ('direction' not in value):
         value['direction'] = 'input'
@@ -136,6 +139,8 @@ def normalize_interface(name, value):
             value['width'] = 1
         if 'default' not in value:
             value['default'] = 0
+        if 'plusarg' not in value:
+            value['plusarg'] = name
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
@@ -454,18 +459,22 @@ def autowrap(
                 else:
                     pass
             elif type == 'init':
+                width = value['width']
+
                 plusarg = value['plusarg']
                 assert plusarg is not None
 
-                plusarg_wire = f'plusarg_{wire}'
+                plusarg_wire = f'{wire}_plusarg'
                 plusarg_width = 32  # TODO use long or another format?
 
                 lines += [
-                    tab + f'reg [{plusarg_width - 1}:0] {plusarg_wire} = {value["value"]};',
+                    tab + f'reg [{plusarg_width - 1}:0] {plusarg_wire} = {value["default"]};',
                     tab + 'initial begin',
                     2 * tab + f"void'($value$plusargs(\"{plusarg}=%d\", {plusarg_wire}));",
                     tab + 'end'
                 ]
+
+                lines += [tab + f'wire [{width - 1}:0] {wire};']
 
                 if width <= plusarg_width:
                     lines += [tab + f'assign {wire} = {plusarg_wire}[{width - 1}:0];']

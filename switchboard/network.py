@@ -102,23 +102,16 @@ class TcpIntf:
 
 
 class SbInst:
-    def __init__(self, name, block, plusargs=None, tieoffs=None):
-        # set defaults
-        if plusargs is None:
-            plusargs = []
-        if tieoffs is None:
-            tieoffs = {}
-
+    def __init__(self, name, block):
         self.name = name
         self.block = block
-        self.plusargs = plusargs
-        self.tieoffs = tieoffs
-
         self.mapping = {}
+        self.plusargs = []
         self.external = set()
 
         for name, value in block.intf_defs.items():
-            self.mapping[name] = dict(uri=None, wire=None)
+            if value['type'] != 'init':
+                self.mapping[name] = dict(uri=None, wire=None)
             width = block.intf_defs[name].get('width', None)
             self.__setattr__(name, SbIntf(inst=self, name=name, width=width))
 
@@ -137,8 +130,6 @@ class SbNetwork:
 
         self.uri_set = set()
         self.uri_counters = {}
-
-        self.plusarg_name_set = set()
 
         self.tcp_intfs = []
 
@@ -213,7 +204,7 @@ class SbNetwork:
         else:
             return self._intf_defs
 
-    def instantiate(self, block, name: str = None, tieoffs: dict = None):
+    def instantiate(self, block, name: str = None):
         # generate a name if needed
         if name is None:
             if isinstance(block, SbDut):
@@ -233,24 +224,8 @@ class SbNetwork:
         # add the name to the set of names in use
         self.inst_name_set.add(name)
 
-        # generate plusargs and tieoffs
-
-        plusargs = []
-        inst_tieoffs = deepcopy(block.tieoffs)
-
-        if tieoffs is not None:
-            for key, value in tieoffs.items():
-                tieoff = inst_tieoffs.tieoffs[key]
-                plusarg = tieoff['plusarg']
-                if self.single_netlist:
-                    plusarg = f'{name}_{plusarg}'
-                    tieoff['plusarg'] = plusarg
-                else:
-                    plusargs.append((tieoff['plusarg'], value))
-
         # create the instance object
-        self.insts[name] = SbInst(name=name, block=block,
-            plusargs=plusargs, tieoffs=inst_tieoffs)
+        self.insts[name] = SbInst(name=name, block=block)
 
         # return the instance object
         return self.insts[name]
@@ -389,6 +364,12 @@ class SbNetwork:
                     intf_defs[intf_name]['wire'] = props['wire']
                     intf_defs[intf_name]['external'] = intf_name in inst.external
 
+                # prepend instance name to init interfaces
+                for value in intf_defs.values():
+                    if value['type'] == 'init':
+                        value['wire'] = f"{inst_name}_{value['wire']}"
+                        value['plusarg'] = f"{inst_name}_{value['plusarg']}"
+
                 interfaces[inst_name] = intf_defs
 
             # generate netlist that connects everything together, and input() it
@@ -400,7 +381,7 @@ class SbNetwork:
                     interfaces=interfaces,
                     clocks={inst.name: inst.block.clocks for inst in self.insts.values()},
                     resets={inst.name: inst.block.resets for inst in self.insts.values()},
-                    tieoffs={inst.name: inst.tieoffs for inst in self.insts.values()},
+                    tieoffs={inst.name: inst.block.tieoffs for inst in self.insts.values()},
                     filename=filename
                 )
             )
@@ -480,11 +461,14 @@ class SbNetwork:
 
         return name
 
-    def simulate(self, start_delay=None, run=None, intf_objs=True):
+    def simulate(self, start_delay=None, run=None, intf_objs=True, init=None):
         # set defaults
 
         if start_delay is None:
             start_delay = self.start_delay
+
+        if init is None:
+            init = []
 
         # keep track of processes started
 
@@ -493,8 +477,11 @@ class SbNetwork:
         # create interface objects
 
         if self.single_netlist:
+            plusargs = [(f"{intf.inst.name}_{intf.intf_def['plusarg']}", value)
+                for intf, value in init]
+            print(plusargs)
             process = self.dut.simulate(start_delay=start_delay, run=run,
-                intf_objs=intf_objs, plusargs=self.plusargs)
+                intf_objs=intf_objs, plusargs=plusargs)
             process_collection.add(process)
 
             if intf_objs:
@@ -502,6 +489,9 @@ class SbNetwork:
         else:
             if intf_objs:
                 self.intfs = create_intf_objs(self.intf_defs)
+
+            for intf, value in init:
+                intf.inst.plusargs.append((intf.intf_def['plusarg'], value))
 
             if start_delay is not None:
                 import time
@@ -545,7 +535,6 @@ class SbNetwork:
                 # launch an instance of simulation
                 process = block.simulate(start_delay=start_delay, run=inst.name,
                     intf_objs=False, plusargs=inst.plusargs)
-
                 process_collection.add(process)
 
         # start TCP bridges as needed
