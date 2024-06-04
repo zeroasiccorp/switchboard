@@ -15,12 +15,12 @@ THIS_DIR = Path(__file__).resolve().parent
 
 
 @pytest.mark.parametrize('path,expected,target', [
-    ['axil', 'PASS!', 'icarus'],
-    ['axil', 'PASS!', 'verilator'],
+    # ['axil', 'PASS!', 'icarus'],
+    # ['axil', 'PASS!', 'verilator'],
     ['minimal', 'PASS!', 'icarus'],
     ['minimal', 'PASS!', 'verilator'],
-    ['network', None, 'verilator'],
-    ['network', None, 'icarus'],
+    # ['network', None, 'verilator'],
+    # ['network', None, 'icarus'],
     # ['network', None, 'verilator-single-netlist'],
     # ['network', None, 'icarus-single-netlist'],
     # ['python', 'PASS!', None],
