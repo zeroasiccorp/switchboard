@@ -80,7 +80,10 @@ def main():
     net.build()
 
     # launch the simulation
+
     net.simulate(plusargs=plusargs)
+
+    # read back the plusarg-initialized values via UMI
 
     for umi_intf, init_value in zip(umi_intfs, init_values):
         value = net.intfs[umi_intf].read(0, np.uint32)
