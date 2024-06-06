@@ -39,9 +39,9 @@ def main():
     extra_args = {
         '--packets': dict(type=int, default=1000, help='Number of'
             ' transactions to send into the FIFO during the test.'),
-        '--fifos': dict(type=int, default=200, help='Number of'
+        '--fifos': dict(type=int, default=9, help='Number of'
             ' FIFOs to instantiate in series for this test.'),
-        '--fifos-per-sim': dict(type=int, default=100, help='Number of'
+        '--fifos-per-sim': dict(type=int, default=3, help='Number of'
             ' FIFOs to include in each simulation.'),
         '--tcp': dict(action='store_true', help='Run the simulation with UMI ports'
             ' made available over TCP'),

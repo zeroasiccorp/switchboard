@@ -14,8 +14,9 @@ testbenches.
 import importlib
 import subprocess
 
-from typing import List, Dict, Any
+from copy import deepcopy
 from pathlib import Path
+from typing import List, Dict, Any
 
 from .switchboard import path as sb_path
 from .verilator import verilator_run
@@ -510,6 +511,8 @@ class SbDut(siliconcompiler.Chip):
 
         if plusargs is None:
             plusargs = []
+        else:
+            plusargs = deepcopy(plusargs)
 
         if args is None:
             args = []
