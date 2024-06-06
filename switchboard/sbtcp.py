@@ -14,7 +14,9 @@
 import time
 import socket
 import argparse
+import itertools
 import numpy as np
+
 from switchboard import PySbRx, PySbTx, PySbPacket
 
 SB_PACKET_SIZE_BYTES = 60
@@ -53,13 +55,14 @@ def sb2tcp(inputs, conn):
         # get a switchboard packet
         while True:
             # select input and queue its next run as last
-            sbrx = inputs.pop(0)
-            inputs.append(sbrx)
+            destination, sbrx = inputs.pop(0)
+            inputs.append((destination, sbrx))
 
             # try to receive a packet from this input
             p = sbrx.recv(blocking=False)
 
             if p is not None:
+                p.destination = destination
                 break
 
         # convert the switchboard packet to bytes
@@ -81,16 +84,10 @@ def run_client(host, port, quiet=False, max_rate=None, inputs=None, outputs=None
     Connect to a server, retrying until a connection is made.
     """
 
-    # initialize TX objects if needed
+    # initialize PySbRx/PySbTx objects if needed
 
-    if outputs is not None:
-        assert inputs is None, 'Cannot specify both inputs and outputs'
-        outputs = [(rule, convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate))
-            for rule, output in outputs]
-    else:
-        assert inputs is not None, 'Must specify either inputs or outputs'
-        inputs = [convert_to_queue(q=input, cls=PySbRx, max_rate=max_rate)
-            for input in inputs]
+    inputs, outputs = normalize_inputs_and_outputs(
+        inputs=inputs, outputs=outputs, max_rate=max_rate)
 
     # connect to the server in a loop
     while True:
@@ -122,16 +119,10 @@ def run_server(host, port=0, quiet=False, max_rate=None, run_once=False, outputs
     Accepts client connections in a loop until Ctrl-C is pressed.
     """
 
-    # initialize TX objects if needed
+    # initialize PySbRx/PySbTx objects if needed
 
-    if outputs is not None:
-        assert inputs is None, 'Cannot specify both inputs and outputs'
-        outputs = [(rule, convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate))
-            for rule, output in outputs]
-    else:
-        assert inputs is not None, 'Must specify either inputs or outputs'
-        inputs = [convert_to_queue(q=input, cls=PySbRx, max_rate=max_rate)
-            for input in inputs]
+    inputs, outputs = normalize_inputs_and_outputs(
+        inputs=inputs, outputs=outputs, max_rate=max_rate)
 
     # create the server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -157,6 +148,49 @@ def run_server(host, port=0, quiet=False, max_rate=None, run_once=False, outputs
 
         if run_once:
             break
+
+
+def normalize_inputs_and_outputs(inputs, outputs, max_rate):
+    if outputs is not None:
+        assert inputs is None, 'Cannot specify both inputs and outputs'
+        outputs = normalize_outputs(outputs, max_rate)
+    else:
+        assert inputs is not None, 'Must specify either inputs or outputs'
+        inputs = normalize_inputs(inputs, max_rate)
+
+    return inputs, outputs
+
+
+def normalize_outputs(outputs, max_rate):
+    retval = []
+
+    for rule, output in outputs:
+        output = convert_to_queue(q=output, cls=PySbTx, max_rate=max_rate)
+        retval.append((rule, output))
+
+    return retval
+
+
+def normalize_inputs(inputs, max_rate):
+    retval = []
+
+    destinations = set()
+    count = itertools.count(0)
+
+    for input in inputs:
+        if not isinstance(input, (list, tuple)):
+            # determine an unused destination for this input
+            destination = next(count)
+            while destination in destinations:
+                destination = next(count)
+        else:
+            destination, input = input
+
+        input = convert_to_queue(q=input, cls=PySbRx, max_rate=max_rate)
+
+        retval.append((destination, input))
+
+    return retval
 
 
 def sb2bytes(p):

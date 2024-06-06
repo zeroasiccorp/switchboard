@@ -91,8 +91,9 @@ class ConstIntf:
 
 
 class TcpIntf:
-    def __init__(self, intf_def=None, **kwargs):
+    def __init__(self, intf_def=None, destination=None, **kwargs):
         self.intf_def = intf_def
+        self.destination = destination
         self.kwargs = kwargs
 
     @property
@@ -130,7 +131,7 @@ class SbNetwork:
         self.uri_set = set()
         self.uri_counters = {}
 
-        self.tcp_intfs = []
+        self.tcp_intfs = {}
 
         if cmdline:
             self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
@@ -321,17 +322,70 @@ class SbNetwork:
 
         for intf, intf_def in [(a, intf_def_a), (b, intf_def_b)]:
             if isinstance(intf, TcpIntf):
-                tcp_kwargs = deepcopy(intf.kwargs)
-                tcp_direction = intf_def['direction']
+                self.add_tcp_intf(intf=intf, intf_def=intf_def, uri=uri)
 
-                if tcp_direction == 'input':
-                    tcp_kwargs['inputs'] = [uri]
-                elif tcp_direction == 'output':
-                    tcp_kwargs['outputs'] = [('*', uri)]
-                else:
-                    raise Exception(f'Unsupported direction: {tcp_direction}')
+    def add_tcp_intf(self, intf, intf_def, uri):
+        tcp_kwargs = deepcopy(intf.kwargs)
 
-                self.tcp_intfs.append(tcp_kwargs)
+        if 'host' not in tcp_kwargs:
+            tcp_kwargs['host'] = 'localhost'
+
+        if 'port' not in tcp_kwargs:
+            tcp_kwargs['port'] = 5555
+
+        if 'mode' not in tcp_kwargs:
+            tcp_kwargs['mode'] = 'auto'
+
+        if 'quiet' not in tcp_kwargs:
+            tcp_kwargs['quiet'] = True
+
+        if 'max_rate' not in intf.kwargs:
+            tcp_kwargs['max_rate'] = self.max_rate
+
+        if 'run_once' not in tcp_kwargs:
+            tcp_kwargs['run_once'] = False
+
+        tcp_intfs_key = (tcp_kwargs['host'], tcp_kwargs['port'], tcp_kwargs['mode'])
+
+        if tcp_intfs_key not in self.tcp_intfs:
+            self.tcp_intfs[tcp_intfs_key] = tcp_kwargs
+        else:
+            for key, val in self.tcp_intfs[tcp_intfs_key].items():
+                if key not in ['inputs', 'outputs']:
+                    assert val == tcp_kwargs[key]
+
+        tcp_intf = self.tcp_intfs[tcp_intfs_key]
+
+        tcp_direction = intf_def['direction']
+
+        if tcp_direction == 'input':
+            assert 'outputs' not in tcp_intf
+
+            if 'inputs' not in tcp_intf:
+                tcp_intf['inputs'] = []
+
+            if intf.destination is None:
+                input = uri
+            else:
+                input = (intf.destination, uri)
+
+            tcp_intf['inputs'].append(input)
+        elif tcp_direction == 'output':
+            assert 'inputs' not in tcp_intf
+
+            if 'outputs' not in tcp_intf:
+                tcp_intf['outputs'] = []
+
+            if intf.destination is None:
+                destination = '*'
+            else:
+                destination = intf.destination
+
+            output = (destination, uri)
+
+            tcp_intf['outputs'].append(output)
+        else:
+            raise Exception(f'Unsupported direction: {tcp_direction}')
 
     def build(self):
         unique_blocks = set(inst.block for inst in self.insts.values())
@@ -446,17 +500,7 @@ class SbNetwork:
         # make a note of TCP bridges that need to be started
 
         if isinstance(intf, TcpIntf):
-            tcp_kwargs = deepcopy(intf.kwargs)
-            tcp_direction = intf_def['direction']
-
-            if tcp_direction == 'input':
-                tcp_kwargs['inputs'] = [uri]
-            elif tcp_direction == 'output':
-                tcp_kwargs['outputs'] = [('*', uri)]
-            else:
-                raise Exception(f'Unsupported direction: {tcp_direction}')
-
-            self.tcp_intfs.append(tcp_kwargs)
+            self.add_tcp_intf(intf=intf, intf_def=intf_def, uri=uri)
 
         return name
 
@@ -478,9 +522,14 @@ class SbNetwork:
 
         if self.single_netlist:
             if isinstance(plusargs, dict):
-                plusargs = [(f"{inst_name}_{inst_plusarg}", value)
-                    for inst_name, inst_plusargs in plusargs.items()
-                    for inst_plusarg, value in inst_plusargs]
+                plusargs_processed = []
+                for inst_name, inst_plusargs in plusargs.items():
+                    if inst_name == '*':
+                        plusargs_processed += inst_plusargs
+                    else:
+                        for inst_plusarg, value in inst_plusargs:
+                            plusargs_processed.append((f"{inst_name}_{inst_plusarg}", value))
+                plusargs = plusargs_processed
             process = self.dut.simulate(start_delay=start_delay, run=run,
                 intf_objs=intf_objs, plusargs=plusargs)
             process_collection.add(process)
@@ -533,7 +582,9 @@ class SbNetwork:
                 # launch an instance of simulation
 
                 if isinstance(plusargs, dict):
-                    inst_plusargs = plusargs.get(inst.name, [])
+                    inst_plusargs = []
+                    inst_plusargs += plusargs.get('*', [])
+                    inst_plusargs += plusargs.get(inst.name, [])
                 else:
                     inst_plusargs = plusargs
 
@@ -543,13 +594,8 @@ class SbNetwork:
                 process_collection.add(process)
 
         # start TCP bridges as needed
-        for tcp_intf in self.tcp_intfs:
-            tcp_intf = deepcopy(tcp_intf)
-
-            if 'max_rate' not in tcp_intf:
-                tcp_intf['max_rate'] = self.max_rate
-
-            process = start_tcp_bridge(**tcp_intf)
+        for tcp_kwargs in self.tcp_intfs.values():
+            process = start_tcp_bridge(**tcp_kwargs)
             process_collection.add(process)
 
         return process_collection
