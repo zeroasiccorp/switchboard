@@ -408,7 +408,7 @@ def autowrap(
                 cw = value['cw']
                 aw = value['aw']
 
-                if decl_wire:
+                if decl_wire and (wire is not None):
                     lines += [tab + f'`SB_UMI_WIRES({wire}, {dw}, {cw}, {aw});']
 
                 if external:
@@ -538,12 +538,23 @@ def autowrap(
             wire = value['wire']
 
             if type_is_sb(type):
+                assert wire is not None
                 connections += [f'`SB_CONNECT({name}, {wire})']
             elif type_is_umi(type):
-                connections += [f'`SB_UMI_CONNECT({name}, {wire})']
+                if wire is None:
+                    if value['direction'] == 'input':
+                        connections += [f'`SB_TIEOFF_UMI_INPUT({name})']
+                    elif value['direction'] == 'output':
+                        connections += [f'`SB_TIEOFF_UMI_OUTPUT({name})']
+                    else:
+                        raise Exception(f'Unsupported UMI direction: {value["direction"]}')
+                else:
+                    connections += [f'`SB_UMI_CONNECT({name}, {wire})']
             elif type_is_axi(type):
+                assert wire is not None
                 connections += [f'`SB_AXI_CONNECT({name}, {wire})']
             elif type_is_axil(type):
+                assert wire is not None
                 connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
             elif type_is_gpio(type) or type_is_plusarg(type):
                 if wire is None:

@@ -63,6 +63,22 @@
     .a``_data(b``_data),                                                                           \
     .a``_ready(b``_ready)
 
+`define SB_TIEOFF_UMI_INPUT(a)                                                                     \
+    .a``_valid(1'b0),                                                                              \
+    .a``_cmd(),                                                                                    \
+    .a``_dstaddr(),                                                                                \
+    .a``_srcaddr(),                                                                                \
+    .a``_data(),                                                                                   \
+    .a``_ready()
+
+`define SB_TIEOFF_UMI_OUTPUT(a)                                                                    \
+    .a``_valid(),                                                                                  \
+    .a``_cmd(),                                                                                    \
+    .a``_dstaddr(),                                                                                \
+    .a``_srcaddr(),                                                                                \
+    .a``_data(),                                                                                   \
+    .a``_ready(1'b0)
+
 `define SWITCHBOARD_SIM_PORT(prefix, dw, cw=32, aw=64)                                             \
     `SB_UMI_WIRES(prefix``_req, dw, cw, aw);                                                       \
     `SB_UMI_WIRES(prefix``_resp, dw, cw, aw);                                                      \

@@ -562,7 +562,7 @@ class SbNetwork:
                     uri = props['uri']
 
                     if uri is None:
-                        raise Exception(f'{inst.name}.{intf_name} not connected')
+                        continue
 
                     block.intf_defs[intf_name]['uri'] = uri
 
