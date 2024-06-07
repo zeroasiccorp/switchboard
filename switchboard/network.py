@@ -557,14 +557,7 @@ class SbNetwork:
                 block = inst.block
 
                 for intf_name, props in inst.mapping.items():
-                    # check that the interface is wired up
-
-                    uri = props['uri']
-
-                    if uri is None:
-                        continue
-
-                    block.intf_defs[intf_name]['uri'] = uri
+                    block.intf_defs[intf_name]['uri'] = props['uri']
 
                 # calculate the start delay for this process by measuring the
                 # time left until the start delay for the whole network is over
