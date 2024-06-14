@@ -1,2 +1,2 @@
 # Examples dependencies
-umi @ git+https://github.com/zeroasiccorp/umi.git@main
+umi-hw >= 0.1.0, < 0.2.0
