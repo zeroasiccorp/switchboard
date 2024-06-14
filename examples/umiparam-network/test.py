@@ -114,7 +114,7 @@ def make_umiparam(net):
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_stdlib')
+    dut.add('option', 'library', 'lambdalib_auxlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
     dut.set('option', 'idir', sb_path() / 'verilog' / 'common')
