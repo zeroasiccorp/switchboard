@@ -3,8 +3,6 @@
 
 `default_nettype none
 
-`include "switchboard.vh"
-
 module umiparam #(
     parameter DW=32,
     parameter CW=32,
@@ -12,9 +10,21 @@ module umiparam #(
 ) (
     input clk,
     input nreset,
+
     input [DW-1:0] value,
-    `SB_UMI_INPUT(udev_req, DW, CW, AW),
-    `SB_UMI_OUTPUT(udev_resp, DW, CW, AW)
+    input udev_req_valid,
+    output udev_req_ready,
+    input [CW-1:0] udev_req_cmd,
+    input [AW-1:0] udev_req_dstaddr,
+    input [AW-1:0] udev_req_srcaddr,
+    input [DW-1:0] udev_req_data,
+
+    output udev_resp_valid,
+    input udev_resp_ready,
+    output [CW-1:0] udev_resp_cmd,
+    output [AW-1:0] udev_resp_dstaddr,
+    output [AW-1:0] udev_resp_srcaddr,
+    output [DW-1:0] udev_resp_data
 );
     wire [AW-1:0] loc_addr;
     wire          loc_write;
