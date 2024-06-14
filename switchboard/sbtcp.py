@@ -14,7 +14,6 @@
 import time
 import socket
 import argparse
-import itertools
 import numpy as np
 
 from switchboard import PySbRx, PySbTx, PySbPacket
@@ -62,7 +61,8 @@ def sb2tcp(inputs, conn):
             p = sbrx.recv(blocking=False)
 
             if p is not None:
-                p.destination = destination
+                if destination is not None:
+                    p.destination = destination
                 break
 
         # convert the switchboard packet to bytes
@@ -174,15 +174,9 @@ def normalize_outputs(outputs, max_rate):
 def normalize_inputs(inputs, max_rate):
     retval = []
 
-    destinations = set()
-    count = itertools.count(0)
-
     for input in inputs:
         if not isinstance(input, (list, tuple)):
-            # determine an unused destination for this input
-            destination = next(count)
-            while destination in destinations:
-                destination = next(count)
+            destination, input = None, input
         else:
             destination, input = input
 
