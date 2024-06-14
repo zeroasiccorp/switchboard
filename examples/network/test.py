@@ -108,7 +108,7 @@ def make_umi_fifo(net):
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_stdlib')
+    dut.add('option', 'library', 'lambdalib_auxlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
     dut.input('umi/rtl/umi_fifo.v', package='umi')
@@ -172,7 +172,7 @@ def make_umi2axil(net):
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_stdlib')
+    dut.add('option', 'library', 'lambdalib_auxlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
     dut.input('utils/rtl/umi2axilite.v', package='umi')
