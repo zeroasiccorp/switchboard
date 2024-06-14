@@ -109,7 +109,7 @@ def make_umi_fifo(net, dw, aw, cw):
 
     dut.use(umi)
     dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_stdlib')
+    dut.add('option', 'library', 'lambdalib_auxlib')
     dut.add('option', 'library', 'lambdalib_ramlib')
 
     dut.input('umi/rtl/umi_fifo.v', package='umi')
