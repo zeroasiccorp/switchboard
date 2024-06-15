@@ -63,11 +63,41 @@
     .a``_data(b``_data),                                                                           \
     .a``_ready(b``_ready)
 
+`define SB_TIEOFF_UMI_INPUT(a)                                                                     \
+    .a``_valid(1'b0),                                                                              \
+    .a``_cmd(),                                                                                    \
+    .a``_dstaddr(),                                                                                \
+    .a``_srcaddr(),                                                                                \
+    .a``_data(),                                                                                   \
+    .a``_ready()
+
+`define SB_TIEOFF_UMI_OUTPUT(a)                                                                    \
+    .a``_valid(),                                                                                  \
+    .a``_cmd(),                                                                                    \
+    .a``_dstaddr(),                                                                                \
+    .a``_srcaddr(),                                                                                \
+    .a``_data(),                                                                                   \
+    .a``_ready(1'b0)
+
 `define SWITCHBOARD_SIM_PORT(prefix, dw, cw=32, aw=64)                                             \
     `SB_UMI_WIRES(prefix``_req, dw, cw, aw);                                                       \
     `SB_UMI_WIRES(prefix``_resp, dw, cw, aw);                                                      \
     `QUEUE_TO_UMI_SIM(prefix``_req, dw, cw, aw, `"prefix``_req.q`");                               \
     `UMI_TO_QUEUE_SIM(prefix``_resp, dw, cw, aw, `"prefix``_resp.q`")
+
+`define SB_UMI_PORT(signal, dw, cw=32, aw=64, i, o)                                                \
+    i signal``_valid,                                                                              \
+    i [((cw)-1): 0] signal``_cmd,                                                                  \
+    i [((aw)-1): 0] signal``_dstaddr,                                                              \
+    i [((aw)-1): 0] signal``_srcaddr,                                                              \
+    i [((dw)-1): 0] signal``_data,                                                                 \
+    o signal``_ready
+
+`define SB_UMI_INPUT(signal, dw, cw=32, aw=64)                                                     \
+    `SB_UMI_PORT(signal, dw, cw, aw, input, output)
+
+`define SB_UMI_OUTPUT(signal, dw, cw=32, aw=64)                                                    \
+    `SB_UMI_PORT(signal, dw, cw, aw, output, input)
 
 `define SB_WIRES(signal, dw)                                                                       \
     wire [((dw)-1):0] signal``_data;                                                               \

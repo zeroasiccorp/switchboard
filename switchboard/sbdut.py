@@ -14,8 +14,9 @@ testbenches.
 import importlib
 import subprocess
 
-from typing import List, Dict, Any
+from copy import deepcopy
 from pathlib import Path
+from typing import List, Dict, Any
 
 from .switchboard import path as sb_path
 from .verilator import verilator_run
@@ -510,6 +511,8 @@ class SbDut(siliconcompiler.Chip):
 
         if plusargs is None:
             plusargs = []
+        else:
+            plusargs = deepcopy(plusargs)
 
         if args is None:
             args = []
@@ -554,7 +557,11 @@ class SbDut(siliconcompiler.Chip):
         # add plusargs that define queue connections
 
         for name, value in self.intf_defs.items():
-            plusargs += [(value['wire'], value['uri'])]
+            wire = value.get('wire', None)
+            uri = value.get('uri', None)
+
+            if (wire is not None) and (uri is not None):
+                plusargs += [(wire, uri)]
 
         # run-specific configurations (if running the same simulator build multiple times
         # in parallel)

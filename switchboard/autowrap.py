@@ -86,12 +86,18 @@ def normalize_interface(name, value):
     if 'wire' not in value:
         value['wire'] = name
 
-    if 'external' not in value:
-        value['external'] = True
-
     assert 'type' in value
     value['type'] = normalize_intf_type(value['type'])
     type = value['type']
+
+    if 'external' not in value:
+        if type == 'plusarg':
+            value['external'] = False
+        else:
+            value['external'] = True
+
+    if (type == 'plusarg') and ('direction' not in value):
+        value['direction'] = 'input'
 
     assert 'direction' in value
     value['direction'] = normalize_direction(type=type, direction=value['direction'])
@@ -128,6 +134,13 @@ def normalize_interface(name, value):
     elif type == 'gpio':
         if 'width' not in value:
             value['width'] = 1
+    elif type == 'plusarg':
+        if 'width' not in value:
+            value['width'] = 1
+        if 'default' not in value:
+            value['default'] = 0
+        if 'plusarg' not in value:
+            value['plusarg'] = name
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
@@ -349,11 +362,11 @@ def autowrap(
                 value['wire'] = f'{instance}_tieoff_{key}'
 
             width = value['width']
+            wire = value["wire"]
 
-            lines += [
-                tab + f'wire [{width-1}:0] {value["wire"]};',
-                tab + f'assign {value["wire"]} = {value["value"]};'
-            ]
+            lines += [tab + f'wire [{width-1}:0] {wire};']
+
+            lines += [tab + f'assign {wire} = {value["value"]};']
 
         lines += ['']
 
@@ -395,7 +408,7 @@ def autowrap(
                 cw = value['cw']
                 aw = value['aw']
 
-                if decl_wire:
+                if decl_wire and (wire is not None):
                     lines += [tab + f'`SB_UMI_WIRES({wire}, {dw}, {cw}, {aw});']
 
                 if external:
@@ -445,6 +458,28 @@ def autowrap(
                     value['wire'] = new_wire
                 else:
                     pass
+            elif type == 'plusarg':
+                width = value['width']
+
+                plusarg = value['plusarg']
+                assert plusarg is not None
+
+                plusarg_wire = f'{wire}_plusarg'
+                plusarg_width = 32  # TODO use long or another format?
+
+                lines += [
+                    tab + f'reg [{plusarg_width - 1}:0] {plusarg_wire} = {value["default"]};',
+                    tab + 'initial begin',
+                    2 * tab + f"void'($value$plusargs(\"{plusarg}=%d\", {plusarg_wire}));",
+                    tab + 'end'
+                ]
+
+                lines += [tab + f'wire [{width - 1}:0] {wire};']
+
+                if width <= plusarg_width:
+                    lines += [tab + f'assign {wire} = {plusarg_wire}[{width - 1}:0];']
+                else:
+                    lines += [tab + f'assign {wire}[{plusarg_width - 1}:0] = {plusarg_wire};']
             else:
                 raise Exception(f'Unsupported interface type: "{type}"')
 
@@ -503,14 +538,25 @@ def autowrap(
             wire = value['wire']
 
             if type_is_sb(type):
+                assert wire is not None
                 connections += [f'`SB_CONNECT({name}, {wire})']
             elif type_is_umi(type):
-                connections += [f'`SB_UMI_CONNECT({name}, {wire})']
+                if wire is None:
+                    if value['direction'] == 'input':
+                        connections += [f'`SB_TIEOFF_UMI_INPUT({name})']
+                    elif value['direction'] == 'output':
+                        connections += [f'`SB_TIEOFF_UMI_OUTPUT({name})']
+                    else:
+                        raise Exception(f'Unsupported UMI direction: {value["direction"]}')
+                else:
+                    connections += [f'`SB_UMI_CONNECT({name}, {wire})']
             elif type_is_axi(type):
+                assert wire is not None
                 connections += [f'`SB_AXI_CONNECT({name}, {wire})']
             elif type_is_axil(type):
+                assert wire is not None
                 connections += [f'`SB_AXIL_CONNECT({name}, {wire})']
-            elif type_is_gpio(type):
+            elif type_is_gpio(type) or type_is_plusarg(type):
                 if wire is None:
                     # unused output
                     connections += [f'.{name}()']
@@ -632,6 +678,11 @@ def normalize_direction(type, direction):
     if type_is_const(type):
         if direction_is_output(direction):
             return 'output'
+        else:
+            raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
+    elif type_is_plusarg(type):
+        if direction_is_input(direction):
+            return 'input'
         else:
             raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
     elif type_is_sb(type) or type_is_umi(type) or type_is_gpio(type):
@@ -759,6 +810,10 @@ def type_is_const(type):
     return type.lower() in ['const', 'constant']
 
 
+def type_is_plusarg(type):
+    return type.lower() in ['plusarg']
+
+
 def normalize_intf_type(type):
     if type_is_sb(type):
         return 'sb'
@@ -776,6 +831,8 @@ def normalize_intf_type(type):
         return 'gpio'
     elif type_is_const(type):
         return 'const'
+    elif type_is_plusarg(type):
+        return 'plusarg'
     else:
         raise ValueError(f'Unsupported interface type: "{type}"')
 
@@ -787,6 +844,9 @@ def create_intf_objs(intf_defs, fresh=True, max_rate=-1):
 
     for name, value in intf_defs.items():
         type = value['type']
+
+        if type == 'plusarg':
+            continue
 
         if type.lower() in ['umi']:
             txrx = value['txrx']
