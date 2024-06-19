@@ -99,7 +99,10 @@ class TcpIntf:
     @property
     def wire_name(self):
         if 'port' in self.kwargs:
-            return f'port_{self.kwargs["port"]}'
+            retval = f'port_{self.kwargs["port"]}'
+            if self.destination is not None:
+                retval += f'_{self.destination}'
+            return retval
 
 
 class SbInst:
