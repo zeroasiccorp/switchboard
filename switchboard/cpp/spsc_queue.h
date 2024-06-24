@@ -136,6 +136,10 @@ static inline spsc_queue* spsc_open_mem(const char* name, size_t capacity, void*
     q->shm = (spsc_queue_shared*)p;
     q->name = strdup(name);
     q->capacity = capacity;
+
+    /* In case we're opening a pre-existing queue, pick up where we left off. */
+    __atomic_load(&q->shm->tail, &q->cached_tail, __ATOMIC_RELAXED);
+    __atomic_load(&q->shm->head, &q->cached_head, __ATOMIC_RELAXED);
     return q;
 
 err:
