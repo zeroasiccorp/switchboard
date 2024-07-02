@@ -194,7 +194,7 @@ class AxiTxRx:
                 raise ValueError('Can only write integer dtypes such as uint8, uint16, etc.'
                     f'  (got dtype "{data.dtype}")')
         elif isinstance(data, np.integer):
-            write_data = np.array(data, ndmin=1, copy=False)
+            write_data = np.array(data, ndmin=1)
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 

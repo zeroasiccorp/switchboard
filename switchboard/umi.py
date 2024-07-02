@@ -292,7 +292,7 @@ class UmiTxRx:
                 raise ValueError('Can only write integer dtypes such as uint8, uint16, etc.'
                     f'  (got dtype "{data.dtype}")')
         elif isinstance(data, np.integer):
-            write_data = np.array(data, ndmin=1, copy=False)
+            write_data = np.array(data, ndmin=1)
         else:
             raise TypeError(f"Unknown data type: {type(data)}")
 
@@ -534,10 +534,7 @@ class UmiTxRx:
 
         # format the data for sending
         if isinstance(data, np.integer):
-            # copy=False should be safe here, because the data will be
-            # copied over to the queue; the original data will never
-            # be read again or modified from the C++ side
-            atomic_data = np.array(data, ndmin=1, copy=False).view(np.uint8)
+            atomic_data = np.array(data, ndmin=1).view(np.uint8)
             result = self.umi.atomic(addr, atomic_data, opcode, srcaddr, qos, prot, error)
             return result.view(data.dtype)[0]
         else:
