@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.umi &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=828725f0"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../switchboard.html">switchboard package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">switchboard.umi</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for switchboard.umi</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Python interface for UMI reads, writes, and atomic operations</span>
+
+<span class="c1"># Copyright (c) 2024 Zero ASIC Corporation</span>
+<span class="c1"># This code is licensed under Apache License 2.0 (see LICENSE for details)</span>
+
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Integral</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">from</span> <span class="nn">_switchboard</span> <span class="kn">import</span> <span class="p">(</span><span class="n">PyUmi</span><span class="p">,</span> <span class="n">PyUmiPacket</span><span class="p">,</span> <span class="n">umi_pack</span><span class="p">,</span> <span class="n">UmiCmd</span><span class="p">,</span> <span class="n">UmiAtomic</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.gpio</span> <span class="kn">import</span> <span class="n">UmiGpio</span>
+
+<span class="c1"># note: it was convenient to implement some of this in Python, rather</span>
+<span class="c1"># than have everything in C++, because it was easier to provide</span>
+<span class="c1"># flexibility with numpy types</span>
+
+
+<div class="viewcode-block" id="UmiTxRx">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx">[docs]</a>
+<span class="k">class</span> <span class="nc">UmiTxRx</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tx_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rx_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">srcaddr</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">posted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fresh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tx_uri: str, optional</span>
+<span class="sd">            Name of the switchboard queue that</span>
+<span class="sd">            write() and send() will send UMI packets to.  Defaults to</span>
+<span class="sd">            None, meaning &quot;unused&quot;.</span>
+<span class="sd">        rx_uri: str, optional</span>
+<span class="sd">            Name of the switchboard queue that</span>
+<span class="sd">            read() and recv() will receive UMI packets from.  Defaults</span>
+<span class="sd">            to None, meaning &quot;unused&quot;.</span>
+<span class="sd">        srcaddr: int, optional</span>
+<span class="sd">            Default srcaddr to use for reads,</span>
+<span class="sd">            ack&#39;d writes, and atomics.  Defaults to 0.  Can also be</span>
+<span class="sd">            provided as a dictionary with separate defaults for each</span>
+<span class="sd">            type of transaction: srcaddr={&#39;read&#39;: 0x1234, &#39;write&#39;:</span>
+<span class="sd">            0x2345, &#39;atomic&#39;: 0x3456}.  When the defaults are provided</span>
+<span class="sd">            with a dictionary, all keys are optional.  Transactions</span>
+<span class="sd">            that are not specified in the dictionary will default</span>
+<span class="sd">            to a srcaddr of 0.</span>
+<span class="sd">        posted: bool, optional</span>
+<span class="sd">            If True, default to using posted</span>
+<span class="sd">            (i.e., non-ack&#39;d) writes.  This can be overridden on a</span>
+<span class="sd">            transaction-by-transaction basis.  Defaults to False.</span>
+<span class="sd">        max_bytes: int, optional</span>
+<span class="sd">            Default maximum number of bytes</span>
+<span class="sd">            to use in each UMI transaction.  Can be overridden on a</span>
+<span class="sd">            transaction-by-transaction basis.  Defaults to 32 bytes.</span>
+<span class="sd">        fresh: bool, optional</span>
+<span class="sd">           If True, the queue specified by the uri parameter will get</span>
+<span class="sd">           cleared before executing the simulation.</span>
+<span class="sd">        error: bool, optional</span>
+<span class="sd">            If True, error out upon receiving an unexpected UMI response.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">tx_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tx_uri</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">rx_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rx_uri</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">umi</span> <span class="o">=</span> <span class="n">PyUmi</span><span class="p">(</span><span class="n">tx_uri</span><span class="p">,</span> <span class="n">rx_uri</span><span class="p">,</span> <span class="n">fresh</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">srcaddr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># convert srcaddr default to a dictionary if necessary</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">srcaddr</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">srcaddr</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;read&#39;</span><span class="p">:</span> <span class="n">srcaddr</span><span class="p">,</span>
+                    <span class="s1">&#39;write&#39;</span><span class="p">:</span> <span class="n">srcaddr</span><span class="p">,</span>
+                    <span class="s1">&#39;atomic&#39;</span><span class="p">:</span> <span class="n">srcaddr</span>
+                <span class="p">}</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">srcaddr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">def_read_srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">def_write_srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;write&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">def_atomic_srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;atomic&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unsupported default srcaddr specification: </span><span class="si">{</span><span class="n">srcaddr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Default value of &quot;srcaddr&quot; cannot be None.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">posted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">default_posted</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">posted</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Default value of &quot;posted&quot; cannot be None.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_bytes</span> <span class="o">=</span> <span class="mi">32</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_max_bytes</span> <span class="o">=</span> <span class="n">max_bytes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_error</span> <span class="o">=</span> <span class="n">error</span>
+
+<div class="viewcode-block" id="UmiTxRx.gpio">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.gpio">[docs]</a>
+    <span class="k">def</span> <span class="nf">gpio</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">iwidth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">owidth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">init</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">dstaddr</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">srcaddr</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">posted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UmiGpio</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns an object for communicating with umi_gpio modules.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        iwidth: int</span>
+<span class="sd">            Width of GPIO input (bits). Defaults to 32.</span>
+<span class="sd">        owidth: int</span>
+<span class="sd">            Width of GPIO output (bits). Defaults to 32.</span>
+<span class="sd">        init: int</span>
+<span class="sd">            Default value of GPIO output. Defaults to 0.</span>
+<span class="sd">        dstaddr: int</span>
+<span class="sd">            Base address of the GPIO device. Defaults to 0.</span>
+<span class="sd">        srcaddr: int</span>
+<span class="sd">            Source address to which responses should be routed. Defaults to 0.</span>
+<span class="sd">        posted: bool</span>
+<span class="sd">            Whether writes should be sent as posted. Defaults to False.</span>
+<span class="sd">        max_bytes: int</span>
+<span class="sd">            Maximum number of bytes in a single transaction to umi_gpio.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        UmiGpio</span>
+<span class="sd">            UmiGpio object with .i (input) and .o (output) attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">UmiGpio</span><span class="p">(</span>
+            <span class="n">iwidth</span><span class="o">=</span><span class="n">iwidth</span><span class="p">,</span>
+            <span class="n">owidth</span><span class="o">=</span><span class="n">owidth</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span>
+            <span class="n">dstaddr</span><span class="o">=</span><span class="n">dstaddr</span><span class="p">,</span>
+            <span class="n">srcaddr</span><span class="o">=</span><span class="n">srcaddr</span><span class="p">,</span>
+            <span class="n">posted</span><span class="o">=</span><span class="n">posted</span><span class="p">,</span>
+            <span class="n">max_bytes</span><span class="o">=</span><span class="n">max_bytes</span><span class="p">,</span>
+            <span class="n">umi</span><span class="o">=</span><span class="bp">self</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.init_queues">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.init_queues">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_queues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tx_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rx_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fresh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tx_uri: str, optional</span>
+<span class="sd">            Name of the switchboard queue that</span>
+<span class="sd">            write() and send() will send UMI packets to.  Defaults to</span>
+<span class="sd">            None, meaning &quot;unused&quot;.</span>
+<span class="sd">        rx_uri: str, optional</span>
+<span class="sd">            Name of the switchboard queue that</span>
+<span class="sd">            read() and recv() will receive UMI packets from.  Defaults</span>
+<span class="sd">            to None, meaning &quot;unused&quot;.</span>
+<span class="sd">        fresh: bool, optional</span>
+<span class="sd">           If True, the queue specified by the uri parameter will get</span>
+<span class="sd">           cleared before executing the simulation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">tx_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tx_uri</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">rx_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rx_uri</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">umi</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">tx_uri</span><span class="p">,</span> <span class="n">rx_uri</span><span class="p">,</span> <span class="n">fresh</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.send">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.send">[docs]</a>
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket)</span>
+<span class="sd">        Returns True if the packet was sent successfully, else False.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        p: PyUmiPacket</span>
+<span class="sd">            The UMI packet that will be sent</span>
+<span class="sd">        blocking: bool, optional</span>
+<span class="sd">            If True, the program will pause execution until a response to the write request</span>
+<span class="sd">            is received.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            Returns true if the `p` was sent successfully</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">umi</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">blocking</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.recv">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.recv">[docs]</a>
+    <span class="k">def</span> <span class="nf">recv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyUmiPacket</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wait for and return a UMI packet if blocking=True, otherwise return a</span>
+<span class="sd">        UMI packet if one can be read immediately, and None otherwise.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        blocking: bool, optional</span>
+<span class="sd">            If True, the function will wait until a UMI packet can be read.</span>
+<span class="sd">            If False, a None type will be returned if no UMI packet can be read</span>
+<span class="sd">            immediately.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PyUmiPacket</span>
+<span class="sd">            If `blocking` is True, a PyUmiPacket is always returned. If `blocking` is</span>
+<span class="sd">            False, a PyUmiPacket object will be returned if one can be read immediately.</span>
+<span class="sd">            Otherwise, a None type will be returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">umi</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">blocking</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.write">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.write">[docs]</a>
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_bytes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">posted</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qos</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">prot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">progressbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check_alignment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">error</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the provided data to the given 64-bit address.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        addr: int</span>
+<span class="sd">            64-bit address that will be written to</span>
+
+<span class="sd">        data: np.uint8, np.uint16, np.uint32, np.uint64, or np.array</span>
+<span class="sd">            Can be either a numpy integer type (e.g., np.uint32) or an numpy</span>
+<span class="sd">            array of integer types (np.uint8, np.uin16, np.uint32, np.uint64, etc.).</span>
+<span class="sd">            The `data` input may contain more than &quot;max_bytes&quot;, in which case</span>
+<span class="sd">            the write will automatically be split into multiple transactions.</span>
+
+<span class="sd">        srcaddr: int, optional</span>
+<span class="sd">            UMI source address used for the write transaction. This is sometimes needed to make</span>
+<span class="sd">            the write response gets routed to the right place.</span>
+
+<span class="sd">        max_bytes: int, optional</span>
+<span class="sd">            Indicates the maximum number of bytes that can be used for any individual UMI</span>
+<span class="sd">            transaction. If not specified, this defaults to the value of `max_bytes`</span>
+<span class="sd">            provided in the UmiTxRx constructor, which in turn defaults to 32.</span>
+
+<span class="sd">        posted: bool, optional</span>
+<span class="sd">            If True, a write response will be received.</span>
+
+<span class="sd">        qos: int, optional</span>
+<span class="sd">            4-bit Quality of Service field in UMI Command</span>
+
+<span class="sd">        prot: int, optional</span>
+<span class="sd">            2-bit protection mode field in UMI command</span>
+
+<span class="sd">        progressbar: bool, optional</span>
+<span class="sd">            If True, the number of packets written will be displayed via a progressbar</span>
+<span class="sd">            in the terminal.</span>
+
+<span class="sd">        check_alignment: bool, optional</span>
+<span class="sd">            If true, an exception will be raised if the `addr` parameter cannot be aligned based</span>
+<span class="sd">            on the size of the `data` parameter</span>
+
+<span class="sd">        error: bool, optional</span>
+<span class="sd">            If True, error out upon receiving an unexpected UMI response.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_max_bytes</span>
+
+        <span class="n">max_bytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_bytes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">srcaddr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">srcaddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">def_write_srcaddr</span>
+
+        <span class="n">srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">posted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">posted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_posted</span>
+
+        <span class="n">posted</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">posted</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_error</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+        <span class="c1"># format the data to be written</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">write_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">write_data</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Can only write 1D arrays (got ndim=</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">write_data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can only write integer dtypes such as uint8, uint16, etc.&#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;  (got dtype &quot;</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s1">&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+            <span class="n">write_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown data type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">check_alignment</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">dtype2size</span><span class="p">(</span><span class="n">write_data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">addr_aligned</span><span class="p">(</span><span class="n">addr</span><span class="o">=</span><span class="n">addr</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="n">size</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;addr=0x</span><span class="si">{</span><span class="n">addr</span><span class="si">:</span><span class="s1">x</span><span class="si">}</span><span class="s1"> misaligned for size=</span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># perform write</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">umi</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">write_data</span><span class="p">,</span> <span class="n">srcaddr</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">,</span>
+            <span class="n">posted</span><span class="p">,</span> <span class="n">qos</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">progressbar</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.write_readback">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.write_readback">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_readback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">posted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">write_srcaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_alignment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the provided value to the given 64-bit address, and blocks</span>
+<span class="sd">        until that value is read back from the provided address.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        addr: int</span>
+<span class="sd">            The destination address to write to and read from</span>
+
+<span class="sd">        value: int, np.uint8, np.uint16, np.uint32, or np.uint64</span>
+<span class="sd">            The data written to `addr`</span>
+
+<span class="sd">        mask: int, optional</span>
+<span class="sd">            argument (optional) allows the user to mask off some bits</span>
+<span class="sd">            in the comparison of the data written vs. data read back.  For example,</span>
+<span class="sd">            if a user only cares that bit &quot;5&quot; is written to &quot;1&quot;, and does not care</span>
+<span class="sd">            about the value of other bits read back, they could use mask=1&lt;&lt;5.</span>
+
+<span class="sd">        srcaddr: int, optional</span>
+<span class="sd">            The UMI source address used for the read transaction.  This is</span>
+<span class="sd">            sometimes needed to make sure that reads get routed to the right place.</span>
+
+<span class="sd">        dtype: np.uint8, np.uint16, np.uint32, or np.uint64, optional</span>
+<span class="sd">            If `value` is specified as plain integer, then dtype must be specified,</span>
+<span class="sd">            indicating a particular numpy integer type. This is so that the size of</span>
+<span class="sd">            the UMI transaction can be set appropriately.</span>
+
+<span class="sd">        posted: bool, optional</span>
+<span class="sd">            By default, the write is performed as a posted write, however it is</span>
+<span class="sd">            is possible to use an ack&#39;d write by setting posted=False.</span>
+
+<span class="sd">        write_srcaddr: int, optional</span>
+<span class="sd">            If `posted`=True, write_srcaddr specifies the srcaddr used for that</span>
+<span class="sd">            transaction. If write_srcaddr is None, the default srcaddr for writes</span>
+<span class="sd">            will be used.</span>
+
+<span class="sd">        check_alignment: bool, optional</span>
+<span class="sd">            If true, an exception will be raised if the `addr` parameter cannot be aligned based</span>
+<span class="sd">            on the size of the `data` parameter</span>
+
+<span class="sd">        error: bool, optional</span>
+<span class="sd">            If True, error out upon receiving an unexpected UMI response.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If `value` is not an integer type, if `mask` is not an integer type</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">srcaddr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">srcaddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">def_read_srcaddr</span>
+
+        <span class="n">srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">write_srcaddr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">write_srcaddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">def_write_srcaddr</span>
+
+        <span class="n">write_srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">write_srcaddr</span><span class="p">)</span>
+
+        <span class="c1"># convert value to a numpy datatype if it is not already</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Must provide value as a numpy integer type, or specify dtype.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># set the mask to all ones if it is None</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nbits</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">nbits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># convert mask to a numpy datatype if it is not already</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Must provide mask as a numpy integer type, or specify dtype.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># write, then read repeatedly until the value written is observed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="n">write_srcaddr</span><span class="p">,</span> <span class="n">posted</span><span class="o">=</span><span class="n">posted</span><span class="p">,</span>
+            <span class="n">check_alignment</span><span class="o">=</span><span class="n">check_alignment</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">error</span><span class="p">)</span>
+        <span class="n">rdval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="n">srcaddr</span><span class="p">,</span>
+            <span class="n">check_alignment</span><span class="o">=</span><span class="n">check_alignment</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">error</span><span class="p">)</span>
+        <span class="k">while</span> <span class="p">((</span><span class="n">rdval</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">value</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)):</span>
+            <span class="n">rdval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="n">srcaddr</span><span class="p">,</span>
+                <span class="n">check_alignment</span><span class="o">=</span><span class="n">check_alignment</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">error</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.read">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.read">[docs]</a>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">num_or_dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_bytes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qos</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">prot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">check_alignment</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        addr: int</span>
+<span class="sd">            The 64-bit address read from</span>
+
+<span class="sd">        num_or_dtype: int or numpy integer datatype</span>
+<span class="sd">            If a plain int, `num_or_datatype` specifies the number of bytes to be read.</span>
+<span class="sd">            If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatype</span>
+<span class="sd">            specifies the data type to be returned.</span>
+
+<span class="sd">        dtype: numpy integer datatype, optional</span>
+<span class="sd">            If num_or_dtype is a plain integer, the value returned by this function</span>
+<span class="sd">            will be a numpy array of type &quot;dtype&quot;.  On the other hand, if num_or_dtype</span>
+<span class="sd">            is a numpy datatype, the value returned will be a scalar of that datatype.</span>
+
+<span class="sd">        srcaddr: int, optional</span>
+<span class="sd">           The UMI source address used for the read transaction.  This</span>
+<span class="sd">           is sometimes needed to make sure that reads get routed to the right place.</span>
+
+<span class="sd">        max_bytes: int, optional</span>
+<span class="sd">            Indicates the maximum number of bytes that can be used for any individual UMI</span>
+<span class="sd">            transaction. If not specified, this defaults to the value of `max_bytes`</span>
+<span class="sd">            provided in the UmiTxRx constructor, which in turn defaults to 32.</span>
+
+<span class="sd">        qos: int, optional</span>
+<span class="sd">            4-bit Quality of Service field used in the UMI command</span>
+
+<span class="sd">        prot: int, optional</span>
+<span class="sd">            2-bit Protection mode field used in the UMI command</span>
+
+<span class="sd">        error: bool, optional</span>
+<span class="sd">            If True, error out upon receiving an unexpected UMI response.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        numpy integer array</span>
+<span class="sd">            An array of `num_or_dtype` bytes read from `addr`. The array will have the type</span>
+<span class="sd">            specified by `dtype` or `num_or_dtype`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">max_bytes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_max_bytes</span>
+
+        <span class="n">max_bytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_bytes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">srcaddr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">srcaddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">def_read_srcaddr</span>
+
+        <span class="n">srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_error</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_or_dtype</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">)):</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">bytes_per_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">num_or_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">=</span> <span class="n">num_or_dtype</span>
+            <span class="n">bytes_per_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span>
+
+        <span class="k">if</span> <span class="n">check_alignment</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">nbytes2size</span><span class="p">(</span><span class="n">bytes_per_elem</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">addr_aligned</span><span class="p">(</span><span class="n">addr</span><span class="o">=</span><span class="n">addr</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="n">size</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;addr=0x</span><span class="si">{</span><span class="n">addr</span><span class="si">:</span><span class="s1">x</span><span class="si">}</span><span class="s1"> misaligned for size=</span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">umi</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">bytes_per_elem</span><span class="p">,</span> <span class="n">srcaddr</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">,</span>
+            <span class="n">qos</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_or_dtype</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">num_or_dtype</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="UmiTxRx.atomic">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.UmiTxRx.atomic">[docs]</a>
+    <span class="k">def</span> <span class="nf">atomic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">opcode</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qos</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">prot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        addr: int</span>
+<span class="sd">            64-bit address atomic operation will be applied to.</span>
+
+<span class="sd">        data: np.uint8, np.uint16, np.uint32, np.uint64</span>
+<span class="sd">            must so that the size of the atomic operation can be determined.</span>
+
+<span class="sd">        opcode: str or switchboard.UmiAtomic value</span>
+<span class="sd">            Supported string values are &#39;add&#39;, &#39;and&#39;, &#39;or&#39;, &#39;xor&#39;, &#39;max&#39;, &#39;min&#39;,</span>
+<span class="sd">            &#39;minu&#39;, &#39;maxu&#39;, and &#39;swap&#39; (case-insensitive).</span>
+
+<span class="sd">        srcaddr: int, optional</span>
+<span class="sd">            The UMI source address used for the atomic transaction.  This</span>
+<span class="sd">            is sometimes needed to make sure the response get routed to the right place.</span>
+
+<span class="sd">        qos: int, optional</span>
+<span class="sd">            4-bit Quality of Service field used in the UMI command</span>
+
+<span class="sd">        prot: int, optional</span>
+<span class="sd">            2-bit Protection mode field used in the UMI command</span>
+
+<span class="sd">        error: bool, optional</span>
+<span class="sd">            If True, error out upon receiving an unexpected UMI response.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If `value` is not a numpy integer datatype</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.uint8, np.uint16, np.uint32, np.uint64</span>
+<span class="sd">            The value returned by this function is the original value at addr,</span>
+<span class="sd">            immediately before the atomic operation is applied.  The numpy dtype of the</span>
+<span class="sd">            returned value will be the same as for &quot;data&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">srcaddr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">srcaddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">def_atomic_srcaddr</span>
+
+        <span class="n">srcaddr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">srcaddr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_error</span>
+
+        <span class="n">error</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+
+        <span class="c1"># resolve the opcode to an enum if needed</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">opcode</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">opcode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">UmiAtomic</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;UMI_REQ_ATOMIC</span><span class="si">{</span><span class="n">opcode</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># format the data for sending</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+            <span class="c1"># copy=False should be safe here, because the data will be</span>
+            <span class="c1"># copied over to the queue; the original data will never</span>
+            <span class="c1"># be read again or modified from the C++ side</span>
+            <span class="n">atomic_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">umi</span><span class="o">.</span><span class="n">atomic</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">atomic_data</span><span class="p">,</span> <span class="n">opcode</span><span class="p">,</span> <span class="n">srcaddr</span><span class="p">,</span> <span class="n">qos</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The data provided to atomic should be of a numpy integer type&quot;</span>
+                <span class="s2">&quot; so that the transaction size can be determined&quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="size2dtype">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.size2dtype">[docs]</a>
+<span class="k">def</span> <span class="nf">size2dtype</span><span class="p">(</span><span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">signed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="nb">float</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float128</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">signed</span><span class="p">:</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">]</span>
+
+    <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">dtypes</span><span class="p">):</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtypes</span><span class="p">[</span><span class="n">size</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Size </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s1"> unsupported with signed=</span><span class="si">{</span><span class="n">signed</span><span class="si">}</span><span class="s1"> and float=</span><span class="si">{</span><span class="nb">float</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dtype</span></div>
+
+
+
+<div class="viewcode-block" id="nbytes2size">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.nbytes2size">[docs]</a>
+<span class="k">def</span> <span class="nf">nbytes2size</span><span class="p">(</span><span class="n">nbytes</span><span class="p">:</span> <span class="n">Integral</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nbytes</span><span class="p">,</span> <span class="n">Integral</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Number of bytes must be an integer (got </span><span class="si">{</span><span class="n">nbytes</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">nbytes</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Number of bytes must be positive (got </span><span class="si">{</span><span class="n">nbytes</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+    <span class="n">nbytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">bin</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Number of bytes must be a power of two (got </span><span class="si">{</span><span class="n">nbytes</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="n">nbytes</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;size cannot be negative (got </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">size</span></div>
+
+
+
+<div class="viewcode-block" id="dtype2size">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.dtype2size">[docs]</a>
+<span class="k">def</span> <span class="nf">dtype2size</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">nbytes2size</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;dtype must be of type np.dtype (got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="addr_aligned">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.addr_aligned">[docs]</a>
+<span class="k">def</span> <span class="nf">addr_aligned</span><span class="p">(</span><span class="n">addr</span><span class="p">:</span> <span class="n">Integral</span><span class="p">,</span> <span class="n">align</span><span class="p">:</span> <span class="n">Integral</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">addr</span> <span class="o">&gt;&gt;</span> <span class="n">align</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">align</span><span class="p">)</span> <span class="o">==</span> <span class="n">addr</span></div>
+
+
+
+<div class="viewcode-block" id="random_int_value">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.random_int_value">[docs]</a>
+<span class="k">def</span> <span class="nf">random_int_value</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># determine the length of the transaction</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">range</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">range</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="nb">min</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="nb">max</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">align</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">&gt;&gt;=</span> <span class="n">align</span>
+            <span class="n">value</span> <span class="o">&lt;&lt;=</span> <span class="n">align</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">range</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="c1"># if we happen to pick a range object from the list/tuple, then run this</span>
+            <span class="c1"># function on the range object.  this allows users to specify a collection</span>
+            <span class="c1"># of values and ranges to efficiently represent a discontinuous space</span>
+            <span class="c1"># of options.  it is also possible to have lists of lists of ranges, to</span>
+            <span class="c1"># adjust the probabilities of drawing from each range</span>
+            <span class="k">return</span> <span class="n">random_int_value</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="nb">max</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="n">align</span><span class="p">)</span>
+
+    <span class="c1"># validate result</span>
+
+    <span class="n">check_int_in_range</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="nb">max</span><span class="p">)</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">align</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">addr_aligned</span><span class="p">(</span><span class="n">addr</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="n">align</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;misaligned </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">: 0x</span><span class="si">{</span><span class="n">value</span><span class="si">:</span><span class="s1">x</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># return result</span>
+
+    <span class="k">return</span> <span class="n">value</span></div>
+
+
+
+<div class="viewcode-block" id="check_int_in_range">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.check_int_in_range">[docs]</a>
+<span class="k">def</span> <span class="nf">check_int_in_range</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> is not an integer&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nb">min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> is less than </span><span class="si">{</span><span class="nb">min</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nb">max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> is greater than </span><span class="si">{</span><span class="nb">max</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="random_umi_packet">
+<a class="viewcode-back" href="../../switchboard.umi.html#switchboard.umi.random_umi_packet">[docs]</a>
+<span class="k">def</span> <span class="nf">random_umi_packet</span><span class="p">(</span>
+    <span class="n">opcode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="nb">len</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dstaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">srcaddr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">qos</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">prot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">ex</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">atype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">eom</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">eof</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">max_bytes</span><span class="o">=</span><span class="mi">32</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates a Random UMI packet. All parameters are optional. Parameters that</span>
+<span class="sd">    are not explicitly specified will be assigned randomly.</span>
+
+<span class="sd">    For more information on the meanings of each parameter, reference</span>
+<span class="sd">    `the UMI specification &lt;https://github.com/zeroasiccorp/umi/blob/main/README.md&gt;`_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    opcode: int, optional</span>
+<span class="sd">        Command opcode</span>
+
+<span class="sd">    len: int, optional</span>
+<span class="sd">        Word transfers per message. (`len`-1 words will be transferred</span>
+<span class="sd">        per message)</span>
+
+<span class="sd">    size: int, optional</span>
+<span class="sd">        Word size ((2^size)-1 bits per word)</span>
+
+<span class="sd">    dstaddr: int, optional</span>
+<span class="sd">        64-bit destination address used in the UMI packet</span>
+
+<span class="sd">    srcaddr: int, optional</span>
+<span class="sd">        64-bit source address used in the UMI packet</span>
+
+<span class="sd">    data: numpy integer array, optional</span>
+<span class="sd">        Values used in the Data field for the UMI packet</span>
+
+<span class="sd">    qos: int, optional</span>
+<span class="sd">        4-bit Quality of Service field used in the UMI command</span>
+
+<span class="sd">    prot: int, optional</span>
+<span class="sd">        2-bit Protection mode field used in the UMI command</span>
+
+<span class="sd">    ex: int, optional</span>
+<span class="sd">        1-bit Exclusive access indicator in the UMI command</span>
+
+<span class="sd">    atype: int, optional</span>
+<span class="sd">        8-bit field specifying the type of atomic transaction used</span>
+<span class="sd">        in the UMI command for an atomic operation</span>
+
+<span class="sd">    eom: int, optional</span>
+<span class="sd">        1-bit End of Message indicator in UMI command, used to track</span>
+<span class="sd">        the transfer of the last word in a message</span>
+
+<span class="sd">    eof: int, optional</span>
+<span class="sd">        1-bit End of Frame bit in UMI command, used to indicate the</span>
+<span class="sd">        last message in a sequence of related UMI transactions</span>
+
+<span class="sd">    max_bytes: int, optional</span>
+<span class="sd">        The maximum number of bytes included in each UMI packet</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># input validation</span>
+
+    <span class="n">check_int_in_range</span><span class="p">(</span><span class="s2">&quot;max_bytes&quot;</span><span class="p">,</span> <span class="n">max_bytes</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+
+    <span class="c1"># TODO: make these parameters flexible, or more centrally-defined</span>
+
+    <span class="n">MAX_SUMI_SIZE</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">AW</span> <span class="o">=</span> <span class="mi">64</span>
+
+    <span class="c1"># determine the opcode</span>
+
+    <span class="k">if</span> <span class="n">opcode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opcode</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span>
+            <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_WRITE</span><span class="p">,</span>
+            <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_POSTED</span><span class="p">,</span>
+            <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_READ</span><span class="p">,</span>
+            <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_RESP_WRITE</span><span class="p">,</span>
+            <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_RESP_READ</span><span class="p">,</span>
+            <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_ATOMIC</span>
+        <span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">opcode</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="n">opcode</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">opcode</span><span class="p">)</span>
+
+    <span class="c1"># determine the size of the transaction</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">dtype2size</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;size&#39;</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MAX_SUMI_SIZE</span><span class="p">)</span>
+
+    <span class="c1"># determine the length of the transaction</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nb">len</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">len</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="nb">len</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;len&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">max_bytes</span> <span class="o">&gt;&gt;</span> <span class="n">size</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># generate other fields</span>
+
+    <span class="n">atype</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;atype&#39;</span><span class="p">,</span> <span class="n">atype</span><span class="p">,</span> <span class="mh">0x00</span><span class="p">,</span> <span class="mh">0x08</span><span class="p">)</span>
+    <span class="n">qos</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;qos&#39;</span><span class="p">,</span> <span class="n">qos</span><span class="p">,</span> <span class="mb">0b0000</span><span class="p">,</span> <span class="mb">0b1111</span><span class="p">)</span>
+    <span class="n">prot</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;prot&#39;</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="mb">0b00</span><span class="p">,</span> <span class="mb">0b11</span><span class="p">)</span>
+    <span class="n">eom</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;eom&#39;</span><span class="p">,</span> <span class="n">eom</span><span class="p">,</span> <span class="mb">0b0</span><span class="p">,</span> <span class="mb">0b1</span><span class="p">)</span>
+    <span class="n">eof</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;eof&#39;</span><span class="p">,</span> <span class="n">eof</span><span class="p">,</span> <span class="mb">0b0</span><span class="p">,</span> <span class="mb">0b1</span><span class="p">)</span>
+    <span class="n">ex</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;ex&#39;</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="mb">0b0</span><span class="p">,</span> <span class="mb">0b1</span><span class="p">)</span>
+
+    <span class="c1"># construct the command field</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">umi_pack</span><span class="p">(</span><span class="n">opcode</span><span class="p">,</span> <span class="n">atype</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="n">eom</span><span class="p">,</span> <span class="n">eof</span><span class="p">,</span> <span class="n">qos</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+
+    <span class="c1"># generate destination address</span>
+
+    <span class="n">dstaddr</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;dstaddr&#39;</span><span class="p">,</span> <span class="n">dstaddr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">AW</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">srcaddr</span> <span class="o">=</span> <span class="n">random_int_value</span><span class="p">(</span><span class="s1">&#39;srcaddr&#39;</span><span class="p">,</span> <span class="n">srcaddr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">AW</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+
+    <span class="c1"># generate data if needed</span>
+
+    <span class="k">if</span> <span class="n">opcode</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_WRITE</span><span class="p">,</span>
+        <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_POSTED</span><span class="p">,</span>
+        <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_RESP_READ</span><span class="p">,</span>
+        <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_ATOMIC</span>
+    <span class="p">]:</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">size2dtype</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">iinfo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">opcode</span> <span class="o">!=</span> <span class="n">UmiCmd</span><span class="o">.</span><span class="n">UMI_REQ_ATOMIC</span><span class="p">:</span>
+                <span class="n">nelem</span> <span class="o">=</span> <span class="nb">len</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nelem</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">iinfo</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">iinfo</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">nelem</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># return the packet</span>
+
+    <span class="k">return</span> <span class="n">PyUmiPacket</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="n">cmd</span><span class="p">,</span> <span class="n">dstaddr</span><span class="o">=</span><span class="n">dstaddr</span><span class="p">,</span> <span class="n">srcaddr</span><span class="o">=</span><span class="n">srcaddr</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

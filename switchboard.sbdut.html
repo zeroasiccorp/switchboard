@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.sbdut module &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=828725f0"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="switchboard.loopback module" href="switchboard.loopback.html" />
+    <link rel="prev" title="switchboard.icarus module" href="switchboard.icarus.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="switchboard.html">switchboard package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbPacket"><code class="docutils literal notranslate"><span class="pre">PySbPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRx"><code class="docutils literal notranslate"><span class="pre">PySbRx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRxPcie"><code class="docutils literal notranslate"><span class="pre">PySbRxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTx"><code class="docutils literal notranslate"><span class="pre">PySbTx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTxPcie"><code class="docutils literal notranslate"><span class="pre">PySbTxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmi"><code class="docutils literal notranslate"><span class="pre">PyUmi</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmiPacket"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiAtomic"><code class="docutils literal notranslate"><span class="pre">UmiAtomic</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiCmd"><code class="docutils literal notranslate"><span class="pre">UmiCmd</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queue"><code class="docutils literal notranslate"><span class="pre">delete_queue()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queues"><code class="docutils literal notranslate"><span class="pre">delete_queues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_atype"><code class="docutils literal notranslate"><span class="pre">umi_atype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eof"><code class="docutils literal notranslate"><span class="pre">umi_eof()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eom"><code class="docutils literal notranslate"><span class="pre">umi_eom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_ex"><code class="docutils literal notranslate"><span class="pre">umi_ex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_len"><code class="docutils literal notranslate"><span class="pre">umi_len()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode"><code class="docutils literal notranslate"><span class="pre">umi_opcode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode_to_str"><code class="docutils literal notranslate"><span class="pre">umi_opcode_to_str()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_pack"><code class="docutils literal notranslate"><span class="pre">umi_pack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_prot"><code class="docutils literal notranslate"><span class="pre">umi_prot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_qos"><code class="docutils literal notranslate"><span class="pre">umi_qos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_size"><code class="docutils literal notranslate"><span class="pre">umi_size()</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="switchboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html">switchboard.umi module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html">switchboard.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.verilator.html">switchboard.verilator module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.icarus.html">switchboard.icarus module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">switchboard.sbdut module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbdut.SbDut"><code class="docutils literal notranslate"><span class="pre">SbDut</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbdut.carefully_add_plusarg"><code class="docutils literal notranslate"><span class="pre">carefully_add_plusarg()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbdut.metadata_str"><code class="docutils literal notranslate"><span class="pre">metadata_str()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.loopback.html">switchboard.loopback module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html">switchboard.bitvector module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html">switchboard.uart_xactor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbtcp.html">switchboard.sbtcp module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="switchboard.html">switchboard package</a></li>
+      <li class="breadcrumb-item active">switchboard.sbdut module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/switchboard.sbdut.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="switchboard-sbdut-module">
+<h1>switchboard.sbdut module<a class="headerlink" href="#switchboard-sbdut-module" title="Link to this heading"></a></h1>
+<p>Note that the <cite>sbdut</cite> module inherits functions from <cite>siliconcompiler.Chips</cite>, such as <cite>input()</cite> used to add rtl files to the simulation and <cite>add()</cite> used to add include directories to the simulation. These functions are important for specifying the RTL files used in a simulation, but they are not covered in the documentation here. For a complete list of the the inherited functions, checkout the <a class="reference external" href="https://docs.siliconcompiler.com/en/stable/reference_manual/index.html">siliconcompiler documentation</a>.</p>
+<p id="module-switchboard.sbdut">Class inheriting from the SiliconCompiler Chip class that can be used for building a
+Switchboard-based testbench.</p>
+<p>This class is meant to be interacted with like a regular Chip object, but it has some parameters
+automatically configured to abstract away setup of files that are required by all Switchboard
+testbenches.</p>
+<p><strong>Classes:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbdut.SbDut" title="switchboard.sbdut.SbDut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SbDut</span></code></a>([design, tool, default_main, trace, ...])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">param design<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of the top level chip design module.</p>
+</dd>
+</dl>
+</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Functions:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbdut.carefully_add_plusarg" title="switchboard.sbdut.carefully_add_plusarg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">carefully_add_plusarg</span></code></a>(key, args, plusargs[, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbdut.metadata_str" title="switchboard.sbdut.metadata_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metadata_str</span></code></a>(design[, tool, trace, ...])</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">switchboard.sbdut.</span></span><span class="sig-name descname"><span class="pre">SbDut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'testbench'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'verilator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_main</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'vcd'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fpga</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyce</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeunit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeprecision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warnings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmdline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autowrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interfaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tieoffs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buildroot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">builddir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subcomponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Chip</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>design</strong> (<em>string</em>) – Name of the top level chip design module.</p></li>
+<li><p><strong>tool</strong> (<em>string</em><em>, </em><em>optional</em>) – Which tool to use to compile simulator.  Options are “verilator” or
+“icarus”.</p></li>
+<li><p><strong>default_main</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the default testbench.cc will be used and does not need to
+be provided via the add() function</p></li>
+<li><p><strong>trace</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, a waveform dump file will be produced using the file type
+specified by <cite>trace_type</cite>.</p></li>
+<li><p><strong>trace_type</strong> (<em>str</em><em>, </em><em>optional</em>) – File type for the waveform dump file. Defaults to vcd.</p></li>
+<li><p><strong>module</strong> (<em>str</em><em>, </em><em>optional</em>) – module containing the siliconcompiler driver for this object</p></li>
+<li><p><strong>fpga</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, compile using switchboard’s library of modules for FPGA emulation,
+rather than the modules for RTL simulation.</p></li>
+<li><p><strong>xyce</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, compile for xyce co-simulation.</p></li>
+<li><p><strong>frequency</strong> (<em>float</em><em>, </em><em>optional</em>) – If provided, the default frequency of the clock generated in the testbench,
+in seconds.</p></li>
+<li><p><strong>period</strong> (<em>float</em><em>, </em><em>optional</em>) – If provided, the default period of the clock generated in the testbench,
+in seconds.</p></li>
+<li><p><strong>max_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – If provided, the maximum real-world rate that the simulation is allowed to run
+at, in Hz.  Can be useful to encourage time-sharing between many processes and
+for performance modeling when latencies are large and/or variable.</p></li>
+<li><p><strong>start_delay</strong> (<em>float</em><em>, </em><em>optional</em>) – If provided, the real-world time to delay before the first clock tick in the
+simulation.  Can be useful to make sure that programs start at approximately
+the same time and to prevent simulations from stepping on each other’s toes
+when starting up.</p></li>
+<li><p><strong>warnings</strong> (<em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – If provided, a list of tool-specific warnings to enable.  If not provided, a default
+set of warnings will be included.  Warnings can be disabled by setting this argument
+to an empty list.</p></li>
+<li><p><strong>cmdline</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, accept configuration settings from the command line, such as “–trace”,
+“–tool TOOL”, and “–fast”.</p></li>
+<li><p><strong>fast</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the simulation binary will not be rebuilt if an existing one is found.
+The setting here can be overridden when build() is called by setting its argument
+with the same name.</p></li>
+<li><p><strong>extra_args</strong> (<em>dict</em><em>, </em><em>optional</em>) – If provided and cmdline=True, a dictionary of additional command line arguments
+to be made available.  The keys of the dictionary are the arguments (“-n”, “–test”,
+etc.) and the values are themselves dictionaries that contain keyword arguments
+accepted by argparse (“action”: “store_true”, “default”: 42, etc.)</p></li>
+<li><p><strong>timeunit</strong> (<em>str</em>)</p></li>
+<li><p><strong>timeprecision</strong> (<em>str</em>)</p></li>
+<li><p><strong>autowrap</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut.build">
+<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut.build" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cwd</strong> (<em>str</em><em>, </em><em>optional</em>) – Working directory for the simulation build</p></li>
+<li><p><strong>fast</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the simulation binary will not be rebuilt if an existing one
+is found.  Defaults to the value provided to the SbDut constructor,
+which in turn defaults to False.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut.find_package">
+<span class="sig-name descname"><span class="pre">find_package</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut.find_package"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut.find_package" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut.find_sim">
+<span class="sig-name descname"><span class="pre">find_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut.find_sim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut.find_sim" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut.input_analog">
+<span class="sig-name descname"><span class="pre">input_analog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut.input_analog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut.input_analog" title="Link to this definition"></a></dt>
+<dd><p>Specifies a SPICE subcircuit to be used in a mixed-signal simulation.  This involves
+providing the path to the SPICE file containing the subcircuit definition and describing
+how real-valued outputs in the SPICE subcircuit should be converted to binary values in
+the Verilog simulation (and vice versa for subcircuit inputs).</p>
+<p>Each of these conversions is specified as an entry in the “pins” argument, which is a
+list of dictionaries, each representing a single pin of the SPICE subcircuit.  Each
+dictionary may have the following keys:
+* “name”: name of the pin.  Bus notation may be used, e.g. “myBus[7:0]”.  In that case,
+it is expected that the SPICE subcircuit has pins corresponding to each bit in the bus,
+e.g. “myBus[0]”, “myBus[1]”, etc.
+* “type”: direction of the pin.  May be “input”, “output”, or “constant”.  If “constant”,
+then this pin will not show up the Verilog module definition to be instantiated in user
+code.  Instead, the SPICE subcircuit pin with that name will be tied off to a fixed
+voltage specified in the “value” field (below).
+* “vil”: low voltage threshold, below which a real-number voltage from the SPICE
+simulation is considered to be a logical “0”.
+* “vih”: high voltage threshold, above which a real-number voltage from the SPICE
+simulation is considered to be a logical “1”.
+* “vol”: real-number voltage to pass to a SPICE subcircuit input when the digital value
+driven is “0”.
+* “voh”: real-number voltage to pass to a SPICE subcircuit input when the digital value
+driven is “1”.
+* “tr”: time taken in the SPICE simulation to transition from a logic “0” value to a
+logic “1” value.
+* “tf”: time taken in the SPICE simulation to transition from a logic “1” value to a
+logic “0” value.
+* “initial”: initial value of a SPICE subcircuit pin.  Currently only implemented for
+subcircuit outputs.  This is sometimes helpful, because there is a slight delay between
+t=0 and the time when the SPICE simulation reports values for its outputs.  Specifying
+“initial” for subcircuit outputs prevents the corresponding digital signals from being
+driven to “X” at t=0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – The path of the SPICE file containing the subcircuit definition.</p></li>
+<li><p><strong>pins</strong> (<em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em>) – List of dictionaries, each describing a pin of the subcircuit.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Name of the SPICE subcircuit that will be instantiated in the mixed-signal simulation.
+If not provided, Switchboard guesses that the name is filename stem.  For example,
+if filename=”myCircuit.cir”, then Switchboard will guess that the subcircuit name
+is “myCircuit”</p></li>
+<li><p><strong>check_name</strong> (<em>bool</em>) – If True (default), Switchboard parses the provided file to make sure that there
+is a subcircuit definition matching the given name.</p></li>
+<li><p><strong>dir</strong> (<em>str</em>) – Running a mixed-signal simulation involves creating SPICE and Verilog wrappers.  This
+argument specifies the directory where those wrappers should be written.  If not
+provided, defaults to the directory where filename is located.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut.package">
+<span class="sig-name descname"><span class="pre">package</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut.package"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut.package" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.sbdut.SbDut.simulate">
+<span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plusargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cwd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intf_objs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#SbDut.simulate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.SbDut.simulate" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>plusargs</strong> (<em>str</em><em> or </em><em>list</em><em> or </em><em>tuple</em><em>, </em><em>optional</em>) – additional arguments to pass to simulator that must be preceded
+with a +. These are listed after <cite>args</cite>.</p></li>
+<li><p><strong>args</strong> (<em>str</em><em> or </em><em>list</em><em> or </em><em>tuple</em><em>, </em><em>optional</em>) – additional arguments to pass to simulator listed before <cite>plusargs</cite> and
+<cite>extra_args</cite></p></li>
+<li><p><strong>extra_args</strong> (<em>str</em><em> or </em><em>list</em><em> or </em><em>tuple</em><em>, </em><em>optional</em>) – additional arguments to pass to simulator listed after <cite>args</cite> and
+<cite>plusargs</cite></p></li>
+<li><p><strong>cwd</strong> (<em>str</em><em>, </em><em>optional</em>) – working directory where simulation binary is saved</p></li>
+<li><p><strong>trace</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, a waveform dump file will be produced</p></li>
+<li><p><strong>period</strong> (<em>float</em><em>, </em><em>optional</em>) – If provided, the period of the clock generated in the testbench,
+in seconds.</p></li>
+<li><p><strong>frequency</strong> (<em>float</em>)</p></li>
+<li><p><strong>max_rate</strong> (<em>float</em>)</p></li>
+<li><p><strong>start_delay</strong> (<em>float</em>)</p></li>
+<li><p><strong>run</strong> (<em>str</em>)</p></li>
+<li><p><strong>intf_objs</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Popen</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbdut.carefully_add_plusarg">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbdut.</span></span><span class="sig-name descname"><span class="pre">carefully_add_plusarg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plusargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#carefully_add_plusarg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.carefully_add_plusarg" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbdut.metadata_str">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbdut.</span></span><span class="sig-name descname"><span class="pre">metadata_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">design</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbdut.html#metadata_str"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbdut.metadata_str" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>design</strong> (<em>str</em>)</p></li>
+<li><p><strong>tool</strong> (<em>str</em>)</p></li>
+<li><p><strong>trace</strong> (<em>bool</em>)</p></li>
+<li><p><strong>trace_type</strong> (<em>str</em>)</p></li>
+<li><p><strong>threads</strong> (<em>int</em>)</p></li>
+<li><p><strong>parameters</strong> (<em>dict</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Path</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="switchboard.icarus.html" class="btn btn-neutral float-left" title="switchboard.icarus module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="switchboard.loopback.html" class="btn btn-neutral float-right" title="switchboard.loopback module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

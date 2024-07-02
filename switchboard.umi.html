@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.umi module &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=828725f0"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="switchboard.util module" href="switchboard.util.html" />
+    <link rel="prev" title="switchboard package" href="switchboard.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="switchboard.html">switchboard package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbPacket"><code class="docutils literal notranslate"><span class="pre">PySbPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRx"><code class="docutils literal notranslate"><span class="pre">PySbRx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRxPcie"><code class="docutils literal notranslate"><span class="pre">PySbRxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTx"><code class="docutils literal notranslate"><span class="pre">PySbTx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTxPcie"><code class="docutils literal notranslate"><span class="pre">PySbTxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmi"><code class="docutils literal notranslate"><span class="pre">PyUmi</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmiPacket"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiAtomic"><code class="docutils literal notranslate"><span class="pre">UmiAtomic</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiCmd"><code class="docutils literal notranslate"><span class="pre">UmiCmd</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queue"><code class="docutils literal notranslate"><span class="pre">delete_queue()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queues"><code class="docutils literal notranslate"><span class="pre">delete_queues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_atype"><code class="docutils literal notranslate"><span class="pre">umi_atype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eof"><code class="docutils literal notranslate"><span class="pre">umi_eof()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eom"><code class="docutils literal notranslate"><span class="pre">umi_eom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_ex"><code class="docutils literal notranslate"><span class="pre">umi_ex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_len"><code class="docutils literal notranslate"><span class="pre">umi_len()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode"><code class="docutils literal notranslate"><span class="pre">umi_opcode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode_to_str"><code class="docutils literal notranslate"><span class="pre">umi_opcode_to_str()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_pack"><code class="docutils literal notranslate"><span class="pre">umi_pack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_prot"><code class="docutils literal notranslate"><span class="pre">umi_prot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_qos"><code class="docutils literal notranslate"><span class="pre">umi_qos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_size"><code class="docutils literal notranslate"><span class="pre">umi_size()</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="switchboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">switchboard.umi module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.UmiTxRx"><code class="docutils literal notranslate"><span class="pre">UmiTxRx</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.addr_aligned"><code class="docutils literal notranslate"><span class="pre">addr_aligned()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.check_int_in_range"><code class="docutils literal notranslate"><span class="pre">check_int_in_range()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.dtype2size"><code class="docutils literal notranslate"><span class="pre">dtype2size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.nbytes2size"><code class="docutils literal notranslate"><span class="pre">nbytes2size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.random_int_value"><code class="docutils literal notranslate"><span class="pre">random_int_value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.random_umi_packet"><code class="docutils literal notranslate"><span class="pre">random_umi_packet()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.umi.size2dtype"><code class="docutils literal notranslate"><span class="pre">size2dtype()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html">switchboard.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.verilator.html">switchboard.verilator module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.icarus.html">switchboard.icarus module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html">switchboard.sbdut module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.loopback.html">switchboard.loopback module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html">switchboard.bitvector module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html">switchboard.uart_xactor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbtcp.html">switchboard.sbtcp module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="switchboard.html">switchboard package</a></li>
+      <li class="breadcrumb-item active">switchboard.umi module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/switchboard.umi.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-switchboard.umi">
+<span id="switchboard-umi-module"></span><h1>switchboard.umi module<a class="headerlink" href="#module-switchboard.umi" title="Link to this heading"></a></h1>
+<p><strong>Classes:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi.UmiTxRx" title="switchboard.umi.UmiTxRx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UmiTxRx</span></code></a>([tx_uri, rx_uri, srcaddr, posted, ...])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">param tx_uri<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Name of the switchboard queue that</p>
+</dd>
+</dl>
+</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Functions:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi.addr_aligned" title="switchboard.umi.addr_aligned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">addr_aligned</span></code></a>(addr, align)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi.check_int_in_range" title="switchboard.umi.check_int_in_range"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_int_in_range</span></code></a>(name, value[, min, max])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi.dtype2size" title="switchboard.umi.dtype2size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype2size</span></code></a>(dtype)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi.nbytes2size" title="switchboard.umi.nbytes2size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nbytes2size</span></code></a>(nbytes)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi.random_int_value" title="switchboard.umi.random_int_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_int_value</span></code></a>(name, value, min, max[, align])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi.random_umi_packet" title="switchboard.umi.random_umi_packet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_umi_packet</span></code></a>([opcode, len, size, ...])</p></td>
+<td><p>Generates a Random UMI packet.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi.size2dtype" title="switchboard.umi.size2dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">size2dtype</span></code></a>(size[, signed, float])</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">UmiTxRx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rx_uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tx_uri</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the switchboard queue that
+write() and send() will send UMI packets to.  Defaults to
+None, meaning “unused”.</p></li>
+<li><p><strong>rx_uri</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the switchboard queue that
+read() and recv() will receive UMI packets from.  Defaults
+to None, meaning “unused”.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – Default srcaddr to use for reads,
+ack’d writes, and atomics.  Defaults to 0.  Can also be
+provided as a dictionary with separate defaults for each
+type of transaction: srcaddr={‘read’: 0x1234, ‘write’:
+0x2345, ‘atomic’: 0x3456}.  When the defaults are provided
+with a dictionary, all keys are optional.  Transactions
+that are not specified in the dictionary will default
+to a srcaddr of 0.</p></li>
+<li><p><strong>posted</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, default to using posted
+(i.e., non-ack’d) writes.  This can be overridden on a
+transaction-by-transaction basis.  Defaults to False.</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em><em>, </em><em>optional</em>) – Default maximum number of bytes
+to use in each UMI transaction.  Can be overridden on a
+transaction-by-transaction basis.  Defaults to 32 bytes.</p></li>
+<li><p><strong>fresh</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the queue specified by the uri parameter will get
+cleared before executing the simulation.</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, error out upon receiving an unexpected UMI response.</p></li>
+<li><p><strong>max_rate</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.atomic">
+<span class="sig-name descname"><span class="pre">atomic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opcode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.atomic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.atomic" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – 64-bit address atomic operation will be applied to.</p></li>
+<li><p><strong>data</strong> (<em>np.uint8</em><em>, </em><em>np.uint16</em><em>, </em><em>np.uint32</em><em>, </em><em>np.uint64</em>) – must so that the size of the atomic operation can be determined.</p></li>
+<li><p><strong>opcode</strong> (<em>str</em><em> or </em><em>switchboard.UmiAtomic value</em>) – Supported string values are ‘add’, ‘and’, ‘or’, ‘xor’, ‘max’, ‘min’,
+‘minu’, ‘maxu’, and ‘swap’ (case-insensitive).</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – The UMI source address used for the atomic transaction.  This
+is sometimes needed to make sure the response get routed to the right place.</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field used in the UMI command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit Protection mode field used in the UMI command</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <cite>value</cite> is not a numpy integer datatype</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The value returned by this function is the original value at addr,
+immediately before the atomic operation is applied.  The numpy dtype of the
+returned value will be the same as for “data”.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.uint8, np.uint16, np.uint32, np.uint64</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.gpio">
+<span class="sig-name descname"><span class="pre">gpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iwidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">owidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dstaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.gpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.gpio" title="Link to this definition"></a></dt>
+<dd><p>Returns an object for communicating with umi_gpio modules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>iwidth</strong> (<em>int</em>) – Width of GPIO input (bits). Defaults to 32.</p></li>
+<li><p><strong>owidth</strong> (<em>int</em>) – Width of GPIO output (bits). Defaults to 32.</p></li>
+<li><p><strong>init</strong> (<em>int</em>) – Default value of GPIO output. Defaults to 0.</p></li>
+<li><p><strong>dstaddr</strong> (<em>int</em>) – Base address of the GPIO device. Defaults to 0.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em>) – Source address to which responses should be routed. Defaults to 0.</p></li>
+<li><p><strong>posted</strong> (<em>bool</em>) – Whether writes should be sent as posted. Defaults to False.</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em>) – Maximum number of bytes in a single transaction to umi_gpio.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>UmiGpio object with .i (input) and .o (output) attributes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>UmiGpio</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.init_queues">
+<span class="sig-name descname"><span class="pre">init_queues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tx_uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rx_uri</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.init_queues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.init_queues" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tx_uri</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the switchboard queue that
+write() and send() will send UMI packets to.  Defaults to
+None, meaning “unused”.</p></li>
+<li><p><strong>rx_uri</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the switchboard queue that
+read() and recv() will receive UMI packets from.  Defaults
+to None, meaning “unused”.</p></li>
+<li><p><strong>fresh</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the queue specified by the uri parameter will get
+cleared before executing the simulation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_or_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype=&lt;class</span> <span class="pre">'numpy.uint8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_alignment=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.read" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – The 64-bit address read from</p></li>
+<li><p><strong>num_or_dtype</strong> (<em>int</em><em> or </em><em>numpy integer datatype</em>) – If a plain int, <cite>num_or_datatype</cite> specifies the number of bytes to be read.
+If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatype
+specifies the data type to be returned.</p></li>
+<li><p><strong>dtype</strong> (<em>numpy integer datatype</em><em>, </em><em>optional</em>) – If num_or_dtype is a plain integer, the value returned by this function
+will be a numpy array of type “dtype”.  On the other hand, if num_or_dtype
+is a numpy datatype, the value returned will be a scalar of that datatype.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – The UMI source address used for the read transaction.  This
+is sometimes needed to make sure that reads get routed to the right place.</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em><em>, </em><em>optional</em>) – Indicates the maximum number of bytes that can be used for any individual UMI
+transaction. If not specified, this defaults to the value of <cite>max_bytes</cite>
+provided in the UmiTxRx constructor, which in turn defaults to 32.</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field used in the UMI command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit Protection mode field used in the UMI command</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An array of <cite>num_or_dtype</cite> bytes read from <cite>addr</cite>. The array will have the type
+specified by <cite>dtype</cite> or <cite>num_or_dtype</cite></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy integer array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.recv">
+<span class="sig-name descname"><span class="pre">recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.recv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.recv" title="Link to this definition"></a></dt>
+<dd><p>Wait for and return a UMI packet if blocking=True, otherwise return a
+UMI packet if one can be read immediately, and None otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the function will wait until a UMI packet can be read.
+If False, a None type will be returned if no UMI packet can be read
+immediately.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <cite>blocking</cite> is True, a PyUmiPacket is always returned. If <cite>blocking</cite> is
+False, a PyUmiPacket object will be returned if one can be read immediately.
+Otherwise, a None type will be returned.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="switchboard.html#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket">PyUmiPacket</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.send" title="Link to this definition"></a></dt>
+<dd><p>Sends (or tries to send if burst=False) a UMI transaction (PyUmiPacket)
+Returns True if the packet was sent successfully, else False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<a class="reference internal" href="switchboard.html#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><em>PyUmiPacket</em></a>) – The UMI packet that will be sent</p></li>
+<li><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the program will pause execution until a response to the write request
+is received.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns true if the <cite>p</cite> was sent successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progressbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_alignment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.write" title="Link to this definition"></a></dt>
+<dd><p>Writes the provided data to the given 64-bit address.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – 64-bit address that will be written to</p></li>
+<li><p><strong>data</strong> (<em>np.uint8</em><em>, </em><em>np.uint16</em><em>, </em><em>np.uint32</em><em>, </em><em>np.uint64</em><em>, or </em><em>np.array</em>) – Can be either a numpy integer type (e.g., np.uint32) or an numpy
+array of integer types (np.uint8, np.uin16, np.uint32, np.uint64, etc.).
+The <cite>data</cite> input may contain more than “max_bytes”, in which case
+the write will automatically be split into multiple transactions.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – UMI source address used for the write transaction. This is sometimes needed to make
+the write response gets routed to the right place.</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em><em>, </em><em>optional</em>) – Indicates the maximum number of bytes that can be used for any individual UMI
+transaction. If not specified, this defaults to the value of <cite>max_bytes</cite>
+provided in the UmiTxRx constructor, which in turn defaults to 32.</p></li>
+<li><p><strong>posted</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, a write response will be received.</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field in UMI Command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit protection mode field in UMI command</p></li>
+<li><p><strong>progressbar</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the number of packets written will be displayed via a progressbar
+in the terminal.</p></li>
+<li><p><strong>check_alignment</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, an exception will be raised if the <cite>addr</cite> parameter cannot be aligned based
+on the size of the <cite>data</cite> parameter</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.umi.UmiTxRx.write_readback">
+<span class="sig-name descname"><span class="pre">write_readback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_alignment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#UmiTxRx.write_readback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.UmiTxRx.write_readback" title="Link to this definition"></a></dt>
+<dd><p>Writes the provided value to the given 64-bit address, and blocks
+until that value is read back from the provided address.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – The destination address to write to and read from</p></li>
+<li><p><strong>value</strong> (<em>int</em><em>, </em><em>np.uint8</em><em>, </em><em>np.uint16</em><em>, </em><em>np.uint32</em><em>, or </em><em>np.uint64</em>) – The data written to <cite>addr</cite></p></li>
+<li><p><strong>mask</strong> (<em>int</em><em>, </em><em>optional</em>) – argument (optional) allows the user to mask off some bits
+in the comparison of the data written vs. data read back.  For example,
+if a user only cares that bit “5” is written to “1”, and does not care
+about the value of other bits read back, they could use mask=1&lt;&lt;5.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – The UMI source address used for the read transaction.  This is
+sometimes needed to make sure that reads get routed to the right place.</p></li>
+<li><p><strong>dtype</strong> (<em>np.uint8</em><em>, </em><em>np.uint16</em><em>, </em><em>np.uint32</em><em>, or </em><em>np.uint64</em><em>, </em><em>optional</em>) – If <cite>value</cite> is specified as plain integer, then dtype must be specified,
+indicating a particular numpy integer type. This is so that the size of
+the UMI transaction can be set appropriately.</p></li>
+<li><p><strong>posted</strong> (<em>bool</em><em>, </em><em>optional</em>) – By default, the write is performed as a posted write, however it is
+is possible to use an ack’d write by setting posted=False.</p></li>
+<li><p><strong>write_srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – If <a href="#id1"><span class="problematic" id="id2">`</span></a>posted`=True, write_srcaddr specifies the srcaddr used for that
+transaction. If write_srcaddr is None, the default srcaddr for writes
+will be used.</p></li>
+<li><p><strong>check_alignment</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, an exception will be raised if the <cite>addr</cite> parameter cannot be aligned based
+on the size of the <cite>data</cite> parameter</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <cite>value</cite> is not an integer type, if <cite>mask</cite> is not an integer type</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.addr_aligned">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">addr_aligned</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">addr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#addr_aligned"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.addr_aligned" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>Integral</em>)</p></li>
+<li><p><strong>align</strong> (<em>Integral</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.check_int_in_range">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">check_int_in_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#check_int_in_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.check_int_in_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.dtype2size">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">dtype2size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#dtype2size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.dtype2size" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dtype</strong> (<em>dtype</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.nbytes2size">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">nbytes2size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nbytes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#nbytes2size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.nbytes2size" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nbytes</strong> (<em>Integral</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.random_int_value">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">random_int_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#random_int_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.random_int_value" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.random_umi_packet">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">random_umi_packet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dstaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eof</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#random_umi_packet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.random_umi_packet" title="Link to this definition"></a></dt>
+<dd><p>Generates a Random UMI packet. All parameters are optional. Parameters that
+are not explicitly specified will be assigned randomly.</p>
+<p>For more information on the meanings of each parameter, reference
+<a class="reference external" href="https://github.com/zeroasiccorp/umi/blob/main/README.md">the UMI specification</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opcode</strong> (<em>int</em><em>, </em><em>optional</em>) – Command opcode</p></li>
+<li><p><strong>len</strong> (<em>int</em><em>, </em><em>optional</em>) – Word transfers per message. (<cite>len</cite>-1 words will be transferred
+per message)</p></li>
+<li><p><strong>size</strong> (<em>int</em><em>, </em><em>optional</em>) – Word size ((2^size)-1 bits per word)</p></li>
+<li><p><strong>dstaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – 64-bit destination address used in the UMI packet</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – 64-bit source address used in the UMI packet</p></li>
+<li><p><strong>data</strong> (<em>numpy integer array</em><em>, </em><em>optional</em>) – Values used in the Data field for the UMI packet</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field used in the UMI command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit Protection mode field used in the UMI command</p></li>
+<li><p><strong>ex</strong> (<em>int</em><em>, </em><em>optional</em>) – 1-bit Exclusive access indicator in the UMI command</p></li>
+<li><p><strong>atype</strong> (<em>int</em><em>, </em><em>optional</em>) – 8-bit field specifying the type of atomic transaction used
+in the UMI command for an atomic operation</p></li>
+<li><p><strong>eom</strong> (<em>int</em><em>, </em><em>optional</em>) – 1-bit End of Message indicator in UMI command, used to track
+the transfer of the last word in a message</p></li>
+<li><p><strong>eof</strong> (<em>int</em><em>, </em><em>optional</em>) – 1-bit End of Frame bit in UMI command, used to indicate the
+last message in a sequence of related UMI transactions</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of bytes included in each UMI packet</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi.size2dtype">
+<span class="sig-prename descclassname"><span class="pre">switchboard.umi.</span></span><span class="sig-name descname"><span class="pre">size2dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">float</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/umi.html#size2dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.umi.size2dtype" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>int</em>)</p></li>
+<li><p><strong>signed</strong> (<em>bool</em>)</p></li>
+<li><p><strong>float</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="switchboard.html" class="btn btn-neutral float-left" title="switchboard package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="switchboard.util.html" class="btn btn-neutral float-right" title="switchboard.util module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.sbtcp module &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=828725f0"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="switchboard.uart_xactor module" href="switchboard.uart_xactor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="switchboard.html">switchboard package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbPacket"><code class="docutils literal notranslate"><span class="pre">PySbPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRx"><code class="docutils literal notranslate"><span class="pre">PySbRx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRxPcie"><code class="docutils literal notranslate"><span class="pre">PySbRxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTx"><code class="docutils literal notranslate"><span class="pre">PySbTx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTxPcie"><code class="docutils literal notranslate"><span class="pre">PySbTxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmi"><code class="docutils literal notranslate"><span class="pre">PyUmi</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmiPacket"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiAtomic"><code class="docutils literal notranslate"><span class="pre">UmiAtomic</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiCmd"><code class="docutils literal notranslate"><span class="pre">UmiCmd</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queue"><code class="docutils literal notranslate"><span class="pre">delete_queue()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queues"><code class="docutils literal notranslate"><span class="pre">delete_queues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_atype"><code class="docutils literal notranslate"><span class="pre">umi_atype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eof"><code class="docutils literal notranslate"><span class="pre">umi_eof()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eom"><code class="docutils literal notranslate"><span class="pre">umi_eom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_ex"><code class="docutils literal notranslate"><span class="pre">umi_ex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_len"><code class="docutils literal notranslate"><span class="pre">umi_len()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode"><code class="docutils literal notranslate"><span class="pre">umi_opcode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode_to_str"><code class="docutils literal notranslate"><span class="pre">umi_opcode_to_str()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_pack"><code class="docutils literal notranslate"><span class="pre">umi_pack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_prot"><code class="docutils literal notranslate"><span class="pre">umi_prot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_qos"><code class="docutils literal notranslate"><span class="pre">umi_qos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_size"><code class="docutils literal notranslate"><span class="pre">umi_size()</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="switchboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html">switchboard.umi module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html">switchboard.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.verilator.html">switchboard.verilator module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.icarus.html">switchboard.icarus module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html">switchboard.sbdut module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.loopback.html">switchboard.loopback module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html">switchboard.bitvector module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html">switchboard.uart_xactor module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">switchboard.sbtcp module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.bytes2sb"><code class="docutils literal notranslate"><span class="pre">bytes2sb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.convert_to_queue"><code class="docutils literal notranslate"><span class="pre">convert_to_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.get_parser"><code class="docutils literal notranslate"><span class="pre">get_parser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.normalize_inputs"><code class="docutils literal notranslate"><span class="pre">normalize_inputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.normalize_inputs_and_outputs"><code class="docutils literal notranslate"><span class="pre">normalize_inputs_and_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.normalize_outputs"><code class="docutils literal notranslate"><span class="pre">normalize_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.parse_rule"><code class="docutils literal notranslate"><span class="pre">parse_rule()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.rule_matches"><code class="docutils literal notranslate"><span class="pre">rule_matches()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.run_client"><code class="docutils literal notranslate"><span class="pre">run_client()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.run_server"><code class="docutils literal notranslate"><span class="pre">run_server()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.sb2bytes"><code class="docutils literal notranslate"><span class="pre">sb2bytes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.sb2tcp"><code class="docutils literal notranslate"><span class="pre">sb2tcp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.start_tcp_bridge"><code class="docutils literal notranslate"><span class="pre">start_tcp_bridge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.sbtcp.tcp2sb"><code class="docutils literal notranslate"><span class="pre">tcp2sb()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="switchboard.html">switchboard package</a></li>
+      <li class="breadcrumb-item active">switchboard.sbtcp module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/switchboard.sbtcp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-switchboard.sbtcp">
+<span id="switchboard-sbtcp-module"></span><h1>switchboard.sbtcp module<a class="headerlink" href="#module-switchboard.sbtcp" title="Link to this heading"></a></h1>
+<p><strong>Functions:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.bytes2sb" title="switchboard.sbtcp.bytes2sb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bytes2sb</span></code></a>(b)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.convert_to_queue" title="switchboard.sbtcp.convert_to_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_to_queue</span></code></a>(q, cls[, max_rate])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.get_parser" title="switchboard.sbtcp.get_parser"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_parser</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.main" title="switchboard.sbtcp.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.normalize_inputs" title="switchboard.sbtcp.normalize_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_inputs</span></code></a>(inputs, max_rate)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.normalize_inputs_and_outputs" title="switchboard.sbtcp.normalize_inputs_and_outputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_inputs_and_outputs</span></code></a>(inputs, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.normalize_outputs" title="switchboard.sbtcp.normalize_outputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_outputs</span></code></a>(outputs, max_rate)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.parse_rule" title="switchboard.sbtcp.parse_rule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_rule</span></code></a>(rule)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.rule_matches" title="switchboard.sbtcp.rule_matches"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rule_matches</span></code></a>(rule, addr)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.run_client" title="switchboard.sbtcp.run_client"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_client</span></code></a>(host, port[, quiet, max_rate, ...])</p></td>
+<td><p>Connect to a server, retrying until a connection is made.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.run_server" title="switchboard.sbtcp.run_server"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_server</span></code></a>(host[, port, quiet, max_rate, ...])</p></td>
+<td><p>Accepts client connections in a loop until Ctrl-C is pressed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.sb2bytes" title="switchboard.sbtcp.sb2bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sb2bytes</span></code></a>(p)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.sb2tcp" title="switchboard.sbtcp.sb2tcp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sb2tcp</span></code></a>(inputs, conn)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.sbtcp.start_tcp_bridge" title="switchboard.sbtcp.start_tcp_bridge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start_tcp_bridge</span></code></a>([inputs, outputs, host, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.sbtcp.tcp2sb" title="switchboard.sbtcp.tcp2sb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tcp2sb</span></code></a>(outputs, conn)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.bytes2sb">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">bytes2sb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#bytes2sb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.bytes2sb" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.convert_to_queue">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">convert_to_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#convert_to_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.convert_to_queue" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.get_parser">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">get_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#get_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.get_parser" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.main">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.normalize_inputs">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">normalize_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#normalize_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.normalize_inputs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.normalize_inputs_and_outputs">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">normalize_inputs_and_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#normalize_inputs_and_outputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.normalize_inputs_and_outputs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.normalize_outputs">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">normalize_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#normalize_outputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.normalize_outputs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.parse_rule">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">parse_rule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#parse_rule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.parse_rule" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.rule_matches">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">rule_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#rule_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.rule_matches" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.run_client">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">run_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_once</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#run_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.run_client" title="Link to this definition"></a></dt>
+<dd><p>Connect to a server, retrying until a connection is made.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.run_server">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">run_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_once</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#run_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.run_server" title="Link to this definition"></a></dt>
+<dd><p>Accepts client connections in a loop until Ctrl-C is pressed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.sb2bytes">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">sb2bytes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#sb2bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.sb2bytes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.sb2tcp">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">sb2tcp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#sb2tcp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.sb2tcp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.start_tcp_bridge">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">start_tcp_bridge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5555</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_once</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#start_tcp_bridge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.start_tcp_bridge" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.sbtcp.tcp2sb">
+<span class="sig-prename descclassname"><span class="pre">switchboard.sbtcp.</span></span><span class="sig-name descname"><span class="pre">tcp2sb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/sbtcp.html#tcp2sb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.sbtcp.tcp2sb" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="switchboard.uart_xactor.html" class="btn btn-neutral float-left" title="switchboard.uart_xactor module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.sbdut &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=828725f0"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../switchboard.html">switchboard package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">switchboard.sbdut</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for switchboard.sbdut</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Build and simulation automation built on SiliconCompiler</span>
+
+<span class="c1"># Copyright (c) 2024 Zero ASIC Corporation</span>
+<span class="c1"># This code is licensed under Apache License 2.0 (see LICENSE for details)</span>
+
+<span class="sd">&quot;&quot;&quot;Class inheriting from the SiliconCompiler Chip class that can be used for building a</span>
+<span class="sd">Switchboard-based testbench.</span>
+
+<span class="sd">This class is meant to be interacted with like a regular Chip object, but it has some parameters</span>
+<span class="sd">automatically configured to abstract away setup of files that are required by all Switchboard</span>
+<span class="sd">testbenches.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span> <span class="nn">.switchboard</span> <span class="kn">import</span> <span class="n">path</span> <span class="k">as</span> <span class="n">sb_path</span>
+<span class="kn">from</span> <span class="nn">.verilator</span> <span class="kn">import</span> <span class="n">verilator_run</span>
+<span class="kn">from</span> <span class="nn">.icarus</span> <span class="kn">import</span> <span class="n">icarus_build_vpi</span><span class="p">,</span> <span class="n">icarus_find_vpi</span><span class="p">,</span> <span class="n">icarus_run</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">plusargs_to_args</span><span class="p">,</span> <span class="n">binary_run</span>
+<span class="kn">from</span> <span class="nn">.xyce</span> <span class="kn">import</span> <span class="n">xyce_flags</span>
+<span class="kn">from</span> <span class="nn">.ams</span> <span class="kn">import</span> <span class="n">make_ams_spice_wrapper</span><span class="p">,</span> <span class="n">make_ams_verilog_wrapper</span><span class="p">,</span> <span class="n">parse_spice_subckts</span>
+<span class="kn">from</span> <span class="nn">.autowrap</span> <span class="kn">import</span> <span class="p">(</span><span class="n">normalize_clocks</span><span class="p">,</span> <span class="n">normalize_interfaces</span><span class="p">,</span> <span class="n">normalize_resets</span><span class="p">,</span> <span class="n">normalize_tieoffs</span><span class="p">,</span>
+    <span class="n">normalize_parameters</span><span class="p">,</span> <span class="n">create_intf_objs</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.cmdline</span> <span class="kn">import</span> <span class="n">get_cmdline_args</span>
+
+<span class="kn">import</span> <span class="nn">siliconcompiler</span>
+
+<span class="n">SB_DIR</span> <span class="o">=</span> <span class="n">sb_path</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="SbDut">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut">[docs]</a>
+<span class="k">class</span> <span class="nc">SbDut</span><span class="p">(</span><span class="n">siliconcompiler</span><span class="o">.</span><span class="n">Chip</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">design</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;testbench&#39;</span><span class="p">,</span>
+        <span class="n">tool</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span>
+        <span class="n">default_main</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">trace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">trace_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;vcd&#39;</span><span class="p">,</span>
+        <span class="n">module</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fpga</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">xyce</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">frequency</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100e6</span><span class="p">,</span>
+        <span class="n">period</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">start_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeunit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeprecision</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">warnings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cmdline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">extra_args</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">autowrap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">interfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">clocks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">resets</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">tieoffs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">buildroot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">builddir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">subcomponent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">threads</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        design: string</span>
+<span class="sd">            Name of the top level chip design module.</span>
+
+<span class="sd">        tool: string, optional</span>
+<span class="sd">            Which tool to use to compile simulator.  Options are &quot;verilator&quot; or</span>
+<span class="sd">            &quot;icarus&quot;.</span>
+
+<span class="sd">        default_main: bool, optional</span>
+<span class="sd">            If True, the default testbench.cc will be used and does not need to</span>
+<span class="sd">            be provided via the add() function</span>
+
+<span class="sd">        trace: bool, optional</span>
+<span class="sd">            If true, a waveform dump file will be produced using the file type</span>
+<span class="sd">            specified by `trace_type`.</span>
+
+<span class="sd">        trace_type: str, optional</span>
+<span class="sd">            File type for the waveform dump file. Defaults to vcd.</span>
+
+<span class="sd">        module: str, optional</span>
+<span class="sd">            module containing the siliconcompiler driver for this object</span>
+
+<span class="sd">        fpga: bool, optional</span>
+<span class="sd">            If True, compile using switchboard&#39;s library of modules for FPGA emulation,</span>
+<span class="sd">            rather than the modules for RTL simulation.</span>
+
+<span class="sd">        xyce: bool, optional</span>
+<span class="sd">            If True, compile for xyce co-simulation.</span>
+
+<span class="sd">        frequency: float, optional</span>
+<span class="sd">            If provided, the default frequency of the clock generated in the testbench,</span>
+<span class="sd">            in seconds.</span>
+
+<span class="sd">        period: float, optional</span>
+<span class="sd">            If provided, the default period of the clock generated in the testbench,</span>
+<span class="sd">            in seconds.</span>
+
+<span class="sd">        max_rate: float, optional</span>
+<span class="sd">            If provided, the maximum real-world rate that the simulation is allowed to run</span>
+<span class="sd">            at, in Hz.  Can be useful to encourage time-sharing between many processes and</span>
+<span class="sd">            for performance modeling when latencies are large and/or variable.</span>
+
+<span class="sd">        start_delay: float, optional</span>
+<span class="sd">            If provided, the real-world time to delay before the first clock tick in the</span>
+<span class="sd">            simulation.  Can be useful to make sure that programs start at approximately</span>
+<span class="sd">            the same time and to prevent simulations from stepping on each other&#39;s toes</span>
+<span class="sd">            when starting up.</span>
+
+<span class="sd">        warnings: List[str], optional</span>
+<span class="sd">            If provided, a list of tool-specific warnings to enable.  If not provided, a default</span>
+<span class="sd">            set of warnings will be included.  Warnings can be disabled by setting this argument</span>
+<span class="sd">            to an empty list.</span>
+
+<span class="sd">        cmdline: bool, optional</span>
+<span class="sd">            If True, accept configuration settings from the command line, such as &quot;--trace&quot;,</span>
+<span class="sd">            &quot;--tool TOOL&quot;, and &quot;--fast&quot;.</span>
+
+<span class="sd">        fast: bool, optional</span>
+<span class="sd">            If True, the simulation binary will not be rebuilt if an existing one is found.</span>
+<span class="sd">            The setting here can be overridden when build() is called by setting its argument</span>
+<span class="sd">            with the same name.</span>
+
+<span class="sd">        extra_args: dict, optional</span>
+<span class="sd">            If provided and cmdline=True, a dictionary of additional command line arguments</span>
+<span class="sd">            to be made available.  The keys of the dictionary are the arguments (&quot;-n&quot;, &quot;--test&quot;,</span>
+<span class="sd">            etc.) and the values are themselves dictionaries that contain keyword arguments</span>
+<span class="sd">            accepted by argparse (&quot;action&quot;: &quot;store_true&quot;, &quot;default&quot;: 42, etc.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># call the super constructor</span>
+
+        <span class="k">if</span> <span class="n">autowrap</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">subcomponent</span><span class="p">):</span>
+            <span class="n">toplevel</span> <span class="o">=</span> <span class="s1">&#39;testbench&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">toplevel</span> <span class="o">=</span> <span class="n">design</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">toplevel</span><span class="p">)</span>
+
+        <span class="c1"># parse command-line options if desired</span>
+
+        <span class="k">if</span> <span class="n">cmdline</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">get_cmdline_args</span><span class="p">(</span><span class="n">tool</span><span class="o">=</span><span class="n">tool</span><span class="p">,</span> <span class="n">trace</span><span class="o">=</span><span class="n">trace</span><span class="p">,</span> <span class="n">trace_type</span><span class="o">=</span><span class="n">trace_type</span><span class="p">,</span>
+                <span class="n">frequency</span><span class="o">=</span><span class="n">frequency</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="n">period</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">,</span>
+                <span class="n">start_delay</span><span class="o">=</span><span class="n">start_delay</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span> <span class="n">extra_args</span><span class="o">=</span><span class="n">extra_args</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">trace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">trace</span>
+            <span class="n">trace_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">trace_type</span>
+            <span class="n">fast</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">fast</span>
+            <span class="n">tool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tool</span>
+            <span class="n">frequency</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">frequency</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">period</span>
+            <span class="n">max_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">max_rate</span>
+            <span class="n">start_delay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">start_delay</span>
+            <span class="n">threads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">threads</span>
+
+        <span class="c1"># input validation</span>
+
+        <span class="k">if</span> <span class="n">trace_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;vcd&#39;</span><span class="p">,</span> <span class="s1">&#39;fst&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid trace_type, expected one of &quot;vcd&quot; or &quot;fst&quot;&#39;</span><span class="p">)</span>
+
+        <span class="c1"># save settings</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">=</span> <span class="n">tool</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trace</span> <span class="o">=</span> <span class="n">trace</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trace_type</span> <span class="o">=</span> <span class="n">trace_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fpga</span> <span class="o">=</span> <span class="n">fpga</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xyce</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># is set True by _configure_xyce</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warnings</span> <span class="o">=</span> <span class="n">warnings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fast</span> <span class="o">=</span> <span class="n">fast</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">frequency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">=</span> <span class="n">period</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_rate</span> <span class="o">=</span> <span class="n">max_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_delay</span> <span class="o">=</span> <span class="n">start_delay</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span> <span class="o">=</span> <span class="n">timeunit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeprecision</span> <span class="o">=</span> <span class="n">timeprecision</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">autowrap</span> <span class="o">=</span> <span class="n">autowrap</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">suffix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="n">subcomponent</span><span class="p">:</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;_unq_</span><span class="si">{</span><span class="n">design</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span>
+
+        <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">design</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dut</span> <span class="o">=</span> <span class="n">design</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">normalize_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intf_defs</span> <span class="o">=</span> <span class="n">normalize_interfaces</span><span class="p">(</span><span class="n">interfaces</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clocks</span> <span class="o">=</span> <span class="n">normalize_clocks</span><span class="p">(</span><span class="n">clocks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resets</span> <span class="o">=</span> <span class="n">normalize_resets</span><span class="p">(</span><span class="n">resets</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tieoffs</span> <span class="o">=</span> <span class="n">normalize_tieoffs</span><span class="p">(</span><span class="n">tieoffs</span><span class="p">)</span>
+
+        <span class="c1"># initialization</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">intfs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># simulator-agnostic settings</span>
+
+        <span class="k">if</span> <span class="n">builddir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">buildroot</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">buildroot</span> <span class="o">=</span> <span class="s1">&#39;build&#39;</span>
+
+            <span class="n">buildroot</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">buildroot</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">subcomponent</span><span class="p">:</span>
+                <span class="c1"># the subcomponent build flow is tool-agnostic, producing a single Verilog</span>
+                <span class="c1"># file as output, as opposed to a simulator binary</span>
+                <span class="n">builddir</span> <span class="o">=</span> <span class="n">buildroot</span> <span class="o">/</span> <span class="n">metadata_str</span><span class="p">(</span><span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">builddir</span> <span class="o">=</span> <span class="n">buildroot</span> <span class="o">/</span> <span class="n">metadata_str</span><span class="p">(</span><span class="n">design</span><span class="o">=</span><span class="n">design</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                    <span class="n">tool</span><span class="o">=</span><span class="n">tool</span><span class="p">,</span> <span class="n">trace</span><span class="o">=</span><span class="n">trace</span><span class="p">,</span> <span class="n">trace_type</span><span class="o">=</span><span class="n">trace_type</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="n">threads</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;builddir&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">builddir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="s1">&#39;sim&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">subcomponent</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fpga</span><span class="p">:</span>
+                <span class="c1"># library dirs</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;ydir&#39;</span><span class="p">,</span> <span class="n">sb_path</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;verilog&#39;</span> <span class="o">/</span> <span class="s1">&#39;fpga&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;ydir&#39;</span><span class="p">,</span> <span class="n">sb_path</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;deps&#39;</span> <span class="o">/</span> <span class="s1">&#39;verilog-axi&#39;</span> <span class="o">/</span> <span class="s1">&#39;rtl&#39;</span><span class="p">)</span>
+
+                <span class="c1"># include dirs</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;idir&#39;</span><span class="p">,</span> <span class="n">sb_path</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;verilog&#39;</span> <span class="o">/</span> <span class="s1">&#39;fpga&#39;</span> <span class="o">/</span> <span class="s1">&#39;include&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ydir&#39;</span><span class="p">,</span> <span class="s1">&#39;idir&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">fpga</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">sb_path</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;verilog&#39;</span> <span class="o">/</span> <span class="s1">&#39;sim&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="n">opt</span><span class="p">,</span> <span class="n">sb_path</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;verilog&#39;</span> <span class="o">/</span> <span class="s1">&#39;common&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">trace</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;trace&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;define&#39;</span><span class="p">,</span> <span class="s1">&#39;SB_TRACE&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace_type</span> <span class="o">==</span> <span class="s1">&#39;fst&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;define&#39;</span><span class="p">,</span> <span class="s1">&#39;SB_TRACE_FST&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;icarus&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_configure_icarus</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">:</span>
+                        <span class="n">module</span> <span class="o">=</span> <span class="s1">&#39;siliconcompiler&#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Must specify the &quot;module&quot; argument,&#39;</span>
+                            <span class="s1">&#39; which is the name of the module containing the&#39;</span>
+                            <span class="s1">&#39; SiliconCompiler driver for this simulator.&#39;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_configure_build</span><span class="p">(</span>
+                    <span class="n">module</span><span class="o">=</span><span class="n">module</span><span class="p">,</span>
+                    <span class="n">default_main</span><span class="o">=</span><span class="n">default_main</span><span class="p">,</span>
+                    <span class="n">fpga</span><span class="o">=</span><span class="n">fpga</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">xyce</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_configure_xyce</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># special mode that produces a standalone Verilog netlist</span>
+            <span class="c1"># rather than building/running a simulation</span>
+
+            <span class="n">flowname</span> <span class="o">=</span> <span class="s1">&#39;package&#39;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span> <span class="o">=</span> <span class="n">siliconcompiler</span><span class="o">.</span><span class="n">Flow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flowname</span><span class="p">)</span>
+
+            <span class="kn">from</span> <span class="nn">siliconcompiler.tools.surelog</span> <span class="kn">import</span> <span class="n">parse</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">flowname</span><span class="p">,</span> <span class="s1">&#39;parse&#39;</span><span class="p">,</span> <span class="n">parse</span><span class="p">)</span>
+
+            <span class="kn">from</span> <span class="nn">.sc.sed</span> <span class="kn">import</span> <span class="n">remove</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">flowname</span><span class="p">,</span> <span class="s1">&#39;remove&#39;</span><span class="p">,</span> <span class="n">remove</span><span class="p">)</span>
+
+            <span class="kn">from</span> <span class="nn">.sc.morty</span> <span class="kn">import</span> <span class="n">uniquify</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="n">flowname</span><span class="p">,</span> <span class="s1">&#39;uniquify&#39;</span><span class="p">,</span> <span class="n">uniquify</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span><span class="o">.</span><span class="n">edge</span><span class="p">(</span><span class="n">flowname</span><span class="p">,</span> <span class="s1">&#39;parse&#39;</span><span class="p">,</span> <span class="s1">&#39;remove&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span><span class="o">.</span><span class="n">edge</span><span class="p">(</span><span class="n">flowname</span><span class="p">,</span> <span class="s1">&#39;remove&#39;</span><span class="p">,</span> <span class="s1">&#39;uniquify&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">package_flow</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;flow&#39;</span><span class="p">,</span> <span class="n">flowname</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_configure_build</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">module</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">default_main</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">fpga</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fpga</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">SB_DIR</span> <span class="o">/</span> <span class="s1">&#39;dpi&#39;</span> <span class="o">/</span> <span class="s1">&#39;switchboard_dpi.cc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">default_main</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">SB_DIR</span> <span class="o">/</span> <span class="s1">&#39;verilator&#39;</span> <span class="o">/</span> <span class="s1">&#39;testbench.cc&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fpga</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">,</span>
+                <span class="n">sb_path</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;verilator&#39;</span> <span class="o">/</span> <span class="s1">&#39;config.vlt&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;warningoff&#39;</span><span class="p">,</span> <span class="s1">&#39;TIMESCALEMOD&#39;</span><span class="p">)</span>
+
+        <span class="c1"># enable specific warnings that aren&#39;t included by default</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">warnings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BLKSEQ&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warnings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">warnings</span>
+
+            <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;-Wwarn-</span><span class="si">{</span><span class="n">warning</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;cflags&#39;</span><span class="p">,</span>
+            <span class="p">[</span><span class="s1">&#39;-Wno-unknown-warning-option&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">,</span> <span class="s1">&#39;cincludes&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">SB_DIR</span> <span class="o">/</span> <span class="s1">&#39;cpp&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;ldflags&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;-pthread&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;trace_type&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace_type</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">:</span>
+            <span class="n">timeunit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeunit</span>
+            <span class="n">timeprecision</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeprecision</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">timeunit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">timeprecision</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">timeunit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">timeunit</span> <span class="o">=</span> <span class="s1">&#39;1ps&#39;</span>  <span class="c1"># default from Verilator documentation</span>
+
+                <span class="k">if</span> <span class="n">timeprecision</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">timeprecision</span> <span class="o">=</span> <span class="s1">&#39;1ps&#39;</span>  <span class="c1"># default from Verilator documentation</span>
+
+                <span class="n">timescale</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">timeunit</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">timeprecision</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;--timescale&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="n">timescale</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">threads</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;--threads&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;verilator&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">threads</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;libext&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;sv&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Set up flow that compiles RTL</span>
+        <span class="c1"># TODO: this will be built into SC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;flow&#39;</span><span class="p">,</span> <span class="s1">&#39;simflow&#39;</span><span class="p">)</span>
+
+        <span class="nb">compile</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s1">.tools.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tool</span><span class="si">}</span><span class="s1">.compile&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="p">(</span><span class="s1">&#39;simflow&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="nb">compile</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_configure_icarus</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;libext&#39;</span><span class="p">,</span> <span class="s1">&#39;sv&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;icarus&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;verilog_generation&#39;</span><span class="p">,</span> <span class="s1">&#39;2012&#39;</span><span class="p">)</span>
+
+        <span class="c1"># use dvflow to execute Icarus, but set steplist so we don&#39;t run sim</span>
+        <span class="kn">from</span> <span class="nn">siliconcompiler.flows</span> <span class="kn">import</span> <span class="n">dvflow</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="n">dvflow</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;flow&#39;</span><span class="p">,</span> <span class="s1">&#39;dvflow&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;to&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_configure_xyce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyce</span><span class="p">:</span>
+            <span class="c1"># already configured, so return early</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;define&#39;</span><span class="p">,</span> <span class="s1">&#39;SB_XYCE&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">!=</span> <span class="s1">&#39;icarus&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">SB_DIR</span> <span class="o">/</span> <span class="s1">&#39;dpi&#39;</span> <span class="o">/</span> <span class="s1">&#39;xyce_dpi.cc&#39;</span><span class="p">)</span>
+
+            <span class="n">xyce_c_includes</span><span class="p">,</span> <span class="n">xyce_ld_flags</span> <span class="o">=</span> <span class="n">xyce_flags</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">,</span> <span class="s1">&#39;cincludes&#39;</span><span class="p">,</span> <span class="n">xyce_c_includes</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;ldflags&#39;</span><span class="p">,</span> <span class="n">xyce_ld_flags</span><span class="p">)</span>
+
+        <span class="c1"># indicate that build is configured for Xyce.  for Icarus simulation, this flag is used</span>
+        <span class="c1"># to determine whether a VPI object should be built for Xyce</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xyce</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="SbDut.find_sim">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut.find_sim">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;icarus&#39;</span><span class="p">:</span>
+            <span class="n">result_kind</span> <span class="o">=</span> <span class="s1">&#39;vvp&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result_kind</span> <span class="o">=</span> <span class="s1">&#39;vexe&#39;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_result</span><span class="p">(</span><span class="n">result_kind</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="s1">&#39;compile&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SbDut.build">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut.build">[docs]</a>
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cwd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ---------</span>
+<span class="sd">        cwd: str, optional</span>
+<span class="sd">            Working directory for the simulation build</span>
+
+<span class="sd">        fast: bool, optional</span>
+<span class="sd">            If True, the simulation binary will not be rebuilt if an existing one</span>
+<span class="sd">            is found.  Defaults to the value provided to the SbDut constructor,</span>
+<span class="sd">            which in turn defaults to False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">fast</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fast</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fast</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;icarus&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">fast</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">icarus_find_vpi</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;switchboard&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">icarus_build_vpi</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;switchboard&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyce</span> <span class="ow">and</span> <span class="p">((</span><span class="ow">not</span> <span class="n">fast</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">icarus_find_vpi</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;xyce&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)):</span>
+                <span class="n">cincludes</span><span class="p">,</span> <span class="n">ldflags</span> <span class="o">=</span> <span class="n">xyce_flags</span><span class="p">()</span>
+                <span class="n">icarus_build_vpi</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;xyce&#39;</span><span class="p">,</span> <span class="n">cincludes</span><span class="o">=</span><span class="n">cincludes</span><span class="p">,</span> <span class="n">ldflags</span><span class="o">=</span><span class="n">ldflags</span><span class="p">)</span>
+
+        <span class="c1"># if &quot;fast&quot; is set, then we can return early if the</span>
+        <span class="c1"># simulation binary already exists</span>
+        <span class="k">if</span> <span class="n">fast</span><span class="p">:</span>
+            <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sim</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">sim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">sim</span>
+
+        <span class="c1"># build the wrapper if needed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">autowrap</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">.autowrap</span> <span class="kn">import</span> <span class="n">autowrap</span>
+
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;option&#39;</span><span class="p">,</span> <span class="s1">&#39;builddir&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;testbench.sv&#39;</span>
+
+            <span class="n">filename</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">instance</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dut</span><span class="si">}</span><span class="s1">_i&#39;</span>
+
+            <span class="n">autowrap</span><span class="p">(</span>
+                <span class="n">instances</span><span class="o">=</span><span class="p">{</span><span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dut</span><span class="p">},</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">},</span>
+                <span class="n">interfaces</span><span class="o">=</span><span class="p">{</span><span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">intf_defs</span><span class="p">},</span>
+                <span class="n">clocks</span><span class="o">=</span><span class="p">{</span><span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">clocks</span><span class="p">},</span>
+                <span class="n">resets</span><span class="o">=</span><span class="p">{</span><span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">resets</span><span class="p">},</span>
+                <span class="n">tieoffs</span><span class="o">=</span><span class="p">{</span><span class="n">instance</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tieoffs</span><span class="p">},</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># if we get to this point, then we need to rebuild</span>
+        <span class="c1"># the simulation binary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sim</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SbDut.simulate">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut.simulate">[docs]</a>
+    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">plusargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">extra_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">cwd</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">trace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">period</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">frequency</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">intf_objs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        plusargs: str or list or tuple, optional</span>
+<span class="sd">            additional arguments to pass to simulator that must be preceded</span>
+<span class="sd">            with a +. These are listed after `args`.</span>
+
+<span class="sd">        args: str or list or tuple, optional</span>
+<span class="sd">            additional arguments to pass to simulator listed before `plusargs` and</span>
+<span class="sd">            `extra_args`</span>
+
+<span class="sd">        extra_args: str or list or tuple, optional</span>
+<span class="sd">            additional arguments to pass to simulator listed after `args` and</span>
+<span class="sd">            `plusargs`</span>
+
+<span class="sd">        cwd: str, optional</span>
+<span class="sd">            working directory where simulation binary is saved</span>
+
+<span class="sd">        trace: bool, optional</span>
+<span class="sd">            If true, a waveform dump file will be produced</span>
+
+<span class="sd">        period: float, optional</span>
+<span class="sd">            If provided, the period of the clock generated in the testbench,</span>
+<span class="sd">            in seconds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set up interfaces if needed</span>
+
+        <span class="k">if</span> <span class="n">max_rate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_rate</span>
+
+        <span class="k">if</span> <span class="n">intf_objs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intfs</span> <span class="o">=</span> <span class="n">create_intf_objs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intf_defs</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">)</span>
+
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">plusargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plusargs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plusargs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">plusargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">extra_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">extra_args</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">trace</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">trace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">frequency</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">frequency</span>
+
+        <span class="k">if</span> <span class="n">period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">period</span>
+
+        <span class="k">if</span> <span class="n">start_delay</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start_delay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_delay</span>
+
+        <span class="c1"># build the simulation if necessary</span>
+
+        <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># enable tracing if desired.  it&#39;s convenient to define +trace</span>
+        <span class="c1"># when running Icarus Verilog, even though it is not necessary,</span>
+        <span class="c1"># since logic in the testbench can use that flag to enable/disable</span>
+        <span class="c1"># waveform dumping in a simulator-agnostic manner.</span>
+
+        <span class="k">if</span> <span class="n">trace</span><span class="p">:</span>
+            <span class="n">carefully_add_plusarg</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;trace&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">plusargs</span><span class="o">=</span><span class="n">plusargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">period</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">carefully_add_plusarg</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;period&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">period</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">plusargs</span><span class="o">=</span><span class="n">plusargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">max_rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">carefully_add_plusarg</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;max-rate&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">max_rate</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">plusargs</span><span class="o">=</span><span class="n">plusargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">start_delay</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">carefully_add_plusarg</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="s1">&#39;start-delay&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">start_delay</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">plusargs</span><span class="o">=</span><span class="n">plusargs</span><span class="p">)</span>
+
+        <span class="c1"># add plusargs that define queue connections</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">intf_defs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">wire</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wire&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">uri</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;uri&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">wire</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">uri</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">plusargs</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">wire</span><span class="p">,</span> <span class="n">uri</span><span class="p">)]</span>
+
+        <span class="c1"># run-specific configurations (if running the same simulator build multiple times</span>
+        <span class="c1"># in parallel)</span>
+
+        <span class="k">if</span> <span class="n">run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dumpfile</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">run</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">trace_type</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="n">plusargs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;dumpfile&#39;</span><span class="p">,</span> <span class="n">dumpfile</span><span class="p">))</span>
+
+        <span class="c1"># run the simulation</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;icarus&#39;</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;switchboard&#39;</span><span class="p">]</span>
+            <span class="n">modules</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyce</span><span class="p">:</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;xyce&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                <span class="n">vpi</span> <span class="o">=</span> <span class="n">icarus_find_vpi</span><span class="p">(</span><span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">vpi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Could not find VPI binary &quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="n">modules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vpi</span><span class="p">)</span>
+
+            <span class="c1"># set the trace format</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace_type</span> <span class="o">==</span> <span class="s1">&#39;fst&#39;</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;-fst&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">extra_args</span><span class="p">):</span>
+                <span class="n">extra_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;-fst&#39;</span><span class="p">)</span>
+
+            <span class="n">p</span> <span class="o">=</span> <span class="n">icarus_run</span><span class="p">(</span>
+                <span class="n">sim</span><span class="p">,</span>
+                <span class="n">plusargs</span><span class="o">=</span><span class="n">plusargs</span><span class="p">,</span>
+                <span class="n">modules</span><span class="o">=</span><span class="n">modules</span><span class="p">,</span>
+                <span class="n">extra_args</span><span class="o">=</span><span class="n">args</span> <span class="o">+</span> <span class="n">extra_args</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># make sure that the simulator was built with tracing enabled</span>
+            <span class="k">if</span> <span class="n">trace</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Simulator was built without tracing enabled.&#39;</span>
+                    <span class="s1">&#39;  Please set trace=True in the SbDut and try again.&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tool</span> <span class="o">==</span> <span class="s1">&#39;verilator&#39;</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">verilator_run</span><span class="p">(</span>
+                    <span class="n">sim</span><span class="p">,</span>
+                    <span class="n">plusargs</span><span class="o">=</span><span class="n">plusargs</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">=</span><span class="n">args</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">binary_run</span><span class="p">(</span>
+                    <span class="n">sim</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">=</span><span class="n">plusargs_to_args</span><span class="p">(</span><span class="n">plusargs</span><span class="p">)</span> <span class="o">+</span> <span class="n">args</span>
+                <span class="p">)</span>
+
+        <span class="c1"># return a Popen object that one can wait() on</span>
+
+        <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="SbDut.input_analog">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut.input_analog">[docs]</a>
+    <span class="k">def</span> <span class="nf">input_analog</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pins</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">check_name</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="nb">dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Specifies a SPICE subcircuit to be used in a mixed-signal simulation.  This involves</span>
+<span class="sd">        providing the path to the SPICE file containing the subcircuit definition and describing</span>
+<span class="sd">        how real-valued outputs in the SPICE subcircuit should be converted to binary values in</span>
+<span class="sd">        the Verilog simulation (and vice versa for subcircuit inputs).</span>
+
+<span class="sd">        Each of these conversions is specified as an entry in the &quot;pins&quot; argument, which is a</span>
+<span class="sd">        list of dictionaries, each representing a single pin of the SPICE subcircuit.  Each</span>
+<span class="sd">        dictionary may have the following keys:</span>
+<span class="sd">        * &quot;name&quot;: name of the pin.  Bus notation may be used, e.g. &quot;myBus[7:0]&quot;.  In that case,</span>
+<span class="sd">        it is expected that the SPICE subcircuit has pins corresponding to each bit in the bus,</span>
+<span class="sd">        e.g. &quot;myBus[0]&quot;, &quot;myBus[1]&quot;, etc.</span>
+<span class="sd">        * &quot;type&quot;: direction of the pin.  May be &quot;input&quot;, &quot;output&quot;, or &quot;constant&quot;.  If &quot;constant&quot;,</span>
+<span class="sd">        then this pin will not show up the Verilog module definition to be instantiated in user</span>
+<span class="sd">        code.  Instead, the SPICE subcircuit pin with that name will be tied off to a fixed</span>
+<span class="sd">        voltage specified in the &quot;value&quot; field (below).</span>
+<span class="sd">        * &quot;vil&quot;: low voltage threshold, below which a real-number voltage from the SPICE</span>
+<span class="sd">        simulation is considered to be a logical &quot;0&quot;.</span>
+<span class="sd">        * &quot;vih&quot;: high voltage threshold, above which a real-number voltage from the SPICE</span>
+<span class="sd">        simulation is considered to be a logical &quot;1&quot;.</span>
+<span class="sd">        * &quot;vol&quot;: real-number voltage to pass to a SPICE subcircuit input when the digital value</span>
+<span class="sd">        driven is &quot;0&quot;.</span>
+<span class="sd">        * &quot;voh&quot;: real-number voltage to pass to a SPICE subcircuit input when the digital value</span>
+<span class="sd">        driven is &quot;1&quot;.</span>
+<span class="sd">        * &quot;tr&quot;: time taken in the SPICE simulation to transition from a logic &quot;0&quot; value to a</span>
+<span class="sd">        logic &quot;1&quot; value.</span>
+<span class="sd">        * &quot;tf&quot;: time taken in the SPICE simulation to transition from a logic &quot;1&quot; value to a</span>
+<span class="sd">        logic &quot;0&quot; value.</span>
+<span class="sd">        * &quot;initial&quot;: initial value of a SPICE subcircuit pin.  Currently only implemented for</span>
+<span class="sd">        subcircuit outputs.  This is sometimes helpful, because there is a slight delay between</span>
+<span class="sd">        t=0 and the time when the SPICE simulation reports values for its outputs.  Specifying</span>
+<span class="sd">        &quot;initial&quot; for subcircuit outputs prevents the corresponding digital signals from being</span>
+<span class="sd">        driven to &quot;X&quot; at t=0.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str</span>
+<span class="sd">            The path of the SPICE file containing the subcircuit definition.</span>
+<span class="sd">        pins: List[Dict[str, Any]]</span>
+<span class="sd">            List of dictionaries, each describing a pin of the subcircuit.</span>
+<span class="sd">        name: str</span>
+<span class="sd">            Name of the SPICE subcircuit that will be instantiated in the mixed-signal simulation.</span>
+<span class="sd">            If not provided, Switchboard guesses that the name is filename stem.  For example,</span>
+<span class="sd">            if filename=&quot;myCircuit.cir&quot;, then Switchboard will guess that the subcircuit name</span>
+<span class="sd">            is &quot;myCircuit&quot;</span>
+<span class="sd">        check_name: bool</span>
+<span class="sd">            If True (default), Switchboard parses the provided file to make sure that there</span>
+<span class="sd">            is a subcircuit definition matching the given name.</span>
+<span class="sd">        dir: str</span>
+<span class="sd">            Running a mixed-signal simulation involves creating SPICE and Verilog wrappers.  This</span>
+<span class="sd">            argument specifies the directory where those wrappers should be written.  If not</span>
+<span class="sd">            provided, defaults to the directory where filename is located.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># automatically configures for Xyce co-simulation if not already configured</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configure_xyce</span><span class="p">()</span>
+
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">pins</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pins</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># guess the name of the subcircuit from the filename</span>
+            <span class="n">guessed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">guessed</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">check_name</span><span class="p">:</span>
+            <span class="c1"># make sure that a subcircuit matching the provided or guessed</span>
+            <span class="c1"># name exists in the file provided.  this is not foolproof, since</span>
+            <span class="c1"># the SPICE parser is minimal and won&#39;t consider things like</span>
+            <span class="c1"># .INCLUDE.  hence, this feature can be disabled by setting</span>
+            <span class="c1"># check_name=False</span>
+
+            <span class="n">subckts</span> <span class="o">=</span> <span class="n">parse_spice_subckts</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">subckt</span> <span class="ow">in</span> <span class="n">subckts</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">guessed</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Inferred subckt named &quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot; from the filename,&#39;</span>
+                        <span class="s1">&#39; however a corresponding subckt definition was not found.  Please&#39;</span>
+                        <span class="s1">&#39; specify a subckt name via the &quot;name&quot; argument.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Could not find a subckt definition for &quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot;.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
+
+        <span class="n">spice_wrapper</span> <span class="o">=</span> <span class="n">make_ams_spice_wrapper</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+            <span class="n">pins</span><span class="o">=</span><span class="n">pins</span><span class="p">,</span>
+            <span class="nb">dir</span><span class="o">=</span><span class="nb">dir</span>
+        <span class="p">)</span>
+
+        <span class="n">verilog_wrapper</span> <span class="o">=</span> <span class="n">make_ams_verilog_wrapper</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">spice_wrapper</span><span class="p">,</span>
+            <span class="n">pins</span><span class="o">=</span><span class="n">pins</span><span class="p">,</span>
+            <span class="nb">dir</span><span class="o">=</span><span class="nb">dir</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">verilog_wrapper</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SbDut.package">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut.package">[docs]</a>
+    <span class="k">def</span> <span class="nf">package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># set defaults</span>
+
+        <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span>
+
+        <span class="k">if</span> <span class="n">fast</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fast</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fast</span>
+
+        <span class="c1"># see if we can exit early</span>
+
+        <span class="k">if</span> <span class="n">fast</span><span class="p">:</span>
+            <span class="n">package</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_package</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">package</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">package</span>
+
+        <span class="c1"># if not, parse with surelog and postprocess with morty</span>
+
+        <span class="k">if</span> <span class="n">suffix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;morty&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;uniquify&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="s1">&#39;sed&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="s1">&#39;remove&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;to_remove&#39;</span><span class="p">,</span> <span class="s1">&#39;`resetall&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+        <span class="c1"># return the path to the output</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_package</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SbDut.find_package">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.SbDut.find_package">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_package</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_result</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="s1">&#39;parse&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_result</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="s1">&#39;uniquify&#39;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="metadata_str">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.metadata_str">[docs]</a>
+<span class="k">def</span> <span class="nf">metadata_str</span><span class="p">(</span><span class="n">design</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tool</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">trace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">trace_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+
+    <span class="n">opts</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">opts</span> <span class="o">+=</span> <span class="p">[</span><span class="n">design</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">opts</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">tool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opts</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tool</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">trace</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">trace_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">opts</span> <span class="o">+=</span> <span class="p">[</span><span class="n">trace_type</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">threads</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">opts</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;threads&#39;</span><span class="p">,</span> <span class="n">threads</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span> <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="carefully_add_plusarg">
+<a class="viewcode-back" href="../../switchboard.sbdut.html#switchboard.sbdut.carefully_add_plusarg">[docs]</a>
+<span class="k">def</span> <span class="nf">carefully_add_plusarg</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">plusargs</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">plusarg</span> <span class="ow">in</span> <span class="n">plusargs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">plusarg</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">plusarg</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">key</span> <span class="o">==</span> <span class="n">plusarg</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="k">return</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="n">plusarg</span><span class="p">:</span>
+            <span class="k">return</span>
+
+    <span class="k">if</span> <span class="sa">f</span><span class="s1">&#39;+</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">elem</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;+</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">+&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">elem</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;+</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">=&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plusargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">plusargs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
