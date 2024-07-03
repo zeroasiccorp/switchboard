@@ -355,7 +355,10 @@ class SbNetwork:
         else:
             for key, val in self.tcp_intfs[tcp_intfs_key].items():
                 if key not in ['inputs', 'outputs']:
-                    assert val == tcp_kwargs[key]
+                    if val != tcp_kwargs[key]:
+                        raise ValueError(f'Mismatch on TCP interface property "{key}".'
+                            f'  New value of property is "{tcp_kwargs[key]}"'
+                            f' but it was previously set to "{val}".')
 
         tcp_intf = self.tcp_intfs[tcp_intfs_key]
 
@@ -616,12 +619,17 @@ class SbNetwork:
         else:
             uris = [uri]
 
-        assert self.uri_set.isdisjoint(uris)
+        uris = set(uris)
+        intersection = self.uri_set.intersection(uris)
+
+        if len(intersection) > 0:
+            raise ValueError('Failed to add the following URI(s) that'
+                f' are already in use: {list(intersection)}')
 
         self.uri_set.update(uris)
 
         if fresh:
-            delete_queues(uris)
+            delete_queues(list(uris))
 
     def make_dut(self, *args, **kwargs):
         # argument customizations
