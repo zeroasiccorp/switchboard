@@ -2,6 +2,7 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from .sed import setup as setup_tool
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -12,7 +13,7 @@ def setup(chip):
     tool = 'sed'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'var', 'to_remove',
              'strings to remove from the Verilog source file',
@@ -23,7 +24,7 @@ def runtime_options(chip):
     tool = 'sed'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     infile = f'inputs/{design}.v'

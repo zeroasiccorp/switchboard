@@ -252,7 +252,7 @@ class SbDut(siliconcompiler.Chip):
                 self.add('option', opt, sb_path() / 'verilog' / 'common')
 
             if trace:
-                self.set('option', 'trace', True)
+                self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace', True)
                 self.add('option', 'define', 'SB_TRACE')
 
             if self.trace_type == 'fst':

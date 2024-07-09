@@ -63,7 +63,7 @@ def build_testbench(fast=False):
     dut.set('tool', tool, 'task', 'compile', 'var', 'pins_bv', '2')
 
     # libsystemctlm-soc configuration
-    dut.register_package_source(
+    dut.register_source(
         'libsystemctlm-soc',
         'git+https://github.com/Xilinx/libsystemctlm-soc.git',
         '670d73c'

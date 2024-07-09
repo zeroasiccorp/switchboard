@@ -2,6 +2,7 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from .morty import setup as setup_tool
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -13,7 +14,7 @@ def setup(chip):
     tool = 'morty'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
 
     chip.set('tool', tool, 'task', task, 'var', 'suffix',
              'suffix to be added to the end of module names',
@@ -28,7 +29,7 @@ def runtime_options(chip):
     tool = 'morty'
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
-    task = chip._get_task(step, index)
+    _, task = get_tool_task(chip, step, index)
     design = chip.top()
 
     cmdlist = []
