@@ -235,6 +235,8 @@ class SbDut(siliconcompiler.Chip):
 
         self.set('option', 'builddir', str(Path(builddir).resolve()))
 
+        self.set('option', 'clean', True)  # preserve old behavior
+
         self.set('option', 'mode', 'sim')
 
         if not subcomponent:
