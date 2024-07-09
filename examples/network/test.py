@@ -134,7 +134,7 @@ def make_axil_ram(net):
     dut = net.make_dut('axil_ram', parameters=parameters,
         interfaces=interfaces, resets=resets)
 
-    dut.register_package_source(
+    dut.register_source(
         'verilog-axi',
         'git+https://github.com/alexforencich/verilog-axi.git',
         '38915fb'

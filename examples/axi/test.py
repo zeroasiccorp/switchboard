@@ -100,7 +100,7 @@ def build_testbench():
     dut = SbDut('axi_ram', autowrap=True, cmdline=True, extra_args=extra_args,
         parameters=parameters, interfaces=interfaces, resets=resets)
 
-    dut.register_package_source(
+    dut.register_source(
         'verilog-axi',
         'git+https://github.com/alexforencich/verilog-axi.git',
         '38915fb'
