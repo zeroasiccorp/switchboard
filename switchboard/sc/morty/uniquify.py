@@ -2,7 +2,7 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from .morty import setup as setup_tool
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools._common import get_tool_task, input_provides
 
 
 def setup(chip):
@@ -23,6 +23,13 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'var', 'prefix',
              'prefix to be added to the beginning of module names',
              field='help')
+
+    design = chip.top()
+    if f'{design}.v' in input_provides(chip, step, index):
+        chip.set('tool', tool, 'task', task, 'input', f'{design}.v', step=step, index=index)
+    else:
+        chip.set('tool', tool, 'task', task, 'input', f'{design}.sv', step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'output', f'{design}.v', step=step, index=index)
 
 
 def runtime_options(chip):
@@ -48,10 +55,13 @@ def runtime_options(chip):
         else:
             raise ValueError('"suffix" does not have the expected format')
 
+    if f'{design}.v' in input_provides(chip, step, index):
+        infile = f'inputs/{design}.v'
+    else:
+        infile = f'inputs/{design}.sv'
     outfile = f'outputs/{design}.v'
     cmdlist += ['-o', outfile]
 
-    infile = f'inputs/{design}.v'
     cmdlist += [infile]
 
     return cmdlist
