@@ -237,8 +237,6 @@ class SbDut(siliconcompiler.Chip):
 
         self.set('option', 'clean', True)  # preserve old behavior
 
-        self.set('option', 'mode', 'sim')
-
         if not subcomponent:
             if fpga:
                 # library dirs
