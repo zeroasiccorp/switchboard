@@ -108,7 +108,7 @@ def make_umi_fifo(net):
 
     dut.use(sumi)
 
-    dut.input('umi/rtl/umi_fifo.v', package='umi')
+    dut.input('sumi/rtl/umi_fifo.v', package='umi')
 
     return dut
 
