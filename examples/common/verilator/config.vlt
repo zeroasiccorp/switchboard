@@ -2,7 +2,7 @@
 // This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 `verilator_config
-lint_off -file "*umi/umi/rtl/*"
+lint_off -file "*umi/sumi/rtl/*"
 lint_off -file "*lambdalib/ramlib/*"
 lint_off -file "*lambdalib/stdlib/*"
 lint_off -file "*verilog-axi/rtl/*"
