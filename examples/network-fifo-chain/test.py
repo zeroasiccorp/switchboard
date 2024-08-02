@@ -6,7 +6,7 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import os
-import umi
+from umi import sumi
 from copy import deepcopy
 
 from switchboard import SbNetwork, umi_loopback, TcpIntf
@@ -182,10 +182,7 @@ def make_umi_fifo(net):
     dut = net.make_dut('umi_fifo', parameters=parameters, interfaces=interfaces,
         clocks=clocks, resets=resets, tieoffs=tieoffs)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.input('umi/rtl/umi_fifo.v', package='umi')
 

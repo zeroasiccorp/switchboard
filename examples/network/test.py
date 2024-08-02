@@ -7,7 +7,7 @@
 
 import numpy as np
 
-import umi
+from umi import sumi
 from switchboard import SbNetwork
 
 from pathlib import Path
@@ -106,10 +106,7 @@ def make_umi_fifo(net):
     dut = net.make_dut('umi_fifo', parameters=parameters, interfaces=interfaces,
         clocks=clocks, resets=resets, tieoffs=tieoffs)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.input('umi/rtl/umi_fifo.v', package='umi')
 
@@ -170,10 +167,7 @@ def make_umi2axil(net):
     dut = net.make_dut('umi2axilite', parameters=parameters,
         interfaces=interfaces, resets=resets)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.input('utils/rtl/umi2axilite.v', package='umi')
 

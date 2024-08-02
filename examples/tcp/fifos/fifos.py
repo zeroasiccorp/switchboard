@@ -7,7 +7,7 @@ import os
 import sys
 import signal
 
-import umi
+from umi import sumi
 from switchboard import SbNetwork, TcpIntf, flip_intf
 
 
@@ -107,10 +107,7 @@ def make_umi_fifo(net, dw, aw, cw):
     dut = net.make_dut('umi_fifo', parameters=parameters, interfaces=interfaces,
         clocks=clocks, resets=resets, tieoffs=tieoffs)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.input('umi/rtl/umi_fifo.v', package='umi')
 

@@ -5,7 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-import umi
+from umi import sumi
 import numpy as np
 
 from copy import deepcopy
@@ -112,10 +112,7 @@ def make_umiparam(net):
 
     dut = net.make_dut('umiparam', parameters=parameters, interfaces=interfaces, resets=resets)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.set('option', 'idir', sb_path() / 'verilog' / 'common')
 
