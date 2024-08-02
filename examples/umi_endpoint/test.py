@@ -7,7 +7,7 @@
 
 import numpy as np
 from switchboard import UmiTxRx, SbDut
-import umi
+from umi import sumi
 
 
 def main():
@@ -79,9 +79,7 @@ def build_testbench():
 
     dut.input('testbench.sv')
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
+    dut.use(sumi)
 
     dut.build()
 

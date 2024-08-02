@@ -7,7 +7,7 @@ import os
 import sys
 import signal
 
-import umi
+from umi import sumi
 from switchboard import SbNetwork, TcpIntf
 
 from pathlib import Path
@@ -73,8 +73,7 @@ def make_umiram(net):
 
     dut = net.make_dut('umiram', parameters=parameters, interfaces=interfaces)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
+    dut.use(sumi)
 
     dut.input(THIS_DIR.parent.parent / 'common' / 'verilog' / 'umiram.sv', package='umi')
 

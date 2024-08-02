@@ -10,7 +10,7 @@
 import numpy as np
 from pathlib import Path
 from switchboard import SbDut, UmiTxRx, binary_run
-import umi
+from umi import sumi
 
 THIS_DIR = Path(__file__).resolve().parent
 
@@ -94,8 +94,7 @@ def build_testbench():
     dut.input('testbench.sv')
     dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
+    dut.use(sumi)
 
     dut.build()
 

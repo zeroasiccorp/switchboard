@@ -5,7 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-import umi
+from umi import sumi
 import random
 from switchboard import SbNetwork, sb_path
 
@@ -143,8 +143,7 @@ def make_umi_gpio(net, owidth, iwidth):
 
     block = net.make_dut('umi_gpio', parameters=parameters, interfaces=interfaces, resets=resets)
 
-    block.use(umi)
-    block.add('option', 'library', 'umi')
+    block.use(sumi)
 
     block.input(sb_path() / 'verilog' / 'common' / 'umi_gpio.v')
 

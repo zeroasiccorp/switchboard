@@ -6,7 +6,7 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from switchboard import random_umi_packet, SbDut
-import umi
+from umi import sumi
 
 
 def main():
@@ -87,10 +87,7 @@ def build_testbench():
         parameters=parameters, interfaces=interfaces, clocks=clocks, resets=resets,
         tieoffs=tieoffs)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.build()
 

@@ -5,7 +5,7 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-import umi
+from umi import sumi
 import numpy as np
 
 from switchboard import SbDut
@@ -47,10 +47,7 @@ def build_testbench():
     dut = SbDut('umiparam', cmdline=True, autowrap=True, parameters=parameters,
         interfaces=interfaces, resets=resets)
 
-    dut.use(umi)
-    dut.add('option', 'library', 'umi')
-    dut.add('option', 'library', 'lambdalib_auxlib')
-    dut.add('option', 'library', 'lambdalib_ramlib')
+    dut.use(sumi)
 
     dut.input('../common/verilog/umiparam.sv')
 
