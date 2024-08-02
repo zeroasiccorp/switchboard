@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard package &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=828725f0"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="switchboard.umi module" href="switchboard.umi.html" />
+    <link rel="prev" title="Welcome to Switchboard’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">switchboard package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PySbPacket"><code class="docutils literal notranslate"><span class="pre">PySbPacket</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbPacket.data"><code class="docutils literal notranslate"><span class="pre">PySbPacket.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbPacket.destination"><code class="docutils literal notranslate"><span class="pre">PySbPacket.destination</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbPacket.flags"><code class="docutils literal notranslate"><span class="pre">PySbPacket.flags</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PySbRx"><code class="docutils literal notranslate"><span class="pre">PySbRx</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbRx.init"><code class="docutils literal notranslate"><span class="pre">PySbRx.init()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbRx.recv"><code class="docutils literal notranslate"><span class="pre">PySbRx.recv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PySbRxPcie"><code class="docutils literal notranslate"><span class="pre">PySbRxPcie</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbRxPcie.init"><code class="docutils literal notranslate"><span class="pre">PySbRxPcie.init()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PySbTx"><code class="docutils literal notranslate"><span class="pre">PySbTx</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbTx.init"><code class="docutils literal notranslate"><span class="pre">PySbTx.init()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbTx.send"><code class="docutils literal notranslate"><span class="pre">PySbTx.send()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PySbTxPcie"><code class="docutils literal notranslate"><span class="pre">PySbTxPcie</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PySbTxPcie.init"><code class="docutils literal notranslate"><span class="pre">PySbTxPcie.init()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PyUmi"><code class="docutils literal notranslate"><span class="pre">PyUmi</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmi.atomic"><code class="docutils literal notranslate"><span class="pre">PyUmi.atomic()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmi.init"><code class="docutils literal notranslate"><span class="pre">PyUmi.init()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmi.read"><code class="docutils literal notranslate"><span class="pre">PyUmi.read()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmi.recv"><code class="docutils literal notranslate"><span class="pre">PyUmi.recv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmi.send"><code class="docutils literal notranslate"><span class="pre">PyUmi.send()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmi.write"><code class="docutils literal notranslate"><span class="pre">PyUmi.write()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.PyUmiPacket"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmiPacket.cmd"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket.cmd</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmiPacket.data"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmiPacket.dstaddr"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket.dstaddr</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmiPacket.merge"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket.merge()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.PyUmiPacket.srcaddr"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket.srcaddr</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.UmiAtomic"><code class="docutils literal notranslate"><span class="pre">UmiAtomic</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICADD"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICADD</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICAND"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICAND</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMAX"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICMAX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMAXU"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICMAXU</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMIN"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICMIN</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMINU"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICMINU</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICOR"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICSWAP"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICSWAP</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICXOR"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.UMI_REQ_ATOMICXOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.name"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiAtomic.value"><code class="docutils literal notranslate"><span class="pre">UmiAtomic.value</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.UmiCmd"><code class="docutils literal notranslate"><span class="pre">UmiCmd</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_INVALID"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_INVALID</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_ATOMIC"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_ATOMIC</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_ERROR"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_ERROR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_FUTURE0"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_FUTURE0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_LINK"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_LINK</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_POSTED"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_POSTED</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_RDMA"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_RDMA</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_READ"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_READ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_USER0"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_USER0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_REQ_WRITE"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_REQ_WRITE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_FUTURE0"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_FUTURE0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_FUTURE1"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_FUTURE1</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_LINK"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_LINK</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_READ"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_READ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_USER0"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_USER0</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_USER1"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_USER1</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.UMI_RESP_WRITE"><code class="docutils literal notranslate"><span class="pre">UmiCmd.UMI_RESP_WRITE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.name"><code class="docutils literal notranslate"><span class="pre">UmiCmd.name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#switchboard.UmiCmd.value"><code class="docutils literal notranslate"><span class="pre">UmiCmd.value</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.delete_queue"><code class="docutils literal notranslate"><span class="pre">delete_queue()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.delete_queues"><code class="docutils literal notranslate"><span class="pre">delete_queues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_atype"><code class="docutils literal notranslate"><span class="pre">umi_atype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_eof"><code class="docutils literal notranslate"><span class="pre">umi_eof()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_eom"><code class="docutils literal notranslate"><span class="pre">umi_eom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_ex"><code class="docutils literal notranslate"><span class="pre">umi_ex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_len"><code class="docutils literal notranslate"><span class="pre">umi_len()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_opcode"><code class="docutils literal notranslate"><span class="pre">umi_opcode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_opcode_to_str"><code class="docutils literal notranslate"><span class="pre">umi_opcode_to_str()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_pack"><code class="docutils literal notranslate"><span class="pre">umi_pack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_prot"><code class="docutils literal notranslate"><span class="pre">umi_prot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_qos"><code class="docutils literal notranslate"><span class="pre">umi_qos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switchboard.umi_size"><code class="docutils literal notranslate"><span class="pre">umi_size()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html">switchboard.umi module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html">switchboard.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.verilator.html">switchboard.verilator module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.icarus.html">switchboard.icarus module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html">switchboard.sbdut module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.loopback.html">switchboard.loopback module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html">switchboard.bitvector module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html">switchboard.uart_xactor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbtcp.html">switchboard.sbtcp module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">switchboard package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/switchboard.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-_switchboard">
+<span id="switchboard-package"></span><h1>switchboard package<a class="headerlink" href="#module-_switchboard" title="Link to this heading"></a></h1>
+<p>switchboard pybind11 plugin</p>
+<p><strong>Classes:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PySbPacket</span></code></a>(self[, destination, flags, data])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.PySbRx" title="_switchboard.PySbRx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PySbRx</span></code></a>(self[, uri, fresh, max_rate])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.PySbRxPcie" title="_switchboard.PySbRxPcie"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PySbRxPcie</span></code></a>(self[, uri, idx, bar_num, bdf])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.PySbTx" title="_switchboard.PySbTx"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PySbTx</span></code></a>(self[, uri, fresh, max_rate])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.PySbTxPcie" title="_switchboard.PySbTxPcie"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PySbTxPcie</span></code></a>(self[, uri, idx, bar_num, bdf])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PyUmi</span></code></a>(self[, tx_uri, rx_uri, fresh, max_rate])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PyUmiPacket</span></code></a>(self[, cmd, dstaddr, srcaddr, data])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.UmiAtomic" title="_switchboard.UmiAtomic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UmiAtomic</span></code></a>(self, value)</p></td>
+<td><p>Members:</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.UmiCmd" title="_switchboard.UmiCmd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UmiCmd</span></code></a>(self, value)</p></td>
+<td><p>Members:</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Functions:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.delete_queue" title="_switchboard.delete_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_queue</span></code></a>(arg0)</p></td>
+<td><p>Deletes an old queue.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.delete_queues" title="_switchboard.delete_queues"><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_queues</span></code></a>(arg0)</p></td>
+<td><p>Deletes a old queues specified in a list.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi_atype" title="_switchboard.umi_atype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_atype</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi_eof" title="_switchboard.umi_eof"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_eof</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi_eom" title="_switchboard.umi_eom"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_eom</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi_ex" title="_switchboard.umi_ex"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_ex</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi_len" title="_switchboard.umi_len"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_len</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi_opcode" title="_switchboard.umi_opcode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_opcode</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi_opcode_to_str" title="_switchboard.umi_opcode_to_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_opcode_to_str</span></code></a>(arg0)</p></td>
+<td><p>Returns a string representation of a UMI opcode</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi_pack" title="_switchboard.umi_pack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_pack</span></code></a>([opcode, atype, size, len, eom, ...])</p></td>
+<td><p>Returns a UMI command with the given parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi_prot" title="_switchboard.umi_prot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_prot</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#switchboard.umi_qos" title="_switchboard.umi_qos"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_qos</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.umi_size" title="_switchboard.umi_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_size</span></code></a>(arg0)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PySbPacket">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PySbPacket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket"><span class="pre">_switchboard.PySbPacket</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.uint8</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PySbPacket" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PySbPacket.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#switchboard.PySbPacket.data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PySbPacket.destination">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">destination</span></span><a class="headerlink" href="#switchboard.PySbPacket.destination" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PySbPacket.flags">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">flags</span></span><a class="headerlink" href="#switchboard.PySbPacket.flags" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PySbRx">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PySbRx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbRx" title="_switchboard.PySbRx"><span class="pre">_switchboard.PySbRx</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PySbRx" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PySbRx.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbRx" title="_switchboard.PySbRx"><span class="pre">_switchboard.PySbRx</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.PySbRx.init" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uri</strong> (<em>str        Name</em><em> of </em><em>the queue for the Rx object</em>)</p></li>
+<li><p><strong>fresh</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the queue specified by the <cite>uri</cite> parameter will get cleared before executing the simulation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PySbRx.recv">
+<span class="sig-name descname"><span class="pre">recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbRx" title="_switchboard.PySbRx"><span class="pre">_switchboard.PySbRx</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket"><span class="pre">_switchboard.PySbPacket</span></a></span></span><a class="headerlink" href="#switchboard.PySbRx.recv" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the function will pause execution until a packetcan be read. If false, the function will return None if a packetcannot be read immediately</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a UMI packet. If <cite>blocking</cite> is false, None will be returned If a packet cannot be read immediately.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket">PySbPacket</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PySbRxPcie">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PySbRxPcie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbRxPcie" title="_switchboard.PySbRxPcie"><span class="pre">_switchboard.PySbRxPcie</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bar_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PySbRxPcie" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PySbRxPcie.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbRxPcie" title="_switchboard.PySbRxPcie"><span class="pre">_switchboard.PySbRxPcie</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bar_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.PySbRxPcie.init" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PySbTx">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PySbTx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbTx" title="_switchboard.PySbTx"><span class="pre">_switchboard.PySbTx</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PySbTx" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PySbTx.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbTx" title="_switchboard.PySbTx"><span class="pre">_switchboard.PySbTx</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.PySbTx.init" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uri</strong> (<em>str</em>) – Name of the queue for the Tx object</p></li>
+<li><p><strong>fresh</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the queue specified by the <cite>uri</cite> parameter will get cleared before executing the simulation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PySbTx.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbTx" title="_switchboard.PySbTx"><span class="pre">_switchboard.PySbTx</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">py_packet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket"><span class="pre">_switchboard.PySbPacket</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#switchboard.PySbTx.send" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>py_packet</strong> (<a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket"><em>PySbPacket</em></a>) – UMI packet to send</p></li>
+<li><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the function will pause execution until the packet has been successfully sent.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PySbTxPcie">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PySbTxPcie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbTxPcie" title="_switchboard.PySbTxPcie"><span class="pre">_switchboard.PySbTxPcie</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bar_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PySbTxPcie" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PySbTxPcie.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PySbTxPcie" title="_switchboard.PySbTxPcie"><span class="pre">_switchboard.PySbTxPcie</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bar_num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.PySbTxPcie.init" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PyUmi">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PyUmi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tx_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rx_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PyUmi" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmi.atomic">
+<span class="sig-name descname"><span class="pre">atomic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.uint8</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#switchboard.PyUmi.atomic" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – 64-bit address atomic operation will be applied to.</p></li>
+<li><p><strong>data</strong> (<em>np.uint8</em><em>, </em><em>np.uint16</em><em>, </em><em>np.uint32</em><em>, </em><em>np.uint64</em>) – must so that the size of the atomic operation can be determined.</p></li>
+<li><p><strong>opcode</strong> (<em>str</em><em> or </em><em>switchboard.UmiAtomic value</em>) – Supported string values are ‘add’, ‘and’, ‘or’, ‘xor’, ‘max’, ‘min’, ‘minu’, ‘maxu’, and ‘swap’ (case-insensitive).</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – The UMI source address used for the atomic transaction. This is sometimes needed to make sure the response get routed to the right place.</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field in UMI Command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit protection mode field in UMI command</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The value returned by this function is the original value at addr, immediately before the atomic operation is applied.  The numpy dtype of the returned value will be the same as for <cite>data</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.uint8, np.uint16, np.uint32, np.uint64</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmi.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tx_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rx_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.PyUmi.init" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tx_uri</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the switchboard queue that write() and send() will send UMI packets to. Defaults to None, meaning “unused”.</p></li>
+<li><p><strong>rx_uri</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the switchboard queue that read() and recv() will receive UMI packets from. Defaults to None, meaning “unused”.</p></li>
+<li><p><strong>fresh</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the <cite>tx_uri</cite> and <cite>rx_uri</cite> will be cleared prior to running</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmi.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes_per_elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#switchboard.PyUmi.read" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – The 64-bit address read from</p></li>
+<li><p><strong>num_or_dtype</strong> (<em>int</em><em> or </em><em>numpy integer datatype</em>) – If a plain int, <cite>num_or_datatype</cite> specifies the number of bytes to be read.If a numpy integer datatype (np.uint8, np.uint16, etc.), num_or_datatypespecifies the data type to be returned.</p></li>
+<li><p><strong>dtype</strong> (<em>numpy integer datatype</em><em>, </em><em>optional</em>) – If num_or_dtype is a plain integer, the value returned by this functionwill be a numpy array of type <cite>dtype</cite>.  On the other hand, if num_or_dtypeis a numpy datatype, the value returned will be a scalar of that datatype.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – The UMI source address used for the read transaction. Thisis sometimes needed to make sure that reads get routed to the right place.</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em><em>, </em><em>optional</em>) – Indicates the maximum number of bytes that can be used for any individualUMI transaction. <cite>num_or_dtype</cite> can be larger than <cite>max_bytes</cite>, in whichcase the read will automatically be split into multiple transactions. Currently,the data payload size used by switchboard is 32 bytes, which is reflected in thedefault value of <cite>max_bytes</cite>.</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field in UMI Command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit protection mode field in UMI command</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmi.recv">
+<span class="sig-name descname"><span class="pre">recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><span class="pre">_switchboard.PyUmiPacket</span></a></span></span><a class="headerlink" href="#switchboard.PyUmi.recv" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the function will pause execution until a packetcan be read. If false, the function will return None if a packetcannot be read immediately</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a UMI packet. If <cite>blocking</cite> is false, None will be returned If a packet cannot be read immediately.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket">PySbPacket</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmi.send">
+<span class="sig-name descname"><span class="pre">send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">py_packet</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><span class="pre">_switchboard.PyUmiPacket</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#switchboard.PyUmi.send" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>py_packet</strong> (<a class="reference internal" href="#switchboard.PySbPacket" title="_switchboard.PySbPacket"><em>PySbPacket</em></a>) – UMI packet to send</p></li>
+<li><p><strong>blocking</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the function will pause execution until the packet has been successfully sent.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmi.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmi" title="_switchboard.PyUmi"><span class="pre">_switchboard.PyUmi</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bytes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posted</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progressbar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.PyUmi.write" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>addr</strong> (<em>int</em>) – 64-bit address that will be written to</p></li>
+<li><p><strong>data</strong> (<em>np.uint8</em><em>, </em><em>np.uint16</em><em>, </em><em>np.uint32</em><em>, </em><em>np.uint64</em><em>, or </em><em>np.array</em>) – Can be either a numpy integer type (e.g., np.uint32) or an numpy array of integer types (np.uint8, np.uin16, np.uint32, np.uint64, etc.). The <cite>data</cite> input may contain more than <cite>max_bytes</cite>, in which case the write will automatically be split into multiple transactions.</p></li>
+<li><p><strong>srcaddr</strong> (<em>int</em><em>, </em><em>optional</em>) – UMI source address used for the write transaction. This is sometimes needed to make the write response gets routed to the right place.</p></li>
+<li><p><strong>max_bytes</strong> (<em>int</em><em>, </em><em>optional</em>) – Indicates the maximum number of bytesthat can be used for any individual UMI transaction in bytes. Currently, the data payload size used by switchboard is 32 bytes, which is reflected in the default value of <cite>max_bytes</cite>.</p></li>
+<li><p><strong>posted</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, a write response will be received.</p></li>
+<li><p><strong>qos</strong> (<em>int</em><em>, </em><em>optional</em>) – 4-bit Quality of Service field in UMI Command</p></li>
+<li><p><strong>prot</strong> (<em>int</em><em>, </em><em>optional</em>) – 2-bit protection mode field in UMI command</p></li>
+<li><p><strong>progressbar</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, the number of packets written will be displayed via a progressbarin the terminal.</p></li>
+<li><p><strong>error</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, error out upon receiving an unexpected UMI response.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.PyUmiPacket">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">PyUmiPacket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><span class="pre">_switchboard.PyUmiPacket</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dstaddr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">srcaddr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.PyUmiPacket" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PyUmiPacket.cmd">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cmd</span></span><a class="headerlink" href="#switchboard.PyUmiPacket.cmd" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PyUmiPacket.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#switchboard.PyUmiPacket.data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PyUmiPacket.dstaddr">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dstaddr</span></span><a class="headerlink" href="#switchboard.PyUmiPacket.dstaddr" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="switchboard.PyUmiPacket.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><span class="pre">_switchboard.PyUmiPacket</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.PyUmiPacket" title="_switchboard.PyUmiPacket"><span class="pre">_switchboard.PyUmiPacket</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#switchboard.PyUmiPacket.merge" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.PyUmiPacket.srcaddr">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">srcaddr</span></span><a class="headerlink" href="#switchboard.PyUmiPacket.srcaddr" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">UmiAtomic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.UmiAtomic" title="_switchboard.UmiAtomic"><span class="pre">_switchboard.UmiAtomic</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.UmiAtomic" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<p>Members:</p>
+<p>UMI_REQ_ATOMICADD</p>
+<p>UMI_REQ_ATOMICAND</p>
+<p>UMI_REQ_ATOMICOR</p>
+<p>UMI_REQ_ATOMICXOR</p>
+<p>UMI_REQ_ATOMICMAX</p>
+<p>UMI_REQ_ATOMICMIN</p>
+<p>UMI_REQ_ATOMICMAXU</p>
+<p>UMI_REQ_ATOMICMINU</p>
+<p>UMI_REQ_ATOMICSWAP</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICADD">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICADD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICADD:</span> <span class="pre">0&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICADD" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICAND">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICAND</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICAND:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICAND" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICMAX">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICMAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICMAX:</span> <span class="pre">4&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMAX" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICMAXU">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICMAXU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICMAXU:</span> <span class="pre">6&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMAXU" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICMIN">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICMIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICMIN:</span> <span class="pre">5&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMIN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICMINU">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICMINU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICMINU:</span> <span class="pre">7&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICMINU" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICOR">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICOR:</span> <span class="pre">2&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICSWAP">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICSWAP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICSWAP:</span> <span class="pre">8&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICSWAP" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.UMI_REQ_ATOMICXOR">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMICXOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiAtomic.UMI_REQ_ATOMICXOR:</span> <span class="pre">3&gt;</span></em><a class="headerlink" href="#switchboard.UmiAtomic.UMI_REQ_ATOMICXOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#switchboard.UmiAtomic.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.UmiAtomic.value">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#switchboard.UmiAtomic.value" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="switchboard.UmiCmd">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">UmiCmd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#switchboard.UmiCmd" title="_switchboard.UmiCmd"><span class="pre">_switchboard.UmiCmd</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#switchboard.UmiCmd" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pybind11_object</span></code></p>
+<p>Members:</p>
+<p>UMI_INVALID</p>
+<p>UMI_REQ_READ</p>
+<p>UMI_REQ_WRITE</p>
+<p>UMI_REQ_POSTED</p>
+<p>UMI_REQ_RDMA</p>
+<p>UMI_REQ_ATOMIC</p>
+<p>UMI_REQ_USER0</p>
+<p>UMI_REQ_FUTURE0</p>
+<p>UMI_REQ_ERROR</p>
+<p>UMI_REQ_LINK</p>
+<p>UMI_RESP_READ</p>
+<p>UMI_RESP_WRITE</p>
+<p>UMI_RESP_USER0</p>
+<p>UMI_RESP_USER1</p>
+<p>UMI_RESP_FUTURE0</p>
+<p>UMI_RESP_FUTURE1</p>
+<p>UMI_RESP_LINK</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_INVALID">
+<span class="sig-name descname"><span class="pre">UMI_INVALID</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_INVALID:</span> <span class="pre">0&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_INVALID" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_ATOMIC">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ATOMIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_ATOMIC:</span> <span class="pre">9&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_ATOMIC" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_ERROR">
+<span class="sig-name descname"><span class="pre">UMI_REQ_ERROR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_ERROR:</span> <span class="pre">15&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_ERROR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_FUTURE0">
+<span class="sig-name descname"><span class="pre">UMI_REQ_FUTURE0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_FUTURE0:</span> <span class="pre">13&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_FUTURE0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_LINK">
+<span class="sig-name descname"><span class="pre">UMI_REQ_LINK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_LINK:</span> <span class="pre">47&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_LINK" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_POSTED">
+<span class="sig-name descname"><span class="pre">UMI_REQ_POSTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_POSTED:</span> <span class="pre">5&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_POSTED" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_RDMA">
+<span class="sig-name descname"><span class="pre">UMI_REQ_RDMA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_RDMA:</span> <span class="pre">7&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_RDMA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_READ">
+<span class="sig-name descname"><span class="pre">UMI_REQ_READ</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_READ:</span> <span class="pre">1&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_READ" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_USER0">
+<span class="sig-name descname"><span class="pre">UMI_REQ_USER0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_USER0:</span> <span class="pre">11&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_USER0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_REQ_WRITE">
+<span class="sig-name descname"><span class="pre">UMI_REQ_WRITE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_REQ_WRITE:</span> <span class="pre">3&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_REQ_WRITE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_FUTURE0">
+<span class="sig-name descname"><span class="pre">UMI_RESP_FUTURE0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_FUTURE0:</span> <span class="pre">10&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_FUTURE0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_FUTURE1">
+<span class="sig-name descname"><span class="pre">UMI_RESP_FUTURE1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_FUTURE1:</span> <span class="pre">12&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_FUTURE1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_LINK">
+<span class="sig-name descname"><span class="pre">UMI_RESP_LINK</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_LINK:</span> <span class="pre">14&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_LINK" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_READ">
+<span class="sig-name descname"><span class="pre">UMI_RESP_READ</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_READ:</span> <span class="pre">2&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_READ" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_USER0">
+<span class="sig-name descname"><span class="pre">UMI_RESP_USER0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_USER0:</span> <span class="pre">6&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_USER0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_USER1">
+<span class="sig-name descname"><span class="pre">UMI_RESP_USER1</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_USER1:</span> <span class="pre">8&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_USER1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.UMI_RESP_WRITE">
+<span class="sig-name descname"><span class="pre">UMI_RESP_WRITE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;UmiCmd.UMI_RESP_WRITE:</span> <span class="pre">4&gt;</span></em><a class="headerlink" href="#switchboard.UmiCmd.UMI_RESP_WRITE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#switchboard.UmiCmd.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="switchboard.UmiCmd.value">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#switchboard.UmiCmd.value" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.delete_queue">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">delete_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.delete_queue" title="Link to this definition"></a></dt>
+<dd><p>Deletes an old queue.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.delete_queues">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">delete_queues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#switchboard.delete_queues" title="Link to this definition"></a></dt>
+<dd><p>Deletes a old queues specified in a list.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_atype">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_atype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_atype" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_eof">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_eof</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_eof" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_eom">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_eom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_eom" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_ex">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_ex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_ex" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_len">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_len</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_len" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_opcode">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_opcode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_opcode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_opcode_to_str">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_opcode_to_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#switchboard.umi_opcode_to_str" title="Link to this definition"></a></dt>
+<dd><p>Returns a string representation of a UMI opcode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_pack">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opcode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eom</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ex</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_pack" title="Link to this definition"></a></dt>
+<dd><p>Returns a UMI command with the given parameters.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_prot">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_prot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_prot" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_qos">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_qos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_qos" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.umi_size">
+<span class="sig-prename descclassname"><span class="pre">_switchboard.</span></span><span class="sig-name descname"><span class="pre">umi_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#switchboard.umi_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.umi.html">switchboard.umi module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx"><code class="docutils literal notranslate"><span class="pre">UmiTxRx</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.atomic"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.atomic()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.gpio"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.gpio()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.init_queues"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.init_queues()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.read"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.read()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.recv"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.recv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.send"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.send()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.write"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.write()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx.write_readback"><code class="docutils literal notranslate"><span class="pre">UmiTxRx.write_readback()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.addr_aligned"><code class="docutils literal notranslate"><span class="pre">addr_aligned()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.check_int_in_range"><code class="docutils literal notranslate"><span class="pre">check_int_in_range()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.dtype2size"><code class="docutils literal notranslate"><span class="pre">dtype2size()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.nbytes2size"><code class="docutils literal notranslate"><span class="pre">nbytes2size()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.random_int_value"><code class="docutils literal notranslate"><span class="pre">random_int_value()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.random_umi_packet"><code class="docutils literal notranslate"><span class="pre">random_umi_packet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.umi.html#switchboard.umi.size2dtype"><code class="docutils literal notranslate"><span class="pre">size2dtype()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.util.html">switchboard.util module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.util.html#switchboard.util.ProcessCollection"><code class="docutils literal notranslate"><span class="pre">ProcessCollection</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html#switchboard.util.ProcessCollection.add"><code class="docutils literal notranslate"><span class="pre">ProcessCollection.add()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html#switchboard.util.ProcessCollection.wait"><code class="docutils literal notranslate"><span class="pre">ProcessCollection.wait()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.util.html#switchboard.util.binary_run"><code class="docutils literal notranslate"><span class="pre">binary_run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.util.html#switchboard.util.plusargs_to_args"><code class="docutils literal notranslate"><span class="pre">plusargs_to_args()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.verilator.html">switchboard.verilator module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.verilator.html#switchboard.verilator.verilator_run"><code class="docutils literal notranslate"><span class="pre">verilator_run()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.icarus.html">switchboard.icarus module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.icarus.html#switchboard.icarus.icarus_build_vpi"><code class="docutils literal notranslate"><span class="pre">icarus_build_vpi()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.icarus.html#switchboard.icarus.icarus_find_vpi"><code class="docutils literal notranslate"><span class="pre">icarus_find_vpi()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.icarus.html#switchboard.icarus.icarus_run"><code class="docutils literal notranslate"><span class="pre">icarus_run()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.icarus.html#switchboard.icarus.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.sbdut.html">switchboard.sbdut module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut"><code class="docutils literal notranslate"><span class="pre">SbDut</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut.build"><code class="docutils literal notranslate"><span class="pre">SbDut.build()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut.find_package"><code class="docutils literal notranslate"><span class="pre">SbDut.find_package()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut.find_sim"><code class="docutils literal notranslate"><span class="pre">SbDut.find_sim()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut.input_analog"><code class="docutils literal notranslate"><span class="pre">SbDut.input_analog()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut.package"><code class="docutils literal notranslate"><span class="pre">SbDut.package()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.SbDut.simulate"><code class="docutils literal notranslate"><span class="pre">SbDut.simulate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.carefully_add_plusarg"><code class="docutils literal notranslate"><span class="pre">carefully_add_plusarg()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbdut.html#switchboard.sbdut.metadata_str"><code class="docutils literal notranslate"><span class="pre">metadata_str()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.loopback.html">switchboard.loopback module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.loopback.html#switchboard.loopback.umi_loopback"><code class="docutils literal notranslate"><span class="pre">umi_loopback()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.bitvector.html">switchboard.bitvector module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.bitvector.html#switchboard.bitvector.BitVector"><code class="docutils literal notranslate"><span class="pre">BitVector</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html#switchboard.bitvector.BitVector.frombytes"><code class="docutils literal notranslate"><span class="pre">BitVector.frombytes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html#switchboard.bitvector.BitVector.tobytes"><code class="docutils literal notranslate"><span class="pre">BitVector.tobytes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.bitvector.html#switchboard.bitvector.slice_to_msb_lsb"><code class="docutils literal notranslate"><span class="pre">slice_to_msb_lsb()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.uart_xactor.html">switchboard.uart_xactor module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor"><code class="docutils literal notranslate"><span class="pre">uart_xactor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REGF_SR_RXEMPTY_MASK"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REGF_SR_RXEMPTY_MASK</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REGF_SR_RXFULL_MASK"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REGF_SR_RXFULL_MASK</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REGF_SR_TXEMPTY_MASK"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REGF_SR_TXEMPTY_MASK</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REGF_SR_TXFULL_MASK"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REGF_SR_TXFULL_MASK</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REG_RX"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REG_RX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REG_SR"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REG_SR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.REG_TX"><code class="docutils literal notranslate"><span class="pre">uart_xactor.REG_TX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.read"><code class="docutils literal notranslate"><span class="pre">uart_xactor.read()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.read_byte"><code class="docutils literal notranslate"><span class="pre">uart_xactor.read_byte()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.readline"><code class="docutils literal notranslate"><span class="pre">uart_xactor.readline()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.write"><code class="docutils literal notranslate"><span class="pre">uart_xactor.write()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html#switchboard.uart_xactor.uart_xactor.write_byte"><code class="docutils literal notranslate"><span class="pre">uart_xactor.write_byte()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="switchboard.sbtcp.html">switchboard.sbtcp module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.bytes2sb"><code class="docutils literal notranslate"><span class="pre">bytes2sb()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.convert_to_queue"><code class="docutils literal notranslate"><span class="pre">convert_to_queue()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.get_parser"><code class="docutils literal notranslate"><span class="pre">get_parser()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.normalize_inputs"><code class="docutils literal notranslate"><span class="pre">normalize_inputs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.normalize_inputs_and_outputs"><code class="docutils literal notranslate"><span class="pre">normalize_inputs_and_outputs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.normalize_outputs"><code class="docutils literal notranslate"><span class="pre">normalize_outputs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.parse_rule"><code class="docutils literal notranslate"><span class="pre">parse_rule()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.rule_matches"><code class="docutils literal notranslate"><span class="pre">rule_matches()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.run_client"><code class="docutils literal notranslate"><span class="pre">run_client()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.run_server"><code class="docutils literal notranslate"><span class="pre">run_server()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.sb2bytes"><code class="docutils literal notranslate"><span class="pre">sb2bytes()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.sb2tcp"><code class="docutils literal notranslate"><span class="pre">sb2tcp()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.start_tcp_bridge"><code class="docutils literal notranslate"><span class="pre">start_tcp_bridge()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.sbtcp.html#switchboard.sbtcp.tcp2sb"><code class="docutils literal notranslate"><span class="pre">tcp2sb()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Switchboard’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="switchboard.umi.html" class="btn btn-neutral float-right" title="switchboard.umi module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

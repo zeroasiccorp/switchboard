@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.sbtcp &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=828725f0"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../switchboard.html">switchboard package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">switchboard.sbtcp</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for switchboard.sbtcp</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="c1"># Command-line tool that bridges Switchboard packets over TCP.</span>
+
+<span class="c1"># Copyright (c) 2024 Zero ASIC Corporation</span>
+<span class="c1"># This code is licensed under Apache License 2.0 (see LICENSE for details)</span>
+
+<span class="c1"># reference for setting up Python TCP connections:</span>
+<span class="c1"># https://realpython.com/python-sockets/#echo-client-and-server</span>
+
+<span class="c1"># reference for non-blocking socket programming:</span>
+<span class="c1"># https://stackoverflow.com/a/16745561</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">switchboard</span> <span class="kn">import</span> <span class="n">PySbRx</span><span class="p">,</span> <span class="n">PySbTx</span><span class="p">,</span> <span class="n">PySbPacket</span>
+
+<span class="n">SB_PACKET_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">60</span>
+
+
+<div class="viewcode-block" id="tcp2sb">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.tcp2sb">[docs]</a>
+<span class="k">def</span> <span class="nf">tcp2sb</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># receive data from TCP</span>
+        <span class="n">data_rx_from_tcp</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">([])</span>
+
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_rx_from_tcp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">SB_PACKET_SIZE_BYTES</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">SB_PACKET_SIZE_BYTES</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_rx_from_tcp</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># connection is not alive anymore</span>
+                <span class="k">return</span>
+
+            <span class="n">data_rx_from_tcp</span> <span class="o">+=</span> <span class="n">b</span>
+
+        <span class="c1"># convert to a switchboard packet</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">bytes2sb</span><span class="p">(</span><span class="n">data_rx_from_tcp</span><span class="p">)</span>
+
+        <span class="c1"># figure out which queue this packet is going to</span>
+        <span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rule_matches</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">destination</span><span class="p">):</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No rule for destination </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">destination</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sb2tcp">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.sb2tcp">[docs]</a>
+<span class="k">def</span> <span class="nf">sb2tcp</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">conn</span><span class="p">):</span>
+    <span class="n">tcp_data_to_send</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">([])</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># get a switchboard packet</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># select input and queue its next run as last</span>
+            <span class="n">destination</span><span class="p">,</span> <span class="n">sbrx</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">destination</span><span class="p">,</span> <span class="n">sbrx</span><span class="p">))</span>
+
+            <span class="c1"># try to receive a packet from this input</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">sbrx</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">destination</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">destination</span>
+                <span class="k">break</span>
+
+        <span class="c1"># convert the switchboard packet to bytes</span>
+        <span class="n">tcp_data_to_send</span> <span class="o">=</span> <span class="n">sb2bytes</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="c1"># send the packet out over TCP</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">tcp_data_to_send</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">tcp_data_to_send</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># connection is not alive anymore</span>
+                <span class="k">return</span>
+
+            <span class="n">tcp_data_to_send</span> <span class="o">=</span> <span class="n">tcp_data_to_send</span><span class="p">[</span><span class="n">n</span><span class="p">:]</span></div>
+
+
+
+<div class="viewcode-block" id="run_client">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.run_client">[docs]</a>
+<span class="k">def</span> <span class="nf">run_client</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run_once</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Connect to a server, retrying until a connection is made.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># initialize PySbRx/PySbTx objects if needed</span>
+
+    <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">normalize_inputs_and_outputs</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">)</span>
+
+    <span class="c1"># connect to the server in a loop</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Waiting for server (host=</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s1">, port=</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">conn</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">IPPROTO_TCP</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">TCP_NODELAY</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">ConnectionRefusedError</span><span class="p">:</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Connected to server (host=</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s1">, port=</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># communicate with the server</span>
+        <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tcp2sb</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sb2tcp</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">run_once</span><span class="p">:</span>
+            <span class="k">break</span></div>
+
+
+
+<div class="viewcode-block" id="run_server">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.run_server">[docs]</a>
+<span class="k">def</span> <span class="nf">run_server</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run_once</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Accepts client connections in a loop until Ctrl-C is pressed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># initialize PySbRx/PySbTx objects if needed</span>
+
+    <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">normalize_inputs_and_outputs</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">)</span>
+
+    <span class="c1"># create the server socket</span>
+    <span class="n">server_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+    <span class="n">server_socket</span><span class="o">.</span><span class="n">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">SOL_SOCKET</span><span class="p">,</span>
+        <span class="n">socket</span><span class="o">.</span><span class="n">SO_REUSEADDR</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># allow port to be reused immediately</span>
+    <span class="n">server_socket</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+    <span class="n">server_socket</span><span class="o">.</span><span class="n">listen</span><span class="p">()</span>
+
+    <span class="c1"># accept client connections in a loop</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># accept a client</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Waiting for client (host=</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s1">, port=</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+        <span class="n">conn</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">server_socket</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Connected to client (host=</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s1">, port=</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># communicate with the client</span>
+        <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tcp2sb</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sb2tcp</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">conn</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">run_once</span><span class="p">:</span>
+            <span class="k">break</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_inputs_and_outputs">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.normalize_inputs_and_outputs">[docs]</a>
+<span class="k">def</span> <span class="nf">normalize_inputs_and_outputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Cannot specify both inputs and outputs&#39;</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">normalize_outputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Must specify either inputs or outputs&#39;</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">normalize_inputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_outputs">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.normalize_outputs">[docs]</a>
+<span class="k">def</span> <span class="nf">normalize_outputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="p">):</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">rule</span><span class="p">,</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">convert_to_queue</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">PySbTx</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">)</span>
+        <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">rule</span><span class="p">,</span> <span class="n">output</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">retval</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_inputs">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.normalize_inputs">[docs]</a>
+<span class="k">def</span> <span class="nf">normalize_inputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_rate</span><span class="p">):</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">destination</span><span class="p">,</span> <span class="nb">input</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">input</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">destination</span><span class="p">,</span> <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span>
+
+        <span class="nb">input</span> <span class="o">=</span> <span class="n">convert_to_queue</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="nb">input</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">PySbRx</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">)</span>
+
+        <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">destination</span><span class="p">,</span> <span class="nb">input</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">retval</span></div>
+
+
+
+<div class="viewcode-block" id="sb2bytes">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.sb2bytes">[docs]</a>
+<span class="k">def</span> <span class="nf">sb2bytes</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="c1"># construct a bytes object from a Switchboard packet</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">destination</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">flags</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">),</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+    <span class="p">))</span>
+    <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="bytes2sb">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.bytes2sb">[docs]</a>
+<span class="k">def</span> <span class="nf">bytes2sb</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+    <span class="c1"># construct a Switchboard packet from a bytes object</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">PySbPacket</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">arr</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="convert_to_queue">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.convert_to_queue">[docs]</a>
+<span class="k">def</span> <span class="nf">convert_to_queue</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="c1"># note that None is passed through</span>
+        <span class="k">return</span> <span class="n">q</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">max_rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;max_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_rate</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s1"> must be a string or </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">; got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rule_matches">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.rule_matches">[docs]</a>
+<span class="k">def</span> <span class="nf">rule_matches</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">rule</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">addr</span> <span class="o">==</span> <span class="n">rule</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="nb">range</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">rule</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;=</span> <span class="n">addr</span> <span class="o">&lt;</span> <span class="n">rule</span><span class="o">.</span><span class="n">stop</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="c1"># return True if any subrules match</span>
+        <span class="k">for</span> <span class="n">subrule</span> <span class="ow">in</span> <span class="n">rule</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rule_matches</span><span class="p">(</span><span class="n">subrule</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># otherwise return False</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unsupported rule type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="parse_rule">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.parse_rule">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">):</span>
+    <span class="n">subrules</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">subrule</span> <span class="ow">in</span> <span class="n">subrules</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">subrule</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s1">&#39;-&#39;</span> <span class="ow">in</span> <span class="n">subrule</span><span class="p">:</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="n">subrule</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">stop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stop</span><span class="p">)</span>
+            <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">subrule</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">retval</span></div>
+
+
+
+<div class="viewcode-block" id="start_tcp_bridge">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.start_tcp_bridge">[docs]</a>
+<span class="k">def</span> <span class="nf">start_tcp_bridge</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5555</span><span class="p">,</span>
+    <span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">run_once</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span>
+        <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span>
+        <span class="n">quiet</span><span class="o">=</span><span class="n">quiet</span><span class="p">,</span>
+        <span class="n">max_rate</span><span class="o">=</span><span class="n">max_rate</span><span class="p">,</span>
+        <span class="n">run_once</span><span class="o">=</span><span class="n">run_once</span>
+    <span class="p">)</span>
+
+    <span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;client&#39;</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">run_client</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;server&#39;</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">run_server</span>
+
+    <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">outputs</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">run_server</span>
+    <span class="k">elif</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">run_client</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Must specify &quot;outputs&quot; or &quot;inputs&quot; argument.&#39;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Could not determine whether to run the bridge as a client or server&#39;</span>
+
+    <span class="kn">import</span> <span class="nn">multiprocessing</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+
+
+<div class="viewcode-block" id="get_parser">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.get_parser">[docs]</a>
+<span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--outputs&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Space-separated&quot;</span>
+        <span class="s2">&quot; dictionary of queues to write to.  For example, 0:a.q 1-2:b.q 3,5-7:c.q *:d.q means&quot;</span>
+        <span class="s2">&quot; that packets sent to destination 0 are routed to a.q, packets sent to destinations 1&quot;</span>
+        <span class="s2">&quot; or 2 are routed to b.q, packets sent to destinations 3, 5, 6, or 7 are routed to c.q,&quot;</span>
+        <span class="s2">&quot; and all other packets are routed to d.q&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--inputs&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Space-separated&quot;</span>
+        <span class="s2">&quot; list of queues to read from, for example a.q b.q c.q&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5555</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;TCP port used for&quot;</span>
+        <span class="s2">&quot; sending and receiving packets.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IP address or hostname&quot;</span>
+        <span class="s2">&quot; used sending/receiving packets.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-q&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Quiet mode: doesn&#39;t print anything.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--max-rate&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Maximum rate at which&#39;</span>
+        <span class="s1">&#39; queues are read or written.&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--run-once&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Process only one connection&quot;</span>
+        <span class="s2">&quot; in server mode, then exit.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../switchboard.sbtcp.html#switchboard.sbtcp.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># parse command-line arguments</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># main logic</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">outputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># parse the output mapping</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
+            <span class="n">rule</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">parse_rule</span><span class="p">(</span><span class="n">rule</span><span class="p">),</span> <span class="n">output</span><span class="p">))</span>
+
+        <span class="n">run_server</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="n">quiet</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_rate</span><span class="p">,</span> <span class="n">run_once</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">run_once</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">run_client</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="n">quiet</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">q</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">max_rate</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must specify either --inputs or --outputs&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
