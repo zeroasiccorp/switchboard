@@ -616,8 +616,10 @@ class SbDut(siliconcompiler.Chip):
                     args=plusargs_to_args(plusargs) + args
                 )
 
-        # return a Popen object that one can wait() on
+        # Add newly created Popen object to subprocess list
         self.subprocess_list.append(p)
+
+        # return a Popen object that one can wait() on
 
         return p
 
