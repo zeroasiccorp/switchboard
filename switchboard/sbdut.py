@@ -216,6 +216,7 @@ class SbDut(siliconcompiler.Chip):
         # initialization
 
         self.intfs = {}
+        self.subprocess_list = []
 
         # simulator-agnostic settings
 
@@ -615,8 +616,39 @@ class SbDut(siliconcompiler.Chip):
                 )
 
         # return a Popen object that one can wait() on
+        self.subprocess_list.append(p)
 
         return p
+
+    def terminate(
+        self,
+        stop_timeout=10,
+        use_sigint=False
+    ):
+        if not self.subprocess_list:
+            raise Exception('No ongoing simulation.'
+                'Please call simulate before trying to terminate.')
+
+        for p in self.subprocess_list:
+            poll = p.poll()
+            if poll is not None:
+                # process has stopped
+                return
+
+            if use_sigint:
+                try:
+                    p.send_signal(signal.SIGINT)
+                    p.wait(stop_timeout)
+                    return
+                except:  # noqa: E722
+                    # if there is an exception for any reason, including
+                    # Ctrl-C during the wait() call, want to make sure
+                    # that the process is actually terminated
+                    pass
+
+            # if we get to this point, the process is still running
+            # and sigint didn't work (or we didn't try it)
+            p.terminate()
 
     def input_analog(
         self,
