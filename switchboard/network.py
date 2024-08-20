@@ -191,6 +191,9 @@ class SbNetwork:
 
         self.name = name
 
+        # keep track of processes started
+        self.process_collection = ProcessCollection()
+
         if cleanup:
             import atexit
 
@@ -520,10 +523,6 @@ class SbNetwork:
         if plusargs is None:
             plusargs = []
 
-        # keep track of processes started
-
-        process_collection = ProcessCollection()
-
         # create interface objects
 
         if self.single_netlist:
@@ -538,7 +537,7 @@ class SbNetwork:
                 plusargs = plusargs_processed
             process = self.dut.simulate(start_delay=start_delay, run=run,
                 intf_objs=intf_objs, plusargs=plusargs)
-            process_collection.add(process)
+            self.process_collection.add(process)
 
             if intf_objs:
                 self.intfs = self.dut.intfs
@@ -590,14 +589,21 @@ class SbNetwork:
                 process = block.simulate(start_delay=start_delay, run=inst.name,
                     intf_objs=False, plusargs=inst_plusargs)
 
-                process_collection.add(process)
+                self.process_collection.add(process)
 
         # start TCP bridges as needed
         for tcp_kwargs in self.tcp_intfs.values():
             process = start_tcp_bridge(**tcp_kwargs)
-            process_collection.add(process)
+            self.process_collection.add(process)
 
-        return process_collection
+        return self.process_collection
+
+    def terminate(
+        self,
+        stop_timeout=10,
+        use_sigint=False
+    ):
+        self.process_collection.terminate(stop_timeout=stop_timeout, use_sigint=use_sigint)
 
     def generate_inst_name(self, prefix):
         if prefix not in self.inst_name_counters:

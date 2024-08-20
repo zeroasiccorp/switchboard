@@ -21,7 +21,7 @@ from typing import List, Dict, Any
 from .switchboard import path as sb_path
 from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
-from .util import plusargs_to_args, binary_run
+from .util import plusargs_to_args, binary_run, ProcessCollection
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
@@ -217,7 +217,9 @@ class SbDut(siliconcompiler.Chip):
         # initialization
 
         self.intfs = {}
-        self.subprocess_list = []
+
+        # keep track of processes started
+        self.process_collection = ProcessCollection()
 
         # simulator-agnostic settings
 
@@ -617,7 +619,7 @@ class SbDut(siliconcompiler.Chip):
                 )
 
         # Add newly created Popen object to subprocess list
-        self.subprocess_list.append(p)
+        self.process_collection.add(p)
 
         # return a Popen object that one can wait() on
 
@@ -628,30 +630,7 @@ class SbDut(siliconcompiler.Chip):
         stop_timeout=10,
         use_sigint=False
     ):
-        if not self.subprocess_list:
-            raise Exception('No ongoing simulation.'
-                'Please call simulate before trying to terminate.')
-
-        for p in self.subprocess_list:
-            poll = p.poll()
-            if poll is not None:
-                # process has stopped
-                return
-
-            if use_sigint:
-                try:
-                    p.send_signal(signal.SIGINT)
-                    p.wait(stop_timeout)
-                    return
-                except:  # noqa: E722
-                    # if there is an exception for any reason, including
-                    # Ctrl-C during the wait() call, want to make sure
-                    # that the process is actually terminated
-                    pass
-
-            # if we get to this point, the process is still running
-            # and sigint didn't work (or we didn't try it)
-            p.terminate()
+        self.process_collection.terminate(stop_timeout=stop_timeout, use_sigint=use_sigint)
 
     def input_analog(
         self,
