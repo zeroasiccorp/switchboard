@@ -97,3 +97,35 @@ class ProcessCollection:
                 process.join()
             else:
                 raise Exception(f'Unknown process type: {type(process)}')
+
+    def terminate(
+        self,
+        stop_timeout=10,
+        use_sigint=False
+    ):
+        if not self.processes:
+            return
+
+        for p in self.processes:
+            if isinstance(p, ProcessCollection):
+                p.terminate(stop_timeout=stop_timeout, use_sigint=use_sigint)
+            else:
+                poll = p.poll()
+                if poll is not None:
+                    # process has stopped
+                    return
+
+                if use_sigint:
+                    try:
+                        p.send_signal(signal.SIGINT)
+                        p.wait(stop_timeout)
+                        return
+                    except:  # noqa: E722
+                        # if there is an exception for any reason, including
+                        # Ctrl-C during the wait() call, want to make sure
+                        # that the process is actually terminated
+                        pass
+
+                # if we get to this point, the process is still running
+                # and sigint didn't work (or we didn't try it)
+                p.terminate()

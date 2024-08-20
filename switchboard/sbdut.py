@@ -21,7 +21,7 @@ from typing import List, Dict, Any
 from .switchboard import path as sb_path
 from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
-from .util import plusargs_to_args, binary_run
+from .util import plusargs_to_args, binary_run, ProcessCollection
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
@@ -216,6 +216,9 @@ class SbDut(siliconcompiler.Chip):
         # initialization
 
         self.intfs = {}
+
+        # keep track of processes started
+        self.process_collection = ProcessCollection()
 
         # simulator-agnostic settings
 
@@ -614,9 +617,19 @@ class SbDut(siliconcompiler.Chip):
                     args=plusargs_to_args(plusargs) + args
                 )
 
+        # Add newly created Popen object to subprocess list
+        self.process_collection.add(p)
+
         # return a Popen object that one can wait() on
 
         return p
+
+    def terminate(
+        self,
+        stop_timeout=10,
+        use_sigint=False
+    ):
+        self.process_collection.terminate(stop_timeout=stop_timeout, use_sigint=use_sigint)
 
     def input_analog(
         self,
