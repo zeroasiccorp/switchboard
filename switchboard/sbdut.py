@@ -29,6 +29,7 @@ from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets,
 from .cmdline import get_cmdline_args
 
 import siliconcompiler
+import signal
 
 SB_DIR = sb_path()
 
