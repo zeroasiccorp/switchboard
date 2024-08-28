@@ -286,7 +286,7 @@ class SbDut(siliconcompiler.Chip):
 
             flowname = 'package'
 
-            self.package_flow = siliconcompiler.Flow(self, flowname)
+            self.package_flow = siliconcompiler.Flow(flowname)
 
             from siliconcompiler.tools.surelog import parse
             self.package_flow.node(flowname, 'parse', parse)
