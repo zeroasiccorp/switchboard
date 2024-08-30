@@ -84,6 +84,9 @@ setup(
         'console_scripts': [
             'sbtcp=switchboard.sbtcp:main',
             'switchboard=switchboard.switchboard:main'
+        ],
+        'pytest11': [
+            'switchboard=switchboard.pytest_plugin'
         ]
     },
     cmdclass={"build_ext": build_ext},
