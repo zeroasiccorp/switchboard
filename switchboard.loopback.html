@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>switchboard.loopback module &mdash; Switchboard 0.0.29 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=828725f0"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="switchboard.bitvector module" href="switchboard.bitvector.html" />
+    <link rel="prev" title="switchboard.sbdut module" href="switchboard.sbdut.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Switchboard
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="switchboard.html">switchboard package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbPacket"><code class="docutils literal notranslate"><span class="pre">PySbPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRx"><code class="docutils literal notranslate"><span class="pre">PySbRx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbRxPcie"><code class="docutils literal notranslate"><span class="pre">PySbRxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTx"><code class="docutils literal notranslate"><span class="pre">PySbTx</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PySbTxPcie"><code class="docutils literal notranslate"><span class="pre">PySbTxPcie</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmi"><code class="docutils literal notranslate"><span class="pre">PyUmi</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.PyUmiPacket"><code class="docutils literal notranslate"><span class="pre">PyUmiPacket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiAtomic"><code class="docutils literal notranslate"><span class="pre">UmiAtomic</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.UmiCmd"><code class="docutils literal notranslate"><span class="pre">UmiCmd</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queue"><code class="docutils literal notranslate"><span class="pre">delete_queue()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.delete_queues"><code class="docutils literal notranslate"><span class="pre">delete_queues()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_atype"><code class="docutils literal notranslate"><span class="pre">umi_atype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eof"><code class="docutils literal notranslate"><span class="pre">umi_eof()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_eom"><code class="docutils literal notranslate"><span class="pre">umi_eom()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_ex"><code class="docutils literal notranslate"><span class="pre">umi_ex()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_len"><code class="docutils literal notranslate"><span class="pre">umi_len()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode"><code class="docutils literal notranslate"><span class="pre">umi_opcode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_opcode_to_str"><code class="docutils literal notranslate"><span class="pre">umi_opcode_to_str()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_pack"><code class="docutils literal notranslate"><span class="pre">umi_pack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_prot"><code class="docutils literal notranslate"><span class="pre">umi_prot()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_qos"><code class="docutils literal notranslate"><span class="pre">umi_qos()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="switchboard.html#switchboard.umi_size"><code class="docutils literal notranslate"><span class="pre">umi_size()</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="switchboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="switchboard.umi.html">switchboard.umi module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.util.html">switchboard.util module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.verilator.html">switchboard.verilator module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.icarus.html">switchboard.icarus module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbdut.html">switchboard.sbdut module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">switchboard.loopback module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#switchboard.loopback.umi_loopback"><code class="docutils literal notranslate"><span class="pre">umi_loopback()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.bitvector.html">switchboard.bitvector module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.uart_xactor.html">switchboard.uart_xactor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="switchboard.sbtcp.html">switchboard.sbtcp module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Switchboard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="switchboard.html">switchboard package</a></li>
+      <li class="breadcrumb-item active">switchboard.loopback module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/switchboard.loopback.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-switchboard.loopback">
+<span id="switchboard-loopback-module"></span><h1>switchboard.loopback module<a class="headerlink" href="#module-switchboard.loopback" title="Link to this heading"></a></h1>
+<p><strong>Functions:</strong></p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#switchboard.loopback.umi_loopback" title="switchboard.loopback.umi_loopback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">umi_loopback</span></code></a>(umi[, packets])</p></td>
+<td><p>Performs a loopback test by sending packets into a block and checking that the packets received back are equivalent under the UMI split/merge rules.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="switchboard.loopback.umi_loopback">
+<span class="sig-prename descclassname"><span class="pre">switchboard.loopback.</span></span><span class="sig-name descname"><span class="pre">umi_loopback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">umi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/switchboard/loopback.html#umi_loopback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#switchboard.loopback.umi_loopback" title="Link to this definition"></a></dt>
+<dd><p>Performs a loopback test by sending packets into a block and checking that
+the packets received back are equivalent under the UMI split/merge rules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>umi</strong> (<a class="reference internal" href="switchboard.umi.html#switchboard.umi.UmiTxRx" title="switchboard.umi.UmiTxRx"><em>UmiTxRx</em></a>)</p></li>
+<li><p><strong>packets</strong> (<em>Integral</em><em> | </em><em>Iterable</em><em> | </em><em>Iterator</em>) – <p>Can be a number, a list of packets, or a generator.</p>
+<ul>
+<li><p>If this is a number, it represents the number of packets to send,
+which are generated with random_umi_packet. Any remaining arguments
+are passed directly to random_umi_packet.</p></li>
+<li><p>If this is an iterable (list, tuple, etc.), then it represents a list
+of packets to use for the test.  This is helpful if you want to use a very
+specific sequence of transactions.</p></li>
+<li><p>This can also be an iterator, which might be convenient if you want to
+send a very large number of packets without having to store them
+all in memory at once, e.g. (random_umi_packet() for _ in range(1000000))</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the number of packets is not positive or if the <cite>packets</cite> argument is empty</p></li>
+<li><p><strong>Exception</strong> – If a received packet does not match the corresponding transmitted packet</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="switchboard.sbdut.html" class="btn btn-neutral float-left" title="switchboard.sbdut module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="switchboard.bitvector.html" class="btn btn-neutral float-right" title="switchboard.bitvector module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Zero ASIC.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
