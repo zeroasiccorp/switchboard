@@ -83,6 +83,11 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-14
+
       - name: Check out Git repository
         uses: actions/checkout@v4
 
