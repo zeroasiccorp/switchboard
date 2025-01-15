@@ -1,5 +1,7 @@
 # axil example
 
+NOTE: This example is similar to the one in axil. However, while axil auto generates the testbenches using the `interfaces` feature of `SbDut`, this example demonstrates a manual testbench using the switchboard axil module.
+
 This example shows how to interact with AXI-Lite subordinates using switchboard.  A Python script writes random data to an AXI-Lite memory implementation ([this one](https://github.com/alexforencich/verilog-axi/blob/master/rtl/axil_ram.v)).  Data is then read back from the memory in a random order and compared against a local model.
 
 To run the example, type `make`.  You'll see a Verilator build, followed by output like this:
