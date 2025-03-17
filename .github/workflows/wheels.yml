@@ -47,7 +47,7 @@ jobs:
       with:
         platforms: all
 
-    - uses: pypa/cibuildwheel@v2.23.0
+    - uses: pypa/cibuildwheel@v2.23.1
       env:
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_BUILD: ${{ matrix.python-version }}*
