@@ -76,7 +76,7 @@ setup(
     version=__version__,
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     install_requires=install_reqs,
     extras_require=extras_req,
     ext_modules=ext_modules,
