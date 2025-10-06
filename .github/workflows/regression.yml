@@ -29,6 +29,15 @@ jobs:
           pip3 install .[test]
           pip3 install -r examples/requirements.txt
 
+      # Temporary workaround for versioning issues
+      - name: Update python packages
+        run: |
+            pip3 uninstall -y siliconcompiler
+            pip3 install siliconcompiler@git+https://github.com/siliconcompiler/siliconcompiler.git@main
+
+            pip3 uninstall -y umi
+            pip3 install umi@git+https://github.com/zeroasiccorp/umi.git@main
+
       - name: Run pytest
         working-directory: examples
         run: |
@@ -60,6 +69,15 @@ jobs:
       - name: Install Switchboard Python package
         run: |
           pip3 install .
+
+      # Temporary workaround for versioning issues
+      - name: Update python packages
+        run: |
+            pip3 uninstall -y siliconcompiler
+            pip3 install siliconcompiler@git+https://github.com/siliconcompiler/siliconcompiler.git@main
+
+            pip3 uninstall -y umi
+            pip3 install umi@git+https://github.com/zeroasiccorp/umi.git@main
 
       - name: Setup GIT to pull from https
         working-directory: examples

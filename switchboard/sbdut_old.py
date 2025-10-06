@@ -16,7 +16,7 @@ import subprocess
 
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any
 
 from .switchboard import path as sb_path
 from .verilator import verilator_run
@@ -28,17 +28,16 @@ from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets,
     normalize_parameters, create_intf_objs)
 from .cmdline import get_cmdline_args
 
-from siliconcompiler import Design, Sim
-
+import siliconcompiler
 
 SB_DIR = sb_path()
 
 
-class SbDut(Sim):
+class SbDut(siliconcompiler.Chip):
     def __init__(
         self,
-        design: Union[Design, str] = None,
-        tool: str = 'icarus',
+        design: str = 'testbench',
+        tool: str = 'verilator',
         default_main: bool = True,
         trace: bool = True,
         trace_type: str = 'vcd',
@@ -68,18 +67,85 @@ class SbDut(Sim):
         suffix=None,
         threads=None
     ):
+        """
+        Parameters
+        ----------
+        design: string
+            Name of the top level chip design module.
 
-        super().__init__(design)
-        self.add_fileset("rtl")
+        tool: string, optional
+            Which tool to use to compile simulator.  Options are "verilator" or
+            "icarus".
 
-        top_lvl_module_name = None
-        main_filesets = self.option.get_fileset()
-        if main_filesets and len(main_filesets) != 0:
-            main_fileset = main_filesets[0]
-            top_lvl_module_name = design.get_topmodule(
-                fileset=main_fileset
-            )
+        default_main: bool, optional
+            If True, the default testbench.cc will be used and does not need to
+            be provided via the add() function
 
+        trace: bool, optional
+            If true, a waveform dump file will be produced using the file type
+            specified by `trace_type`.
+
+        trace_type: str, optional
+            File type for the waveform dump file. Defaults to vcd.
+
+        module: str, optional
+            module containing the siliconcompiler driver for this object
+
+        fpga: bool, optional
+            If True, compile using switchboard's library of modules for FPGA emulation,
+            rather than the modules for RTL simulation.
+
+        xyce: bool, optional
+            If True, compile for xyce co-simulation.
+
+        frequency: float, optional
+            If provided, the default frequency of the clock generated in the testbench,
+            in seconds.
+
+        period: float, optional
+            If provided, the default period of the clock generated in the testbench,
+            in seconds.
+
+        max_rate: float, optional
+            If provided, the maximum real-world rate that the simulation is allowed to run
+            at, in Hz.  Can be useful to encourage time-sharing between many processes and
+            for performance modeling when latencies are large and/or variable.
+
+        start_delay: float, optional
+            If provided, the real-world time to delay before the first clock tick in the
+            simulation.  Can be useful to make sure that programs start at approximately
+            the same time and to prevent simulations from stepping on each other's toes
+            when starting up.
+
+        warnings: List[str], optional
+            If provided, a list of tool-specific warnings to enable.  If not provided, a default
+            set of warnings will be included.  Warnings can be disabled by setting this argument
+            to an empty list.
+
+        cmdline: bool, optional
+            If True, accept configuration settings from the command line, such as "--trace",
+            "--tool TOOL", and "--fast".
+
+        fast: bool, optional
+            If True, the simulation binary will not be rebuilt if an existing one is found.
+            The setting here can be overridden when build() is called by setting its argument
+            with the same name.
+
+        extra_args: dict, optional
+            If provided and cmdline=True, a dictionary of additional command line arguments
+            to be made available.  The keys of the dictionary are the arguments ("-n", "--test",
+            etc.) and the values are themselves dictionaries that contain keyword arguments
+            accepted by argparse ("action": "store_true", "default": 42, etc.)
+        """
+
+        # call the super constructor
+
+        if autowrap and (not subcomponent):
+            toplevel = 'testbench'
+        else:
+            toplevel = design
+
+        super().__init__(toplevel)
 
         # parse command-line options if desired
 
@@ -132,14 +198,14 @@ class SbDut(Sim):
         self.autowrap = autowrap
 
         if (suffix is None) and subcomponent:
-            suffix = f'_unq_{top_lvl_module_name}'
+            suffix = f'_unq_{design}'
 
         self.suffix = suffix
 
         if suffix is not None:
-            self.dut = f'{top_lvl_module_name}{suffix}'
+            self.dut = f'{design}{suffix}'
         else:
-            self.dut = top_lvl_module_name
+            self.dut = design
 
         self.parameters = normalize_parameters(parameters)
         self.intf_defs = normalize_interfaces(interfaces)
@@ -165,48 +231,177 @@ class SbDut(Sim):
             if subcomponent:
                 # the subcomponent build flow is tool-agnostic, producing a single Verilog
                 # file as output, as opposed to a simulator binary
-                builddir = buildroot / metadata_str(
-                    design=top_lvl_module_name,
-                    parameters=parameters
-                )
+                builddir = buildroot / metadata_str(design=design, parameters=parameters)
             else:
-                builddir = buildroot / metadata_str(
-                    design=top_lvl_module_name,
-                    parameters=parameters,
-                    tool=tool,
-                    trace=trace,
-                    trace_type=trace_type,
-                    threads=threads
+                builddir = buildroot / metadata_str(design=design, parameters=parameters,
+                    tool=tool, trace=trace, trace_type=trace_type, threads=threads)
+
+        self.set('option', 'builddir', str(Path(builddir).resolve()))
+
+        self.set('option', 'clean', True)  # preserve old behavior
+
+        if not subcomponent:
+            if fpga:
+                # library dirs
+                self.set('option', 'ydir', sb_path() / 'verilog' / 'fpga')
+                self.add('option', 'ydir', sb_path() / 'deps' / 'verilog-axi' / 'rtl')
+
+                # include dirs
+                self.set('option', 'idir', sb_path() / 'verilog' / 'fpga' / 'include')
+
+            for opt in ['ydir', 'idir']:
+                if not fpga:
+                    self.set('option', opt, sb_path() / 'verilog' / 'sim')
+                self.add('option', opt, sb_path() / 'verilog' / 'common')
+
+            if trace:
+                self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace', True)
+                self.add('option', 'define', 'SB_TRACE')
+
+            if self.trace_type == 'fst':
+                self.add('option', 'define', 'SB_TRACE_FST')
+
+            if tool == 'icarus':
+                self._configure_icarus()
+            else:
+                if module is None:
+                    if tool == 'verilator':
+                        module = 'siliconcompiler'
+                    else:
+                        raise ValueError('Must specify the "module" argument,'
+                            ' which is the name of the module containing the'
+                            ' SiliconCompiler driver for this simulator.')
+
+                self._configure_build(
+                    module=module,
+                    default_main=default_main,
+                    fpga=fpga
                 )
 
-        self.option.set_builddir(str(Path(builddir).resolve()))
-        # preserve old behavior
-        self.option.set_clean(True)
+            if xyce:
+                self._configure_xyce()
+        else:
+            # special mode that produces a standalone Verilog netlist
+            # rather than building/running a simulation
 
+            flowname = 'package'
 
-        if self.tool == 'icarus':
-            self._configure_icarus()
+            self.package_flow = siliconcompiler.Flow(flowname)
 
+            from siliconcompiler.tools.surelog import parse
+            self.package_flow.node(flowname, 'parse', parse)
 
+            from .sc.sed import remove
+            self.package_flow.node(flowname, 'remove', remove)
 
+            from .sc.morty import uniquify
+            self.package_flow.node(flowname, 'uniquify', uniquify)
+
+            self.package_flow.edge(flowname, 'parse', 'remove')
+            self.package_flow.edge(flowname, 'remove', 'uniquify')
+
+            self.use(self.package_flow)
+            self.set('option', 'flow', flowname)
+
+    def _configure_build(
+        self,
+        module: str,
+        default_main: bool = False,
+        fpga: bool = False
+    ):
+        if not fpga:
+            self.input(SB_DIR / 'dpi' / 'switchboard_dpi.cc')
+
+        if default_main and (self.tool == 'verilator'):
+            self.input(SB_DIR / 'verilator' / 'testbench.cc')
+
+        if fpga and (self.tool == 'verilator'):
+            self.set('tool', 'verilator', 'task', 'compile', 'file', 'config',
+                sb_path() / 'verilator' / 'config.vlt')
+            self.set('tool', 'verilator', 'task', 'compile', 'warningoff', 'TIMESCALEMOD')
+
+        # enable specific warnings that aren't included by default
+        if self.tool == 'verilator':
+            if self.warnings is None:
+                warnings = ['BLKSEQ']
+            else:
+                warnings = self.warnings
+
+            for warning in warnings:
+                self.set('tool', 'verilator', 'task', 'compile', 'option', f'-Wwarn-{warning}')
+
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'cflags',
+            ['-Wno-unknown-warning-option'])
+        self.set('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', [SB_DIR / 'cpp'])
+        self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
+
+        if self.trace and (self.tool == 'verilator'):
+            self.set('tool', 'verilator', 'task', 'compile', 'var', 'trace_type', self.trace_type)
+
+        if self.tool == 'verilator':
+            timeunit = self.timeunit
+            timeprecision = self.timeprecision
+
+            if (timeunit is not None) or (timeprecision is not None):
+                if timeunit is None:
+                    timeunit = '1ps'  # default from Verilator documentation
+
+                if timeprecision is None:
+                    timeprecision = '1ps'  # default from Verilator documentation
+
+                timescale = f'{timeunit}/{timeprecision}'
+                self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
+                self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
+
+        if (self.threads is not None) and (self.tool == 'verilator'):
+            self.add('tool', 'verilator', 'task', 'compile', 'option', '--threads')
+            self.add('tool', 'verilator', 'task', 'compile', 'option', str(self.threads))
+
+        self.set('option', 'libext', ['v', 'sv'])
+
+        # Set up flow that compiles RTL
+        # TODO: this will be built into SC
+        self.set('option', 'flow', 'simflow')
+
+        compile = importlib.import_module(f'{module}.tools.{self.tool}.compile')
+        self.node('simflow', 'compile', compile)
 
     def _configure_icarus(self):
+        self.add('option', 'libext', 'sv')
+        self.set('tool', 'icarus', 'task', 'compile', 'var', 'verilog_generation', '2012')
+
         # use dvflow to execute Icarus, but set steplist so we don't run sim
-        from siliconcompiler.flows.dvflow import DVFlow
+        from siliconcompiler.flows import dvflow
+        self.use(dvflow)
 
-        self.set_flow(DVFlow(tool="icarus"))
-        from siliconcompiler.tools import get_task
-        from siliconcompiler.tools.icarus.compile import CompileTask
-        get_task(self, filter=CompileTask).set("var", "verilog_generation", "2012")
-
+        self.set('option', 'flow', 'dvflow')
         self.set('option', 'to', 'compile')
+
+    def _configure_xyce(self):
+        if self.xyce:
+            # already configured, so return early
+            return
+
+        self.add('option', 'define', 'SB_XYCE')
+
+        if self.tool != 'icarus':
+            self.input(SB_DIR / 'dpi' / 'xyce_dpi.cc')
+
+            xyce_c_includes, xyce_ld_flags = xyce_flags()
+
+            self.add('tool', self.tool, 'task', 'compile', 'dir', 'cincludes', xyce_c_includes)
+            self.add('tool', self.tool, 'task', 'compile', 'var', 'ldflags', xyce_ld_flags)
+
+        # indicate that build is configured for Xyce.  for Icarus simulation, this flag is used
+        # to determine whether a VPI object should be built for Xyce
+        self.xyce = True
 
     def find_sim(self):
         if self.tool == 'icarus':
             result_kind = 'vvp'
         else:
             result_kind = 'vexe'
-        print(f"results found = {self.find_result(result_kind, step='compile')}")
+
         return self.find_result(result_kind, step='compile')
 
     def build(self, cwd: str = None, fast: bool = None):
@@ -228,10 +423,9 @@ class SbDut(Sim):
         if self.tool == 'icarus':
             if (not fast) or (icarus_find_vpi(cwd, name='switchboard') is None):
                 icarus_build_vpi(cwd, name='switchboard')
-    
-            #if self.xyce and ((not fast) or (icarus_find_vpi(cwd, name='xyce') is None)):
-            #    cincludes, ldflags = xyce_flags()
-            #    icarus_build_vpi(cwd, name='xyce', cincludes=cincludes, ldflags=ldflags)
+            if self.xyce and ((not fast) or (icarus_find_vpi(cwd, name='xyce') is None)):
+                cincludes, ldflags = xyce_flags()
+                icarus_build_vpi(cwd, name='xyce', cincludes=cincludes, ldflags=ldflags)
 
         # if "fast" is set, then we can return early if the
         # simulation binary already exists
@@ -240,7 +434,31 @@ class SbDut(Sim):
             if sim is not None:
                 return sim
 
-        assert self.run()
+        # build the wrapper if needed
+        if self.autowrap:
+            from .autowrap import autowrap
+
+            filename = Path(self.get('option', 'builddir')).resolve() / 'testbench.sv'
+
+            filename.parent.mkdir(exist_ok=True, parents=True)
+
+            instance = f'{self.dut}_i'
+
+            autowrap(
+                instances={instance: self.dut},
+                parameters={instance: self.parameters},
+                interfaces={instance: self.intf_defs},
+                clocks={instance: self.clocks},
+                resets={instance: self.resets},
+                tieoffs={instance: self.tieoffs},
+                filename=filename
+            )
+
+            self.input(filename)
+
+        # if we get to this point, then we need to rebuild
+        # the simulation binary
+        self.run()
 
         return self.find_sim()
 

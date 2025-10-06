@@ -10,7 +10,10 @@
 import numpy as np
 from pathlib import Path
 from switchboard import SbDut, UmiTxRx, binary_run
-from umi import sumi
+from umi.sumi import Fifo, RAM
+
+from siliconcompiler import Design
+
 
 THIS_DIR = Path(__file__).resolve().parent
 
@@ -83,20 +86,45 @@ def python_intf(umi):
     assert val2 == 0xCD
 
 
+class UmiRam(Design):
+
+    def __init__(self):
+        super().__init__("testbench")
+
+        from switchboard import sb_path
+
+        from switchboard.verilog.common.common import Common
+        from switchboard.verilog.sim.sim import Sim as SB_SIM
+
+        dr_path = sb_path() / ".." / "examples" / "umiram"
+
+        self.set_dataroot('umiram', dr_path)
+
+        files = [
+            "testbench.sv",
+            "../common/verilog/umiram.sv"
+        ]
+
+        deps = [Common(), SB_SIM(), Fifo(), RAM()]
+
+        with self.active_fileset('rtl'):
+            self.set_topmodule("testbench")
+            for item in files:
+                self.add_file(item)
+            for item in deps:
+                self.add_depfileset(item)
+
+
 def build_testbench():
     extra_args = {
         '--mode': dict(default='python', choices=['python', 'cpp'],
         help='Programming language used for the test stimulus.')
     }
 
-    dut = SbDut('testbench', cmdline=True, trace_type='fst', extra_args=extra_args)
+    dut = SbDut(UmiRam())
+    dut.option.set_nodashboard(True)
 
-    dut.input('testbench.sv')
-    dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
-
-    dut.use(sumi)
-
-    dut.build()
+    print(f"dut.build() output = {dut.build()}")
 
     return dut
 
@@ -111,12 +139,12 @@ def main():
     # launch the simulation
     dut.simulate()
 
-    if dut.args.mode == 'python':
-        python_intf(umi)
-    elif dut.args.mode == 'cpp':
-        binary_run(THIS_DIR / 'client').wait()
-    else:
-        raise ValueError(f'Invalid mode: {dut.args.mode}')
+    #if dut.args.mode == 'python':
+    #python_intf(umi)
+    #elif dut.args.mode == 'cpp':
+    binary_run(THIS_DIR / 'client').wait()
+    #else:
+    #    raise ValueError(f'Invalid mode: {dut.args.mode}')
 
 
 if __name__ == '__main__':
