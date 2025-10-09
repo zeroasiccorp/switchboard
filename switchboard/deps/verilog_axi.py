@@ -3,9 +3,10 @@ from siliconcompiler import Design
 
 class VerilogAxi(Design):
     def __init__(self):
+        super().__init__('verilog_axis')
 
         self.set_dataroot(
-            name="verilog_axi",
+            name="verilog_axis",
             path="git+https://github.com/alexforencich/verilog-axis.git@master",
             tag="25912d48fec2abbf3565bbefe402c1cff99fe470"
         )
@@ -18,5 +19,5 @@ class VerilogAxi(Design):
 
         with self.active_fileset('rtl'):
             for item in files:
-                self.add_files(item)
+                self.add_file(item)
 

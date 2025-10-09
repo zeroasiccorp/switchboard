@@ -1,5 +1,7 @@
 from siliconcompiler import Design
 
+from umi.sumi import Unpack, Pack
+
 from switchboard import sb_path
 
 
@@ -12,7 +14,7 @@ class Common(Design):
             "uart_xactor.sv",
             "umi_gpio.v"
         ]
-        deps = []
+        deps = [Unpack(), Pack()]
 
         self.set_dataroot('sb_verilog_common', sb_path() / "verilog" / "common")
 
