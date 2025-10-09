@@ -1,10 +1,12 @@
 from siliconcompiler import Design
 
-from switchboard import path as sb_path
+from switchboard import sb_path
 
 
 class FPGA(Design):
     def __init__(self):
+        super().__init__("FPGA")
+
         files = [
             "axi_reader.sv"
         ]
@@ -14,6 +16,6 @@ class FPGA(Design):
 
         with self.active_fileset('rtl'):
             for item in files:
-                self.add_files(item)
+                self.add_file(item)
             for item in deps:
                 self.add_depfileset(item)

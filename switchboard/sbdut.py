@@ -16,17 +16,16 @@ import subprocess
 
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Tuple
 
 from .switchboard import path as sb_path
-from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
+from .verilator_run import verilator_run
 from .util import plusargs_to_args, binary_run, ProcessCollection
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
     normalize_parameters, create_intf_objs)
-from .cmdline import get_cmdline_args
 
 from siliconcompiler import Design, Sim
 
@@ -38,6 +37,7 @@ class SbDut(Sim):
     def __init__(
         self,
         design: Union[Design, str] = None,
+        fileset: str = 'verilator',
         tool: str = 'icarus',
         default_main: bool = True,
         trace: bool = True,
@@ -52,9 +52,7 @@ class SbDut(Sim):
         timeunit: str = None,
         timeprecision: str = None,
         warnings: List[str] = None,
-        cmdline: bool = False,
         fast: bool = False,
-        extra_args: dict = None,
         autowrap: bool = False,
         parameters=None,
         interfaces=None,
@@ -70,38 +68,17 @@ class SbDut(Sim):
     ):
 
         super().__init__(design)
-        self.add_fileset("rtl")
+        self.add_fileset(fileset)
 
-        top_lvl_module_name = None
+        self.fileset = fileset
+
+        self.top_lvl_module_name = None
         main_filesets = self.option.get_fileset()
         if main_filesets and len(main_filesets) != 0:
             main_fileset = main_filesets[0]
-            top_lvl_module_name = design.get_topmodule(
+            self.top_lvl_module_name = design.get_topmodule(
                 fileset=main_fileset
             )
-
-
-        # parse command-line options if desired
-
-        if cmdline:
-            self.args = get_cmdline_args(tool=tool, trace=trace, trace_type=trace_type,
-                frequency=frequency, period=period, fast=fast, max_rate=max_rate,
-                start_delay=start_delay, threads=threads, extra_args=extra_args)
-        elif args is not None:
-            self.args = args
-        else:
-            self.args = None
-
-        if self.args is not None:
-            trace = self.args.trace
-            trace_type = self.args.trace_type
-            fast = self.args.fast
-            tool = self.args.tool
-            frequency = self.args.frequency
-            period = self.args.period
-            max_rate = self.args.max_rate
-            start_delay = self.args.start_delay
-            threads = self.args.threads
 
         # input validation
 
@@ -132,14 +109,14 @@ class SbDut(Sim):
         self.autowrap = autowrap
 
         if (suffix is None) and subcomponent:
-            suffix = f'_unq_{top_lvl_module_name}'
+            suffix = f'_unq_{self.top_lvl_module_name}'
 
         self.suffix = suffix
 
         if suffix is not None:
-            self.dut = f'{top_lvl_module_name}{suffix}'
+            self.dut = f'{self.top_lvl_module_name}{suffix}'
         else:
-            self.dut = top_lvl_module_name
+            self.dut = self.top_lvl_module_name
 
         self.parameters = normalize_parameters(parameters)
         self.intf_defs = normalize_interfaces(interfaces)
@@ -166,12 +143,12 @@ class SbDut(Sim):
                 # the subcomponent build flow is tool-agnostic, producing a single Verilog
                 # file as output, as opposed to a simulator binary
                 builddir = buildroot / metadata_str(
-                    design=top_lvl_module_name,
+                    design=self.top_lvl_module_name,
                     parameters=parameters
                 )
             else:
                 builddir = buildroot / metadata_str(
-                    design=top_lvl_module_name,
+                    design=self.top_lvl_module_name,
                     parameters=parameters,
                     tool=tool,
                     trace=trace,
@@ -183,12 +160,51 @@ class SbDut(Sim):
         # preserve old behavior
         self.option.set_clean(True)
 
+        if not subcomponent:
+            if self.tool == 'icarus':
+                self._configure_icarus()
+            elif self.tool == 'verilator':
+                self._configure_verilator()
+        else:
+            flowname = package
 
-        if self.tool == 'icarus':
-            self._configure_icarus()
+    def _configure_verilator(self):
+        from siliconcompiler.flows.dvflow import DVFlow
 
+        self.set_flow(DVFlow(tool="verilator"))
+        from siliconcompiler.tools import get_task
+        from siliconcompiler.tools.verilator.compile import CompileTask
+        from siliconcompiler.tools.verilator import VerilatorTask
 
+        get_task(self, filter=VerilatorTask).add_warningoff("TIMESCALEMOD")
 
+        get_task(self, filter=CompileTask).set("var", "cincludes", [SB_DIR / 'cpp'])
+        #self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
+
+        if self.trace and (self.tool == 'verilator'):
+            get_task(self, filter=CompileTask).set("var", "trace_type", self.trace_type)
+
+        #if self.tool == 'verilator':
+        #    timeunit = self.timeunit
+        #    timeprecision = self.timeprecision
+
+        #    if (timeunit is not None) or (timeprecision is not None):
+        #        if timeunit is None:
+        #            timeunit = '1ps'  # default from Verilator documentation
+
+        #        if timeprecision is None:
+        #            timeprecision = '1ps'  # default from Verilator documentation
+
+        #        timescale = f'{timeunit}/{timeprecision}'
+        #        self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
+        #        self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
+
+        #if (self.threads is not None) and (self.tool == 'verilator'):
+        #    self.add('tool', 'verilator', 'task', 'compile', 'option', '--threads')
+        #    self.add('tool', 'verilator', 'task', 'compile', 'option', str(self.threads))
+
+        # Set up flow that compiles RTL
+        self.set('option', 'to', 'compile')
 
     def _configure_icarus(self):
         # use dvflow to execute Icarus, but set steplist so we don't run sim
@@ -239,6 +255,35 @@ class SbDut(Sim):
             sim = self.find_sim()
             if sim is not None:
                 return sim
+
+        # build the wrapper if needed
+        if self.autowrap:
+            from .autowrap import autowrap
+
+            filename = Path(self.option.get_builddir()).resolve() / 'testbench.sv'
+
+            filename.parent.mkdir(exist_ok=True, parents=True)
+
+            instance = f'{self.top_lvl_module_name}_i'
+
+            autowrap(
+                instances={instance: self.top_lvl_module_name},
+                parameters={instance: self.parameters},
+                interfaces={instance: self.intf_defs},
+                clocks={instance: self.clocks},
+                resets={instance: self.resets},
+                tieoffs={instance: self.tieoffs},
+                filename=filename
+            )
+
+            from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+            with self.design.active_fileset(self.fileset):
+                self.design.set_topmodule("testbench")
+                self.design.add_depfileset(SwitchboardSim())
+                self.design.add_file(str(filename))
+
+            self.set_design(self.design)
+            self.add_fileset(self.fileset)
 
         assert self.run()
 
