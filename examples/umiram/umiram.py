@@ -37,8 +37,10 @@ class UmiRam(Design):
 
         with self.active_fileset('verilator'):
             self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
             self.add_depfileset(self, "rtl")
 
         with self.active_fileset('icarus'):
             self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
             self.add_depfileset(self, "rtl")

@@ -4,19 +4,6 @@
 from siliconcompiler import Task
 
 
-def setup(chip):
-    tool = 'morty'
-
-    chip.set('tool', tool, 'exe', 'morty')
-    chip.set('tool', tool, 'vendor', tool)
-
-    chip.set('tool', tool, 'vswitch', '--version')
-
-
-def parse_version(stdout):
-    return stdout.split()[-1]
-
-
 class UniquifyVerilogModules(Task):
 
     def __init__(self):
@@ -63,7 +50,6 @@ class UniquifyVerilogModules(Task):
 
         suffix = self.get("var", "suffix")
         if suffix:
-            print(f"got suffix = {suffix}")
             cmdlist.extend(['--suffix', suffix])
 
         out_file = f"outputs/{self.design_topmodule}.sv"

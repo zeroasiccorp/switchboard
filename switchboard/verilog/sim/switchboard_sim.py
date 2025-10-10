@@ -45,3 +45,4 @@ class SwitchboardSim(Design):
 
         with self.active_fileset("icarus"):
             self.add_depfileset(self, "rtl")
+            self.add_define("__ICARUS__")

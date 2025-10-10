@@ -26,6 +26,7 @@ class SedRemove(Task):
 
         self.set_exe("sed")
 
+        self.add_input_file(ext="sv")
         self.add_output_file(ext="sv")
 
     def runtime_options(self):
@@ -33,24 +34,22 @@ class SedRemove(Task):
 
         to_remove = self.get("var", "to_remove")
 
-        print(f"to remove = {to_remove}")
-
         script = [f's/{elem}//g' for elem in to_remove]
         script += [f'w outputs/{self.design_topmodule}.sv']
-        print(f"script = {script}")
         script = '; '.join(script)
 
         options.extend(["-n", f'{script}', ])
 
-        #######################
-        # Sources
-        #######################
-        filesets = self.project.get_filesets()
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="systemverilog"):
-                options.append(value)
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="verilog"):
-                options.append(value)
+        input_file = f"inputs/{self.design_topmodule}.sv"
+
+        #filesets = self.project.get_filesets()
+        #for lib, fileset in filesets:
+        #    for value in lib.get_file(fileset=fileset, filetype="systemverilog"):
+        #        options.append(value)
+        #for lib, fileset in filesets:
+        #    for value in lib.get_file(fileset=fileset, filetype="verilog"):
+        #        options.append(value)
+
+        options.append(input_file)
 
         return options

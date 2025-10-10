@@ -26,19 +26,60 @@ from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
     normalize_parameters, create_intf_objs)
+from .cmdline import get_cmdline_args
 
 from siliconcompiler import Design, Sim
+from siliconcompiler.tools import get_task
 
 
 SB_DIR = sb_path()
+
+
+class AutowrapDesign(Design):
+    def __init__(
+        self,
+        design: Design,
+        fileset: str,
+        parameters=None,
+        intf_defs=None,
+        clocks=None,
+        resets=None,
+        tieoffs=None,
+        filename=None
+    ):
+
+        super().__init__("AutowrapDesign")
+
+        from switchboard.autowrap import autowrap
+
+        instance = f'{design.name}_i'
+
+        autowrap(
+            toplevel="testbench",
+            instances={instance: design.get_topmodule(fileset=fileset)},
+            parameters={instance: parameters},
+            interfaces={instance: intf_defs},
+            clocks={instance: clocks},
+            resets={instance: resets},
+            tieoffs={instance: tieoffs},
+            filename=filename
+        )
+
+        from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+
+        with self.active_fileset(fileset):
+            self.set_topmodule("testbench")
+            self.add_depfileset(design)
+            self.add_depfileset(SwitchboardSim())
+            self.add_file(str(filename))
 
 
 class SbDut(Sim):
     def __init__(
         self,
         design: Union[Design, str] = None,
+        tool: str = 'verilator',
         fileset: str = None,
-        tool: str = 'icarus',
         default_main: bool = True,
         trace: bool = True,
         trace_type: str = 'vcd',
@@ -52,7 +93,9 @@ class SbDut(Sim):
         timeunit: str = None,
         timeprecision: str = None,
         warnings: List[str] = None,
+        cmdline: bool = False,
         fast: bool = False,
+        extra_args: dict = None,
         autowrap: bool = False,
         parameters=None,
         interfaces=None,
@@ -68,18 +111,40 @@ class SbDut(Sim):
     ):
 
         super().__init__(design)
-        if fileset:
-            self.add_fileset(fileset)
 
-        self.fileset = fileset
+        self.option.set_nodashboard(True) 
 
-        self.top_lvl_module_name = None
-        main_filesets = self.option.get_fileset()
-        if main_filesets and len(main_filesets) != 0:
-            main_fileset = main_filesets[0]
-            self.top_lvl_module_name = design.get_topmodule(
-                fileset=main_fileset
+        ##########################################
+        # parse command-line options if desired
+        ##########################################
+        if cmdline:
+            self.args = get_cmdline_args(
+                tool=tool,
+                trace=trace,
+                trace_type=trace_type,
+                frequency=frequency,
+                period=period,
+                fast=fast,
+                max_rate=max_rate,
+                start_delay=start_delay,
+                threads=threads,
+                extra_args=extra_args
             )
+        elif args is not None:
+            self.args = args
+        else:
+            self.args = None
+
+        if self.args is not None:
+            trace = self.args.trace
+            trace_type = self.args.trace_type
+            fast = self.args.fast
+            tool = self.args.tool
+            frequency = self.args.frequency
+            period = self.args.period
+            max_rate = self.args.max_rate
+            start_delay = self.args.start_delay
+            threads = self.args.threads
 
         # input validation
 
@@ -109,21 +174,35 @@ class SbDut(Sim):
 
         self.autowrap = autowrap
 
-        if (suffix is None) and subcomponent:
-            suffix = f'_unq_{self.top_lvl_module_name}'
-
-        self.suffix = suffix
-
-        if suffix is not None:
-            self.dut = f'{self.top_lvl_module_name}{suffix}'
-        else:
-            self.dut = self.top_lvl_module_name
-
         self.parameters = normalize_parameters(parameters)
         self.intf_defs = normalize_interfaces(interfaces)
         self.clocks = normalize_clocks(clocks)
         self.resets = normalize_resets(resets)
         self.tieoffs = normalize_tieoffs(tieoffs)
+
+        if not fileset:
+            fileset = self.tool
+
+        self.fileset = fileset
+
+        self.design_name = None
+        if isinstance(design, Design):
+            self.design_name = design.name
+        else:
+            self.design_name = design
+
+        #self.top_lvl_module_name = None
+        #main_filesets = self.option.get_fileset()
+        #if main_filesets and len(main_filesets) != 0:
+        #    main_fileset = main_filesets[0]
+        #    self.top_lvl_module_name = design.get_topmodule(
+        #        fileset=main_fileset
+        #    )
+
+        if (suffix is None) and subcomponent:
+            suffix = f'_unq_{self.design_name}'
+
+        self.suffix = suffix
 
         # initialization
 
@@ -144,12 +223,12 @@ class SbDut(Sim):
                 # the subcomponent build flow is tool-agnostic, producing a single Verilog
                 # file as output, as opposed to a simulator binary
                 builddir = buildroot / metadata_str(
-                    design=self.top_lvl_module_name,
+                    design=self.design_name,
                     parameters=parameters
                 )
             else:
                 builddir = buildroot / metadata_str(
-                    design=self.top_lvl_module_name,
+                    design=self.design_name,
                     parameters=parameters,
                     tool=tool,
                     trace=trace,
@@ -170,16 +249,29 @@ class SbDut(Sim):
             from switchboard.sc.standalone_netlist_flow import StandaloneNetlistFlow
             self.set_flow(StandaloneNetlistFlow())
 
+    def get_topmodule_name(self):
+        top_lvl_module_name = None
+        main_filesets = self.option.get_fileset()
+        if main_filesets and len(main_filesets) != 0:
+            main_fileset = main_filesets[0]
+            top_lvl_module_name = self.design.get_topmodule(
+                fileset=main_fileset
+            )
+
+        if self.suffix is not None:
+            return f'{top_lvl_module_name}{self.suffix}'
+        return top_lvl_module_name
+
 
     def _configure_verilator(self):
         from siliconcompiler.flows.dvflow import DVFlow
 
         self.set_flow(DVFlow(tool="verilator"))
-        from siliconcompiler.tools import get_task
         from siliconcompiler.tools.verilator.compile import CompileTask
         from siliconcompiler.tools.verilator import VerilatorTask
 
         get_task(self, filter=VerilatorTask).add_warningoff("TIMESCALEMOD")
+        get_task(self, filter=VerilatorTask).add_warningoff("WIDTHTRUNC")
 
         get_task(self, filter=CompileTask).set("var", "cincludes", [SB_DIR / 'cpp'])
         #self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
@@ -214,7 +306,6 @@ class SbDut(Sim):
         from siliconcompiler.flows.dvflow import DVFlow
 
         self.set_flow(DVFlow(tool="icarus"))
-        from siliconcompiler.tools import get_task
         from siliconcompiler.tools.icarus.compile import CompileTask
         get_task(self, filter=CompileTask).set("var", "verilog_generation", "2012")
 
@@ -225,7 +316,6 @@ class SbDut(Sim):
             result_kind = 'vvp'
         else:
             result_kind = 'vexe'
-        print(f"results found = {self.find_result(result_kind, step='compile')}")
         return self.find_result(result_kind, step='compile')
 
     def build(self, cwd: str = None, fast: bool = None):
@@ -255,37 +345,31 @@ class SbDut(Sim):
         # if "fast" is set, then we can return early if the
         # simulation binary already exists
         if fast:
+            self.add_fileset(self.fileset)
             sim = self.find_sim()
             if sim is not None:
                 return sim
 
         # build the wrapper if needed
         if self.autowrap:
-            from .autowrap import autowrap
-
             filename = Path(self.option.get_builddir()).resolve() / 'testbench.sv'
 
             filename.parent.mkdir(exist_ok=True, parents=True)
 
-            instance = f'{self.top_lvl_module_name}_i'
-
-            autowrap(
-                instances={instance: self.top_lvl_module_name},
-                parameters={instance: self.parameters},
-                interfaces={instance: self.intf_defs},
-                clocks={instance: self.clocks},
-                resets={instance: self.resets},
-                tieoffs={instance: self.tieoffs},
+            wrapped_design = AutowrapDesign(
+                design=self.design,
+                fileset=self.fileset,
+                parameters=self.parameters,
+                intf_defs=self.intf_defs,
+                clocks=self.clocks,
+                resets=self.resets,
+                tieoffs=self.tieoffs,
                 filename=filename
             )
 
-            from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
-            with self.design.active_fileset(self.fileset):
-                self.design.set_topmodule("testbench")
-                self.design.add_depfileset(SwitchboardSim())
-                self.design.add_file(str(filename))
-
-            self.set_design(self.design)
+            self.set_design(wrapped_design)
+            self.add_fileset(self.fileset)
+        else:
             self.add_fileset(self.fileset)
 
         assert self.run()
@@ -578,7 +662,7 @@ class SbDut(Sim):
 
         self.input(verilog_wrapper)
 
-    def package(self, suffix=None, fast=None):
+    def package(self, suffix: str = None, fast: bool = None) -> str:
         # set defaults
 
         if suffix is None:
@@ -590,24 +674,30 @@ class SbDut(Sim):
         # see if we can exit early
 
         if fast:
+            self.add_fileset(self.fileset)
             package = self.find_package(suffix=suffix)
 
             if package is not None:
                 return package
 
+        from switchboard.sc.morty.morty import UniquifyVerilogModules
+        from switchboard.sc.sed.sed_remove import SedRemove
+
         # if not, parse with surelog and postprocess with morty
 
         if suffix:
-            self.set('tool', 'morty', 'task', 'uniquify_verilog_modules', 'var', 'suffix', suffix)
+            get_task(self, filter=UniquifyVerilogModules).set("var", "suffix", suffix)
 
-        self.set('tool', 'sed', 'task', 'remove', 'var', 'to_remove', '`resetall')
+        get_task(self, filter=SedRemove).set("var", "to_remove", "`resetall")
+
+        self.add_fileset(self.fileset)
 
         self.run()
 
         # return the path to the output
         return self.find_package(suffix=suffix)
 
-    def find_package(self, suffix=None):
+    def find_package(self, suffix=None) -> str:
         if suffix is None:
             return self.find_result('sv', step='parse')
         else:

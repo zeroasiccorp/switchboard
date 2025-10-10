@@ -87,21 +87,22 @@ def python_intf(umi):
     assert val2 == 0xCD
 
 
-def main():
-
+def build_testbench():
     extra_args = {
         '--mode': dict(default='python', choices=['python', 'cpp'],
         help='Programming language used for the test stimulus.')
     }
 
-    args = get_cmdline_args(extra_args=extra_args)
-
-    dut = SbDut(
-        UmiRam(),
-        fileset=args.tool
-    )
+    dut = SbDut(UmiRam(), cmdline=True, trace_type='fst', extra_args=extra_args)
 
     dut.build()
+
+    return dut
+
+
+def main():
+    # build the simulator
+    dut = build_testbench()
 
     # create queues
     umi = UmiTxRx('to_rtl.q', 'from_rtl.q', fresh=True)
@@ -109,9 +110,9 @@ def main():
     # launch the simulation
     dut.simulate()
 
-    if args.mode == 'python':
+    if dut.args.mode == 'python':
         python_intf(umi)
-    elif args.mode == 'cpp':
+    elif dut.args.mode == 'cpp':
         binary_run(THIS_DIR / 'client').wait()
     else:
         raise ValueError(f'Invalid mode: {dut.args.mode}')
