@@ -185,7 +185,14 @@ class SbNetwork:
         self.single_netlist = single_netlist
 
         if single_netlist:
-            self.dut = SbDut(args=self.args)
+            from siliconcompiler import Design
+            class SNDesign(Design):
+                def __init__(self):
+                    super().__init__("SNDesign")
+
+
+
+            self.dut = SbDut(design=SNDesign(), args=self.args)
         else:
             self._intf_defs = {}
 
@@ -214,7 +221,7 @@ class SbNetwork:
         # generate a name if needed
         if name is None:
             if isinstance(block, SbDut):
-                prefix = block.dut
+                prefix = block.top_lvl_module_name
             else:
                 prefix = block.name
 
@@ -404,11 +411,19 @@ class SbNetwork:
                 ('tool', 'verilator', 'task', 'compile', 'warningoff')
             ]
 
+            self.dut.fileset = "verilator"
             for block in unique_blocks:
-                self.dut.input(block.package())
+                with self.dut.design.active_fileset(self.dut.fileset):
+                    #self.dut.design.set_topmodule("testbench")
+                    #self.dut.design.add_depfileset(SwitchboardSim())
+                    print(f"running block {block.design}")
+                    block_pkg = block.package()
+                    print(f"block_pkg = {block_pkg}")
+                    self.dut.design.add_file(block.package())
+                    #self.dut.input(block.package())
 
-                for passthrough in passthroughs:
-                    self.dut.add(*passthrough, block.get(*passthrough))
+                #for passthrough in passthroughs:
+                    #self.dut.add(*passthrough, block.get(*passthrough))
 
             filename = Path(self.dut.get('option', 'builddir')).resolve() / 'testbench.sv'
 
@@ -435,18 +450,30 @@ class SbNetwork:
                 interfaces[inst_name] = intf_defs
 
             # generate netlist that connects everything together, and input() it
-            self.dut.input(
-                autowrap(
-                    instances={inst.name: inst.block.dut for inst in self.insts.values()},
-                    toplevel='testbench',
-                    parameters={inst.name: inst.block.parameters for inst in self.insts.values()},
-                    interfaces=interfaces,
-                    clocks={inst.name: inst.block.clocks for inst in self.insts.values()},
-                    resets={inst.name: inst.block.resets for inst in self.insts.values()},
-                    tieoffs={inst.name: inst.block.tieoffs for inst in self.insts.values()},
-                    filename=filename
-                )
+            top_lvl = autowrap(
+                instances={inst.name: inst.block.dut for inst in self.insts.values()},
+                toplevel='testbench',
+                parameters={inst.name: inst.block.parameters for inst in self.insts.values()},
+                interfaces=interfaces,
+                clocks={inst.name: inst.block.clocks for inst in self.insts.values()},
+                resets={inst.name: inst.block.resets for inst in self.insts.values()},
+                tieoffs={inst.name: inst.block.tieoffs for inst in self.insts.values()},
+                filename=filename
             )
+
+            print(f"adding top lvl = {top_lvl}")
+            from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+            with self.dut.design.active_fileset(self.dut.fileset):
+                self.dut.design.set_topmodule("testbench")
+                self.dut.design.add_depfileset(SwitchboardSim())
+                self.dut.design.add_file(str(top_lvl))
+
+            self.dut.set_design(self.dut.design)
+            self.dut.add_fileset(self.dut.fileset)
+
+
+
+
 
             # build the single-netlist simulation
             self.dut.build()
@@ -659,5 +686,5 @@ class SbNetwork:
         for k, v in cfg.items():
             if k not in kwargs:
                 kwargs[k] = v
-
+        print(f"design args = {args}, kwargs = {kwargs}")
         return SbDut(*args, **kwargs)

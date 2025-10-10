@@ -37,7 +37,7 @@ class SbDut(Sim):
     def __init__(
         self,
         design: Union[Design, str] = None,
-        fileset: str = 'verilator',
+        fileset: str = None,
         tool: str = 'icarus',
         default_main: bool = True,
         trace: bool = True,
@@ -68,7 +68,8 @@ class SbDut(Sim):
     ):
 
         super().__init__(design)
-        self.add_fileset(fileset)
+        if fileset:
+            self.add_fileset(fileset)
 
         self.fileset = fileset
 
@@ -166,7 +167,9 @@ class SbDut(Sim):
             elif self.tool == 'verilator':
                 self._configure_verilator()
         else:
-            flowname = package
+            from switchboard.sc.standalone_netlist_flow import StandaloneNetlistFlow
+            self.set_flow(StandaloneNetlistFlow())
+
 
     def _configure_verilator(self):
         from siliconcompiler.flows.dvflow import DVFlow
@@ -595,7 +598,7 @@ class SbDut(Sim):
         # if not, parse with surelog and postprocess with morty
 
         if suffix:
-            self.set('tool', 'morty', 'task', 'uniquify', 'var', 'suffix', suffix)
+            self.set('tool', 'morty', 'task', 'uniquify_verilog_modules', 'var', 'suffix', suffix)
 
         self.set('tool', 'sed', 'task', 'remove', 'var', 'to_remove', '`resetall')
 
@@ -606,9 +609,9 @@ class SbDut(Sim):
 
     def find_package(self, suffix=None):
         if suffix is None:
-            return self.find_result('v', step='parse')
+            return self.find_result('sv', step='parse')
         else:
-            return self.find_result('v', step='uniquify')
+            return self.find_result('sv', step='uniquify')
 
 
 def metadata_str(design: str, tool: str = None, trace: bool = False,

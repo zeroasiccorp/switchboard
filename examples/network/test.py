@@ -131,6 +131,7 @@ def make_umi_fifo(net):
 
     dut = net.make_dut(
         design=UmiFifo(),
+        fileset="verilator",
         parameters=parameters,
         interfaces=interfaces,
         clocks=clocks,
@@ -187,6 +188,7 @@ def make_axil_ram(net):
 
     dut = net.make_dut(
         design=AxilRam(),
+        fileset="verilator",
         parameters=parameters,
         interfaces=interfaces,
         resets=resets
@@ -248,6 +250,7 @@ def make_umi2axil(net):
 
     dut = net.make_dut(
         design=Umi2Axil(),
+        fileset="verilator",
         parameters=parameters,
         interfaces=interfaces,
         resets=resets
