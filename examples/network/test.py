@@ -7,7 +7,6 @@
 
 import numpy as np
 
-from umi import sumi
 from switchboard import SbNetwork
 
 from pathlib import Path
@@ -22,13 +21,10 @@ def main():
     # create the building blocks
 
     umi_fifo = make_umi_fifo(net)
-    umi_fifo.option.set_nodashboard(True)
 
     umi2axil = make_umi2axil(net)
-    umi2axil.option.set_nodashboard(True)
 
     axil_ram = make_axil_ram(net)
-    axil_ram.option.set_nodashboard(True)
 
     # connect them together
 
@@ -51,7 +47,7 @@ def main():
 
     # launch the simulation
 
-    net.simulate()
+    net.simulate(run=True)
 
     # interact with the simulation
 
@@ -88,6 +84,7 @@ def make_umi_fifo(net):
         bypass="1'b0",
         chaosmode="1'b0",
         fifo_full=None,
+        fifo_almost_full=None,
         fifo_empty=None,
         vdd="1'b1",
         vss="1'b0"
@@ -139,10 +136,6 @@ def make_umi_fifo(net):
         tieoffs=tieoffs
     )
 
-    #dut.use(sumi)
-
-    #dut.input('sumi/rtl/umi_fifo.v', package='umi')
-
     return dut
 
 
@@ -193,14 +186,6 @@ def make_axil_ram(net):
         interfaces=interfaces,
         resets=resets
     )
-
-    #dut.register_source(
-    #    'verilog-axi',
-    #    'git+https://github.com/alexforencich/verilog-axi.git',
-    #    '38915fb'
-    #)
-
-    #dut.input('rtl/axil_ram.v', package='verilog-axi')
 
     #dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
     #    ['WIDTHTRUNC', 'TIMESCALEMOD'])
@@ -255,10 +240,6 @@ def make_umi2axil(net):
         interfaces=interfaces,
         resets=resets
     )
-
-    #dut.use(sumi)
-
-    #dut.input('utils/rtl/umi2axilite.v', package='umi')
 
     return dut
 

@@ -16,6 +16,14 @@ from switchboard.cmdline import get_cmdline_args
 from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
 
+from siliconcompiler import Design
+
+from umi.sumi import Endpoint
+
+from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+from switchboard import sb_path
+
+
 
 def main():
     # create network
@@ -110,15 +118,52 @@ def make_umiparam(net):
 
     resets = ['nreset']
 
-    dut = net.make_dut('umiparam', parameters=parameters, interfaces=interfaces, resets=resets)
-
-    dut.use(sumi)
-
-    dut.set('option', 'idir', sb_path() / 'verilog' / 'common')
-
-    dut.input('../common/verilog/umiparam.sv')
+    dut = net.make_dut(
+        design=UmiParam(),
+        parameters=parameters,
+        interfaces=interfaces,
+        resets=resets
+    )
 
     return dut
+
+
+class UmiParam(Design):
+
+    def __init__(self):
+        super().__init__("umiparam")
+
+        top_module = "umiparam"
+
+        dr_path = sb_path() / ".." / "examples" / "common"
+
+        self.set_dataroot('sb_ex_common', dr_path)
+
+        files = [
+            "verilog/umiparam.sv"
+        ]
+
+        deps = [
+            Endpoint()
+        ]
+
+        with self.active_fileset('rtl'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            for item in files:
+                self.add_file(item)
+            for item in deps:
+                self.add_depfileset(item)
+
+        with self.active_fileset('verilator'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            self.add_depfileset(self, "rtl")
+
+        with self.active_fileset('icarus'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            self.add_depfileset(self, "rtl")
 
 
 if __name__ == '__main__':

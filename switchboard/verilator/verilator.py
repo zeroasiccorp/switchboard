@@ -9,5 +9,5 @@ class Verilator(Design):
 
         self.set_dataroot('localroot', sb_path() / "verilator")
 
-        with self.active_fileset('sim'):
+        with self.active_fileset('verilator'):
             self.add_file("testbench.cc")
