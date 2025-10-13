@@ -245,6 +245,13 @@ class SbDut(Sim):
                 self._configure_icarus()
             elif self.tool == 'verilator':
                 self._configure_verilator()
+
+            if trace:
+                self.design.add_define("SB_TRACE")
+
+            if self.trace_type == 'fst':
+                self.design.add_define("SB_TRACE_FST")
+
         else:
             from switchboard.sc.standalone_netlist_flow import StandaloneNetlistFlow
             self.set_flow(StandaloneNetlistFlow())
@@ -276,7 +283,8 @@ class SbDut(Sim):
         get_task(self, filter=CompileTask).set("var", "cincludes", [SB_DIR / 'cpp'])
         #self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
 
-        if self.trace and (self.tool == 'verilator'):
+        if self.trace:
+            get_task(self, filter=CompileTask).set("var", "trace", True)
             get_task(self, filter=CompileTask).set("var", "trace_type", self.trace_type)
 
         #if self.tool == 'verilator':
