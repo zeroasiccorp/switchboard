@@ -11,8 +11,6 @@ import numpy as np
 from pathlib import Path
 from switchboard import SbDut, UmiTxRx, binary_run
 
-from switchboard.cmdline import get_cmdline_args
-
 from umiram import UmiRam
 
 
