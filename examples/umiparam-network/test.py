@@ -5,24 +5,20 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
-from umi import sumi
-import numpy as np
-
-from copy import deepcopy
-
-from switchboard import SbNetwork, sb_path
-from switchboard.cmdline import get_cmdline_args
-
 from pathlib import Path
-THIS_DIR = Path(__file__).resolve().parent
-
-from siliconcompiler import Design
+import numpy as np
+from copy import deepcopy
 
 from umi.sumi import Endpoint
 
-from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
-from switchboard import sb_path
+from siliconcompiler import Design
 
+from switchboard import SbNetwork, sb_path
+from switchboard.cmdline import get_cmdline_args
+from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+
+
+THIS_DIR = Path(__file__).resolve().parent
 
 
 def main():
@@ -157,12 +153,10 @@ class UmiParam(Design):
 
         with self.active_fileset('verilator'):
             self.set_topmodule(top_module)
-            self.add_depfileset(SwitchboardSim())
             self.add_depfileset(self, "rtl")
 
         with self.active_fileset('icarus'):
             self.set_topmodule(top_module)
-            self.add_depfileset(SwitchboardSim())
             self.add_depfileset(self, "rtl")
 
 
