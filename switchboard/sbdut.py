@@ -246,12 +246,6 @@ class SbDut(Sim):
             elif self.tool == 'verilator':
                 self._configure_verilator()
 
-            if trace:
-                self.design.add_define("SB_TRACE")
-
-            if self.trace_type == 'fst':
-                self.design.add_define("SB_TRACE_FST")
-
         else:
             from switchboard.sc.standalone_netlist_flow import StandaloneNetlistFlow
             self.set_flow(StandaloneNetlistFlow())
