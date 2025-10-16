@@ -639,7 +639,8 @@ class PyUmi {
     }
 
     py::array read(uint64_t addr, uint32_t num, size_t bytes_per_elem, uint64_t srcaddr = 0,
-        uint32_t qos = 0, uint32_t prot = 0, bool error = true) {
+        uint32_t max_bytes = UMI_PACKET_DATA_BYTES, uint32_t qos = 0, uint32_t prot = 0,
+        bool error = true) {
 
         // read "num" bytes from the given address.  "num" may be any value,
         // including greater than the length of a header packet, and values
