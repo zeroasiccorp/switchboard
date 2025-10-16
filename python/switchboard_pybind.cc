@@ -639,24 +639,13 @@ class PyUmi {
     }
 
     py::array read(uint64_t addr, uint32_t num, size_t bytes_per_elem, uint64_t srcaddr = 0,
-        uint32_t max_bytes = UMI_PACKET_DATA_BYTES, uint32_t qos = 0, uint32_t prot = 0,
-        bool error = true) {
+        uint32_t qos = 0, uint32_t prot = 0, bool error = true) {
 
         // read "num" bytes from the given address.  "num" may be any value,
         // including greater than the length of a header packet, and values
         // that are not powers of two.  the optional "srcaddr" argument is
         // the source address to which responses should be sent.  this
         // function is blocking.
-
-        // make sure that max_bytes is set appropriately
-
-        //if (max_bytes > UMI_PACKET_DATA_BYTES) {
-        //    printf("WARNING: max_bytes is greater than the data payload"
-        //           " of a single UMI packet (%d vs. %d bytes).  Change max_bytes"
-        //           " to %d or smaller to clear this warning.\n",
-        //        max_bytes, UMI_PACKET_DATA_BYTES, UMI_PACKET_DATA_BYTES);
-        //    max_bytes = UMI_PACKET_DATA_BYTES;
-        //}
 
         if (max_bytes < bytes_per_elem) {
             throw std::runtime_error("max_bytes must be greater than or equal to bytes_per_elem.");
@@ -682,7 +671,7 @@ class PyUmi {
         uint32_t size = highest_bit(bytes_per_elem);
 
         // determine the maximum length of an individual packet
-        //uint32_t max_len = max_bytes / bytes_per_elem;
+        uint32_t max_len = max_bytes / bytes_per_elem;
 
         // used to keep track of responses
         uint32_t to_recv = num;
@@ -691,8 +680,8 @@ class PyUmi {
         while ((num > 0) || (to_recv > 0)) {
             if (num > 0) {
                 // send read request
-                uint32_t len = num;
-                uint32_t eom = 1;
+                uint32_t len = std::min(num, max_len);
+                uint32_t eom = (len == num) ? 1 : 0;
                 uint32_t cmd = umi_pack(UMI_REQ_READ, 0, size, len - 1, eom, 1, qos, prot);
                 UmiTransaction request(cmd, addr, srcaddr);
                 if (umisb_send<UmiTransaction>(request, m_tx, false)) {
