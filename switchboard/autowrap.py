@@ -351,6 +351,34 @@ def autowrap(
 
     lines += ['']
 
+    max_rst_dly = None
+
+    for inst_resets in resets.values():
+        if len(inst_resets) > 0:
+            # find the max reset delay for this instance
+            inst_max_rst_dly = max(reset['delay'] for reset in inst_resets)
+
+            # update the overall max reset delay
+            if (max_rst_dly is None) or (inst_max_rst_dly > max_rst_dly):
+                max_rst_dly = inst_max_rst_dly
+
+    if max_rst_dly is not None:
+        lines += [
+            tab + f"reg [{max_rst_dly}:0] rstvec = '1;"
+            '',
+            tab + 'always @(posedge clk) begin'
+        ]
+
+        if max_rst_dly > 0:
+            lines += [(2 * tab) + f"rstvec <= {{rstvec[{max_rst_dly - 1}:0], 1'b0}};"]
+        else:
+            lines += [(2 * tab) + "rstvec <= 1'b0;"]
+
+        lines += [
+            tab + 'end',
+            ''
+        ]
+
     for instance in instances:
         # declare wires for tieoffs
 
@@ -411,11 +439,19 @@ def autowrap(
                 if decl_wire and (wire is not None):
                     lines += [tab + f'`SB_UMI_WIRES({wire}, {dw}, {cw}, {aw});']
 
+                # Extract interface reset information
+                reset = normalize_reset(value['reset'])
+                reset_delay = reset['delay']
+                reset_sig = f'rstvec[{reset_delay}]'
+
                 if external:
                     if direction_is_input(direction):
-                        lines += [tab + f'`QUEUE_TO_UMI_SIM({wire}, {dw}, {cw}, {aw}, "");']
+                        lines += [
+                            tab
+                            + f'`QUEUE_TO_UMI_SIM({wire}, {dw}, {cw}, {aw}, "", 1, clk, {reset_sig});'
+                        ]
                     elif direction_is_output(direction):
-                        lines += [tab + f'`UMI_TO_QUEUE_SIM({wire}, {dw}, {cw}, {aw}, "");']
+                        lines += [tab + f'`UMI_TO_QUEUE_SIM({wire}, {dw}, {cw}, {aw}, "", 1, clk, {reset_sig});']
                     else:
                         raise Exception(f'Unsupported UMI direction: {direction}')
             elif type == 'axi':
@@ -484,34 +520,6 @@ def autowrap(
                 raise Exception(f'Unsupported interface type: "{type}"')
 
             lines += ['']
-
-    max_rst_dly = None
-
-    for inst_resets in resets.values():
-        if len(inst_resets) > 0:
-            # find the max reset delay for this instance
-            inst_max_rst_dly = max(reset['delay'] for reset in inst_resets)
-
-            # update the overall max reset delay
-            if (max_rst_dly is None) or (inst_max_rst_dly > max_rst_dly):
-                max_rst_dly = inst_max_rst_dly
-
-    if max_rst_dly is not None:
-        lines += [
-            tab + f"reg [{max_rst_dly}:0] rstvec = '1;"
-            '',
-            tab + 'always @(posedge clk) begin'
-        ]
-
-        if max_rst_dly > 0:
-            lines += [(2 * tab) + f"rstvec <= {{rstvec[{max_rst_dly - 1}:0], 1'b0}};"]
-        else:
-            lines += [(2 * tab) + "rstvec <= 1'b0;"]
-
-        lines += [
-            tab + 'end',
-            ''
-        ]
 
     for instance, module in instances.items():
         # start of the instantiation

@@ -15,6 +15,7 @@ module sb_axil_m #(
     parameter FILE=""
 ) (
     input wire clk,
+    input wire reset,
 
     // AXI lite master interface
     // adapted from https://github.com/alexforencich/verilog-axi
@@ -45,6 +46,7 @@ module sb_axil_m #(
         .DW(ADDR_WIDTH + 3)
     ) aw_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axil_awprot, m_axil_awaddr}),
         .dest(),
         .last(),
@@ -59,6 +61,7 @@ module sb_axil_m #(
         .DW(DATA_WIDTH + STRB_WIDTH)
     ) w_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axil_wstrb, m_axil_wdata}),
         .dest(),
         .last(),
@@ -73,6 +76,7 @@ module sb_axil_m #(
         .DW(2)
     ) b_channel (
         .clk(clk),
+        .reset(reset),
         .data(m_axil_bresp),
         .dest(),
         .last(),
@@ -87,6 +91,7 @@ module sb_axil_m #(
         .DW(ADDR_WIDTH + 3)
     ) ar_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axil_arprot, m_axil_araddr}),
         .dest(),
         .last(),
@@ -101,6 +106,7 @@ module sb_axil_m #(
         .DW(DATA_WIDTH + 2)
     ) r_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axil_rresp, m_axil_rdata}),
         .dest(),
         .last(),
