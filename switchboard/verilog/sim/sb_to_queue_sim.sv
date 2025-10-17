@@ -16,6 +16,7 @@ module sb_to_queue_sim #(
     parameter FILE=""
 ) (
     input clk,
+    input reset,
     input [DW-1:0] data,
     input [31:0] dest,
     input last,
@@ -83,87 +84,93 @@ module sb_to_queue_sim #(
 
     // main logic
 
-    always @(posedge clk) begin
-        if (ready && valid) begin
-            // try to send a packet, with success==1 indicating that the
-            // send was successful.  in general, sends should succeed,
-            // unless the queue they're trying to push to is full.
-            if (id != -1) begin
-                /* verilator lint_off IGNOREDRETURN */
-                `SB_EXT_FUNC(pi_sb_send)(id, data_padded, dest, last, success);
-                /* verilator lint_on IGNOREDRETURN */
-            end else begin
-                /* verilator lint_off BLKSEQ */
-                success = 32'd0;
-                /* verilator lint_on BLKSEQ */
-            end
-
-            // if the send was not successful, mark it pending. ready cannot be asserted
-            // if there is a pending re-send, since the next send may fail, and there
-            // would be no place to store the data for the new resend.  we could have a
-            // queue, but that would have finite depth, so we would still have to be able
-            // to apply backpressure.
-            if (success == 32'd0) begin
-                pending <= 1'b1;
-                ready <= 1'b0;
-                sdata <= data_padded;
-                sdest <= dest;
-                slast <= last;
-            end else begin
-                pending <= 1'b0;
-                if (ready_mode == 32'd0) begin
-                    ready <= 1'b0;
-                end else if (ready_mode == 32'd1) begin
-                    ready <= 1'b1;
-                end else begin
-                    /* verilator lint_off WIDTH */
-                    ready <= ($random % 2);
-                    /* verilator lint_on WIDTH */
-                end
-            end
-        end else if (pending) begin
-            // try to re-send a packet.  note that in a given cycle, a packet can be sent
-            // for the first time or re-sent, but not both, because ready cannot be asserted
-            // if there is a packet pending, for the reason given above.
-            if (id != -1) begin
-                /* verilator lint_off IGNOREDRETURN */
-                `SB_EXT_FUNC(pi_sb_send)(id, sdata, sdest, slast, success);
-                /* verilator lint_on IGNOREDRETURN */
-            end else begin
-                /* verilator lint_off BLKSEQ */
-                success = 32'd0;
-                /* verilator lint_on BLKSEQ */
-            end
-
-            // if the re-send was unsuccessful, we have to keep ready de-asserted,
-            // but if it was successful we can assert ready if we want to,
-            // depending on ready_mode
-            if (success == 32'd0) begin
-                pending <= 1'b1;
-                ready <= 1'b0;
-            end else begin
-                pending <= 1'b0;
-                if (ready_mode == 32'd0) begin
-                    ready <= 1'b0;
-                end else if (ready_mode == 32'd1) begin
-                    ready <= 1'b1;
-                end else begin
-                    /* verilator lint_off WIDTH */
-                    ready <= ($random % 2);
-                    /* verilator lint_on WIDTH */
-                end
-            end
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            pending <= 1'b0;
+            ready <= 1'b0;
+            slast <= 1'b0;
         end else begin
-            // if there's nothing pending, then we can assert ready
-            // if we want to.  whether we do or not depends on ready_mode.
-            if (ready_mode == 32'd0) begin
-                ready <= valid;
-            end else if (ready_mode == 32'd1) begin
-                ready <= 1'b1;
+            if (ready && valid) begin
+                // try to send a packet, with success==1 indicating that the
+                // send was successful.  in general, sends should succeed,
+                // unless the queue they're trying to push to is full.
+                if (id != -1) begin
+                    /* verilator lint_off IGNOREDRETURN */
+                    `SB_EXT_FUNC(pi_sb_send)(id, data_padded, dest, last, success);
+                    /* verilator lint_on IGNOREDRETURN */
+                end else begin
+                    /* verilator lint_off BLKSEQ */
+                    success = 32'd0;
+                    /* verilator lint_on BLKSEQ */
+                end
+
+                // if the send was not successful, mark it pending. ready cannot be asserted
+                // if there is a pending re-send, since the next send may fail, and there
+                // would be no place to store the data for the new resend.  we could have a
+                // queue, but that would have finite depth, so we would still have to be able
+                // to apply backpressure.
+                if (success == 32'd0) begin
+                    pending <= 1'b1;
+                    ready <= 1'b0;
+                    sdata <= data_padded;
+                    sdest <= dest;
+                    slast <= last;
+                end else begin
+                    pending <= 1'b0;
+                    if (ready_mode == 32'd0) begin
+                        ready <= 1'b0;
+                    end else if (ready_mode == 32'd1) begin
+                        ready <= 1'b1;
+                    end else begin
+                        /* verilator lint_off WIDTH */
+                        ready <= ($random % 2);
+                        /* verilator lint_on WIDTH */
+                    end
+                end
+            end else if (pending) begin
+                // try to re-send a packet.  note that in a given cycle, a packet can be sent
+                // for the first time or re-sent, but not both, because ready cannot be asserted
+                // if there is a packet pending, for the reason given above.
+                if (id != -1) begin
+                    /* verilator lint_off IGNOREDRETURN */
+                    `SB_EXT_FUNC(pi_sb_send)(id, sdata, sdest, slast, success);
+                    /* verilator lint_on IGNOREDRETURN */
+                end else begin
+                    /* verilator lint_off BLKSEQ */
+                    success = 32'd0;
+                    /* verilator lint_on BLKSEQ */
+                end
+
+                // if the re-send was unsuccessful, we have to keep ready de-asserted,
+                // but if it was successful we can assert ready if we want to,
+                // depending on ready_mode
+                if (success == 32'd0) begin
+                    pending <= 1'b1;
+                    ready <= 1'b0;
+                end else begin
+                    pending <= 1'b0;
+                    if (ready_mode == 32'd0) begin
+                        ready <= 1'b0;
+                    end else if (ready_mode == 32'd1) begin
+                        ready <= 1'b1;
+                    end else begin
+                        /* verilator lint_off WIDTH */
+                        ready <= ($random % 2);
+                        /* verilator lint_on WIDTH */
+                    end
+                end
             end else begin
-                /* verilator lint_off WIDTH */
-                ready <= ($random % 2);
-                /* verilator lint_on WIDTH */
+                // if there's nothing pending, then we can assert ready
+                // if we want to.  whether we do or not depends on ready_mode.
+                if (ready_mode == 32'd0) begin
+                    ready <= valid;
+                end else if (ready_mode == 32'd1) begin
+                    ready <= 1'b1;
+                end else begin
+                    /* verilator lint_off WIDTH */
+                    ready <= ($random % 2);
+                    /* verilator lint_on WIDTH */
+                end
             end
         end
     end

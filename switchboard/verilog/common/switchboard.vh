@@ -21,7 +21,7 @@
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)                                                  \
     `SB_UMI_WIRES(prefix, dw, cw, aw)
 
-`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk)                      \
+`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk, reset_sig=1'b0)      \
     queue_to_umi_sim #(                                                                            \
         .VALID_MODE_DEFAULT(vldmode),                                                              \
         .DW(dw),                                                                                   \
@@ -30,6 +30,7 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(reset_sig),                                                                         \
         .data(signal``_data),                                                                      \
         .srcaddr(signal``_srcaddr),                                                                \
         .dstaddr(signal``_dstaddr),                                                                \
@@ -38,7 +39,7 @@
         .valid(signal``_valid)                                                                     \
     )
 
-`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file, rdymode=1, clk_signal=clk)                      \
+`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file, rdymode=1, clk_signal=clk, reset_sig=1'b0)      \
     umi_to_queue_sim #(                                                                            \
         .READY_MODE_DEFAULT(rdymode),                                                              \
         .DW(dw),                                                                                   \
@@ -47,6 +48,7 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(reset_sig),                                                                         \
         .data(signal``_data),                                                                      \
         .srcaddr(signal``_srcaddr),                                                                \
         .dstaddr(signal``_dstaddr),                                                                \

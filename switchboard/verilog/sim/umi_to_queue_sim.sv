@@ -11,6 +11,7 @@ module umi_to_queue_sim #(
     parameter FILE=""
 ) (
     input clk,
+    input reset,
     input [DW-1:0] data,
     input [AW-1:0] srcaddr,
     input [AW-1:0] dstaddr,
@@ -25,6 +26,7 @@ module umi_to_queue_sim #(
         .FILE(FILE)
     ) tx_i (
         .clk(clk),
+        .reset(reset),
         .data({data, srcaddr, dstaddr, cmd}),
         .dest({16'h0000, dstaddr[55:40]}),
         .last(cmd[22]),
