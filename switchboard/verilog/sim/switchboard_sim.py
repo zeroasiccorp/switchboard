@@ -26,7 +26,8 @@ class SwitchboardSim(Design):
             "sb_tx_sim.sv",
             "umi_rx_sim.sv",
             "umi_tx_sim.sv",
-            "xyce_intf.sv"
+            "xyce_intf.sv",
+            "sb_apb_m.sv"
         ]
         deps = [Common()]
 
