@@ -156,6 +156,39 @@
         .valid(signal``_valid)                                                                     \
     )
 
+`define SB_APB_WIRES(signal, dw, aw)                                                               \
+    wire                  signal``_psel;                                                           \
+    wire                  signal``_penable;                                                        \
+    wire                  signal``_pwrite;                                                         \
+    wire [2:0]            signal``_pprot;                                                          \
+    wire [((aw)-1):0]     signal``_paddr;                                                          \
+    wire [((dw)/8)-1:0]   signal``_pstrb;                                                          \
+    wire [((dw)-1):0]     signal``_pwdata;                                                         \
+    wire [((dw)-1):0]     signal``_prdata;                                                         \
+    wire                  signal``_pready;                                                         \
+    wire                  signal``_pslverr
+
+`define SB_APB_M(signal, dw, aw, file, vldmode=1, clk_signal=clk, rst_signal=1'b0)      \
+    sb_apb_m #(                                                                                    \
+        .DATA_WIDTH(dw),                                                                           \
+        .ADDR_WIDTH(aw),                                                                           \
+        .VALID_MODE_DEFAULT(vldmode),                                                              \
+        .FILE(file)                                                                                \
+    ) signal``_sb_inst (                                                                           \
+        .clk(clk_signal),                                                                          \
+        .reset(rst_signal),                                                                        \
+        .m_apb_psel(signal``_psel),                                                                \
+        .m_apb_penable(signal``_penable),                                                          \
+        .m_apb_pwrite(signal``_pwrite),                                                            \
+        .m_apb_pprot(signal``_pprot),                                                              \
+        .m_apb_paddr(signal``_paddr),                                                              \
+        .m_apb_pstrb(signal``_pstrb),                                                              \
+        .m_apb_pwdata(signal``_pwdata),                                                            \
+        .m_apb_prdata(signal``_prdata),                                                            \
+        .m_apb_pready(signal``_pready),                                                            \
+        .m_apb_pslverr(signal``_pslverr)                                                           \
+    )
+
 `define SB_AXIL_WIRES(signal, dw, aw)                                                              \
     wire [((aw)-1):0]     signal``_awaddr;                                                         \
     wire [2:0]            signal``_awprot;                                                         \
