@@ -373,7 +373,7 @@
         .clk(clk_signal)                                                                           \
     );
 
-`define SB_SETUP_PROBES                                                                            \
+`define SB_SETUP_PROBES(toplevel=testbench)                                                        \
     `ifdef SB_TRACE                                                                                \
         string dumpfile_sb_value;                                                                  \
         initial begin                                                                              \
@@ -387,7 +387,7 @@
                         $dumpfile("testbench.vcd");                                                \
                     `endif                                                                         \
                 end                                                                                \
-                $dumpvars(0, testbench);                                                           \
+                $dumpvars(0, ``toplevel);                                                          \
             end                                                                                    \
         end                                                                                        \
     `endif
