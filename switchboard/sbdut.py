@@ -25,8 +25,10 @@ from .util import plusargs_to_args, binary_run, ProcessCollection
 from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
-    normalize_parameters, create_intf_objs)
+    normalize_parameters, create_intf_objs, type_is_axi, type_is_axil, type_is_apb)
 from .cmdline import get_cmdline_args
+from .apb import apb_uris
+from .axi import axi_uris
 
 from siliconcompiler import Design, Sim
 from siliconcompiler.tools import get_task
@@ -539,6 +541,30 @@ class SbDut(Sim):
         # return a Popen object that one can wait() on
 
         return p
+
+    def remove_queues_on_exit(self):
+        import atexit
+        from _switchboard import delete_queues
+
+        def cleanup_func(uris=self.get_uris()):
+            if len(uris) > 0:
+                delete_queues(uris)
+
+        atexit.register(cleanup_func)
+
+    def get_uris(self):
+        uris = []
+        for _, intf in self.intf_defs.items():
+            uri = intf.get('uri', None)
+            type = intf.get('type', None)
+            if uri is not None:
+                if type_is_axi(type) or type_is_axil(type):
+                    uris.extend(axi_uris(uri))
+                elif type_is_apb(type):
+                    uris.extend(apb_uris(uri))
+                else:
+                    uris.append(uri)
+        return uris
 
     def terminate(
         self,
