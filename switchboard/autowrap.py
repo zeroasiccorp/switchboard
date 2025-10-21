@@ -633,7 +633,7 @@ def autowrap(
 
     lines += ['']
 
-    lines += [tab + '`SB_SETUP_PROBES']
+    lines += [tab + '`SB_SETUP_PROBES();']
     lines += ['']
 
     lines += ['endmodule']
