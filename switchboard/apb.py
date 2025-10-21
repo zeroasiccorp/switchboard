@@ -264,3 +264,15 @@ class ApbTxRx:
             assert slv_err == slv_err_expected, f'Unexpected response: slv_err = {slv_err}'
 
         return (rd_data, slv_err)
+
+
+def apb_uris(prefix, suffix='.q'):
+    # returns a list of the URIs associated with a given APB
+    # prefix.  For example, apb_uris('apb') returns ['apb_apb_req.q',
+    # 'apb_apb_resp.q'].  Changing the optional suffix
+    # argument changes the file extension assumed in generating this list.
+
+    return [
+        f'{prefix}_apb_req{suffix}',
+        f'{prefix}_apb_resp{suffix}'
+    ]

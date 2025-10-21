@@ -10,8 +10,9 @@ from numbers import Integral
 
 from .sbdut import SbDut
 from .axi import axi_uris
+from .apb import apb_uris
 from .autowrap import (directions_are_compatible, normalize_intf_type,
-    type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil,
+    type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil, type_is_apb,
     autowrap, flip_intf, normalize_direction, WireExpr, types_are_compatible)
 from .cmdline import get_cmdline_args
 from .sbtcp import start_tcp_bridge
@@ -20,6 +21,7 @@ from .util import ProcessCollection
 from _switchboard import delete_queues
 
 from siliconcompiler import Design
+
 
 class SbIntf:
     def __init__(self, inst, name, width=None, indices=None):
@@ -667,6 +669,8 @@ class SbNetwork:
     def register_uri(self, type, uri, fresh=True):
         if type_is_axi(type) or type_is_axil(type):
             uris = axi_uris(uri)
+        elif type_is_apb(type):
+            uris = apb_uris(uri)
         else:
             uris = [uri]
 
