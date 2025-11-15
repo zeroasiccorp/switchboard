@@ -19,7 +19,7 @@ The method for adding a switchboard port depends on the language that a HW model
 
 Under the hood, communication happens through shared-memory queues, where an SB output port is driving packets into the queue, and an SB input port is reading from that queue.  This standardization is what allows any two kinds of models to talk to each other.  A shared-memory SPSC queue is an appealing common interface because it is one of the fastest interprocess communication techniques, with latencies on the order of hundreds of nanoseconds; no system calls are required to transmit and receive data.  At the same time, this type of queue is straightforward to implement for FPGA platforms, with queue read and write operations only requiring a handful of memory transactions.
 
-For an in depth explanation of the theory and philosophy behind Switchboard, we recommend reading our 2024 arxiv paper: [*Switchboard: an Open-Source Framework for Modular Simulation of Large Hardware Systems"*](https://arxiv.org/abs/2407.20537).
+For an in depth explanation of the theory and philosophy behind Switchboard, we recommend reading the paper [*Switchboard: an Open-Source Framework for Modular Simulation of Large Hardware Systems"*](https://arxiv.org/abs/2407.20537).
 
 If used for research, please cite Switchboard by the following publication:
 
