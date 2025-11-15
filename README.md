@@ -5,6 +5,8 @@
 [![PyPI version](https://badge.fury.io/py/switchboard-hw.svg)](https://badge.fury.io/py/switchboard-hw)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+## Introduction
+
 Switchboard (SB) is a framework for communication between distinct hardware models, such as RTL simulations, RTL implemented on FPGAs, and fast SW models.  This makes it possible to simulate large hardware systems in a distributed fashion, using whatever models are available for the different components.
 
 In such a simulation, each hardware model has one or more SB ports.  Each is unidirectional: it may act as an input or an output, but not both.  In addition, each SB connection is single-producer, single-consumer (SPSC): an output port may not drive more than one input port, and an input port may not be driven by more than one output port.
@@ -13,12 +15,28 @@ Here's an example of what a switchboard connection topology might look like:
 
 <img width="318" alt="image" src="https://user-images.githubusercontent.com/19254098/225485548-ff127b2e-d959-46c0-af1d-2c4bbe3f119d.png">
 
+
+
+
 The method for adding a switchboard port depends on the language that a HW model is implemented in.  For RTL-based models, SB ports are instantiated as Verilog models, whereas for C++ and Python-based models, these ports are instantiated as objects.  We provide both a low-level interface for moving data directly between SB ports, as well as a higher-level interface for running [UMI](https://github.com/zeroasiccorp/umi) transactions over SB connections.
 
 Under the hood, communication happens through shared-memory queues, where an SB output port is driving packets into the queue, and an SB input port is reading from that queue.  This standardization is what allows any two kinds of models to talk to each other.  A shared-memory SPSC queue is an appealing common interface because it is one of the fastest interprocess communication techniques, with latencies on the order of hundreds of nanoseconds; no system calls are required to transmit and receive data.  At the same time, this type of queue is straightforward to implement for FPGA platforms, with queue read and write operations only requiring a handful of memory transactions.
 
-Switchboard also has mixed-signal features that make it easy to incorporate SPICE subcircuits into a system emulation; see the [xyce example](examples/xyce).
+For an in depth explanation of the theory and philosophy of th project work, we recommend reading  our 2024 arxiv paper: [*Switchboard: an Open-Source Framework for Modular Simulation of Large Hardware Systems"*](https://arxiv.org/abs/2407.20537).
 
+If used for research, please cite Switchboard by the following publication:
+
+```
+@misc{herbst2024switchboardopensourceframeworkmodular,
+      title={Switchboard: An Open-Source Framework for Modular Simulation of Large Hardware Systems}, 
+      author={Steven Herbst and Noah Moroze and Edgar Iglesias and Andreas Olofsson},
+      year={2024},
+      eprint={2407.20537},
+      archivePrefix={arXiv},
+      primaryClass={cs.DC},
+      url={https://arxiv.org/abs/2407.20537}, 
+}
+```
 
 ## Installation
 
