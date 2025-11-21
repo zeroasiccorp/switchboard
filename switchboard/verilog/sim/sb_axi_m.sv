@@ -16,6 +16,7 @@ module sb_axi_m #(
     parameter FILE=""
 ) (
     input wire clk,
+    input wire reset,
 
     // AXI master interface
     // adapted from https://github.com/alexforencich/verilog-axi
@@ -62,6 +63,7 @@ module sb_axi_m #(
         .DW(ADDR_WIDTH + 3 + ID_WIDTH + 8 + 3 + 2 + 1 + 4)
     ) aw_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axi_awcache, m_axi_awlock, m_axi_awburst, m_axi_awsize,
             m_axi_awlen, m_axi_awid, m_axi_awprot, m_axi_awaddr}),
         .dest(),
@@ -77,6 +79,7 @@ module sb_axi_m #(
         .DW(DATA_WIDTH + STRB_WIDTH + 1)
     ) w_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axi_wlast, m_axi_wstrb, m_axi_wdata}),
         .dest(),
         .last(),
@@ -91,6 +94,7 @@ module sb_axi_m #(
         .DW(2 + ID_WIDTH)
     ) b_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axi_bid, m_axi_bresp}),
         .dest(),
         .last(),
@@ -105,6 +109,7 @@ module sb_axi_m #(
         .DW(ADDR_WIDTH + 3 + ID_WIDTH + 8 + 3 + 2 + 1 + 4)
     ) ar_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axi_arcache, m_axi_arlock, m_axi_arburst, m_axi_arsize,
             m_axi_arlen, m_axi_arid, m_axi_arprot, m_axi_araddr}),
         .dest(),
@@ -120,6 +125,7 @@ module sb_axi_m #(
         .DW(DATA_WIDTH + 2 + ID_WIDTH + 1)
     ) r_channel (
         .clk(clk),
+        .reset(reset),
         .data({m_axi_rlast, m_axi_rid, m_axi_rresp, m_axi_rdata}),
         .dest(),
         .last(),

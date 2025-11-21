@@ -16,6 +16,7 @@ module queue_to_sb_sim #(
     parameter FILE=""
 ) (
     input clk,
+    input reset,
     output [DW-1:0] data,
     output reg [31:0] dest=32'b0,
     output reg last=1'b0,
@@ -83,67 +84,72 @@ module queue_to_sb_sim #(
 
     // main logic
 
-    always @(posedge clk) begin
-        if (ready && valid) begin
-            // the transaction has completed, so we can try to get another
-            // packet if we want to.  whether we try to do this or not depends
-            // on the valid_mode setting.
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            valid <= 1'b0;
+            last <= 1'b0;
+        end else begin
+            if (ready && valid) begin
+                // the transaction has completed, so we can try to get another
+                // packet if we want to.  whether we try to do this or not depends
+                // on the valid_mode setting.
 
-            if ((valid_mode == 32'd1) ||
-                ((valid_mode == 32'd2) && ($random % 2 == 32'd1))) begin
-                // try to receive a packet
-                if (id != -1) begin
-                    /* verilator lint_off IGNOREDRETURN */
-                    `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
-                    /* verilator lint_on IGNOREDRETURN */
+                if ((valid_mode == 32'd1) ||
+                    ((valid_mode == 32'd2) && ($random % 2 == 32'd1))) begin
+                    // try to receive a packet
+                    if (id != -1) begin
+                        /* verilator lint_off IGNOREDRETURN */
+                        `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
+                        /* verilator lint_on IGNOREDRETURN */
+                    end else begin
+                        /* verilator lint_off BLKSEQ */
+                        success = 32'd0;
+                        /* verilator lint_on BLKSEQ */
+                    end
+
+                    // if a packet was received, mark the output as valid
+                    if (success == 32'd0) begin
+                        valid <= 1'b0;
+                    end else begin
+                        valid <= 1'b1;
+                        data_padded <= rdata;
+                        dest <= rdest;
+                        last <= rlast;
+                    end
                 end else begin
-                    /* verilator lint_off BLKSEQ */
-                    success = 32'd0;
-                    /* verilator lint_on BLKSEQ */
-                end
-
-                // if a packet was received, mark the output as valid
-                if (success == 32'd0) begin
                     valid <= 1'b0;
-                end else begin
-                    valid <= 1'b1;
-                    data_padded <= rdata;
-                    dest <= rdest;
-                    last <= rlast;
                 end
-            end else begin
-                valid <= 1'b0;
-            end
-        end else if (!valid) begin
-            // if there isn't a packet being presented, we can try to get one
-            // to present.  whether we do or not depends on valid_mode: if
-            // valid_mode=2, then flip a coin to decide if a new packet is read.
-            // in any other case, try to read a packet.
+            end else if (!valid) begin
+                // if there isn't a packet being presented, we can try to get one
+                // to present.  whether we do or not depends on valid_mode: if
+                // valid_mode=2, then flip a coin to decide if a new packet is read.
+                // in any other case, try to read a packet.
 
-            if ((valid_mode == 32'd0) || (valid_mode == 32'd1) ||
-                ((valid_mode == 32'd2) && ($random % 2 == 32'd1))) begin
-                // try to receive a packet
-                if (id != -1) begin
-                    /* verilator lint_off IGNOREDRETURN */
-                    `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
-                    /* verilator lint_on IGNOREDRETURN */
+                if ((valid_mode == 32'd0) || (valid_mode == 32'd1) ||
+                    ((valid_mode == 32'd2) && ($random % 2 == 32'd1))) begin
+                    // try to receive a packet
+                    if (id != -1) begin
+                        /* verilator lint_off IGNOREDRETURN */
+                        `SB_EXT_FUNC(pi_sb_recv)(id, rdata, rdest, rlast, success);
+                        /* verilator lint_on IGNOREDRETURN */
+                    end else begin
+                        /* verilator lint_off BLKSEQ */
+                        success = 32'd0;
+                        /* verilator lint_on BLKSEQ */
+                    end
+
+                    // if a packet was received, mark the output as valid
+                    if (success == 32'd0) begin
+                        valid <= 1'b0;
+                    end else begin
+                        valid <= 1'b1;
+                        data_padded <= rdata;
+                        dest <= rdest;
+                        last <= rlast;
+                    end
                 end else begin
-                    /* verilator lint_off BLKSEQ */
-                    success = 32'd0;
-                    /* verilator lint_on BLKSEQ */
-                end
-
-                // if a packet was received, mark the output as valid
-                if (success == 32'd0) begin
                     valid <= 1'b0;
-                end else begin
-                    valid <= 1'b1;
-                    data_padded <= rdata;
-                    dest <= rdest;
-                    last <= rlast;
                 end
-            end else begin
-                valid <= 1'b0;
             end
         end
     end

@@ -21,7 +21,7 @@
 `define UMI_PORT_WIRES_WIDTHS(prefix, dw, cw, aw)                                                  \
     `SB_UMI_WIRES(prefix, dw, cw, aw)
 
-`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk)                      \
+`define QUEUE_TO_UMI_SIM(signal, dw, cw, aw, file, vldmode=1, clk_signal=clk, reset_sig=1'b0)      \
     queue_to_umi_sim #(                                                                            \
         .VALID_MODE_DEFAULT(vldmode),                                                              \
         .DW(dw),                                                                                   \
@@ -30,6 +30,7 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(reset_sig),                                                                         \
         .data(signal``_data),                                                                      \
         .srcaddr(signal``_srcaddr),                                                                \
         .dstaddr(signal``_dstaddr),                                                                \
@@ -38,7 +39,7 @@
         .valid(signal``_valid)                                                                     \
     )
 
-`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file, rdymode=1, clk_signal=clk)                      \
+`define UMI_TO_QUEUE_SIM(signal, dw, cw, aw, file, rdymode=1, clk_signal=clk, reset_sig=1'b0)      \
     umi_to_queue_sim #(                                                                            \
         .READY_MODE_DEFAULT(rdymode),                                                              \
         .DW(dw),                                                                                   \
@@ -47,6 +48,7 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(reset_sig),                                                                         \
         .data(signal``_data),                                                                      \
         .srcaddr(signal``_srcaddr),                                                                \
         .dstaddr(signal``_dstaddr),                                                                \
@@ -152,6 +154,39 @@
         .last(signal``_last),                                                                      \
         .ready(signal``_ready),                                                                    \
         .valid(signal``_valid)                                                                     \
+    )
+
+`define SB_APB_WIRES(signal, dw, aw)                                                               \
+    wire                  signal``_psel;                                                           \
+    wire                  signal``_penable;                                                        \
+    wire                  signal``_pwrite;                                                         \
+    wire [2:0]            signal``_pprot;                                                          \
+    wire [((aw)-1):0]     signal``_paddr;                                                          \
+    wire [((dw)/8)-1:0]   signal``_pstrb;                                                          \
+    wire [((dw)-1):0]     signal``_pwdata;                                                         \
+    wire [((dw)-1):0]     signal``_prdata;                                                         \
+    wire                  signal``_pready;                                                         \
+    wire                  signal``_pslverr
+
+`define SB_APB_M(signal, dw, aw, file, vldmode=1, clk_signal=clk, rst_signal=1'b0)      \
+    sb_apb_m #(                                                                                    \
+        .DATA_WIDTH(dw),                                                                           \
+        .ADDR_WIDTH(aw),                                                                           \
+        .VALID_MODE_DEFAULT(vldmode),                                                              \
+        .FILE(file)                                                                                \
+    ) signal``_sb_inst (                                                                           \
+        .clk(clk_signal),                                                                          \
+        .reset(rst_signal),                                                                        \
+        .m_apb_psel(signal``_psel),                                                                \
+        .m_apb_penable(signal``_penable),                                                          \
+        .m_apb_pwrite(signal``_pwrite),                                                            \
+        .m_apb_pprot(signal``_pprot),                                                              \
+        .m_apb_paddr(signal``_paddr),                                                              \
+        .m_apb_pstrb(signal``_pstrb),                                                              \
+        .m_apb_pwdata(signal``_pwdata),                                                            \
+        .m_apb_prdata(signal``_prdata),                                                            \
+        .m_apb_pready(signal``_pready),                                                            \
+        .m_apb_pslverr(signal``_pslverr)                                                           \
     )
 
 `define SB_AXIL_WIRES(signal, dw, aw)                                                              \
@@ -371,7 +406,7 @@
         .clk(clk_signal)                                                                           \
     );
 
-`define SB_SETUP_PROBES                                                                            \
+`define SB_SETUP_PROBES(toplevel=testbench)                                                        \
     `ifdef SB_TRACE                                                                                \
         string dumpfile_sb_value;                                                                  \
         initial begin                                                                              \
@@ -385,7 +420,7 @@
                         $dumpfile("testbench.vcd");                                                \
                     `endif                                                                         \
                 end                                                                                \
-                $dumpvars(0, testbench);                                                           \
+                $dumpvars(0, ``toplevel);                                                          \
             end                                                                                    \
         end                                                                                        \
     `endif
