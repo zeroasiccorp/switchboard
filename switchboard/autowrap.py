@@ -346,7 +346,7 @@ def autowrap(
 
             width = value['width']
 
-            lines += [tab + f'wire [{width-1}:0] {wire};']
+            lines += [tab + f'wire [{width - 1}:0] {wire};']
 
             wires['gpio'].add(wire)
 
@@ -365,7 +365,7 @@ def autowrap(
             width = value['width']
             wire = value["wire"]
 
-            lines += [tab + f'wire [{width-1}:0] {wire};']
+            lines += [tab + f'wire [{width - 1}:0] {wire};']
 
             lines += [tab + f'assign {wire} = {value["value"]};']
 
@@ -453,7 +453,7 @@ def autowrap(
                     width = value['width']
                     new_wire = f'{instance}_input_{name}'
                     lines += [
-                        tab + f'wire [{width-1}:0] {new_wire};',
+                        tab + f'wire [{width - 1}:0] {new_wire};',
                         tab + f'assign {new_wire} = {wire};'
                     ]
                     value['wire'] = new_wire

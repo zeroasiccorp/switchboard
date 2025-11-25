@@ -476,7 +476,9 @@ class SbNetwork:
 
         if self.single_netlist:
 
-            filename = Path(self.single_netlist_dut.option.get_builddir()).resolve() / 'testbench.sv'
+            filename = Path(
+                self.single_netlist_dut.option.get_builddir()
+            ).resolve() / 'testbench.sv'
             filename.parent.mkdir(exist_ok=True, parents=True)
 
             self.single_netlist_dut.set_design(

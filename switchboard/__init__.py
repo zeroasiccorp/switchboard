@@ -11,7 +11,6 @@ from _switchboard import (PySbPacket, delete_queue, umi_opcode_to_str,
 
 from .umi import UmiTxRx, random_umi_packet
 from .util import binary_run, ProcessCollection
-#from .verilator import verilator_run
 from .icarus import icarus_build_vpi, icarus_run
 from .sbdut import SbDut
 from .loopback import umi_loopback

@@ -187,9 +187,6 @@ def make_axil_ram(net):
         resets=resets
     )
 
-    #dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
-    #    ['WIDTHTRUNC', 'TIMESCALEMOD'])
-
     return dut
 
 

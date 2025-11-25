@@ -41,8 +41,6 @@ THIS_DIR = Path(__file__).resolve().parent
     ['umiparam-network', None, 'icarus'],
     ['umiram', None, 'cpp'],
     ['umiram', None, 'verilator'],
-    #['xyce', None, 'icarus'],
-    #['xyce', None, 'verilator']
 ])
 def test_make(path, expected, target):
     cmd = ['make']

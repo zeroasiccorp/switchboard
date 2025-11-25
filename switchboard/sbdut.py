@@ -11,18 +11,16 @@ automatically configured to abstract away setup of files that are required by al
 testbenches.
 """
 
-import importlib
 import subprocess
 
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Dict, Any, Union, Tuple
+from typing import List, Dict, Any, Union
 
 from .switchboard import path as sb_path
 from .icarus import icarus_build_vpi, icarus_find_vpi, icarus_run
 from .verilator_run import verilator_run
 from .util import plusargs_to_args, binary_run, ProcessCollection
-from .xyce import xyce_flags
 from .ams import make_ams_spice_wrapper, make_ams_verilog_wrapper, parse_spice_subckts
 from .autowrap import (normalize_clocks, normalize_interfaces, normalize_resets, normalize_tieoffs,
     normalize_parameters, create_intf_objs, type_is_axi, type_is_axil, type_is_apb)
@@ -114,7 +112,7 @@ class SbDut(Sim):
 
         super().__init__(design)
 
-        self.option.set_nodashboard(True) 
+        self.option.set_nodashboard(True)
 
         ##########################################
         # parse command-line options if desired
@@ -193,14 +191,6 @@ class SbDut(Sim):
         else:
             self.design_name = design
 
-        #self.top_lvl_module_name = None
-        #main_filesets = self.option.get_fileset()
-        #if main_filesets and len(main_filesets) != 0:
-        #    main_fileset = main_filesets[0]
-        #    self.top_lvl_module_name = design.get_topmodule(
-        #        fileset=main_fileset
-        #    )
-
         if (suffix is None) and subcomponent:
             suffix = f'_unq_{self.design_name}'
 
@@ -265,7 +255,6 @@ class SbDut(Sim):
             return f'{top_lvl_module_name}{self.suffix}'
         return top_lvl_module_name
 
-
     def _configure_verilator(self):
         from siliconcompiler.flows.dvflow import DVFlow
 
@@ -277,30 +266,10 @@ class SbDut(Sim):
         get_task(self, filter=VerilatorTask).add_warningoff("WIDTHTRUNC")
 
         get_task(self, filter=CompileTask).set("var", "cincludes", [SB_DIR / 'cpp'])
-        #self.set('tool', self.tool, 'task', 'compile', 'var', 'ldflags', ['-pthread'])
 
         if self.trace:
             get_task(self, filter=CompileTask).set("var", "trace", True)
             get_task(self, filter=CompileTask).set("var", "trace_type", self.trace_type)
-
-        #if self.tool == 'verilator':
-        #    timeunit = self.timeunit
-        #    timeprecision = self.timeprecision
-
-        #    if (timeunit is not None) or (timeprecision is not None):
-        #        if timeunit is None:
-        #            timeunit = '1ps'  # default from Verilator documentation
-
-        #        if timeprecision is None:
-        #            timeprecision = '1ps'  # default from Verilator documentation
-
-        #        timescale = f'{timeunit}/{timeprecision}'
-        #        self.add('tool', 'verilator', 'task', 'compile', 'option', '--timescale')
-        #        self.add('tool', 'verilator', 'task', 'compile', 'option', timescale)
-
-        #if (self.threads is not None) and (self.tool == 'verilator'):
-        #    self.add('tool', 'verilator', 'task', 'compile', 'option', '--threads')
-        #    self.add('tool', 'verilator', 'task', 'compile', 'option', str(self.threads))
 
         # Set up flow that compiles RTL
         self.set('option', 'to', 'compile')
@@ -341,10 +310,6 @@ class SbDut(Sim):
         if self.tool == 'icarus':
             if (not fast) or (icarus_find_vpi(cwd, name='switchboard') is None):
                 icarus_build_vpi(cwd, name='switchboard')
-    
-            #if self.xyce and ((not fast) or (icarus_find_vpi(cwd, name='xyce') is None)):
-            #    cincludes, ldflags = xyce_flags()
-            #    icarus_build_vpi(cwd, name='xyce', cincludes=cincludes, ldflags=ldflags)
 
         # if "fast" is set, then we can return early if the
         # simulation binary already exists
