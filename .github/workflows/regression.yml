@@ -17,7 +17,7 @@ jobs:
     name: Verilator
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:latest
+      image: ghcr.io/siliconcompiler/sc_runner:latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
