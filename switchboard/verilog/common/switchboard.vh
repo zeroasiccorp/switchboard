@@ -231,7 +231,7 @@
         .a``_rvalid(b``_rvalid),                                                                   \
         .a``_rready(b``_rready)
 
-`define SB_AXIL(dir, signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                   \
+`define SB_AXIL(dir, signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk, rst_signal=1'b0)  \
     sb_axil_``dir #(                                                                               \
         .DATA_WIDTH(dw),                                                                           \
         .ADDR_WIDTH(aw),                                                                           \
@@ -240,6 +240,7 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(rst_signal),                                                                        \
         .dir``_axil_awaddr(signal``_awaddr),                                                       \
         .dir``_axil_awprot(signal``_awprot),                                                       \
         .dir``_axil_awvalid(signal``_awvalid),                                                     \
@@ -261,11 +262,11 @@
         .dir``_axil_rready(signal``_rready)                                                        \
     )
 
-`define SB_AXIL_M(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                      \
-    `SB_AXIL(m, signal, dw, aw, file, vldmode, rdymode, clk_signal)
+`define SB_AXIL_M(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk, rst_signal=1'b0)     \
+    `SB_AXIL(m, signal, dw, aw, file, vldmode, rdymode, clk_signal, rst_signal)
 
-`define SB_AXIL_S(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk)                      \
-    `SB_AXIL(s, signal, dw, aw, file, vldmode, rdymode, clk_signal)
+`define SB_AXIL_S(signal, dw, aw, file, vldmode=1, rdymode=1, clk_signal=clk, rst_signal=1'b0)     \
+    `SB_AXIL(s, signal, dw, aw, file, vldmode, rdymode, clk_signal, rst_signal)
 
 `define SB_AXI_WIRES(signal, dw, aw, idw)                                                          \
     wire [(idw)-1:0]       signal``_awid;                                                          \

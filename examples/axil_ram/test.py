@@ -4,7 +4,13 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 import numpy as np
+
+from siliconcompiler import Design
+
 from switchboard import SbDut, AxiLiteTxRx
+
+from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+from switchboard import sb_path
 
 
 def main():
@@ -47,6 +53,76 @@ def main():
     print(f'Read addr=0 data={read_data}')
 
 
+class AxilRam(Design):
+
+    def __init__(self):
+        super().__init__("axilram")
+
+        top_module = "axil_ram"
+
+        self.set_dataroot(
+            name="verilog-axi",
+            path="git+https://github.com/alexforencich/verilog-axi.git",
+            tag="38915fb"
+        )
+
+        files = [
+            "rtl/axil_ram.v"
+        ]
+
+        with self.active_fileset('rtl'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            for item in files:
+                self.add_file(item)
+
+        with self.active_fileset('verilator'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(self, "rtl")
+
+        with self.active_fileset('icarus'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(self, "rtl")
+
+
+class TB(Design):
+
+    def __init__(self):
+        super().__init__("TB")
+
+        top_module = "testbench"
+
+        dr_path = sb_path() / ".." / "examples" / "axil_ram"
+
+        self.set_dataroot('axil_ram', dr_path)
+
+        files = [
+            "testbench.sv"
+        ]
+
+        deps = [
+            AxilRam()
+        ]
+
+        with self.active_fileset('rtl'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            for item in files:
+                self.add_file(item)
+            for item in deps:
+                self.add_depfileset(item)
+
+        with self.active_fileset('verilator'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            self.add_depfileset(self, "rtl")
+
+        with self.active_fileset('icarus'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            self.add_depfileset(self, "rtl")
+
+
 def build_testbench(fast=False):
 
     extra_args = {
@@ -54,22 +130,11 @@ def build_testbench(fast=False):
         '--rdymode': dict(type=int, default=1, help='Ready mode'),
     }
 
-    dut = SbDut('testbench', cmdline=True, extra_args=extra_args,
-                trace=False, trace_type='fst', default_main=True)
-
-    dut.register_source(
-        'verilog-axi',
-        'git+https://github.com/alexforencich/verilog-axi.git',
-        '38915fb'
+    dut = SbDut(
+        design=TB(),
+        extra_args=extra_args,
+        cmdline=True
     )
-
-    # Set up inputs
-    dut.input('testbench.sv')
-    dut.input('rtl/axil_ram.v', package='verilog-axi')
-
-    # Verilator configuration
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
-            ['WIDTHTRUNC', 'TIMESCALEMOD'])
 
     dut.build()
 

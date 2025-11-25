@@ -121,7 +121,7 @@ This is generally how switchboard testbenches should start, since it allows the 
 Another macro provided with `switchboard.vh` 
 
 ```verilog
-`SB_SETUP_PROBES
+`SB_SETUP_PROBES();
 ```
 
 ## test.py

@@ -61,7 +61,7 @@ module testbench (
 
     // Waveforms
 
-    `SB_SETUP_PROBES
+    `SB_SETUP_PROBES();
 
 endmodule
 
