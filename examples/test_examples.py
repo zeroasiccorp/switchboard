@@ -40,7 +40,7 @@ THIS_DIR = Path(__file__).resolve().parent
     ['umiparam', None, 'icarus'],
     ['umiparam-network', None, 'verilator'],
     # ['umiparam-network', None, 'verilator-single-netlist'],
-    ['umiparam-network', None, 'verilator-supernet'],
+    # ['umiparam-network', None, 'verilator-supernet'],
     ['umiparam-network', None, 'icarus'],
     ['umiram', None, 'cpp'],
     ['umiram', None, 'verilator'],

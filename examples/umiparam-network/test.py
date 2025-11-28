@@ -13,7 +13,7 @@ from umi.sumi import Endpoint
 
 from siliconcompiler import Design
 
-from switchboard import SbNetwork, sb_path
+from switchboard import SbNetwork
 from switchboard.cmdline import get_cmdline_args
 from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
 
@@ -131,9 +131,14 @@ class UmiParam(Design):
 
         top_module = "umiparam"
 
-        dr_path = sb_path() / ".." / "examples" / "common"
+        dr_path = Path(__file__).resolve().parent
 
-        self.set_dataroot('sb_ex_common', dr_path)
+        dr_path = dr_path / ".." / "common"
+
+        self.set_dataroot(
+            name='sb_ex_common',
+            path=dr_path
+        )
 
         files = [
             "verilog/umiparam.sv"
