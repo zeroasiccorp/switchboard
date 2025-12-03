@@ -2,7 +2,7 @@ from siliconcompiler import Flowgraph
 from siliconcompiler.tools.surelog.parse import ElaborateTask
 
 from switchboard.sc.sed.sed_remove import SedRemove
-from switchboard.sc.morty.morty import UniquifyVerilogModules
+from switchboard.sc.morty.uniquify import UniquifyVerilogModules
 
 
 class StandaloneNetlistFlow(Flowgraph):

@@ -673,7 +673,7 @@ class SbDut(Sim):
             if package is not None:
                 return package
 
-        from switchboard.sc.morty.morty import UniquifyVerilogModules
+        from switchboard.sc.morty.uniquify import UniquifyVerilogModules
         from switchboard.sc.sed.sed_remove import SedRemove
 
         # if not, parse with surelog and postprocess with morty
