@@ -14,7 +14,7 @@ siliconcompiler >= 0.35.3, < 0.36.0
 
 # Testing dependencies
 #:test
-pytest >=8,<9
+pytest >=8,<10
 pytest-xdist
 pytest-timeout
 
