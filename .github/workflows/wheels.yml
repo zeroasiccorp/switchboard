@@ -37,7 +37,7 @@ jobs:
       CIBW_ARCHS_LINUX: ${{ matrix.platform.arch }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     # This facilitates building Linux+arm64 wheels
     # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
@@ -47,7 +47,7 @@ jobs:
       with:
         platforms: all
 
-    - uses: pypa/cibuildwheel@v2.23.0
+    - uses: pypa/cibuildwheel@v3.3.0
       env:
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_BUILD: ${{ matrix.python-version }}*
@@ -59,7 +59,7 @@ jobs:
     # been created, even if cibuildwheel action fails
     - name: Upload wheels
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         path: wheelhouse/*.whl
         name: switchboard-${{ matrix.python-version }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
@@ -74,7 +74,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v6
       with:
         pattern: switchboard-*
         merge-multiple: true

@@ -27,10 +27,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.version.python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.version.python }}
 
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # note that "sb_loopback.v" is not included in linting.  verible doesn't
       # seem to be able to take into account the macro definitions in the port
@@ -89,7 +89,7 @@ jobs:
           sudo apt-get install -y clang-format-14
 
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Gather files
         run: |
