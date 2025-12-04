@@ -9,7 +9,10 @@ import sys
 import random
 import numpy as np
 
+from siliconcompiler import Design
+
 from switchboard import SbDut
+from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
 
 
 def main():
@@ -68,6 +71,38 @@ def main():
         sys.exit(1)
 
 
+class AxilRam(Design):
+
+    def __init__(self):
+        super().__init__("axilram")
+
+        top_module = "axil_ram"
+
+        self.set_dataroot(
+            name="verilog-axi",
+            path="git+https://github.com/alexforencich/verilog-axi.git",
+            tag="38915fb"
+        )
+
+        files = [
+            "rtl/axil_ram.v"
+        ]
+
+        with self.active_fileset('rtl'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            for item in files:
+                self.add_file(item)
+
+        with self.active_fileset('verilator'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(self, "rtl")
+
+        with self.active_fileset('icarus'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(self, "rtl")
+
+
 def build_testbench():
     dw = 32
     aw = 13
@@ -90,19 +125,15 @@ def build_testbench():
         ' number of bytes in any single read/write.')
     }
 
-    dut = SbDut('axil_ram', autowrap=True, cmdline=True, extra_args=extra_args,
-        parameters=parameters, interfaces=interfaces, resets=resets)
-
-    dut.register_source(
-        'verilog-axi',
-        'git+https://github.com/alexforencich/verilog-axi.git',
-        '38915fb'
+    dut = SbDut(
+        design=AxilRam(),
+        cmdline=True,
+        autowrap=True,
+        parameters=parameters,
+        interfaces=interfaces,
+        resets=resets,
+        extra_args=extra_args
     )
-
-    dut.input('rtl/axil_ram.v', package='verilog-axi')
-
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
-        ['WIDTHTRUNC', 'TIMESCALEMOD'])
 
     dut.build()
 

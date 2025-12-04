@@ -648,16 +648,6 @@ class PyUmi {
         // the source address to which responses should be sent.  this
         // function is blocking.
 
-        // make sure that max_bytes is set appropriately
-
-        if (max_bytes > UMI_PACKET_DATA_BYTES) {
-            printf("WARNING: max_bytes is greater than the data payload"
-                   " of a single UMI packet (%d vs. %d bytes).  Change max_bytes"
-                   " to %d or smaller to clear this warning.\n",
-                max_bytes, UMI_PACKET_DATA_BYTES, UMI_PACKET_DATA_BYTES);
-            max_bytes = UMI_PACKET_DATA_BYTES;
-        }
-
         if (max_bytes < bytes_per_elem) {
             throw std::runtime_error("max_bytes must be greater than or equal to bytes_per_elem.");
         }

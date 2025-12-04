@@ -10,7 +10,9 @@
 import numpy as np
 from pathlib import Path
 from switchboard import SbDut, UmiTxRx, binary_run
-from umi import sumi
+
+from umiram import UmiRam
+
 
 THIS_DIR = Path(__file__).resolve().parent
 
@@ -89,12 +91,7 @@ def build_testbench():
         help='Programming language used for the test stimulus.')
     }
 
-    dut = SbDut('testbench', cmdline=True, trace_type='fst', extra_args=extra_args)
-
-    dut.input('testbench.sv')
-    dut.input(THIS_DIR.parent / 'common' / 'verilog' / 'umiram.sv')
-
-    dut.use(sumi)
+    dut = SbDut(UmiRam(), cmdline=True, trace_type='fst', extra_args=extra_args)
 
     dut.build()
 

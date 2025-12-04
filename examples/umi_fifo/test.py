@@ -6,7 +6,10 @@
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
 from switchboard import random_umi_packet, SbDut
-from umi import sumi
+from umi.sumi import Fifo
+
+from siliconcompiler import Design
+from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
 
 
 def main():
@@ -41,6 +44,34 @@ def main():
                 else:
                     txq.pop(0)
                     n_recv += 1
+
+
+class UmiFifo(Design):
+
+    def __init__(self):
+        super().__init__("testbench")
+
+        top_module = "testbench"
+
+        deps = [
+            Fifo(),
+        ]
+
+        with self.active_fileset('rtl'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            for item in deps:
+                self.add_depfileset(item)
+
+        with self.active_fileset('verilator'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            self.add_depfileset(self, "rtl")
+
+        with self.active_fileset('icarus'):
+            self.set_topmodule(top_module)
+            self.add_depfileset(SwitchboardSim())
+            self.add_depfileset(self, "rtl")
 
 
 def build_testbench():
@@ -83,11 +114,17 @@ def build_testbench():
         ' transactions to send into the FIFO during the test.')
     }
 
-    dut = SbDut('umi_fifo', autowrap=True, cmdline=True, extra_args=extra_args,
-        parameters=parameters, interfaces=interfaces, clocks=clocks, resets=resets,
-        tieoffs=tieoffs)
-
-    dut.use(sumi)
+    dut = SbDut(
+        design=UmiFifo(),
+        autowrap=True,
+        cmdline=True,
+        extra_args=extra_args,
+        parameters=parameters,
+        interfaces=interfaces,
+        clocks=clocks,
+        resets=resets,
+        tieoffs=tieoffs
+    )
 
     dut.build()
 

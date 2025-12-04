@@ -9,6 +9,7 @@ from copy import deepcopy
 from .umi import UmiTxRx
 from .axi import AxiTxRx
 from .axil import AxiLiteTxRx
+from switchboard.apb import ApbTxRx
 from .bitvector import slice_to_msb_lsb
 
 from _switchboard import PySbTx, PySbRx
@@ -118,7 +119,7 @@ def normalize_interface(name, value):
             value['txrx'] = None
         if 'uri' not in value:
             value['uri'] = f'{name}.q'
-    elif type in ['axi', 'axil']:
+    elif type in ['axi', 'axil', 'apb']:
         if 'dw' not in value:
             value['dw'] = 32
         if 'aw' not in value:
@@ -345,7 +346,7 @@ def autowrap(
 
             width = value['width']
 
-            lines += [tab + f'wire [{width-1}:0] {wire};']
+            lines += [tab + f'wire [{width - 1}:0] {wire};']
 
             wires['gpio'].add(wire)
 
@@ -364,7 +365,7 @@ def autowrap(
             width = value['width']
             wire = value["wire"]
 
-            lines += [tab + f'wire [{width-1}:0] {wire};']
+            lines += [tab + f'wire [{width - 1}:0] {wire};']
 
             lines += [tab + f'assign {wire} = {value["value"]};']
 
@@ -452,7 +453,7 @@ def autowrap(
                     width = value['width']
                     new_wire = f'{instance}_input_{name}'
                     lines += [
-                        tab + f'wire [{width-1}:0] {new_wire};',
+                        tab + f'wire [{width - 1}:0] {new_wire};',
                         tab + f'assign {new_wire} = {wire};'
                     ]
                     value['wire'] = new_wire
@@ -633,7 +634,7 @@ def autowrap(
 
     lines += ['']
 
-    lines += [tab + '`SB_SETUP_PROBES']
+    lines += [tab + '`SB_SETUP_PROBES();']
     lines += ['']
 
     lines += ['endmodule']
@@ -694,7 +695,7 @@ def normalize_direction(type, direction):
             return 'inout'
         else:
             raise Exception(f'Unsupported direction for interface type "{type}": "{direction}"')
-    elif type_is_axi(type) or type_is_axil(type):
+    elif type_is_axi(type) or type_is_axil(type) or type_is_apb(type):
         if direction_is_manager(direction):
             return 'manager'
         elif direction_is_subordinate(direction):
@@ -794,6 +795,10 @@ def type_is_axil(type):
     return type.lower() in ['axil']
 
 
+def type_is_apb(type):
+    return type.lower() in ['apb']
+
+
 def type_is_input(type):
     return type.lower() in ['i', 'in', 'input']
 
@@ -823,6 +828,8 @@ def normalize_intf_type(type):
         return 'axi'
     elif type_is_axil(type):
         return 'axil'
+    elif type_is_apb(type):
+        return 'apb'
     elif type_is_input(type):
         return 'input'
     elif type_is_output(type):
@@ -966,6 +973,27 @@ def create_intf_obj(value, fresh=True, max_rate=-1):
                 addr_width=value['aw'], **kwargs)
         else:
             raise Exception(f'Unsupported AXI-Lite direction: "{direction}"')
+    elif type_is_apb(type):
+        kwargs = {}
+
+        if 'prot' in value:
+            kwargs['prot'] = value['prot']
+
+        if 'max_rate' in value:
+            kwargs['max_rate'] = value['max_rate']
+        else:
+            # use default if not set for this particular interface
+            kwargs['max_rate'] = max_rate
+
+        if direction_is_subordinate(direction):
+            obj = ApbTxRx(
+                uri=value['uri'],
+                data_width=value['dw'],
+                addr_width=value['aw'],
+                **kwargs
+            )
+        else:
+            raise Exception(f'Unsupported APB direction: "{direction}"')
     else:
         raise Exception(f'Unsupported interface type: "{type}"')
 

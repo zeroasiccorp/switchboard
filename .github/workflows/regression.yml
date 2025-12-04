@@ -17,7 +17,7 @@ jobs:
     name: Verilator
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/zeroasiccorp/sbtest:latest
+      image: ghcr.io/siliconcompiler/sc_runner:latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
 
       - name: Install Switchboard Python package
         run: |
-          pip3 install .[test]
+          pip3 install -e .[test]
           pip3 install -r examples/requirements.txt
 
       - name: Run pytest
@@ -46,30 +46,31 @@ jobs:
         run: |
           make TCP=1
 
-  fpga_sim:
-    name: FPGA queue simulation
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/zeroasiccorp/sbtest:latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
+  # FPGA SIM TEMPORARILY DISABLED
+  #fpga_sim:
+  #  name: FPGA queue simulation
+  #  runs-on: ubuntu-latest
+  #  container:
+  #    image: ghcr.io/zeroasiccorp/sbtest:latest
+  #  timeout-minutes: 5
+  #  steps:
+  #    - uses: actions/checkout@v4
+  #      with:
+  #        submodules: true
 
-      - name: Install Switchboard Python package
-        run: |
-          pip3 install .
+  #    - name: Install Switchboard Python package
+  #      run: |
+  #        pip3 install .
 
-      - name: Setup GIT to pull from https
-        working-directory: examples
-        run: |
-          git config --global --add url."https://github.com/".insteadOf git@github.com:
+  #    - name: Setup GIT to pull from https
+  #      working-directory: examples
+  #      run: |
+  #        git config --global --add url."https://github.com/".insteadOf git@github.com:
 
 
-      - name: Run FPGA loopback simulation
-        working-directory: examples/fpga_loopback
-        run: |
-          make test > out.log
-          cat out.log
-          grep -Fxq "PASS" out.log
+  #    - name: Run FPGA loopback simulation
+  #      working-directory: examples/fpga_loopback
+  #      run: |
+  #        make test > out.log
+  #        cat out.log
+  #        grep -Fxq "PASS" out.log

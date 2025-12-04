@@ -7,7 +7,6 @@
 
 import numpy as np
 
-from umi import sumi
 from switchboard import SbNetwork
 
 from pathlib import Path
@@ -22,7 +21,9 @@ def main():
     # create the building blocks
 
     umi_fifo = make_umi_fifo(net)
+
     umi2axil = make_umi2axil(net)
+
     axil_ram = make_axil_ram(net)
 
     # connect them together
@@ -46,7 +47,7 @@ def main():
 
     # launch the simulation
 
-    net.simulate()
+    net.simulate(run=True)
 
     # interact with the simulation
 
@@ -83,6 +84,7 @@ def make_umi_fifo(net):
         bypass="1'b0",
         chaosmode="1'b0",
         fifo_full=None,
+        fifo_almost_full=None,
         fifo_empty=None,
         vdd="1'b1",
         vss="1'b0"
@@ -103,12 +105,36 @@ def make_umi_fifo(net):
         'umi_out_nreset'
     ]
 
-    dut = net.make_dut('umi_fifo', parameters=parameters, interfaces=interfaces,
-        clocks=clocks, resets=resets, tieoffs=tieoffs)
+    from siliconcompiler import Design
 
-    dut.use(sumi)
+    class UmiFifo(Design):
+        def __init__(self):
+            super().__init__('umi_fifo_wrapper')
 
-    dut.input('sumi/rtl/umi_fifo.v', package='umi')
+            top_module = "umi_fifo"
+
+            from umi.sumi import Fifo
+            with self.active_fileset('rtl'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(Fifo())
+
+            with self.active_fileset('verilator'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(self, "rtl")
+
+            with self.active_fileset('icarus'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(self, "rtl")
+
+    dut = net.make_dut(
+        design=UmiFifo(),
+        fileset="verilator",
+        parameters=parameters,
+        interfaces=interfaces,
+        clocks=clocks,
+        resets=resets,
+        tieoffs=tieoffs
+    )
 
     return dut
 
@@ -128,19 +154,38 @@ def make_axil_ram(net):
 
     resets = [dict(name='rst', delay=8)]
 
-    dut = net.make_dut('axil_ram', parameters=parameters,
-        interfaces=interfaces, resets=resets)
+    from siliconcompiler import Design
 
-    dut.register_source(
-        'verilog-axi',
-        'git+https://github.com/alexforencich/verilog-axi.git',
-        '38915fb'
+    class AxilRam(Design):
+        def __init__(self):
+            super().__init__('axil_ram')
+
+            self.set_dataroot(
+                name='axil_ram',
+                path="git+https://github.com/alexforencich/verilog-axi.git",
+                tag="38915fb"
+            )
+            top_module = "axil_ram"
+
+            with self.active_fileset('rtl'):
+                self.add_file('rtl/axil_ram.v')
+                self.set_topmodule(top_module)
+
+            with self.active_fileset('verilator'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(self, "rtl")
+
+            with self.active_fileset('icarus'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(self, "rtl")
+
+    dut = net.make_dut(
+        design=AxilRam(),
+        fileset="verilator",
+        parameters=parameters,
+        interfaces=interfaces,
+        resets=resets
     )
-
-    dut.input('rtl/axil_ram.v', package='verilog-axi')
-
-    dut.add('tool', 'verilator', 'task', 'compile', 'warningoff',
-        ['WIDTHTRUNC', 'TIMESCALEMOD'])
 
     return dut
 
@@ -164,12 +209,34 @@ def make_umi2axil(net):
 
     resets = ['nreset']
 
-    dut = net.make_dut('umi2axilite', parameters=parameters,
-        interfaces=interfaces, resets=resets)
+    from siliconcompiler import Design
 
-    dut.use(sumi)
+    class Umi2Axil(Design):
+        def __init__(self):
+            super().__init__('umi2axil_wrapper')
 
-    dut.input('utils/rtl/umi2axilite.v', package='umi')
+            top_module = "umi2axil"
+
+            from umi.adapters import UMI2AXIL
+            with self.active_fileset('rtl'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(UMI2AXIL())
+
+            with self.active_fileset('verilator'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(self, "rtl")
+
+            with self.active_fileset('icarus'):
+                self.set_topmodule(top_module)
+                self.add_depfileset(self, "rtl")
+
+    dut = net.make_dut(
+        design=Umi2Axil(),
+        fileset="verilator",
+        parameters=parameters,
+        interfaces=interfaces,
+        resets=resets
+    )
 
     return dut
 

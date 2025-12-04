@@ -30,7 +30,7 @@ def get_dtype_from_umi_size(size, signed=False):
     assert size in {0, 1, 2, 3}, 'Only UMI sizes between 0 and 3 (inclusive) are allowed.'
 
     # determine the name of the datatype
-    name = f"{'u' if not signed else 'i'}{1<<size}"
+    name = f"{'u' if not signed else 'i'}{1 << size}"
 
     # return the dtype
     return np.dtype(name)

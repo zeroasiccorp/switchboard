@@ -50,6 +50,6 @@ module testbench (
 
     // Waveform probing
 
-    `SB_SETUP_PROBES
+    `SB_SETUP_PROBES();
 
 endmodule

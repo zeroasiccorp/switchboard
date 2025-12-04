@@ -1,6 +1,8 @@
 # Copyright (c) 2024 Zero ASIC Corporation
 # This code is licensed under Apache License 2.0 (see LICENSE for details)
 
+from typing import Set
+
 from pathlib import Path
 from copy import deepcopy
 from itertools import count
@@ -8,14 +10,17 @@ from numbers import Integral
 
 from .sbdut import SbDut
 from .axi import axi_uris
+from .apb import apb_uris
 from .autowrap import (directions_are_compatible, normalize_intf_type,
-    type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil,
+    type_is_umi, type_is_sb, create_intf_objs, type_is_axi, type_is_axil, type_is_apb,
     autowrap, flip_intf, normalize_direction, WireExpr, types_are_compatible)
 from .cmdline import get_cmdline_args
 from .sbtcp import start_tcp_bridge
 from .util import ProcessCollection
 
 from _switchboard import delete_queues
+
+from siliconcompiler import Design
 
 
 class SbIntf:
@@ -119,12 +124,82 @@ class SbInst:
             self.__setattr__(name, SbIntf(inst=self, name=name, width=width))
 
 
+class SingleNetlistNetwork(Design):
+    def __init__(
+        self,
+        unique_blocks: Set[SbInst],
+        wrapper_filename: str,
+        fileset: str,
+        insts
+    ):
+        super().__init__("SNDesign")
+        unique_blocks = unique_blocks
+
+        # Pickle each block in the network
+        pickled_sources = [block.package() for block in unique_blocks]
+
+        # populate the interfaces dictionary
+        interfaces = {}
+
+        for inst_name, inst in insts.items():
+            # make a copy of the interface definitions for this block
+            intf_defs = deepcopy(inst.block.intf_defs)
+
+            # wiring
+            for intf_name, props in inst.mapping.items():
+                intf_defs[intf_name]['wire'] = props['wire']
+                intf_defs[intf_name]['external'] = intf_name in inst.external
+
+            # prepend instance name to init interfaces
+            for value in intf_defs.values():
+                if value['type'] == 'plusarg':
+                    value['wire'] = f"{inst_name}_{value['wire']}"
+                    value['plusarg'] = f"{inst_name}_{value['plusarg']}"
+
+            interfaces[inst_name] = intf_defs
+
+        # generate netlist that connects everything together, and input() it
+        top_lvl = autowrap(
+            instances={inst.name: inst.block.get_topmodule_name() for inst in insts.values()},
+            toplevel='testbench',
+            parameters={inst.name: inst.block.parameters for inst in insts.values()},
+            interfaces=interfaces,
+            clocks={inst.name: inst.block.clocks for inst in insts.values()},
+            resets={inst.name: inst.block.resets for inst in insts.values()},
+            tieoffs={inst.name: inst.block.tieoffs for inst in insts.values()},
+            filename=wrapper_filename
+        )
+
+        sources = pickled_sources + [str(top_lvl)]
+
+        from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
+
+        with self.active_fileset(fileset):
+            self.set_topmodule("testbench")
+            self.add_depfileset(SwitchboardSim())
+            for file in sources:
+                self.add_file(file)
+
+
 class SbNetwork:
-    def __init__(self, cmdline=False, tool: str = 'verilator', trace: bool = False,
-        trace_type: str = 'vcd', frequency: float = 100e6, period: float = None,
-        max_rate: float = -1, start_delay: float = None, fast: bool = False,
-        extra_args: dict = None, cleanup: bool = True, args=None,
-        single_netlist: bool = False, threads: int = None, name: str = None):
+    def __init__(
+        self,
+        cmdline=False,
+        tool: str = 'verilator',
+        trace: bool = False,
+        trace_type: str = 'vcd',
+        frequency: float = 100e6,
+        period: float = None,
+        max_rate: float = -1,
+        start_delay: float = None,
+        fast: bool = False,
+        extra_args: dict = None,
+        cleanup: bool = True,
+        args=None,
+        single_netlist: bool = False,
+        threads: int = None,
+        name: str = None
+    ):
 
         self.insts = {}
 
@@ -185,7 +260,7 @@ class SbNetwork:
         self.single_netlist = single_netlist
 
         if single_netlist:
-            self.dut = SbDut(args=self.args)
+            self.single_netlist_dut = SbDut(design="single_netlist_network", args=self.args)
         else:
             self._intf_defs = {}
 
@@ -206,7 +281,7 @@ class SbNetwork:
     @property
     def intf_defs(self):
         if self.single_netlist:
-            return self.dut.intf_defs
+            return self.single_netlist_dut.intf_defs
         else:
             return self._intf_defs
 
@@ -214,7 +289,7 @@ class SbNetwork:
         # generate a name if needed
         if name is None:
             if isinstance(block, SbDut):
-                prefix = block.dut
+                prefix = block.design.name
             else:
                 prefix = block.name
 
@@ -397,59 +472,27 @@ class SbNetwork:
             raise Exception(f'Unsupported direction: {tcp_direction}')
 
     def build(self):
-        unique_blocks = set(inst.block for inst in self.insts.values())
+        unique_blocks: Set[SbInst] = set(inst.block for inst in self.insts.values())
 
         if self.single_netlist:
-            passthroughs = [
-                ('tool', 'verilator', 'task', 'compile', 'warningoff')
-            ]
 
-            for block in unique_blocks:
-                self.dut.input(block.package())
-
-                for passthrough in passthroughs:
-                    self.dut.add(*passthrough, block.get(*passthrough))
-
-            filename = Path(self.dut.get('option', 'builddir')).resolve() / 'testbench.sv'
-
+            filename = Path(
+                self.single_netlist_dut.option.get_builddir()
+            ).resolve() / 'testbench.sv'
             filename.parent.mkdir(exist_ok=True, parents=True)
 
-            # populate the interfaces dictionary
-            interfaces = {}
-
-            for inst_name, inst in self.insts.items():
-                # make a copy of the interface definitions for this block
-                intf_defs = deepcopy(inst.block.intf_defs)
-
-                # wiring
-                for intf_name, props in inst.mapping.items():
-                    intf_defs[intf_name]['wire'] = props['wire']
-                    intf_defs[intf_name]['external'] = intf_name in inst.external
-
-                # prepend instance name to init interfaces
-                for value in intf_defs.values():
-                    if value['type'] == 'plusarg':
-                        value['wire'] = f"{inst_name}_{value['wire']}"
-                        value['plusarg'] = f"{inst_name}_{value['plusarg']}"
-
-                interfaces[inst_name] = intf_defs
-
-            # generate netlist that connects everything together, and input() it
-            self.dut.input(
-                autowrap(
-                    instances={inst.name: inst.block.dut for inst in self.insts.values()},
-                    toplevel='testbench',
-                    parameters={inst.name: inst.block.parameters for inst in self.insts.values()},
-                    interfaces=interfaces,
-                    clocks={inst.name: inst.block.clocks for inst in self.insts.values()},
-                    resets={inst.name: inst.block.resets for inst in self.insts.values()},
-                    tieoffs={inst.name: inst.block.tieoffs for inst in self.insts.values()},
-                    filename=filename
+            self.single_netlist_dut.set_design(
+                SingleNetlistNetwork(
+                    unique_blocks=unique_blocks,
+                    fileset=self.tool,
+                    wrapper_filename=filename,
+                    insts=self.insts
                 )
             )
+            self.single_netlist_dut.add_fileset(self.tool)
 
             # build the single-netlist simulation
-            self.dut.build()
+            self.single_netlist_dut.build()
         else:
             for block in unique_blocks:
                 block.build()
@@ -535,12 +578,18 @@ class SbNetwork:
                         for inst_plusarg, value in inst_plusargs:
                             plusargs_processed.append((f"{inst_name}_{inst_plusarg}", value))
                 plusargs = plusargs_processed
-            process = self.dut.simulate(start_delay=start_delay, run=run,
-                intf_objs=intf_objs, plusargs=plusargs)
+
+            process = self.single_netlist_dut.simulate(
+                start_delay=start_delay,
+                run=run,
+                intf_objs=intf_objs,
+                plusargs=plusargs
+            )
+
             self.process_collection.add(process)
 
             if intf_objs:
-                self.intfs = self.dut.intfs
+                self.intfs = self.single_netlist_dut.intfs
         else:
             if intf_objs:
                 self.intfs = create_intf_objs(self.intf_defs)
@@ -622,6 +671,8 @@ class SbNetwork:
     def register_uri(self, type, uri, fresh=True):
         if type_is_axi(type) or type_is_axil(type):
             uris = axi_uris(uri)
+        elif type_is_apb(type):
+            uris = apb_uris(uri)
         else:
             uris = [uri]
 
