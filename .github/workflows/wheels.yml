@@ -59,7 +59,7 @@ jobs:
     # been created, even if cibuildwheel action fails
     - name: Upload wheels
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         path: wheelhouse/*.whl
         name: switchboard-${{ matrix.python-version }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
@@ -74,7 +74,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v7
       with:
         pattern: switchboard-*
         merge-multiple: true
