@@ -1,2 +1,2 @@
 # Examples dependencies
-umi >= 0.3.1, < 0.4.0
+umi >= 0.3.1, < 0.5.0
