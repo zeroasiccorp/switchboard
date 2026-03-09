@@ -43,11 +43,11 @@ jobs:
     # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation
     - name: Set up QEMU
       if: runner.os == 'Linux'
-      uses: docker/setup-qemu-action@v3
+      uses: docker/setup-qemu-action@v4
       with:
         platforms: all
 
-    - uses: pypa/cibuildwheel@v3.3.1
+    - uses: pypa/cibuildwheel@v3.4.0
       env:
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
         CIBW_BUILD: ${{ matrix.python-version }}*
