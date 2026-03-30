@@ -38,6 +38,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     # This facilitates building Linux+arm64 wheels
     # https://cibuildwheel.readthedocs.io/en/stable/faq/#emulation

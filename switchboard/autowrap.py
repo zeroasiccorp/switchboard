@@ -12,7 +12,7 @@ from .axil import AxiLiteTxRx
 from switchboard.apb import ApbTxRx
 from .bitvector import slice_to_msb_lsb
 
-from _switchboard import PySbTx, PySbRx
+from ._switchboard import PySbTx, PySbRx
 
 
 class WireExpr:

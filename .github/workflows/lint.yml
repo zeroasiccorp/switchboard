@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.version.python }}
         uses: actions/setup-python@v6
@@ -51,6 +53,8 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       # note that "sb_loopback.v" is not included in linting.  verible doesn't
       # seem to be able to take into account the macro definitions in the port
@@ -90,6 +94,8 @@ jobs:
 
       - name: Check out Git repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Gather files
         run: |

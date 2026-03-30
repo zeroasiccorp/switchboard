@@ -18,7 +18,7 @@ from .cmdline import get_cmdline_args
 from .sbtcp import start_tcp_bridge
 from .util import ProcessCollection
 
-from _switchboard import delete_queues
+from ._switchboard import delete_queues
 
 from siliconcompiler import Design
 

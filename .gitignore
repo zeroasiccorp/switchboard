@@ -47,5 +47,8 @@ queue-*
 __pycache__
 .venv/
 
+# Generated version file
+switchboard/_version.py
+
 # act secrets
 .secrets

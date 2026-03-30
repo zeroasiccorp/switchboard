@@ -509,7 +509,7 @@ class SbDut(Sim):
 
     def remove_queues_on_exit(self):
         import atexit
-        from _switchboard import delete_queues
+        from ._switchboard import delete_queues
 
         def cleanup_func(uris=self.get_uris()):
             if len(uris) > 0:

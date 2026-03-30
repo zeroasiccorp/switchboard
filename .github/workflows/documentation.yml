@@ -16,16 +16,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@v6
         with:
             python-version: '3.11'
+
       - name: Install switchboard
         run: |
             pip install --upgrade pip
             pip install -e .[docs]
+
       - name: Sphinx build
         run: |
           sphinx-build docs/source/ docs/build
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
