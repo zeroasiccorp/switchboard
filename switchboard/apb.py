@@ -8,7 +8,7 @@ import numpy as np
 from math import floor, ceil, log2
 from numbers import Integral
 
-from _switchboard import PySbPacket, PySbTx, PySbRx
+from ._switchboard import PySbPacket, PySbTx, PySbRx
 
 
 class ApbTxRx:

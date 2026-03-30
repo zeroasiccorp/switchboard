@@ -9,7 +9,7 @@ import numpy as np
 from numbers import Integral
 from typing import Iterable, Union, Dict
 
-from _switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic)
+from ._switchboard import (PyUmi, PyUmiPacket, umi_pack, UmiCmd, UmiAtomic)
 from .gpio import UmiGpio
 
 # note: it was convenient to implement some of this in Python, rather

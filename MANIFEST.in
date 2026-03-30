@@ -1,6 +1,10 @@
+include CMakeLists.txt
+include switchboard/__init__.py
 recursive-include switchboard/cpp *.h *.hh *.hpp *.c *.cc *.cpp Makefile
 recursive-include switchboard/dpi *.h *.hh *.hpp *.c *.cc *.cpp
 recursive-include switchboard/vpi *.h *.hh *.hpp *.c *.cc *.cpp
-recursive-include switchboard/deps/verilog-axi/rtl *.v *.sv *.vh *.svh
+recursive-include switchboard/sc *.py
+recursive-include switchboard/deps *.v *.sv *.vh *.svh *.py
 recursive-include switchboard/verilog *.v *.sv *.vh *.svh
 recursive-include switchboard/verilator *.h *.hh *.hpp *.c *.cc *.cpp *.vlt
+recursive-include python *.cc
