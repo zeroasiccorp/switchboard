@@ -10,7 +10,6 @@ from siliconcompiler import Design
 from switchboard import SbDut, AxiLiteTxRx
 
 from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
-from switchboard import sb_path
 
 
 def main():
