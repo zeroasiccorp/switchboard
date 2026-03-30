@@ -119,7 +119,10 @@ module uart_xactor
 
    la_syncfifo #(.DW(8),
       .DEPTH(80),        // FIFO Depth, can hold an 80 chars line?
-      .CTRLW(1))         // width of asic ctrl interface
+      .NS(1),            // Number of power supplies
+      .CHAOS(0),         // generates random full logic when set
+      .CTRLW(1),         // width of asic ctrl interface
+      .TESTW(1))         // width of asic test interface
       rx_fifo(
          .wr_full          (rxfifo_full),
          .rd_dout          (rxfifo_dout),
@@ -127,16 +130,21 @@ module uart_xactor
          .clk              (clk),
          .nreset           (nreset),
          .clear            (1'b0),
+         .vss              (1'b0),
+         .vdd              (1'b1),
+         .chaosmode        (1'b0),
          .ctrl             (1'b0),
-         .selctrl          (1'b0),
-         .status           (),
+         .test             (1'b0),
          .wr_en            (rx_next_data_en),
          .wr_din           (rx_next_data),
          .rd_en            (rxfifo_read));
 
    la_syncfifo #(.DW(8),
       .DEPTH(80),        // FIFO Depth, can hold an 80 chars line?
-      .CTRLW(1))         // width of asic ctrl interface
+      .NS(1),            // Number of power supplies
+      .CHAOS(0),         // generates random full logic when set
+      .CTRLW(1),         // width of asic ctrl interface
+      .TESTW(1))         // width of asic test interface
       tx_fifo(
          .wr_full          (txfifo_full),
          .rd_dout          (txfifo_dout),
@@ -144,9 +152,11 @@ module uart_xactor
          .clk              (clk),
          .nreset           (nreset),
          .clear            (1'b0),
+         .vss              (1'b0),
+         .vdd              (1'b1),
+         .chaosmode        (1'b0),
          .ctrl             (1'b0),
-         .selctrl          (1'b0),
-         .status           (),
+         .test             (1'b0),
          .wr_en            (txfifo_write),
          .wr_din           (loc_wrdata[7:0]),
          .rd_en            (txfifo_read));
