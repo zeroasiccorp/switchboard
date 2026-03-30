@@ -13,8 +13,9 @@ on:
       - published
 
 # Ensure C compilation works on MacOS.
+# 10.15 is required for full C++17 support (std::optional)
 env:
-  MACOSX_DEPLOYMENT_TARGET: "10.13"
+  MACOSX_DEPLOYMENT_TARGET: "10.15"
 
 jobs:
 
@@ -51,9 +52,10 @@ jobs:
 
     - uses: pypa/cibuildwheel@v3.4.0
       env:
-        CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+        CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+        CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
         CIBW_BUILD: ${{ matrix.python-version }}*
-        CIBW_SKIP: "pp* *win32 *i686 *-musllinux_*"
+        CIBW_SKIP: "*win32 *i686 *-musllinux_*"
         CIBW_ARCHS_MACOS: x86_64 arm64
         CIBW_TEST_SKIP: "*_arm64"
 

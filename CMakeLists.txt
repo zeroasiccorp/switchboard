@@ -11,6 +11,9 @@ find_package(pybind11 CONFIG REQUIRED)
 # Build the extension module
 pybind11_add_module(_switchboard MODULE python/switchboard_pybind.cc)
 
+# Require C++17 for std::optional
+target_compile_features(_switchboard PRIVATE cxx_std_17)
+
 # Include directories
 target_include_directories(_switchboard PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/switchboard/cpp)
 
