@@ -3,7 +3,6 @@ from siliconcompiler import Design
 from umi.sumi import Fifo, RAM
 
 from switchboard.verilog.sim.switchboard_sim import SwitchboardSim
-from switchboard import sb_path
 
 
 class UmiRam(Design):
@@ -13,9 +12,7 @@ class UmiRam(Design):
 
         top_module = "testbench"
 
-        dr_path = sb_path() / ".." / "examples" / "umiram"
-
-        self.set_dataroot('umiram', dr_path)
+        self.set_dataroot('umiram', __file__)
 
         files = [
             "testbench.sv",
