@@ -1,2 +1,3 @@
 # Examples dependencies
 umi >= 0.3.1, < 0.5.0
+lambdalib >= 0.10.0, < 0.12.0
