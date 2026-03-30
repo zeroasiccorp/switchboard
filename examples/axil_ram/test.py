@@ -92,9 +92,7 @@ class TB(Design):
 
         top_module = "testbench"
 
-        dr_path = sb_path() / ".." / "examples" / "axil_ram"
-
-        self.set_dataroot('axil_ram', dr_path)
+        self.set_dataroot('axil_ram', __file__)
 
         files = [
             "testbench.sv"
