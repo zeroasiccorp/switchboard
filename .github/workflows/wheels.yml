@@ -13,8 +13,9 @@ on:
       - published
 
 # Ensure C compilation works on MacOS.
+# 10.15 is required for full C++17 support (std::optional)
 env:
-  MACOSX_DEPLOYMENT_TARGET: "10.13"
+  MACOSX_DEPLOYMENT_TARGET: "10.15"
 
 jobs:
 
