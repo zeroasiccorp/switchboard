@@ -50,7 +50,7 @@ jobs:
       with:
         platforms: all
 
-    - uses: pypa/cibuildwheel@v3.4.0
+    - uses: pypa/cibuildwheel@v3.4.1
       env:
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
         CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
