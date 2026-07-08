@@ -57,7 +57,7 @@ switchboard = "switchboard.switchboard:main"
 switchboard = "switchboard.pytest_plugin"
 
 [tool.scikit-build]
-cmake.minimum-version = "3.15"
+cmake.version = ">=3.15"
 cmake.build-type = "Release"
 build-dir = "build/{wheel_tag}"
 wheel.packages = ["switchboard"]
