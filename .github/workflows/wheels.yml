@@ -38,7 +38,7 @@ jobs:
       CIBW_ARCHS_LINUX: ${{ matrix.platform.arch }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -50,7 +50,7 @@ jobs:
       with:
         platforms: all
 
-    - uses: pypa/cibuildwheel@v4.0.0
+    - uses: pypa/cibuildwheel@v4.1.0
       env:
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
         CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
