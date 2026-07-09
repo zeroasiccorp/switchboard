@@ -8,6 +8,8 @@ name: Wheels Build
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
   release:
     types:
       - published
@@ -16,6 +18,10 @@ on:
 # 10.15 is required for full C++17 support (std::optional)
 env:
   MACOSX_DEPLOYMENT_TARGET: "10.15"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -76,6 +82,7 @@ jobs:
 
     permissions:
       contents: write
+      id-token: write
 
     steps:
     - uses: actions/download-artifact@v8
@@ -84,10 +91,7 @@ jobs:
         merge-multiple: true
         path: dist
 
-    - uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_DEPLOY }}
+    - uses: pypa/gh-action-pypi-publish@v1.14.0
 
     - name: Add wheels to GitHub release artifacts
       uses: softprops/action-gh-release@v3
