@@ -128,13 +128,14 @@
 `define SB_OUTPUT(signal, dw)                                                                      \
     `SB_PORT(signal, dw, output, input)
 
-`define SB_TO_QUEUE_SIM(signal, dw, file, rdymode=1, clk_signal=clk)                               \
+`define SB_TO_QUEUE_SIM(signal, dw, file, rdymode=1, clk_signal=clk, reset_sig=1'b0)               \
     sb_to_queue_sim #(                                                                             \
         .READY_MODE_DEFAULT(rdymode),                                                              \
         .DW(dw),                                                                                   \
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(reset_sig),                                                                         \
         .data(signal``_data),                                                                      \
         .dest(signal``_dest),                                                                      \
         .last(signal``_last),                                                                      \
@@ -142,13 +143,14 @@
         .valid(signal``_valid)                                                                     \
     )
 
-`define QUEUE_TO_SB_SIM(signal, dw, file, vldmode=1, clk_signal=clk)                               \
+`define QUEUE_TO_SB_SIM(signal, dw, file, vldmode=1, clk_signal=clk, reset_sig=1'b0)               \
     queue_to_sb_sim #(                                                                             \
         .VALID_MODE_DEFAULT(vldmode),                                                              \
         .DW(dw),                                                                                   \
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(reset_sig),                                                                         \
         .data(signal``_data),                                                                      \
         .dest(signal``_dest),                                                                      \
         .last(signal``_last),                                                                      \
@@ -342,7 +344,7 @@
     .a``_rvalid(b``_rvalid),                                                                       \
     .a``_rready(b``_rready)
 
-`define SB_AXI(dir, signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)               \
+`define SB_AXI(dir, signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk, rst_signal='0)\
     sb_axi_``dir #(                                                                                \
         .DATA_WIDTH(dw),                                                                           \
         .ADDR_WIDTH(aw),                                                                           \
@@ -352,6 +354,7 @@
         .FILE(file)                                                                                \
     ) signal``_sb_inst (                                                                           \
         .clk(clk_signal),                                                                          \
+        .reset(rst_signal),                                                                        \
         .dir``_axi_awid(signal``_awid),                                                            \
         .dir``_axi_awaddr(signal``_awaddr),                                                        \
         .dir``_axi_awlen(signal``_awlen),                                                          \
@@ -389,11 +392,11 @@
         .dir``_axi_rready(signal``_rready)                                                         \
     )
 
-`define SB_AXI_M(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)                  \
-    `SB_AXI(m, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal)
+`define SB_AXI_M(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk, rst_signal=1'b0) \
+    `SB_AXI(m, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal, rst_signal)
 
-`define SB_AXI_S(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk)                  \
-    `SB_AXI(s, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal)
+`define SB_AXI_S(signal, dw, aw, idw, file, vldmode=1, rdymode=1, clk_signal=clk, rst_signal=1'b0) \
+    `SB_AXI(s, signal, dw, aw, idw, file, vldmode, rdymode, clk_signal, rst_signal)
 
 `define SB_CREATE_CLOCK(clk_signal, period=10e-9, duty_cycle=0.5, max_rate=-1, start_delay=-1)     \
     wire clk_signal;                                                                               \

@@ -118,7 +118,7 @@ module testbench (
         .ADDR_WIDTH (ADDR_WIDTH))
     sb_axil_m_i (
         .clk            (clk),
-        .reset          (1'b0),
+        .reset          (~nreset),
 
         .m_axil_awaddr  (s_axil_awaddr),
         .m_axil_awprot  (s_axil_awprot),

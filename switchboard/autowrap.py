@@ -317,6 +317,46 @@ def autowrap(
         ''
     ]
 
+    # reset vector
+
+    max_rst_dly = None
+
+    for inst_resets in resets.values():
+        if len(inst_resets) > 0:
+            # find the max reset delay for this instance
+            inst_max_rst_dly = max(reset['delay'] for reset in inst_resets)
+
+            # update the overall max reset delay
+            if (max_rst_dly is None) or (inst_max_rst_dly > max_rst_dly):
+                max_rst_dly = inst_max_rst_dly
+
+    if max_rst_dly is not None:
+        lines += [
+            tab + f"reg [{max_rst_dly}:0] rstvec = '1;",
+            '',
+            tab + 'always @(posedge clk) begin'
+        ]
+
+        if max_rst_dly > 0:
+            lines += [(2 * tab) + f"rstvec <= {{rstvec[{max_rst_dly - 1}:0], 1'b0}};"]
+        else:
+            lines += [(2 * tab) + "rstvec <= 1'b0;"]
+
+        lines += [
+            tab + 'end',
+            ''
+        ]
+
+        # hold the switchboard transactors in reset until every reset in the
+        # design has been released.  rstvec[max_rst_dly] is the last bit of the
+        # reset vector to be de-asserted, so it is the logical OR of all of the
+        # reset signals driven into the design.  without this, transactions are
+        # driven into a DUT that is still in reset, which hangs the simulation if
+        # the DUT happens to hold its "ready" signals high during reset.
+        xactor_rst = f'rstvec[{max_rst_dly}]'
+    else:
+        xactor_rst = "1'b0"
+
     # wire declarations
 
     wires = {}
@@ -399,9 +439,11 @@ def autowrap(
 
                 if external:
                     if direction_is_input(direction):
-                        lines += [tab + f'`QUEUE_TO_SB_SIM({wire}, {dw}, "");']
+                        lines += [tab + f'`QUEUE_TO_SB_SIM({wire}, {dw}, "", 1, clk, '
+                                 f'{xactor_rst});']
                     elif direction_is_output(direction):
-                        lines += [tab + f'`SB_TO_QUEUE_SIM({wire}, {dw}, "");']
+                        lines += [tab + f'`SB_TO_QUEUE_SIM({wire}, {dw}, "", 1, clk, '
+                                 f'{xactor_rst});']
                     else:
                         raise Exception(f'Unsupported SB direction: {direction}')
             elif type == 'umi':
@@ -414,9 +456,11 @@ def autowrap(
 
                 if external:
                     if direction_is_input(direction):
-                        lines += [tab + f'`QUEUE_TO_UMI_SIM({wire}, {dw}, {cw}, {aw}, "");']
+                        lines += [tab + f'`QUEUE_TO_UMI_SIM({wire}, {dw}, {cw}, {aw}, '
+                                 f'"", 1, clk, {xactor_rst});']
                     elif direction_is_output(direction):
-                        lines += [tab + f'`UMI_TO_QUEUE_SIM({wire}, {dw}, {cw}, {aw}, "");']
+                        lines += [tab + f'`UMI_TO_QUEUE_SIM({wire}, {dw}, {cw}, {aw}, '
+                                 f'"", 1, clk, {xactor_rst});']
                     else:
                         raise Exception(f'Unsupported UMI direction: {direction}')
             elif type == 'axi':
@@ -429,9 +473,11 @@ def autowrap(
 
                 if external:
                     if direction_is_subordinate(direction):
-                        lines += [tab + f'`SB_AXI_M({wire}, {dw}, {aw}, {idw}, "");']
+                        lines += [tab + f'`SB_AXI_M({wire}, {dw}, {aw}, {idw}, '
+                                 f'"", 1, 1, clk, {xactor_rst});']
                     elif direction_is_manager(direction):
-                        lines += [tab + f'`SB_AXI_S({wire}, {dw}, {aw}, "");']
+                        lines += [tab + f'`SB_AXI_S({wire}, {dw}, {aw}, {idw}, '
+                                 f'"", 1, 1, clk, {xactor_rst});']
                     else:
                         raise Exception(f'Unsupported AXI direction: {direction}')
             elif type == 'axil':
@@ -443,9 +489,11 @@ def autowrap(
 
                 if external:
                     if direction_is_subordinate(direction):
-                        lines += [tab + f'`SB_AXIL_M({wire}, {dw}, {aw}, "");']
+                        lines += [tab + f'`SB_AXIL_M({wire}, {dw}, {aw}, "", 1, 1, clk, '
+                                 f'{xactor_rst});']
                     elif direction_is_manager(direction):
-                        lines += [tab + f'`SB_AXIL_S({wire}, {dw}, {aw}, "");']
+                        lines += [tab + f'`SB_AXIL_S({wire}, {dw}, {aw}, "", 1, 1, clk, '
+                                 f'{xactor_rst});']
                     else:
                         raise Exception(f'Unsupported AXI-Lite direction: {direction}')
             elif type == 'gpio':
@@ -485,34 +533,6 @@ def autowrap(
                 raise Exception(f'Unsupported interface type: "{type}"')
 
             lines += ['']
-
-    max_rst_dly = None
-
-    for inst_resets in resets.values():
-        if len(inst_resets) > 0:
-            # find the max reset delay for this instance
-            inst_max_rst_dly = max(reset['delay'] for reset in inst_resets)
-
-            # update the overall max reset delay
-            if (max_rst_dly is None) or (inst_max_rst_dly > max_rst_dly):
-                max_rst_dly = inst_max_rst_dly
-
-    if max_rst_dly is not None:
-        lines += [
-            tab + f"reg [{max_rst_dly}:0] rstvec = '1;"
-            '',
-            tab + 'always @(posedge clk) begin'
-        ]
-
-        if max_rst_dly > 0:
-            lines += [(2 * tab) + f"rstvec <= {{rstvec[{max_rst_dly - 1}:0], 1'b0}};"]
-        else:
-            lines += [(2 * tab) + "rstvec <= 1'b0;"]
-
-        lines += [
-            tab + 'end',
-            ''
-        ]
 
     for instance, module in instances.items():
         # start of the instantiation
