@@ -199,6 +199,12 @@ struct PyUmiPacket {
         uint32_t len = umi_len(cmd);
         uint32_t nbytes = (len + 1) << size;
 
+        if ((len + umi_len(other.cmd) + 1) > UMI_MAX_LEN) {
+            // LEN is an eight-bit field, so the merged packet could not
+            // represent its own length; merging would silently wrap around
+            return false;
+        }
+
         if (other.dstaddr != (dstaddr + nbytes)) {
             // new dstaddr must be next sequentially
             return false;
