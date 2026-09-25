@@ -130,6 +130,11 @@ static inline uint32_t umi_len(uint32_t cmd) {
     }
 }
 DECL_UMI_SETTER(len, 8, 8)
+
+// largest value that the eight-bit LEN field can hold, corresponding to
+// (UMI_MAX_LEN + 1) words of data in a single transaction
+#define UMI_MAX_LEN 255
+
 DECL_UMI_FIELD(atype, 8, 8)
 DECL_UMI_FIELD(qos, 16, 4)
 DECL_UMI_FIELD(prot, 20, 2)
